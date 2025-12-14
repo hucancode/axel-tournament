@@ -1,0 +1,30 @@
+# Rust
+/target/
+Cargo.lock
+**/*.rs.bk
+*.pdb
+
+# Environment
+.env
+.env.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Uploads
+uploads/
+
+# Database
+*.db
+data/
+
+# Logs
+*.log
+
+# Docker
+.dockerignore
