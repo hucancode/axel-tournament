@@ -3,9 +3,11 @@ pub mod game;
 pub mod tournament;
 pub mod submission;
 pub mod leaderboard;
+pub mod matches;
 
 pub use user::*;
 pub use game::*;
 pub use tournament::*;
 pub use submission::*;
 pub use leaderboard::*;
+pub use matches::*;

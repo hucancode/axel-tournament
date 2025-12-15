@@ -1,14 +1,12 @@
 use crate::{
     error::{ApiError, ApiResult},
     models::{Claims, UserRole},
-    services::AuthService,
     AppState,
 };
 use axum::{
     extract::{Request, State},
-    http::StatusCode,
     middleware::Next,
-    response::{IntoResponse, Response},
+    response::Response,
 };
 
 pub async fn auth_middleware(

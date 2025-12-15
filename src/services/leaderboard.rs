@@ -14,25 +14,31 @@ pub async fn get_leaderboard(
     let limit = limit.min(1000); // Cap at 1000
 
     let query = if let Some(_tid) = tournament_id {
-        "SELECT *, user_id.*, tournament_id.*
-        FROM tournament_participant
-        WHERE tournament_id = $tournament_id
-        ORDER BY score DESC
-        LIMIT $limit
-        FETCH user_id, tournament_id"
+        "SELECT id, score, user_id, tournament_id,
+                user_id.username AS username,
+                user_id.location AS location,
+                tournament_id.name AS tournament_name
+         FROM tournament_participant
+         WHERE tournament_id = $tournament_id
+         ORDER BY score DESC
+         LIMIT $limit"
     } else if let Some(_gid) = game_id {
-        "SELECT *, user_id.*, tournament_id.*, tournament_id.game_id.*
-        FROM tournament_participant
-        WHERE tournament_id.game_id = $game_id
-        ORDER BY score DESC
-        LIMIT $limit
-        FETCH user_id, tournament_id"
+        "SELECT id, score, user_id, tournament_id,
+                user_id.username AS username,
+                user_id.location AS location,
+                tournament_id.name AS tournament_name
+         FROM tournament_participant
+         WHERE tournament_id.game_id = $game_id
+         ORDER BY score DESC
+         LIMIT $limit"
     } else {
-        "SELECT *, user_id.*, tournament_id.*
-        FROM tournament_participant
-        ORDER BY score DESC
-        LIMIT $limit
-        FETCH user_id, tournament_id"
+        "SELECT id, score, user_id, tournament_id,
+                user_id.username AS username,
+                user_id.location AS location,
+                tournament_id.name AS tournament_name
+         FROM tournament_participant
+         ORDER BY score DESC
+         LIMIT $limit"
     };
 
     let mut result = db.query(query).bind(("limit", limit));
@@ -48,22 +54,14 @@ pub async fn get_leaderboard(
     let mut response = result.await?;
 
     #[derive(serde::Deserialize)]
-    struct UserRecord {
-        username: String,
-        location: String,
-    }
-
-    #[derive(serde::Deserialize)]
-    struct TournamentRecord {
-        name: String,
-    }
-
-    #[derive(serde::Deserialize)]
     struct RawEntry {
-        user_id: UserRecord,
-        score: f64,
-        tournament_id: TournamentRecord,
         id: Option<Thing>,
+        user_id: Thing,
+        tournament_id: Thing,
+        score: f64,
+        username: Option<String>,
+        location: Option<String>,
+        tournament_name: Option<String>,
     }
 
     let raw_entries: Vec<RawEntry> = response.take(0)?;
@@ -73,12 +71,12 @@ pub async fn get_leaderboard(
         .enumerate()
         .map(|(idx, entry)| LeaderboardEntry {
             rank: (idx + 1) as u32,
-            user_id: entry.id.as_ref().map(|t| t.to_string()).unwrap_or_default(),
-            username: entry.user_id.username,
-            location: entry.user_id.location,
+            user_id: entry.user_id.to_string(),
+            username: entry.username.unwrap_or_default(),
+            location: entry.location.unwrap_or_default(),
             score: entry.score,
-            tournament_name: entry.tournament_id.name,
-            tournament_id: entry.id.map(|t| t.to_string()).unwrap_or_default(),
+            tournament_name: entry.tournament_name.unwrap_or_default(),
+            tournament_id: entry.tournament_id.to_string(),
         })
         .collect();
 

@@ -16,7 +16,8 @@ pub async fn create_tournament(
     start_time: Option<DateTime<Utc>>,
     end_time: Option<DateTime<Utc>>,
 ) -> ApiResult<Tournament> {
-    let game_thing = Thing::from(("game", game_id.as_str()));
+    let game_id_clean = game_id.trim_start_matches("game:").to_string();
+    let game_thing = Thing::from(("game", game_id_clean.as_str()));
 
     let tournament = Tournament {
         id: None,
@@ -103,7 +104,10 @@ pub async fn join_tournament(
     tournament_id: &str,
     user_id: &str,
 ) -> ApiResult<TournamentParticipant> {
-    let tournament = get_tournament(db, tournament_id).await?;
+    let user_id_clean = user_id.trim_start_matches("user:");
+    let tournament_id_clean = tournament_id.trim_start_matches("tournament:");
+
+    let tournament = get_tournament(db, tournament_id_clean).await?;
 
     // Check if tournament is accepting registrations
     if tournament.status != TournamentStatus::Registration {
@@ -120,8 +124,8 @@ pub async fn join_tournament(
     // Check if user already joined
     let mut existing = db
         .query("SELECT * FROM tournament_participant WHERE tournament_id = $tournament_id AND user_id = $user_id")
-        .bind(("tournament_id", Thing::from(("tournament", tournament_id))))
-        .bind(("user_id", Thing::from(("user", user_id))))
+        .bind(("tournament_id", Thing::from(("tournament", tournament_id_clean))))
+        .bind(("user_id", Thing::from(("user", user_id_clean))))
         .await?;
 
     let existing_participants: Vec<TournamentParticipant> = existing.take(0)?;
@@ -133,8 +137,8 @@ pub async fn join_tournament(
 
     let participant = TournamentParticipant {
         id: None,
-        tournament_id: Thing::from(("tournament", tournament_id)),
-        user_id: Thing::from(("user", user_id)),
+        tournament_id: Thing::from(("tournament", tournament_id_clean)),
+        user_id: Thing::from(("user", user_id_clean)),
         submission_id: None,
         score: 0.0,
         rank: None,
@@ -146,7 +150,7 @@ pub async fn join_tournament(
 
     // Increment current_players
     db.query("UPDATE $tournament_id SET current_players += 1")
-        .bind(("tournament_id", Thing::from(("tournament", tournament_id))))
+        .bind(("tournament_id", Thing::from(("tournament", tournament_id_clean))))
         .await?;
 
     created.ok_or_else(|| ApiError::Internal("Failed to join tournament".to_string()))
@@ -170,23 +174,30 @@ pub async fn leave_tournament(
     tournament_id: &str,
     user_id: &str,
 ) -> ApiResult<()> {
-    let mut result = db
-        .query("DELETE FROM tournament_participant WHERE tournament_id = $tournament_id AND user_id = $user_id")
-        .bind(("tournament_id", Thing::from(("tournament", tournament_id))))
-        .bind(("user_id", Thing::from(("user", user_id))))
+    let user_id_clean = user_id.trim_start_matches("user:");
+    let tournament_id_clean = tournament_id.trim_start_matches("tournament:");
+
+    // Find participant first to avoid matching issues
+    let mut existing = db
+        .query("SELECT * FROM tournament_participant WHERE tournament_id = $tournament_id AND user_id = $user_id")
+        .bind(("tournament_id", Thing::from(("tournament", tournament_id_clean))))
+        .bind(("user_id", Thing::from(("user", user_id_clean))))
         .await?;
+    let participants: Vec<TournamentParticipant> = existing.take(0)?;
+    let participant = participants
+        .into_iter()
+        .next()
+        .ok_or_else(|| ApiError::NotFound("Participant not found in this tournament".to_string()))?;
 
-    let deleted: Vec<TournamentParticipant> = result.take(0)?;
-
-    if deleted.is_empty() {
-        return Err(ApiError::NotFound(
-            "Participant not found in this tournament".to_string(),
-        ));
+    // Delete by specific participant id
+    if let Some(pid) = participant.id.clone() {
+        let delete_key = (pid.tb.as_str(), pid.id.to_string());
+        let _: Option<TournamentParticipant> = db.delete(delete_key).await?;
     }
 
     // Decrement current_players
     db.query("UPDATE $tournament_id SET current_players -= 1")
-        .bind(("tournament_id", Thing::from(("tournament", tournament_id))))
+        .bind(("tournament_id", Thing::from(("tournament", tournament_id_clean))))
         .await?;
 
     Ok(())

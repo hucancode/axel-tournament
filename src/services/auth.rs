@@ -1,7 +1,7 @@
 use crate::{
     db::Database,
     error::{ApiError, ApiResult},
-    models::{Claims, User, UserInfo, UserRole},
+    models::{Claims, User, UserInfo},
 };
 use argon2::{
     password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
@@ -9,7 +9,6 @@ use argon2::{
 };
 use chrono::Utc;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
-use surrealdb::sql::Thing;
 
 pub struct AuthService {
     jwt_secret: String,
@@ -78,13 +77,12 @@ impl AuthService {
     }
 
     pub fn generate_reset_token(&self) -> String {
-        use rand::Rng;
-        let token: String = rand::thread_rng()
-            .sample_iter(&rand::distributions::Alphanumeric)
+        use rand::{distr::Alphanumeric, Rng};
+        rand::rng()
+            .sample_iter(&Alphanumeric)
             .take(32)
             .map(char::from)
-            .collect();
-        token
+            .collect()
     }
 
     pub fn user_to_info(user: &User) -> ApiResult<UserInfo> {

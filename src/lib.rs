@@ -5,6 +5,7 @@ pub mod handlers;
 pub mod middleware;
 pub mod models;
 pub mod services;
+pub mod router;
 
 use services::{AuthService, EmailService};
 use std::sync::Arc;

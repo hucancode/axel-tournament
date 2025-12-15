@@ -1,4 +1,4 @@
-.PHONY: test-db test-db-stop test clean help
+.PHONY: test-db test-db-stop test clean
 
 # Container runtime (docker or podman)
 CONTAINER_RUNTIME := $(shell which podman 2>/dev/null || which docker 2>/dev/null || echo docker)
@@ -31,12 +31,3 @@ test: test-db
 clean: test-db-stop
 	@echo "Cleaning build artifacts..."
 	@cargo clean
-
-# Show help
-help:
-	@echo "Available targets:"
-	@echo "  test-db       - Start in-memory SurrealDB on port 8001"
-	@echo "  test-db-stop  - Stop test SurrealDB instance"
-	@echo "  test          - Run tests with test database (auto start/stop)"
-	@echo "  clean         - Stop database and clean build artifacts"
-	@echo "  help          - Show this help message"

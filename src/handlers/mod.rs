@@ -5,6 +5,7 @@ pub mod tournament;
 pub mod submission;
 pub mod leaderboard;
 pub mod admin;
+pub mod matches;
 
 pub use auth::*;
 pub use user::*;
@@ -13,3 +14,4 @@ pub use tournament::*;
 pub use submission::*;
 pub use leaderboard::*;
 pub use admin::*;
+pub use matches::*;

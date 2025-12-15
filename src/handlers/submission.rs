@@ -57,7 +57,9 @@ pub async fn get_submission(
     let submission = services::submission::get_submission(&state.db, &submission_id).await?;
 
     // Check if user owns this submission
-    if submission.user_id.id.to_string() != claims.sub {
+    let submission_user = submission.user_id.to_string();
+    let token_user = claims.sub.clone();
+    if submission_user.trim_start_matches("user:") != token_user.trim_start_matches("user:") {
         return Err(crate::error::ApiError::Forbidden(
             "You don't have access to this submission".to_string(),
         ));

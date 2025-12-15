@@ -1,7 +1,7 @@
 use crate::{config::EmailConfig, error::ApiResult};
 use lettre::{
     message::header::ContentType, transport::smtp::authentication::Credentials, Message,
-    SmtpTransport, Transport,
+    SmtpTransport,
 };
 
 pub struct EmailService {
@@ -25,7 +25,7 @@ impl EmailService {
             reset_link
         );
 
-        let email = Message::builder()
+        let _email = Message::builder()
             .from(self.config.from_address.parse().unwrap())
             .to(to_email.parse().unwrap())
             .subject("Password Reset Request")
@@ -38,14 +38,14 @@ impl EmailService {
             self.config.smtp_password.clone(),
         );
 
-        let mailer = SmtpTransport::relay(&self.config.smtp_host)
+        let _mailer = SmtpTransport::relay(&self.config.smtp_host)
             .unwrap()
             .credentials(creds)
             .build();
 
         // For development, we'll just log the email instead of sending
-        tracing::info!("Would send password reset email to: {}", to_email);
-        tracing::info!("Reset link: {}", reset_link);
+
+
 
         // Uncomment to actually send emails
         // mailer.send(&email).map_err(|e| {

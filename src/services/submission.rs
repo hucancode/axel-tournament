@@ -16,6 +16,10 @@ pub async fn create_submission(
     language: ProgrammingLanguage,
     code: String,
 ) -> ApiResult<Submission> {
+    let user_id_clean = user_id.trim_start_matches("user:");
+    let tournament_id_clean = tournament_id.trim_start_matches("tournament:");
+    let game_id_clean = game_id.trim_start_matches("game:");
+
     // Create uploads directory if it doesn't exist
     let upload_dir = Path::new("uploads");
     if !upload_dir.exists() {
@@ -39,9 +43,9 @@ pub async fn create_submission(
 
     let submission = Submission {
         id: None,
-        user_id: Thing::from(("user", user_id)),
-        tournament_id: Thing::from(("tournament", tournament_id)),
-        game_id: Thing::from(("game", game_id)),
+        user_id: Thing::from(("user", user_id_clean)),
+        tournament_id: Thing::from(("tournament", tournament_id_clean)),
+        game_id: Thing::from(("game", game_id_clean)),
         language,
         code,
         file_path: file_path.to_string_lossy().to_string(),
@@ -75,13 +79,14 @@ pub async fn list_user_submissions(
     tournament_id: Option<&str>,
 ) -> ApiResult<Vec<Submission>> {
     let mut result = if let Some(tid) = tournament_id {
+        let tournament_id_clean = tid.trim_start_matches("tournament:");
         db.query("SELECT * FROM submission WHERE user_id = $user_id AND tournament_id = $tournament_id ORDER BY created_at DESC")
-            .bind(("user_id", Thing::from(("user", user_id))))
-            .bind(("tournament_id", Thing::from(("tournament", tid))))
+            .bind(("user_id", Thing::from(("user", user_id.trim_start_matches("user:")))))
+            .bind(("tournament_id", Thing::from(("tournament", tournament_id_clean))))
             .await?
     } else {
         db.query("SELECT * FROM submission WHERE user_id = $user_id ORDER BY created_at DESC")
-            .bind(("user_id", Thing::from(("user", user_id))))
+            .bind(("user_id", Thing::from(("user", user_id.trim_start_matches("user:")))))
             .await?
     };
 

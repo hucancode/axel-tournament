@@ -1,12 +1,11 @@
 use crate::{
     error::ApiResult,
-    models::{User, UserInfo},
+    models::UserInfo,
     services::{self, AuthService},
     AppState,
 };
 use axum::{
     extract::{Path, Query, State},
-    http::StatusCode,
     Json,
 };
 use serde::Deserialize;

@@ -140,10 +140,6 @@ pub async fn create_admin_user(
         };
 
         let _: Option<User> = db.create("user").content(admin).await?;
-        tracing::info!("Seed admin user created with email: {}", email);
-    } else {
-        tracing::debug!("User table not empty, skipping seed admin creation");
     }
-
     Ok(())
 }

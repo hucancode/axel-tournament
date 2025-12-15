@@ -4,15 +4,41 @@ use crate::{
     services::{self, AuthService},
     AppState,
 };
-use axum::{extract::State, http::StatusCode, Json};
 use chrono::{Duration, Utc};
+use axum::{extract::State, http::StatusCode, Json};
 use oauth2::{
     basic::BasicClient, AuthUrl, ClientId, ClientSecret, RedirectUrl, TokenUrl,
-    AuthorizationCode, TokenResponse,
+    AuthorizationCode, EndpointNotSet, EndpointSet, TokenResponse,
 };
 use reqwest;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use validator::Validate;
+
+type GoogleClient =
+    BasicClient<EndpointSet, EndpointNotSet, EndpointNotSet, EndpointNotSet, EndpointSet>;
+
+fn build_google_client(config: &crate::config::Config) -> Result<GoogleClient, ApiError> {
+    let client = BasicClient::new(ClientId::new(
+        config.oauth.google_client_id.clone(),
+    ))
+    .set_client_secret(ClientSecret::new(
+        config.oauth.google_client_secret.clone(),
+    ))
+    .set_auth_uri(
+        AuthUrl::new("https://accounts.google.com/o/oauth2/v2/auth".to_string())
+            .map_err(|e| ApiError::Auth(format!("Invalid auth url: {}", e)))?,
+    )
+    .set_token_uri(
+        TokenUrl::new("https://oauth2.googleapis.com/token".to_string())
+            .map_err(|e| ApiError::Auth(format!("Invalid token url: {}", e)))?,
+    )
+    .set_redirect_uri(
+        RedirectUrl::new(config.oauth.google_redirect_uri.clone())
+            .map_err(|e| ApiError::Auth(format!("Invalid redirect url: {}", e)))?,
+    );
+
+    Ok(client)
+}
 
 pub async fn register(
     State(state): State<AppState>,
@@ -103,8 +129,7 @@ pub async fn request_password_reset(
     if let Some(mut user) = services::auth::get_user_by_email(&state.db, &payload.email).await? {
         // Generate reset token
         let reset_token = state.auth_service.generate_reset_token();
-        // Set expires 1 hour from now - using SurrealDB Datetime default (current time)
-        let expires = surrealdb::sql::Datetime::default();
+        let expires: surrealdb::sql::Datetime = (Utc::now() + Duration::hours(1)).into();
 
         user.password_reset_token = Some(reset_token.clone());
         user.password_reset_expires = Some(expires);
@@ -135,8 +160,8 @@ pub async fn confirm_password_reset(
     let token = payload.token.clone();
     let mut result = state
         .db
-        .query("SELECT * FROM user WHERE password_reset_token = $token")
-        .bind(("token", token))
+        .query("SELECT * FROM user WHERE password_reset_token = $reset_token")
+        .bind(("reset_token", token))
         .await?;
 
     let users: Vec<User> = result.take(0)?;
@@ -147,7 +172,8 @@ pub async fn confirm_password_reset(
 
     // Check if token expired
     if let Some(expires) = user.password_reset_expires {
-        if expires < surrealdb::sql::Datetime::default() {
+        let now: surrealdb::sql::Datetime = Utc::now().into();
+        if expires < now {
             return Err(ApiError::BadRequest("Reset token has expired".to_string()));
         }
     } else {
@@ -183,13 +209,7 @@ pub struct GoogleUserInfo {
 }
 
 pub async fn google_login(State(state): State<AppState>) -> ApiResult<Json<serde_json::Value>> {
-    let client = BasicClient::new(
-        ClientId::new(state.config.oauth.google_client_id.clone()),
-        Some(ClientSecret::new(state.config.oauth.google_client_secret.clone())),
-        AuthUrl::new("https://accounts.google.com/o/oauth2/v2/auth".to_string()).unwrap(),
-        Some(TokenUrl::new("https://oauth2.googleapis.com/token".to_string()).unwrap()),
-    )
-    .set_redirect_uri(RedirectUrl::new(state.config.oauth.google_redirect_uri.clone()).unwrap());
+    let client = build_google_client(&state.config)?;
 
     let (auth_url, _csrf_token) = client
         .authorize_url(|| oauth2::CsrfToken::new("csrf_token".to_string()))
@@ -206,17 +226,12 @@ pub async fn google_callback(
     State(state): State<AppState>,
     axum::extract::Query(query): axum::extract::Query<GoogleCallbackQuery>,
 ) -> ApiResult<Json<AuthResponse>> {
-    let client = BasicClient::new(
-        ClientId::new(state.config.oauth.google_client_id.clone()),
-        Some(ClientSecret::new(state.config.oauth.google_client_secret.clone())),
-        AuthUrl::new("https://accounts.google.com/o/oauth2/v2/auth".to_string()).unwrap(),
-        Some(TokenUrl::new("https://oauth2.googleapis.com/token".to_string()).unwrap()),
-    )
-    .set_redirect_uri(RedirectUrl::new(state.config.oauth.google_redirect_uri.clone()).unwrap());
+    let client = build_google_client(&state.config)?;
+    let http_client = reqwest::Client::new();
 
     let token_result = client
         .exchange_code(AuthorizationCode::new(query.code))
-        .request_async(oauth2::reqwest::async_http_client)
+        .request_async(&http_client)
         .await
         .map_err(|e| ApiError::Auth(format!("Failed to exchange code: {}", e)))?;
 
