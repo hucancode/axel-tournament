@@ -2,7 +2,7 @@
     import { tournamentService } from "$lib/services/tournaments";
     import { gameService } from "$lib/services/games";
     import { authStore } from "$lib/stores/auth";
-    import { page } from "$app/stores";
+    import { page } from "$app/state";
     import { onMount } from "svelte";
     import { goto } from "$app/navigation";
     import type { Tournament, TournamentParticipant, Game } from "$lib/types";

@@ -1,6 +1,6 @@
 <script lang="ts">
     import { goto } from "$app/navigation";
-    import { page } from "$app/stores";
+    import { page } from "$app/state";
     import { onMount } from "svelte";
     import { authStore } from "$lib/stores/auth";
     import { submissionService } from "$lib/services/submissions";

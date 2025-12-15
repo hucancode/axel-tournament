@@ -1,6 +1,6 @@
 <script lang="ts">
     import "../app.css";
-    import { page } from "$app/stores";
+    import { page } from "$app/state";
     import { authStore } from "$lib/stores/auth";
     import { goto } from "$app/navigation";
     let { children } = $props();
