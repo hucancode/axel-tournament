@@ -19,7 +19,7 @@ services:
 
   api:
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile
     container_name: axel-tournament-api
     ports:
@@ -40,7 +40,7 @@ services:
     networks:
       - axel-network
     volumes:
-      - ./uploads:/app/uploads
+      - ./backend/uploads:/app/uploads
 
 networks:
   axel-network:
