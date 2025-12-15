@@ -1,5 +1,5 @@
 # Build stage
-FROM rust:1.75-slim as builder
+FROM rust:1.92-slim as builder
 
 WORKDIR /app
 
@@ -15,7 +15,11 @@ COPY Cargo.toml Cargo.lock* ./
 COPY src ./src
 
 # Build for release
-RUN cargo build --release
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/usr/local/cargo/git \
+    --mount=type=cache,target=/app/target \
+    cargo build --release && \
+    cp /app/target/release/axel-tournament /app/axel-tournament
 
 # Runtime stage
 FROM debian:bookworm-slim
@@ -28,7 +32,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy the binary from builder
-COPY --from=builder /app/target/release/axel-tournament /app/axel-tournament
+COPY --from=builder /app/axel-tournament /app/axel-tournament
 
 # Expose port
 EXPOSE 8080
