@@ -64,7 +64,6 @@ pub struct AppConfig {
 impl Config {
     pub fn from_env() -> Result<Self, config::ConfigError> {
         dotenv::dotenv().ok();
-
         Ok(Config {
             server: ServerConfig {
                 host: env::var("SERVER_HOST").unwrap_or_else(|_| "0.0.0.0".to_string()),
@@ -81,20 +80,19 @@ impl Config {
                 database: env::var("DATABASE_DB").unwrap_or_else(|_| "axel".to_string()),
             },
             jwt: JwtConfig {
-                secret: env::var("JWT_SECRET")
-                    .expect("JWT_SECRET must be set"),
+                secret: env::var("JWT_SECRET").expect("JWT_SECRET must be set"),
                 expiration: env::var("JWT_EXPIRATION")
                     .unwrap_or_else(|_| "86400".to_string())
                     .parse()
                     .unwrap_or(86400),
             },
             oauth: OAuthConfig {
-                google_client_id: env::var("GOOGLE_CLIENT_ID")
-                    .unwrap_or_else(|_| "".to_string()),
+                google_client_id: env::var("GOOGLE_CLIENT_ID").unwrap_or_else(|_| "".to_string()),
                 google_client_secret: env::var("GOOGLE_CLIENT_SECRET")
                     .unwrap_or_else(|_| "".to_string()),
-                google_redirect_uri: env::var("GOOGLE_REDIRECT_URI")
-                    .unwrap_or_else(|_| "http://localhost:8080/api/auth/google/callback".to_string()),
+                google_redirect_uri: env::var("GOOGLE_REDIRECT_URI").unwrap_or_else(|_| {
+                    "http://localhost:8080/api/auth/google/callback".to_string()
+                }),
             },
             email: EmailConfig {
                 smtp_host: env::var("SMTP_HOST").unwrap_or_else(|_| "smtp.gmail.com".to_string()),
@@ -112,14 +110,12 @@ impl Config {
                     .unwrap_or_else(|_| "10".to_string())
                     .parse()
                     .unwrap_or(10),
-                default_location: env::var("DEFAULT_LOCATION")
-                    .unwrap_or_else(|_| "US".to_string()),
+                default_location: env::var("DEFAULT_LOCATION").unwrap_or_else(|_| "US".to_string()),
             },
             admin: AdminConfig {
                 email: env::var("ADMIN_EMAIL")
                     .unwrap_or_else(|_| "admin@axel-tournament.com".to_string()),
-                password: env::var("ADMIN_PASSWORD")
-                    .expect("ADMIN_PASSWORD must be set"),
+                password: env::var("ADMIN_PASSWORD").expect("ADMIN_PASSWORD must be set"),
             },
         })
     }

@@ -36,7 +36,6 @@ services:
       - axel-network
     volumes:
       - ./backend/uploads:/app/uploads
-
   frontend:
     build:
       context: ./frontend

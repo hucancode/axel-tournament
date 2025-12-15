@@ -15,7 +15,6 @@ async fn list_games_public() {
     let app = common::setup_app(&common::unique_name("game_api_")).await;
     let (status, body) =
         common::json_request(&app, http::Method::GET, "/api/games", None, None).await;
-
     assert_eq!(status, StatusCode::OK);
     assert!(body.is_array());
 }
@@ -25,7 +24,6 @@ async fn admin_can_crud_games() {
     let app = common::setup_app(&common::unique_name("game_api_")).await;
     let admin_token = common::admin_token(&app).await;
     let game_name = format!("Game {}", common::unique_name(""));
-
     let (create_status, create_body) = common::json_request(
         &app,
         http::Method::POST,
@@ -39,10 +37,8 @@ async fn admin_can_crud_games() {
         Some(&admin_token),
     )
     .await;
-
     assert_eq!(create_status, StatusCode::CREATED);
     let game_id = extract_id(&create_body);
-
     let (get_status, get_body) = common::json_request(
         &app,
         http::Method::GET,
@@ -51,10 +47,8 @@ async fn admin_can_crud_games() {
         None,
     )
     .await;
-
     assert_eq!(get_status, StatusCode::OK);
     assert_eq!(get_body["name"], create_body["name"]);
-
     let (update_status, update_body) = common::json_request(
         &app,
         http::Method::PUT,
@@ -69,11 +63,9 @@ async fn admin_can_crud_games() {
         Some(&admin_token),
     )
     .await;
-
     assert_eq!(update_status, StatusCode::OK);
     assert_eq!(update_body["description"], "Updated description");
     assert_eq!(update_body["is_active"], false);
-
     let (delete_status, _) = common::json_request(
         &app,
         http::Method::DELETE,
@@ -82,9 +74,7 @@ async fn admin_can_crud_games() {
         Some(&admin_token),
     )
     .await;
-
     assert!(delete_status == StatusCode::NO_CONTENT || delete_status == StatusCode::OK);
-
     let (missing_status, _) = common::json_request(
         &app,
         http::Method::GET,

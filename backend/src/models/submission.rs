@@ -29,9 +29,7 @@ pub enum SubmissionStatus {
 #[derive(Debug, Deserialize, Validate)]
 pub struct CreateSubmissionRequest {
     pub tournament_id: String,
-
     pub language: String, // Will be validated and converted to ProgrammingLanguage
-
     #[validate(length(min = 1, max = 1048576, message = "Code must be 1 byte to 1MB"))]
     pub code: String,
 }

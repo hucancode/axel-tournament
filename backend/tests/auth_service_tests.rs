@@ -9,7 +9,11 @@ async fn test_auth_service_password_hashing() {
     let password = "test_password_123";
     let hash = auth_service.hash_password(password).unwrap();
     assert!(auth_service.verify_password(password, &hash).unwrap());
-    assert!(!auth_service.verify_password("wrong_password", &hash).unwrap());
+    assert!(
+        !auth_service
+            .verify_password("wrong_password", &hash)
+            .unwrap()
+    );
 }
 
 #[tokio::test]
@@ -33,7 +37,6 @@ async fn test_auth_service_jwt_generation() {
     };
     let token = auth_service.generate_token(&user).unwrap();
     assert!(!token.is_empty());
-
     let claims = auth_service.validate_token(&token).unwrap();
     assert_eq!(claims.email, "test@example.com");
     assert_eq!(claims.role, UserRole::Player);
@@ -56,7 +59,6 @@ fn test_register_request_validation() {
         location: Some("US".to_string()),
     };
     assert!(valid_request.validate().is_ok());
-
     let invalid_email = RegisterRequest {
         email: "not-an-email".to_string(),
         username: "testuser".to_string(),
@@ -64,7 +66,6 @@ fn test_register_request_validation() {
         location: Some("US".to_string()),
     };
     assert!(invalid_email.validate().is_err());
-
     let short_password = RegisterRequest {
         email: "test@example.com".to_string(),
         username: "testuser".to_string(),
@@ -72,7 +73,6 @@ fn test_register_request_validation() {
         location: Some("US".to_string()),
     };
     assert!(short_password.validate().is_err());
-
     let short_username = RegisterRequest {
         email: "test@example.com".to_string(),
         username: "ab".to_string(),
@@ -90,7 +90,6 @@ fn test_login_request_validation() {
         password: "password123".to_string(),
     };
     assert!(valid_request.validate().is_ok());
-
     let invalid_email = LoginRequest {
         email: "not-an-email".to_string(),
         password: "password123".to_string(),

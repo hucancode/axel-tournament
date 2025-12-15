@@ -10,7 +10,10 @@ fn extract_id(body: &serde_json::Value) -> String {
         .to_string()
 }
 
-async fn bootstrap_game_and_tournament(app: &common::TestApp, admin_token: &str) -> (String, String) {
+async fn bootstrap_game_and_tournament(
+    app: &common::TestApp,
+    admin_token: &str,
+) -> (String, String) {
     let (_, game_body) = common::json_request(
         app,
         http::Method::POST,
@@ -25,7 +28,6 @@ async fn bootstrap_game_and_tournament(app: &common::TestApp, admin_token: &str)
     )
     .await;
     let game_id = extract_id(&game_body);
-
     let (_, tournament_body) = common::json_request(
         app,
         http::Method::POST,
@@ -40,7 +42,6 @@ async fn bootstrap_game_and_tournament(app: &common::TestApp, admin_token: &str)
         Some(admin_token),
     )
     .await;
-
     let tournament_id = extract_id(&tournament_body);
     (game_id, tournament_id)
 }
@@ -62,7 +63,6 @@ async fn create_player_submission(
         .await;
         assert_eq!(join_status, StatusCode::CREATED);
     }
-
     let (status, body) = common::json_request(
         app,
         http::Method::POST,
@@ -75,7 +75,6 @@ async fn create_player_submission(
         Some(token),
     )
     .await;
-
     assert!(status == StatusCode::CREATED || status == StatusCode::OK);
     body["id"].as_str().unwrap().to_string()
 }
@@ -84,9 +83,7 @@ async fn create_player_submission(
 async fn admin_can_create_and_update_match() {
     let app = common::setup_app(&common::unique_name("match_api_")).await;
     let admin_token = common::admin_token(&app).await;
-
     let (game_id, tournament_id) = bootstrap_game_and_tournament(&app, &admin_token).await;
-
     // Register two players
     let player_one = common::json_request(
         &app,
@@ -116,7 +113,6 @@ async fn admin_can_create_and_update_match() {
     )
     .await
     .1;
-
     let sub_one = create_player_submission(
         &app,
         &tournament_id,
@@ -131,7 +127,6 @@ async fn admin_can_create_and_update_match() {
         true,
     )
     .await;
-
     // Create match
     let (create_status, match_body) = common::json_request(
         &app,
@@ -152,7 +147,6 @@ async fn admin_can_create_and_update_match() {
         );
     }
     let match_id = extract_id(&match_body);
-
     // Update match result
     let (update_status, updated_match) = common::json_request(
         &app,
@@ -183,9 +177,11 @@ async fn admin_can_create_and_update_match() {
         Some(&admin_token),
     )
     .await;
-
     if update_status != StatusCode::OK {
-        panic!("update match failed: status {} body {:?}", update_status, updated_match);
+        panic!(
+            "update match failed: status {} body {:?}",
+            update_status, updated_match
+        );
     }
     assert_eq!(updated_match["status"], "completed");
 }

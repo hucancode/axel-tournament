@@ -15,7 +15,6 @@ fn extract_id(body: &serde_json::Value) -> String {
 async fn leaderboard_returns_scored_players() {
     let app = common::setup_app(&common::unique_name("leaderboard_api_")).await;
     let admin_token = common::admin_token(&app).await;
-
     // Create game
     let (_, game_body) = common::json_request(
         &app,
@@ -31,7 +30,6 @@ async fn leaderboard_returns_scored_players() {
     )
     .await;
     let game_id = extract_id(&game_body);
-
     // Create tournament
     let (_, tournament_body) = common::json_request(
         &app,
@@ -48,7 +46,6 @@ async fn leaderboard_returns_scored_players() {
     )
     .await;
     let tournament_id = extract_id(&tournament_body);
-
     // Register two players and join
     for i in 0..2 {
         let (_, register_body) = common::json_request(
@@ -74,7 +71,6 @@ async fn leaderboard_returns_scored_players() {
         )
         .await;
     }
-
     // Update scores via service helper
     let participants = tournament::get_tournament_participants(&app.state.db, &tournament_id)
         .await
@@ -89,7 +85,6 @@ async fn leaderboard_returns_scored_players() {
             .await
             .unwrap();
     }
-
     let (status, body) = common::json_request(
         &app,
         http::Method::GET,
@@ -98,7 +93,6 @@ async fn leaderboard_returns_scored_players() {
         None,
     )
     .await;
-
     if status != StatusCode::OK {
         panic!("leaderboard failed: status {} body {:?}", status, body);
     }

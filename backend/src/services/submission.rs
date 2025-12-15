@@ -3,8 +3,8 @@ use crate::{
     error::{ApiError, ApiResult},
     models::{ProgrammingLanguage, Submission, SubmissionStatus},
 };
-use surrealdb::sql::Datetime;
 use std::path::Path;
+use surrealdb::sql::Datetime;
 use surrealdb::sql::Thing;
 use tokio::fs;
 
@@ -19,13 +19,11 @@ pub async fn create_submission(
     let user_id_clean = user_id.trim_start_matches("user:");
     let tournament_id_clean = tournament_id.trim_start_matches("tournament:");
     let game_id_clean = game_id.trim_start_matches("game:");
-
     // Create uploads directory if it doesn't exist
     let upload_dir = Path::new("uploads");
     if !upload_dir.exists() {
         fs::create_dir_all(upload_dir).await?;
     }
-
     // Generate file path
     let timestamp = Datetime::default().timestamp();
     let file_name = format!(
@@ -37,10 +35,8 @@ pub async fn create_submission(
         language.to_extension()
     );
     let file_path = upload_dir.join(&file_name);
-
     // Write code to file
     fs::write(&file_path, &code).await?;
-
     let submission = Submission {
         id: None,
         user_id: Thing::from(("user", user_id_clean)),
@@ -53,18 +49,15 @@ pub async fn create_submission(
         error_message: None,
         created_at: Datetime::default(),
     };
-
     let created: Option<Submission> = db.create("submission").content(submission).await?;
-
-    let submission = created.ok_or_else(|| ApiError::Internal("Failed to create submission".to_string()))?;
-
+    let submission =
+        created.ok_or_else(|| ApiError::Internal("Failed to create submission".to_string()))?;
     // Update tournament participant with latest submission
     db.query("UPDATE tournament_participant SET submission_id = $submission_id WHERE tournament_id = $tournament_id AND user_id = $user_id")
         .bind(("submission_id", submission.id.clone().unwrap()))
         .bind(("tournament_id", Thing::from(("tournament", tournament_id))))
         .bind(("user_id", Thing::from(("user", user_id))))
         .await?;
-
     Ok(submission)
 }
 
@@ -86,10 +79,12 @@ pub async fn list_user_submissions(
             .await?
     } else {
         db.query("SELECT * FROM submission WHERE user_id = $user_id ORDER BY created_at DESC")
-            .bind(("user_id", Thing::from(("user", user_id.trim_start_matches("user:")))))
+            .bind((
+                "user_id",
+                Thing::from(("user", user_id.trim_start_matches("user:"))),
+            ))
             .await?
     };
-
     let submissions: Vec<Submission> = result.take(0)?;
     Ok(submissions)
 }
@@ -104,14 +99,12 @@ pub async fn update_submission_status(
         .unwrap()
         .trim_matches('"')
         .to_string();
-
     let mut result = db
         .query("UPDATE $submission_id SET status = $status, error_message = $error")
         .bind(("submission_id", Thing::from(("submission", submission_id))))
         .bind(("status", status_str))
         .bind(("error", error_message))
         .await?;
-
     let submissions: Vec<Submission> = result.take(0)?;
     submissions
         .into_iter()

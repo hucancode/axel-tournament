@@ -31,7 +31,6 @@ impl ProgrammingLanguage {
             _ => None,
         }
     }
-
     pub fn to_extension(&self) -> &str {
         match self {
             Self::Rust => "rs",
@@ -45,10 +44,8 @@ impl ProgrammingLanguage {
 pub struct CreateGameRequest {
     #[validate(length(min = 1, max = 100, message = "Game name must be 1-100 characters"))]
     pub name: String,
-
     #[validate(length(min = 1, max = 1000, message = "Description must be 1-1000 characters"))]
     pub description: String,
-
     pub rules: serde_json::Value,
     pub supported_languages: Vec<ProgrammingLanguage>,
 }
@@ -57,10 +54,8 @@ pub struct CreateGameRequest {
 pub struct UpdateGameRequest {
     #[validate(length(min = 1, max = 100, message = "Game name must be 1-100 characters"))]
     pub name: Option<String>,
-
     #[validate(length(min = 1, max = 1000, message = "Description must be 1-1000 characters"))]
     pub description: Option<String>,
-
     pub rules: Option<serde_json::Value>,
     pub supported_languages: Option<Vec<ProgrammingLanguage>>,
     pub is_active: Option<bool>,

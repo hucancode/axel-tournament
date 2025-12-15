@@ -4,8 +4,8 @@ pub mod error;
 pub mod handlers;
 pub mod middleware;
 pub mod models;
-pub mod services;
 pub mod router;
+pub mod services;
 
 use services::{AuthService, EmailService};
 use std::sync::Arc;

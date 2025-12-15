@@ -1,8 +1,4 @@
-use crate::{
-    db::Database,
-    error::ApiResult,
-    models::LeaderboardEntry,
-};
+use crate::{db::Database, error::ApiResult, models::LeaderboardEntry};
 use surrealdb::sql::Thing;
 
 pub async fn get_leaderboard(
@@ -12,7 +8,6 @@ pub async fn get_leaderboard(
     game_id: Option<&str>,
 ) -> ApiResult<Vec<LeaderboardEntry>> {
     let limit = limit.min(1000); // Cap at 1000
-
     let query = if let Some(_tid) = tournament_id {
         "SELECT id, score, user_id, tournament_id,
                 user_id.username AS username,
@@ -40,19 +35,14 @@ pub async fn get_leaderboard(
          ORDER BY score DESC
          LIMIT $limit"
     };
-
     let mut result = db.query(query).bind(("limit", limit));
-
     if let Some(tid) = tournament_id {
         result = result.bind(("tournament_id", Thing::from(("tournament", tid))));
     }
-
     if let Some(gid) = game_id {
         result = result.bind(("game_id", Thing::from(("game", gid))));
     }
-
     let mut response = result.await?;
-
     #[derive(serde::Deserialize)]
     struct RawEntry {
         id: Option<Thing>,
@@ -63,9 +53,7 @@ pub async fn get_leaderboard(
         location: Option<String>,
         tournament_name: Option<String>,
     }
-
     let raw_entries: Vec<RawEntry> = response.take(0)?;
-
     let entries = raw_entries
         .into_iter()
         .enumerate()
@@ -79,6 +67,5 @@ pub async fn get_leaderboard(
             tournament_id: entry.tournament_id.to_string(),
         })
         .collect();
-
     Ok(entries)
 }

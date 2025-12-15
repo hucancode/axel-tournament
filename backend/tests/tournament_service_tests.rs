@@ -17,7 +17,6 @@ async fn setup_test_db() -> axel_tournament::db::Database {
         namespace: namespace.clone(),
         database: namespace,
     };
-
     db::connect(&config)
         .await
         .expect("Failed to connect to test database")
@@ -26,7 +25,6 @@ async fn setup_test_db() -> axel_tournament::db::Database {
 #[tokio::test]
 async fn test_create_and_get_tournament() {
     let db = setup_test_db().await;
-
     let game = game::create_game(
         &db,
         common::unique_name("Tournament Game "),
@@ -37,7 +35,6 @@ async fn test_create_and_get_tournament() {
     .await
     .unwrap();
     let game_id = game.id.unwrap().id.to_string();
-
     let tournament = tournament::create_tournament(
         &db,
         game_id.clone(),
@@ -50,10 +47,10 @@ async fn test_create_and_get_tournament() {
     )
     .await
     .unwrap();
-
     let tournament_id = tournament.id.unwrap().id.to_string();
-    let fetched = tournament::get_tournament(&db, &tournament_id).await.unwrap();
-
+    let fetched = tournament::get_tournament(&db, &tournament_id)
+        .await
+        .unwrap();
     assert_eq!(fetched.name, tournament.name);
     assert_eq!(fetched.status, TournamentStatus::Registration);
 }
@@ -71,7 +68,6 @@ async fn test_update_tournament_status() {
     .await
     .unwrap();
     let game_id = game.id.unwrap().id.to_string();
-
     let tournament = tournament::create_tournament(
         &db,
         game_id,
@@ -84,7 +80,6 @@ async fn test_update_tournament_status() {
     )
     .await
     .unwrap();
-
     let tournament_id = tournament.id.unwrap().id.to_string();
     let updated = tournament::update_tournament(
         &db,
@@ -97,7 +92,6 @@ async fn test_update_tournament_status() {
     )
     .await
     .unwrap();
-
     assert_eq!(updated.name, "Updated");
     assert_eq!(updated.status, TournamentStatus::Running);
 }
@@ -106,7 +100,6 @@ async fn test_update_tournament_status() {
 async fn test_join_and_leave_tournament() {
     let db = setup_test_db().await;
     let auth_service = AuthService::new("test-secret".to_string(), 3600);
-
     let game = game::create_game(
         &db,
         common::unique_name("Join Game "),
@@ -117,7 +110,6 @@ async fn test_join_and_leave_tournament() {
     .await
     .unwrap();
     let game_id = game.id.unwrap().id.to_string();
-
     let tournament = tournament::create_tournament(
         &db,
         game_id,
@@ -131,7 +123,6 @@ async fn test_join_and_leave_tournament() {
     .await
     .unwrap();
     let tournament_id = tournament.id.unwrap().id.to_string();
-
     let password_hash = auth_service.hash_password("password123").unwrap();
     let user = user::create_user(
         &db,
@@ -145,21 +136,17 @@ async fn test_join_and_leave_tournament() {
     .await
     .unwrap();
     let user_id = user.id.unwrap().id.to_string();
-
     let participant = tournament::join_tournament(&db, &tournament_id, &user_id)
         .await
         .unwrap();
     assert_eq!(participant.user_id.id.to_string(), user_id);
-
     let participants = tournament::get_tournament_participants(&db, &tournament_id)
         .await
         .unwrap();
     assert_eq!(participants.len(), 1);
-
     tournament::leave_tournament(&db, &tournament_id, &user_id)
         .await
         .unwrap();
-
     let after_leave = tournament::get_tournament_participants(&db, &tournament_id)
         .await
         .unwrap();
@@ -178,7 +165,6 @@ fn test_create_tournament_request_validation() {
         end_time: None,
     };
     assert!(valid_request.validate().is_ok());
-
     let low_min = CreateTournamentRequest {
         game_id: "game123".to_string(),
         name: "Test Tournament".to_string(),
@@ -189,7 +175,6 @@ fn test_create_tournament_request_validation() {
         end_time: None,
     };
     assert!(low_min.validate().is_err());
-
     let high_max = CreateTournamentRequest {
         game_id: "game123".to_string(),
         name: "Test Tournament".to_string(),
@@ -211,7 +196,6 @@ async fn test_tournament_status_serialization() {
         TournamentStatus::Completed,
         TournamentStatus::Cancelled,
     ];
-
     for status in statuses {
         let json = serde_json::to_string(&status).unwrap();
         let deserialized: TournamentStatus = serde_json::from_str(&json).unwrap();

@@ -1,9 +1,9 @@
 use crate::config::DatabaseConfig;
 use crate::models::{User, UserRole};
+use surrealdb::Surreal;
 use surrealdb::engine::remote::ws::{Client, Ws};
 use surrealdb::opt::auth::Root;
 use surrealdb::sql::Datetime;
-use surrealdb::Surreal;
 
 // Type alias for database connection
 pub type Database = Surreal<Client>;
@@ -12,26 +12,21 @@ pub async fn connect(config: &DatabaseConfig) -> Result<Database, surrealdb::Err
     // Remove ws:// prefix if present, as Surreal::new::<Ws> expects just host:port
     let endpoint = config.url.trim_start_matches("ws://");
     let db = Surreal::new::<Ws>(endpoint).await?;
-
     db.signin(Root {
         username: &config.user,
         password: &config.pass,
     })
     .await?;
-
     db.use_ns(&config.namespace)
         .use_db(&config.database)
         .await?;
-
     // Initialize schema
     init_schema(&db).await?;
-
     Ok(db)
 }
 
 pub async fn init_schema(db: &Database) -> Result<(), surrealdb::Error> {
     // Define tables with proper constraints
-
     // Users table
     db.query(
         "DEFINE TABLE IF NOT EXISTS user SCHEMAFULL;
@@ -49,9 +44,9 @@ pub async fn init_schema(db: &Database) -> Result<(), surrealdb::Error> {
          DEFINE FIELD IF NOT EXISTS password_reset_token ON user TYPE option<string>;
          DEFINE FIELD IF NOT EXISTS password_reset_expires ON user TYPE option<datetime>;
          DEFINE INDEX IF NOT EXISTS unique_email ON user COLUMNS email UNIQUE;
-         DEFINE INDEX IF NOT EXISTS unique_username ON user COLUMNS username UNIQUE;"
-    ).await?;
-
+         DEFINE INDEX IF NOT EXISTS unique_username ON user COLUMNS username UNIQUE;",
+    )
+    .await?;
     // Games table
     db.query(
         "DEFINE TABLE IF NOT EXISTS game SCHEMALESS;
@@ -60,9 +55,9 @@ pub async fn init_schema(db: &Database) -> Result<(), surrealdb::Error> {
          DEFINE FIELD IF NOT EXISTS is_active ON game TYPE bool DEFAULT true;
          DEFINE FIELD IF NOT EXISTS created_at ON game TYPE datetime;
          DEFINE FIELD IF NOT EXISTS updated_at ON game TYPE datetime;
-         DEFINE INDEX IF NOT EXISTS unique_game_name ON game COLUMNS name UNIQUE;"
-    ).await?;
-
+         DEFINE INDEX IF NOT EXISTS unique_game_name ON game COLUMNS name UNIQUE;",
+    )
+    .await?;
     // Tournaments table
     db.query(
         "DEFINE TABLE IF NOT EXISTS tournament SCHEMAFULL;
@@ -76,9 +71,9 @@ pub async fn init_schema(db: &Database) -> Result<(), surrealdb::Error> {
          DEFINE FIELD IF NOT EXISTS start_time ON tournament TYPE option<datetime>;
          DEFINE FIELD IF NOT EXISTS end_time ON tournament TYPE option<datetime>;
          DEFINE FIELD IF NOT EXISTS created_at ON tournament TYPE datetime;
-         DEFINE FIELD IF NOT EXISTS updated_at ON tournament TYPE datetime;"
-    ).await?;
-
+         DEFINE FIELD IF NOT EXISTS updated_at ON tournament TYPE datetime;",
+    )
+    .await?;
     // Tournament participants table
     db.query(
         "DEFINE TABLE IF NOT EXISTS tournament_participant SCHEMAFULL;
@@ -90,7 +85,6 @@ pub async fn init_schema(db: &Database) -> Result<(), surrealdb::Error> {
          DEFINE FIELD IF NOT EXISTS joined_at ON tournament_participant TYPE datetime;
          DEFINE INDEX IF NOT EXISTS unique_tournament_user ON tournament_participant COLUMNS tournament_id, user_id UNIQUE;"
     ).await?;
-
     // Submissions table
     db.query(
         "DEFINE TABLE IF NOT EXISTS submission SCHEMAFULL;
@@ -102,9 +96,9 @@ pub async fn init_schema(db: &Database) -> Result<(), surrealdb::Error> {
          DEFINE FIELD IF NOT EXISTS file_path ON submission TYPE string;
          DEFINE FIELD IF NOT EXISTS status ON submission TYPE string DEFAULT 'pending';
          DEFINE FIELD IF NOT EXISTS error_message ON submission TYPE option<string>;
-         DEFINE FIELD IF NOT EXISTS created_at ON submission TYPE datetime;"
-    ).await?;
-
+         DEFINE FIELD IF NOT EXISTS created_at ON submission TYPE datetime;",
+    )
+    .await?;
     Ok(())
 }
 
@@ -115,11 +109,7 @@ pub async fn create_admin_user(
     password_hash: String,
 ) -> Result<(), surrealdb::Error> {
     // Check if any users exist
-    let existing: Vec<User> = db
-        .query("SELECT * FROM user LIMIT 1")
-        .await?
-        .take(0)?;
-
+    let existing: Vec<User> = db.query("SELECT * FROM user LIMIT 1").await?.take(0)?;
     if existing.is_empty() {
         // Create admin user (seed user only if table is empty)
         let admin = User {
@@ -138,7 +128,6 @@ pub async fn create_admin_user(
             password_reset_token: None,
             password_reset_expires: None,
         };
-
         let _: Option<User> = db.create("user").content(admin).await?;
     }
     Ok(())

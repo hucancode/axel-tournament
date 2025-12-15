@@ -14,7 +14,6 @@ fn extract_id(body: &serde_json::Value) -> String {
 async fn create_and_list_submissions() {
     let app = common::setup_app(&common::unique_name("submission_api_")).await;
     let admin_token = common::admin_token(&app).await;
-
     // Game
     let (_, game_body) = common::json_request(
         &app,
@@ -30,7 +29,6 @@ async fn create_and_list_submissions() {
     )
     .await;
     let game_id = extract_id(&game_body);
-
     // Tournament
     let (_, tournament_body) = common::json_request(
         &app,
@@ -47,7 +45,6 @@ async fn create_and_list_submissions() {
     )
     .await;
     let tournament_id = extract_id(&tournament_body);
-
     // Player
     let (_, user_body) = common::json_request(
         &app,
@@ -63,7 +60,6 @@ async fn create_and_list_submissions() {
     )
     .await;
     let player_token = user_body["token"].as_str().unwrap();
-
     // Join tournament
     let (join_status, _) = common::json_request(
         &app,
@@ -74,7 +70,6 @@ async fn create_and_list_submissions() {
     )
     .await;
     assert_eq!(join_status, StatusCode::CREATED);
-
     // Create submission
     let (status, submission_body) = common::json_request(
         &app,
@@ -88,7 +83,6 @@ async fn create_and_list_submissions() {
         Some(player_token),
     )
     .await;
-
     if !(status == StatusCode::CREATED || status == StatusCode::OK) {
         panic!(
             "create submission failed: status {} body {:?}",
@@ -96,7 +90,6 @@ async fn create_and_list_submissions() {
         );
     }
     let submission_id = submission_body["id"].as_str().unwrap();
-
     // List submissions for user
     let (list_status, list_body) = common::json_request(
         &app,
@@ -108,7 +101,6 @@ async fn create_and_list_submissions() {
     .await;
     assert_eq!(list_status, StatusCode::OK);
     assert!(list_body.as_array().unwrap().len() >= 1);
-
     // Get single submission
     let (get_status, get_body) = common::json_request(
         &app,

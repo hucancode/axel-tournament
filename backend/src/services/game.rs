@@ -22,9 +22,7 @@ pub async fn create_game(
         created_at: Datetime::default(),
         updated_at: Datetime::default(),
     };
-
     let created: Option<Game> = db.create("game").content(game).await?;
-
     created.ok_or_else(|| ApiError::Internal("Failed to create game".to_string()))
 }
 
@@ -39,7 +37,6 @@ pub async fn list_games(db: &Database, active_only: bool) -> ApiResult<Vec<Game>
     } else {
         "SELECT * FROM game ORDER BY created_at DESC"
     };
-
     let mut result = db.query(query).await?;
     let games: Vec<Game> = result.take(0)?;
     Ok(games)
@@ -55,7 +52,6 @@ pub async fn update_game(
     is_active: Option<bool>,
 ) -> ApiResult<Game> {
     let mut game = get_game(db, game_id).await?;
-
     if let Some(n) = name {
         game.name = n;
     }
@@ -71,11 +67,8 @@ pub async fn update_game(
     if let Some(ia) = is_active {
         game.is_active = ia;
     }
-
     game.updated_at = Datetime::default();
-
     let updated: Option<Game> = db.update(("game", game_id)).content(game).await?;
-
     updated.ok_or_else(|| ApiError::NotFound("Game not found".to_string()))
 }
 

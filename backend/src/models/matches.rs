@@ -41,7 +41,7 @@ pub struct MatchParticipant {
 pub struct CreateMatchRequest {
     pub tournament_id: Option<String>,
     pub game_id: String,
-    
+
     #[validate(length(min = 2, message = "Match must have at least 2 participants"))]
     pub participant_submission_ids: Vec<String>,
 }

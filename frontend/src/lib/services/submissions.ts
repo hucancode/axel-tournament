@@ -1,17 +1,19 @@
-import { api } from '../api';
-import type { Submission, CreateSubmissionRequest } from '../types';
+import { api } from "../api";
+import type { Submission, CreateSubmissionRequest } from "../types";
 
 export const submissionService = {
-	async create(data: CreateSubmissionRequest): Promise<Submission> {
-		return api.post<Submission, CreateSubmissionRequest>('/api/submissions', data, true);
-	},
-
-	async list(tournamentId?: string): Promise<Submission[]> {
-		const query = tournamentId ? `?tournament_id=${tournamentId}` : '';
-		return api.get<Submission[]>(`/api/submissions${query}`, true);
-	},
-
-	async get(id: string): Promise<Submission> {
-		return api.get<Submission>(`/api/submissions/${id}`, true);
-	},
+  async create(data: CreateSubmissionRequest): Promise<Submission> {
+    return api.post<Submission, CreateSubmissionRequest>(
+      "/api/submissions",
+      data,
+      true,
+    );
+  },
+  async list(tournamentId?: string): Promise<Submission[]> {
+    const query = tournamentId ? `?tournament_id=${tournamentId}` : "";
+    return api.get<Submission[]>(`/api/submissions${query}`, true);
+  },
+  async get(id: string): Promise<Submission> {
+    return api.get<Submission>(`/api/submissions/${id}`, true);
+  },
 };

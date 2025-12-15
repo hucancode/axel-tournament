@@ -1,13 +1,13 @@
 use crate::{
+    AppState,
     error::ApiResult,
     models::{CreateGameRequest, Game, UpdateGameRequest},
     services,
-    AppState,
 };
 use axum::{
+    Json,
     extract::{Path, State},
     http::StatusCode,
-    Json,
 };
 use validator::Validate;
 
@@ -15,8 +15,9 @@ pub async fn create_game(
     State(state): State<AppState>,
     Json(payload): Json<CreateGameRequest>,
 ) -> ApiResult<(StatusCode, Json<Game>)> {
-    payload.validate().map_err(|e| crate::error::ApiError::Validation(e.to_string()))?;
-
+    payload
+        .validate()
+        .map_err(|e| crate::error::ApiError::Validation(e.to_string()))?;
     let game = services::game::create_game(
         &state.db,
         payload.name,
@@ -25,7 +26,6 @@ pub async fn create_game(
         payload.supported_languages,
     )
     .await?;
-
     Ok((StatusCode::CREATED, Json(game)))
 }
 
@@ -47,8 +47,9 @@ pub async fn update_game(
     Path(game_id): Path<String>,
     Json(payload): Json<UpdateGameRequest>,
 ) -> ApiResult<Json<Game>> {
-    payload.validate().map_err(|e| crate::error::ApiError::Validation(e.to_string()))?;
-
+    payload
+        .validate()
+        .map_err(|e| crate::error::ApiError::Validation(e.to_string()))?;
     let game = services::game::update_game(
         &state.db,
         &game_id,
@@ -59,7 +60,6 @@ pub async fn update_game(
         payload.is_active,
     )
     .await?;
-
     Ok(Json(game))
 }
 

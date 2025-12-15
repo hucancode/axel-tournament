@@ -1,7 +1,7 @@
 use axum::{
+    Json,
     http::StatusCode,
     response::{IntoResponse, Response},
-    Json,
 };
 use serde_json::json;
 use thiserror::Error;
@@ -10,34 +10,24 @@ use thiserror::Error;
 pub enum ApiError {
     #[error("Database error: {0}")]
     Database(#[from] surrealdb::Error),
-
     #[error("Authentication error: {0}")]
     Auth(String),
-
     #[error("Validation error: {0}")]
     Validation(String),
-
     #[error("Not found: {0}")]
     NotFound(String),
-
     #[error("Conflict: {0}")]
     Conflict(String),
-
     #[error("Forbidden: {0}")]
     Forbidden(String),
-
     #[error("Bad request: {0}")]
     BadRequest(String),
-
     #[error("Internal server error: {0}")]
     Internal(String),
-
     #[error("JWT error: {0}")]
     Jwt(#[from] jsonwebtoken::errors::Error),
-
     #[error("Password hashing error")]
     PasswordHash,
-
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
 }
@@ -66,11 +56,9 @@ impl IntoResponse for ApiError {
                 format!("IO error: {}", err),
             ),
         };
-
         let body = Json(json!({
             "error": error_message,
         }));
-
         (status, body).into_response()
     }
 }

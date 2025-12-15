@@ -1,15 +1,13 @@
 use crate::{
-    error::ApiResult,
-    models::{
-        matches::{CreateMatchRequest, Match, UpdateMatchResultRequest},
-    },
-    services,
     AppState,
+    error::ApiResult,
+    models::matches::{CreateMatchRequest, Match, UpdateMatchResultRequest},
+    services,
 };
 use axum::{
+    Json,
     extract::{Path, Query, State},
     http::StatusCode,
-    Json,
 };
 use serde::Deserialize;
 use validator::Validate;
@@ -25,8 +23,9 @@ pub async fn create_match(
     State(state): State<AppState>,
     Json(payload): Json<CreateMatchRequest>,
 ) -> ApiResult<(StatusCode, Json<Match>)> {
-    payload.validate().map_err(|e| crate::error::ApiError::Validation(e.to_string()))?;
-
+    payload
+        .validate()
+        .map_err(|e| crate::error::ApiError::Validation(e.to_string()))?;
     let match_data = services::matches::create_match(
         &state.db,
         payload.tournament_id,
@@ -34,7 +33,6 @@ pub async fn create_match(
         payload.participant_submission_ids,
     )
     .await?;
-
     Ok((StatusCode::CREATED, Json(match_data)))
 }
 
@@ -65,8 +63,9 @@ pub async fn update_match_result(
     Path(match_id): Path<String>,
     Json(payload): Json<UpdateMatchResultRequest>,
 ) -> ApiResult<Json<Match>> {
-    payload.validate().map_err(|e| crate::error::ApiError::Validation(e.to_string()))?;
-
+    payload
+        .validate()
+        .map_err(|e| crate::error::ApiError::Validation(e.to_string()))?;
     let match_data = services::matches::update_match_result(
         &state.db,
         &match_id,
@@ -77,6 +76,5 @@ pub async fn update_match_result(
         payload.completed_at,
     )
     .await?;
-
     Ok(Json(match_data))
 }

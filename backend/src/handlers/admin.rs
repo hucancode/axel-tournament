@@ -1,12 +1,12 @@
 use crate::{
+    AppState,
     error::ApiResult,
     models::UserInfo,
     services::{self, AuthService},
-    AppState,
 };
 use axum::{
-    extract::{Path, Query, State},
     Json,
+    extract::{Path, Query, State},
 };
 use serde::Deserialize;
 
@@ -26,12 +26,8 @@ pub async fn list_users(
     Query(query): Query<ListUsersQuery>,
 ) -> ApiResult<Json<Vec<UserInfo>>> {
     let users = services::user::list_users(&state.db, query.limit, query.offset).await?;
-
-    let user_infos: Result<Vec<UserInfo>, _> = users
-        .iter()
-        .map(|u| AuthService::user_to_info(u))
-        .collect();
-
+    let user_infos: Result<Vec<UserInfo>, _> =
+        users.iter().map(|u| AuthService::user_to_info(u)).collect();
     Ok(Json(user_infos?))
 }
 

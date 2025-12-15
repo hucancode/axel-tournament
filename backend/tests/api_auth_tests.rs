@@ -6,9 +6,7 @@ use axum::http::{self, StatusCode};
 #[tokio::test]
 async fn health_check_works() {
     let app = common::setup_app(&common::unique_name("auth_api_")).await;
-    let (status, body) =
-        common::json_request(&app, http::Method::GET, "/health", None, None).await;
-
+    let (status, body) = common::json_request(&app, http::Method::GET, "/health", None, None).await;
     assert_eq!(status, StatusCode::OK);
     assert_eq!(body["raw"], "OK");
 }
@@ -19,7 +17,6 @@ async fn register_and_login_flow() {
     let email = format!("{}@test.com", common::unique_name("auth_user"));
     let username = common::unique_name("auth_user");
     let password = "password123";
-
     let (status, register_body) = common::json_request(
         &app,
         http::Method::POST,
@@ -33,10 +30,8 @@ async fn register_and_login_flow() {
         None,
     )
     .await;
-
     assert!(status == StatusCode::CREATED || status == StatusCode::OK);
     assert!(register_body["token"].is_string());
-
     let (login_status, login_body) = common::json_request(
         &app,
         http::Method::POST,
@@ -48,7 +43,6 @@ async fn register_and_login_flow() {
         None,
     )
     .await;
-
     assert_eq!(login_status, StatusCode::OK);
     assert!(login_body["token"].is_string());
 }
@@ -58,7 +52,6 @@ async fn password_reset_round_trip() {
     let app = common::setup_app(&common::unique_name("auth_api_")).await;
     let email = format!("{}@test.com", common::unique_name("reset_user"));
     let username = common::unique_name("reset_user");
-
     common::json_request(
         &app,
         http::Method::POST,
@@ -72,7 +65,6 @@ async fn password_reset_round_trip() {
         None,
     )
     .await;
-
     let (status, reset_body) = common::json_request(
         &app,
         http::Method::POST,
@@ -81,18 +73,18 @@ async fn password_reset_round_trip() {
         None,
     )
     .await;
-
     if status != StatusCode::OK {
-        panic!("reset-password failed: status {} body {:?}", status, reset_body);
+        panic!(
+            "reset-password failed: status {} body {:?}",
+            status, reset_body
+        );
     }
-
     // Fetch token from DB and confirm reset
     let user = auth::get_user_by_email(&app.state.db, &email)
         .await
         .unwrap()
         .unwrap();
     let reset_token = user.password_reset_token.unwrap();
-
     let (confirm_status, confirm_body) = common::json_request(
         &app,
         http::Method::POST,
@@ -104,14 +96,12 @@ async fn password_reset_round_trip() {
         None,
     )
     .await;
-
     if confirm_status != StatusCode::OK {
         panic!(
             "confirm-reset failed: status {} body {:?}",
             confirm_status, confirm_body
         );
     }
-
     let (login_status, _) = common::json_request(
         &app,
         http::Method::POST,
@@ -123,6 +113,5 @@ async fn password_reset_round_trip() {
         None,
     )
     .await;
-
     assert_eq!(login_status, StatusCode::OK);
 }

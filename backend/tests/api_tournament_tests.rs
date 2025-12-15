@@ -14,7 +14,6 @@ fn extract_id(body: &serde_json::Value) -> String {
 async fn tournament_create_join_and_leave() {
     let app = common::setup_app(&common::unique_name("tournament_api_")).await;
     let admin_token = common::admin_token(&app).await;
-
     // Create game
     let (_, game_body) = common::json_request(
         &app,
@@ -30,7 +29,6 @@ async fn tournament_create_join_and_leave() {
     )
     .await;
     let game_id = extract_id(&game_body);
-
     // Create tournament
     let (t_status, tournament_body) = common::json_request(
         &app,
@@ -46,10 +44,8 @@ async fn tournament_create_join_and_leave() {
         Some(&admin_token),
     )
     .await;
-
     assert!(t_status == StatusCode::CREATED || t_status == StatusCode::OK);
     let tournament_id = extract_id(&tournament_body);
-
     // Register player
     let player_email = format!("{}@test.com", common::unique_name("tour_player"));
     let (_, player_body) = common::json_request(
@@ -66,7 +62,6 @@ async fn tournament_create_join_and_leave() {
     )
     .await;
     let player_token = player_body["token"].as_str().unwrap();
-
     // Join tournament
     let (join_status, _) = common::json_request(
         &app,
@@ -77,7 +72,6 @@ async fn tournament_create_join_and_leave() {
     )
     .await;
     assert_eq!(join_status, StatusCode::CREATED);
-
     let (participants_status, participants) = common::json_request(
         &app,
         http::Method::GET,
@@ -88,7 +82,6 @@ async fn tournament_create_join_and_leave() {
     .await;
     assert_eq!(participants_status, StatusCode::OK);
     assert_eq!(participants.as_array().unwrap().len(), 1);
-
     // Leave tournament
     let (leave_status, leave_body) = common::json_request(
         &app,

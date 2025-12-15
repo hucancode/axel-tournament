@@ -15,7 +15,6 @@ async fn setup_test_db() -> axel_tournament::db::Database {
         namespace: namespace.clone(),
         database: namespace,
     };
-
     db::connect(&config)
         .await
         .expect("Failed to connect to test database")
@@ -26,7 +25,6 @@ async fn test_ban_and_unban_user() {
     let db = setup_test_db().await;
     let auth_service = AuthService::new("test-secret".to_string(), 3600);
     let password_hash = auth_service.hash_password("password123").unwrap();
-
     let created_user = user::create_user(
         &db,
         format!("{}@test.com", common::unique_name("user")),
@@ -39,13 +37,11 @@ async fn test_ban_and_unban_user() {
     .await
     .unwrap();
     let user_id = created_user.id.unwrap().id.to_string();
-
     let banned = user::ban_user(&db, &user_id, "Violation".to_string())
         .await
         .unwrap();
     assert!(banned.is_banned);
     assert_eq!(banned.ban_reason.unwrap(), "Violation");
-
     let unbanned = user::unban_user(&db, &user_id).await.unwrap();
     assert!(!unbanned.is_banned);
     assert!(unbanned.ban_reason.is_none());
@@ -55,7 +51,6 @@ async fn test_ban_and_unban_user() {
 async fn test_list_users() {
     let db = setup_test_db().await;
     let auth_service = AuthService::new("test-secret".to_string(), 3600);
-
     for _ in 0..3 {
         let password_hash = auth_service.hash_password("password123").unwrap();
         user::create_user(
@@ -70,7 +65,6 @@ async fn test_list_users() {
         .await
         .unwrap();
     }
-
     let users = user::list_users(&db, Some(5), Some(0)).await.unwrap();
     assert!(users.len() >= 3);
 }
