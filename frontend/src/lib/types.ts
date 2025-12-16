@@ -90,6 +90,8 @@ export interface Game {
   owner_id?: string;
   dockerfile_path?: string;
   docker_image?: string;
+  game_code_path?: string;
+  game_language?: ProgrammingLanguage;
   created_at: string;
   updated_at: string;
 }

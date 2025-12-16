@@ -54,6 +54,7 @@ async fn test_submission_create() {
         "Test game".to_string(),
         serde_json::json!({}),
         vec![ProgrammingLanguage::Rust],
+        None,
     )
     .await
     .unwrap();
@@ -115,6 +116,7 @@ async fn test_submission_get() {
         "Test game".to_string(),
         serde_json::json!({}),
         vec![ProgrammingLanguage::Rust],
+        None,
     )
     .await
     .unwrap();
@@ -178,6 +180,7 @@ async fn test_submission_list_by_user() {
         "Test game".to_string(),
         serde_json::json!({}),
         vec![ProgrammingLanguage::Rust],
+        None,
     )
     .await
     .unwrap();

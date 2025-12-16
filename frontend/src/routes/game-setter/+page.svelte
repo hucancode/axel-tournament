@@ -3,13 +3,19 @@
   import { goto } from "$app/navigation";
   import { onMount } from "svelte";
   import { api } from "$lib/api";
+  import { gameSetterService } from "$lib/services/game-setter";
   import type { Game, Tournament } from "$lib/types";
 
   let { user, isAuthenticated } = $derived($authStore);
   let myGames: Game[] = $state([]);
   let myTournaments: Tournament[] = $state([]);
+  let allTournaments: Tournament[] = $state([]);
   let loading = $state(true);
   let error = $state("");
+
+  // Computed: filter tournaments to only show those for user's games
+  let myGameIds = $derived(myGames.map(g => g.id));
+  let filteredTournaments = $derived(allTournaments.filter(t => myGameIds.includes(t.game_id)));
 
   // Redirect if not game setter or admin
   $effect(() => {
@@ -27,12 +33,12 @@
       loading = true;
       error = "";
 
-      // Load games owned by current user
-      const allGames = await api.get<Game[]>("/api/admin/games", true);
-      myGames = allGames.filter((game) => game.owner_id === user?.id || user?.role === "admin");
+      // Load games owned by current user using game-setter API
+      myGames = await gameSetterService.listMyGames();
 
-      // Load tournaments
-      myTournaments = await api.get<Tournament[]>("/api/tournaments", true);
+      // Load all tournaments, will be filtered by myGameIds
+      allTournaments = await api.get<Tournament[]>("/api/tournaments", true);
+      myTournaments = filteredTournaments;
     } catch (e: any) {
       error = e.message || "Failed to load data";
     } finally {
@@ -101,11 +107,11 @@
             <button class="btn btn-primary" on:click={createTournament}>Create Tournament</button>
           </div>
 
-          {#if myTournaments.length === 0}
-            <p class="text-sm">No tournaments yet.</p>
+          {#if filteredTournaments.length === 0}
+            <p class="text-sm">No tournaments yet for your games.</p>
           {:else}
             <div style="display: flex; flex-direction: column; gap: 1rem;">
-              {#each myTournaments as tournament}
+              {#each filteredTournaments as tournament}
                 <div class="card" style="cursor: pointer;" on:click={() => goto(`/tournaments/${tournament.id}`)}>
                   <h3>{tournament.name}</h3>
                   <p class="text-sm">{tournament.description}</p>

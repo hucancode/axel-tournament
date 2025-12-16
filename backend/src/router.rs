@@ -109,9 +109,12 @@ pub fn create_router(state: AppState) -> Router {
     // Game Setter routes (require GameSetter or Admin role)
     let game_setter_routes = Router::new()
         // Game management
+        .route("/api/game-setter/games", get(handlers::list_my_games))
         .route("/api/game-setter/games", post(handlers::create_game_as_game_setter))
         .route("/api/game-setter/games/{id}", put(handlers::update_game))
+        .route("/api/game-setter/games/{id}", delete(handlers::delete_game_as_game_setter))
         .route("/api/game-setter/games/{id}/dockerfile", post(handlers::upload_dockerfile))
+        .route("/api/game-setter/games/{id}/game-code", post(handlers::upload_game_code))
 
         // Template management
         .route("/api/game-setter/templates", post(handlers::create_template))

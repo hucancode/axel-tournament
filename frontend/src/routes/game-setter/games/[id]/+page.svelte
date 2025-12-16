@@ -12,14 +12,29 @@
 
   let game: Game | null = $state(null);
   let templates: GameTemplate[] = $state([]);
-  let activeTab: "info" | "dockerfile" | "templates" = $state("info");
+  let activeTab: "info" | "dockerfile" | "gamecode" | "templates" = $state("info");
   let loading = $state(true);
   let error = $state("");
   let success = $state("");
 
+  // Edit mode for info tab
+  let editMode = $state(false);
+  let editForm = $state({
+    name: "",
+    description: "",
+    rules: {} as Record<string, any>,
+    supported_languages: [] as ProgrammingLanguage[],
+    is_active: true
+  });
+
   // Dockerfile tab
   let dockerfileContent = $state("");
   let uploadingDockerfile = $state(false);
+
+  // Game Code tab
+  let gameCodeContent = $state("");
+  let selectedGameLang: ProgrammingLanguage | "" = $state("");
+  let uploadingGameCode = $state(false);
 
   // Templates tab
   let templatesByLang: Record<string, string> = $state({});
@@ -122,6 +137,76 @@
       savingTemplate[lang] = false;
     }
   }
+
+  function enableEditMode() {
+    if (!game) return;
+    editForm = {
+      name: game.name,
+      description: game.description,
+      rules: game.rules,
+      supported_languages: [...game.supported_languages],
+      is_active: game.is_active
+    };
+    editMode = true;
+  }
+
+  function cancelEdit() {
+    editMode = false;
+  }
+
+  async function saveGameEdits() {
+    try {
+      error = "";
+      success = "";
+      await gameSetterService.updateGame(gameId, editForm);
+      success = "Game updated successfully!";
+      editMode = false;
+      await loadGame();
+    } catch (e: any) {
+      error = e.message || "Failed to update game";
+    }
+  }
+
+  async function deleteGame() {
+    if (!confirm("Are you sure you want to delete this game? This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      error = "";
+      await gameSetterService.deleteGame(gameId);
+      goto("/game-setter");
+    } catch (e: any) {
+      error = e.message || "Failed to delete game";
+    }
+  }
+
+  async function uploadGameCode() {
+    if (!gameCodeContent.trim()) {
+      error = "Game code cannot be empty";
+      return;
+    }
+
+    if (!selectedGameLang) {
+      error = "Please select a language";
+      return;
+    }
+
+    try {
+      uploadingGameCode = true;
+      error = "";
+      success = "";
+
+      await gameSetterService.uploadGameCode(gameId, selectedGameLang, gameCodeContent);
+
+      success = "Game code uploaded successfully!";
+      await loadGame();
+    } catch (e: any) {
+      error = e.message || "Failed to upload game code";
+    } finally {
+      uploadingGameCode = false;
+    }
+  }
 </script>
 
 <div class="page">
@@ -152,6 +237,12 @@
           Game Info
         </button>
         <button
+          class="tab-button {activeTab === 'gamecode' ? 'active' : ''}"
+          on:click={() => (activeTab = "gamecode")}
+        >
+          Game Code
+        </button>
+        <button
           class="tab-button {activeTab === 'dockerfile' ? 'active' : ''}"
           on:click={() => (activeTab = "dockerfile")}
         >
@@ -168,36 +259,140 @@
       <!-- Tab Content -->
       {#if activeTab === "info"}
         <div class="card">
-          <h2>Basic Information</h2>
-          <dl style="display: grid; grid-template-columns: 150px 1fr; gap: 1rem;">
-            <dt><strong>Description:</strong></dt>
-            <dd>{game.description}</dd>
-
-            <dt><strong>Status:</strong></dt>
-            <dd>
-              <span class="badge {game.is_active ? 'badge-running' : 'badge-cancelled'}">
-                {game.is_active ? "Active" : "Inactive"}
-              </span>
-            </dd>
-
-            <dt><strong>Languages:</strong></dt>
-            <dd>{game.supported_languages.join(", ")}</dd>
-
-            <dt><strong>Dockerfile:</strong></dt>
-            <dd>{game.dockerfile_path ? "✓ Uploaded" : "Not uploaded yet"}</dd>
-
-            <dt><strong>Created:</strong></dt>
-            <dd>{new Date(game.created_at).toLocaleDateString()}</dd>
-          </dl>
-
-          <div style="margin-top: 2rem;">
-            <h3>Rules</h3>
-            <pre style="background: #f5f5f5; padding: 1rem; border-radius: 4px; overflow-x: auto;">{JSON.stringify(
-              game.rules,
-              null,
-              2
-            )}</pre>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h2>Basic Information</h2>
+            <div style="display: flex; gap: 0.5rem;">
+              {#if !editMode}
+                <button class="btn btn-secondary" on:click={enableEditMode}>Edit</button>
+                <button class="btn btn-danger" on:click={deleteGame}>Delete</button>
+              {/if}
+            </div>
           </div>
+
+          {#if editMode}
+            <!-- Edit Mode -->
+            <div class="form-group">
+              <label for="edit-name">Name</label>
+              <input type="text" id="edit-name" class="input" bind:value={editForm.name} />
+            </div>
+
+            <div class="form-group">
+              <label for="edit-description">Description</label>
+              <textarea id="edit-description" class="textarea" bind:value={editForm.description} rows="3" />
+            </div>
+
+            <div class="form-group">
+              <label for="edit-rules">Rules (JSON)</label>
+              <textarea
+                id="edit-rules"
+                class="textarea"
+                value={JSON.stringify(editForm.rules, null, 2)}
+                on:input={(e) => {
+                  try {
+                    editForm.rules = JSON.parse(e.currentTarget.value);
+                  } catch {}
+                }}
+                rows="8"
+                style="font-family: monospace;"
+              />
+            </div>
+
+            <div class="form-group">
+              <label>
+                <input type="checkbox" bind:checked={editForm.is_active} />
+                Active
+              </label>
+            </div>
+
+            <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+              <button class="btn btn-primary" on:click={saveGameEdits}>Save Changes</button>
+              <button class="btn btn-secondary" on:click={cancelEdit}>Cancel</button>
+            </div>
+          {:else}
+            <!-- View Mode -->
+            <dl style="display: grid; grid-template-columns: 150px 1fr; gap: 1rem;">
+              <dt><strong>Description:</strong></dt>
+              <dd>{game.description}</dd>
+
+              <dt><strong>Status:</strong></dt>
+              <dd>
+                <span class="badge {game.is_active ? 'badge-running' : 'badge-cancelled'}">
+                  {game.is_active ? "Active" : "Inactive"}
+                </span>
+              </dd>
+
+              <dt><strong>Languages:</strong></dt>
+              <dd>{game.supported_languages.join(", ")}</dd>
+
+              <dt><strong>Dockerfile:</strong></dt>
+              <dd>{game.dockerfile_path ? "✓ Uploaded" : "Not uploaded yet"}</dd>
+
+              <dt><strong>Game Code:</strong></dt>
+              <dd>{game.game_code_path ? `✓ Uploaded (${game.game_language})` : "Not uploaded yet"}</dd>
+
+              <dt><strong>Created:</strong></dt>
+              <dd>{new Date(game.created_at).toLocaleDateString()}</dd>
+            </dl>
+
+            <div style="margin-top: 2rem;">
+              <h3>Rules</h3>
+              <pre style="background: #f5f5f5; padding: 1rem; border-radius: 4px; overflow-x: auto;">{JSON.stringify(
+                game.rules,
+                null,
+                2
+              )}</pre>
+            </div>
+          {/if}
+        </div>
+      {:else if activeTab === "gamecode"}
+        <div class="card">
+          <h2>Upload Game Code</h2>
+          <p class="text-sm">
+            This is your main game orchestration code that will:
+            <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
+              <li>Invoke player binaries via stdin/stdout</li>
+              <li>Implement game logic and rules</li>
+              <li>Handle player timeouts/crashes/invalid responses</li>
+              <li>Output score array to stdout</li>
+            </ul>
+          </p>
+
+          <p class="text-sm">
+            <strong>Output Protocol:</strong> For each player, output either a number (score) or error code:
+            TLE (timeout), WA (wrong answer), CE (compiler error), RE (runtime error).
+          </p>
+
+          {#if game.game_code_path}
+            <p class="text-sm">
+              <strong>Current Game Code:</strong> {game.game_code_path} ({game.game_language})
+            </p>
+          {/if}
+
+          <div class="form-group" style="margin-top: 1rem;">
+            <label for="game-lang">Programming Language</label>
+            <select id="game-lang" class="input" bind:value={selectedGameLang}>
+              <option value="">Select language...</option>
+              {#each game.supported_languages as lang}
+                <option value={lang}>{lang}</option>
+              {/each}
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="game-code">Game Code</label>
+            <textarea
+              id="game-code"
+              class="textarea"
+              bind:value={gameCodeContent}
+              rows="20"
+              placeholder="Your game orchestration code..."
+              style="font-family: monospace; font-size: 0.9em;"
+            />
+          </div>
+
+          <button class="btn btn-primary" on:click={uploadGameCode} disabled={uploadingGameCode}>
+            {uploadingGameCode ? "Uploading..." : "Upload Game Code"}
+          </button>
         </div>
       {:else if activeTab === "dockerfile"}
         <div class="card">

@@ -13,6 +13,10 @@ import type {
 
 export const gameSetterService = {
   // Games
+  async listMyGames(): Promise<Game[]> {
+    return api.get<Game[]>("/api/game-setter/games", true);
+  },
+
   async createGame(data: CreateGameRequest): Promise<Game> {
     return api.post<Game>("/api/game-setter/games", data, true);
   },
@@ -21,8 +25,16 @@ export const gameSetterService = {
     return api.put<Game>(`/api/game-setter/games/${id}`, data, true);
   },
 
+  async deleteGame(id: string): Promise<void> {
+    return api.delete<void>(`/api/game-setter/games/${id}`, true);
+  },
+
   async uploadDockerfile(gameId: string, data: UploadDockerfileRequest): Promise<{ path: string; message: string }> {
     return api.post<{ path: string; message: string }>(`/api/game-setter/games/${gameId}/dockerfile`, data, true);
+  },
+
+  async uploadGameCode(gameId: string, language: string, codeContent: string): Promise<{ message: string; file_path: string }> {
+    return api.post<{ message: string; file_path: string }>(`/api/game-setter/games/${gameId}/game-code`, { language, code_content: codeContent }, true);
   },
 
   // Templates

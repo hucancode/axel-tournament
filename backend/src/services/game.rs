@@ -25,6 +25,8 @@ pub async fn create_game(
         owner_id: owner_thing,
         dockerfile_path: None,
         docker_image: None,
+        game_code_path: None,
+        game_language: None,
         created_at: Datetime::default(),
         updated_at: Datetime::default(),
     };
@@ -81,4 +83,14 @@ pub async fn update_game(
 pub async fn delete_game(db: &Database, game_id: &str) -> ApiResult<()> {
     let _: Option<Game> = db.delete(("game", game_id)).await?;
     Ok(())
+}
+
+pub async fn list_games_by_owner(db: &Database, owner_id: &str) -> ApiResult<Vec<Game>> {
+    let owner_thing = Thing::from(("user", owner_id.trim_start_matches("user:")));
+    let mut result = db
+        .query("SELECT * FROM game WHERE owner_id = $owner_id ORDER BY created_at DESC")
+        .bind(("owner_id", owner_thing))
+        .await?;
+    let games: Vec<Game> = result.take(0)?;
+    Ok(games)
 }

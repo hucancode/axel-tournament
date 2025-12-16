@@ -31,6 +31,7 @@ async fn test_leaderboard_ordering_and_limit() {
         "Desc".to_string(),
         serde_json::json!({}),
         vec![ProgrammingLanguage::Rust],
+        None,
     )
     .await
     .unwrap();

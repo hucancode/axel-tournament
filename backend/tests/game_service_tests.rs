@@ -45,6 +45,7 @@ async fn test_game_create() {
             ProgrammingLanguage::Go,
             ProgrammingLanguage::C,
         ],
+        None,
     )
     .await;
     assert!(game.is_ok());
@@ -67,6 +68,7 @@ async fn test_game_get() {
         "Test Description".to_string(),
         serde_json::json!({}),
         vec![ProgrammingLanguage::Rust],
+        None,
     )
     .await
     .unwrap();
@@ -95,6 +97,7 @@ async fn test_game_list_all() {
         "First game".to_string(),
         serde_json::json!({}),
         vec![ProgrammingLanguage::Rust],
+        None,
     )
     .await
     .unwrap();
@@ -104,6 +107,7 @@ async fn test_game_list_all() {
         "Second game".to_string(),
         serde_json::json!({}),
         vec![ProgrammingLanguage::Go],
+        None,
     )
     .await
     .unwrap();
@@ -123,6 +127,7 @@ async fn test_game_list_active_only() {
         "Active".to_string(),
         serde_json::json!({}),
         vec![ProgrammingLanguage::Rust],
+        None,
     )
     .await
     .unwrap();
@@ -133,6 +138,7 @@ async fn test_game_list_active_only() {
         "Inactive".to_string(),
         serde_json::json!({}),
         vec![ProgrammingLanguage::C],
+        None,
     )
     .await
     .unwrap();
@@ -163,6 +169,7 @@ async fn test_game_update_name() {
         "Description".to_string(),
         serde_json::json!({}),
         vec![ProgrammingLanguage::Rust],
+        None,
     )
     .await
     .unwrap();
@@ -194,6 +201,7 @@ async fn test_game_update_description() {
         "Original Description".to_string(),
         serde_json::json!({}),
         vec![ProgrammingLanguage::Rust],
+        None,
     )
     .await
     .unwrap();
@@ -222,6 +230,7 @@ async fn test_game_update_rules() {
         "Desc".to_string(),
         serde_json::json!({"initial": "rules"}),
         vec![ProgrammingLanguage::Rust],
+        None,
     )
     .await
     .unwrap();
@@ -255,6 +264,7 @@ async fn test_game_update_deactivate() {
         "Desc".to_string(),
         serde_json::json!({}),
         vec![ProgrammingLanguage::Rust],
+        None,
     )
     .await
     .unwrap();
@@ -276,6 +286,7 @@ async fn test_game_delete() {
         "Will be deleted".to_string(),
         serde_json::json!({}),
         vec![ProgrammingLanguage::Rust],
+        None,
     )
     .await
     .unwrap();

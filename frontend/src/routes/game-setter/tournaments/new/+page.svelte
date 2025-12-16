@@ -1,0 +1,165 @@
+<script lang="ts">
+  import { authStore } from "$lib/stores/auth";
+  import { goto } from "$app/navigation";
+  import { onMount } from "svelte";
+  import { gameSetterService } from "$lib/services/game-setter";
+  import type { Game, ProgrammingLanguage, TournamentStatus } from "$lib/types";
+
+  let { user, isAuthenticated } = $derived($authStore);
+  let myGames: Game[] = $state([]);
+  let loading = $state(true);
+  let creating = $state(false);
+  let error = $state("");
+
+  // Form data
+  let form = $state({
+    game_id: "",
+    name: "",
+    description: "",
+    status: "scheduled" as TournamentStatus,
+    min_players: 2,
+    max_players: 10,
+    start_time: "",
+    end_time: ""
+  });
+
+  // Redirect if not game setter or admin
+  $effect(() => {
+    if (!isAuthenticated || (user?.role !== "gamesetter" && user?.role !== "admin")) {
+      goto("/");
+    }
+  });
+
+  onMount(async () => {
+    await loadMyGames();
+  });
+
+  async function loadMyGames() {
+    try {
+      loading = true;
+      error = "";
+      myGames = await gameSetterService.listMyGames();
+    } catch (e: any) {
+      error = e.message || "Failed to load games";
+    } finally {
+      loading = false;
+    }
+  }
+
+  async function createTournament() {
+    if (!form.game_id) {
+      error = "Please select a game";
+      return;
+    }
+
+    if (!form.name.trim()) {
+      error = "Please enter a tournament name";
+      return;
+    }
+
+    if (form.min_players < 2) {
+      error = "Minimum players must be at least 2";
+      return;
+    }
+
+    if (form.max_players < form.min_players) {
+      error = "Maximum players must be greater than or equal to minimum players";
+      return;
+    }
+
+    try {
+      creating = true;
+      error = "";
+
+      const tournament = await gameSetterService.createTournament(form);
+
+      goto(`/tournaments/${tournament.id}`);
+    } catch (e: any) {
+      error = e.message || "Failed to create tournament";
+    } finally {
+      creating = false;
+    }
+  }
+</script>
+
+<div class="page">
+  <div class="container">
+    <button class="btn btn-secondary" on:click={() => goto("/game-setter")} style="margin-bottom: 1rem;">
+      ← Back to Dashboard
+    </button>
+
+    <h1>Create Tournament</h1>
+
+    {#if error}
+      <p class="error-message">{error}</p>
+    {/if}
+
+    {#if loading}
+      <p>Loading...</p>
+    {:else}
+      <div class="card">
+        <div class="form-group">
+          <label for="game">Game *</label>
+          <select id="game" class="input" bind:value={form.game_id} required>
+            <option value="">Select a game...</option>
+            {#each myGames as game}
+              <option value={game.id}>{game.name}</option>
+            {/each}
+          </select>
+          {#if myGames.length === 0}
+            <p class="text-sm">You don't have any games yet. <a href="/game-setter/games/new">Create a game</a> first.</p>
+          {/if}
+        </div>
+
+        <div class="form-group">
+          <label for="name">Tournament Name *</label>
+          <input type="text" id="name" class="input" bind:value={form.name} placeholder="My Awesome Tournament" required />
+        </div>
+
+        <div class="form-group">
+          <label for="description">Description *</label>
+          <textarea id="description" class="textarea" bind:value={form.description} rows="4" placeholder="Describe your tournament..." required />
+        </div>
+
+        <div class="grid grid-2">
+          <div class="form-group">
+            <label for="min-players">Minimum Players *</label>
+            <input type="number" id="min-players" class="input" bind:value={form.min_players} min="2" required />
+          </div>
+
+          <div class="form-group">
+            <label for="max-players">Maximum Players *</label>
+            <input type="number" id="max-players" class="input" bind:value={form.max_players} min="2" required />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="status">Initial Status *</label>
+          <select id="status" class="input" bind:value={form.status}>
+            <option value="scheduled">Scheduled</option>
+            <option value="registration">Registration Open</option>
+          </select>
+        </div>
+
+        <div class="grid grid-2">
+          <div class="form-group">
+            <label for="start-time">Start Time (optional)</label>
+            <input type="datetime-local" id="start-time" class="input" bind:value={form.start_time} />
+          </div>
+
+          <div class="form-group">
+            <label for="end-time">End Time (optional)</label>
+            <input type="datetime-local" id="end-time" class="input" bind:value={form.end_time} />
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem;">
+          <button class="btn btn-primary" on:click={createTournament} disabled={creating}>
+            {creating ? "Creating..." : "Create Tournament"}
+          </button>
+          <button class="btn btn-secondary" on:click={() => goto("/game-setter")}>Cancel</button>
+        </div>
+      </div>
+    {/if}
+  </div>
+</div>

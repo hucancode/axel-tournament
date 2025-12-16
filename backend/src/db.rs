@@ -82,6 +82,8 @@ pub async fn init_schema(db: &Database) -> Result<(), surrealdb::Error> {
          DEFINE FIELD IF NOT EXISTS owner_id ON game TYPE option<record<user>>;
          DEFINE FIELD IF NOT EXISTS dockerfile_path ON game TYPE option<string>;
          DEFINE FIELD IF NOT EXISTS docker_image ON game TYPE option<string>;
+         DEFINE FIELD IF NOT EXISTS game_code_path ON game TYPE option<string>;
+         DEFINE FIELD IF NOT EXISTS game_language ON game TYPE option<string>;
          DEFINE FIELD IF NOT EXISTS created_at ON game TYPE datetime;
          DEFINE FIELD IF NOT EXISTS updated_at ON game TYPE datetime;
          DEFINE INDEX IF NOT EXISTS unique_game_name ON game COLUMNS name UNIQUE;

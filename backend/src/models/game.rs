@@ -13,6 +13,8 @@ pub struct Game {
     pub owner_id: Option<Thing>, // reference to user who created the game
     pub dockerfile_path: Option<String>, // path to Dockerfile for this game
     pub docker_image: Option<String>, // built Docker image tag
+    pub game_code_path: Option<String>, // path to game orchestration code
+    pub game_language: Option<ProgrammingLanguage>, // language of game code
     pub created_at: Datetime,
     pub updated_at: Datetime,
 }
@@ -68,6 +70,13 @@ pub struct UpdateGameRequest {
 pub struct UploadDockerfileRequest {
     #[validate(length(min = 1, max = 100000, message = "Dockerfile must be 1-100000 characters"))]
     pub dockerfile_content: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Validate)]
+pub struct UploadGameCodeRequest {
+    pub language: String,
+    #[validate(length(min = 1, max = 1048576, message = "Game code must be 1 byte to 1MB"))]
+    pub code_content: String,
 }
 
 #[derive(Debug, Serialize)]

@@ -31,6 +31,7 @@ async fn test_create_and_get_tournament() {
         "Desc".to_string(),
         serde_json::json!({}),
         vec![axel_tournament::models::ProgrammingLanguage::Rust],
+        None,
     )
     .await
     .unwrap();
@@ -65,6 +66,7 @@ async fn test_update_tournament_status() {
         "Desc".to_string(),
         serde_json::json!({}),
         vec![axel_tournament::models::ProgrammingLanguage::Rust],
+        None,
     )
     .await
     .unwrap();
@@ -108,6 +110,7 @@ async fn test_join_and_leave_tournament() {
         "Desc".to_string(),
         serde_json::json!({}),
         vec![axel_tournament::models::ProgrammingLanguage::Rust],
+        None,
     )
     .await
     .unwrap();
@@ -221,6 +224,7 @@ async fn test_start_tournament_all_vs_all() {
         "Match generation test".to_string(),
         serde_json::json!({}),
         vec![axel_tournament::models::ProgrammingLanguage::Rust],
+        None,
     )
     .await
     .unwrap();
@@ -312,6 +316,7 @@ async fn test_start_tournament_round_robin() {
         "Round robin test".to_string(),
         serde_json::json!({}),
         vec![axel_tournament::models::ProgrammingLanguage::Rust],
+        None,
     )
     .await
     .unwrap();
@@ -397,6 +402,7 @@ async fn test_start_tournament_without_submissions_fails() {
         "No submissions test".to_string(),
         serde_json::json!({}),
         vec![axel_tournament::models::ProgrammingLanguage::Rust],
+        None,
     )
     .await
     .unwrap();
@@ -455,6 +461,7 @@ async fn test_start_tournament_not_enough_players_fails() {
         "Min players test".to_string(),
         serde_json::json!({}),
         vec![axel_tournament::models::ProgrammingLanguage::Rust],
+        None,
     )
     .await
     .unwrap();

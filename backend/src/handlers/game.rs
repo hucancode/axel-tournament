@@ -95,3 +95,38 @@ pub async fn delete_game(
     services::game::delete_game(&state.db, &game_id).await?;
     Ok(StatusCode::NO_CONTENT)
 }
+
+pub async fn list_my_games(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Claims>,
+) -> ApiResult<Json<Vec<Game>>> {
+    let owner_id = claims.sub.clone();
+    let games = services::game::list_games_by_owner(&state.db, &owner_id).await?;
+    Ok(Json(games))
+}
+
+pub async fn delete_game_as_game_setter(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Claims>,
+    Path(game_id): Path<String>,
+) -> ApiResult<StatusCode> {
+    // Get the game to check ownership
+    let game = services::game::get_game(&state.db, &game_id).await?;
+
+    // Verify ownership (owner or admin)
+    let user_id = claims.sub.to_string();
+    let is_owner = game
+        .owner_id
+        .as_ref()
+        .map(|owner| owner.to_string() == user_id)
+        .unwrap_or(false);
+
+    if !is_owner && claims.role != crate::models::UserRole::Admin {
+        return Err(crate::error::ApiError::Forbidden(
+            "You don't have permission to delete this game".to_string(),
+        ));
+    }
+
+    services::game::delete_game(&state.db, &game_id).await?;
+    Ok(StatusCode::NO_CONTENT)
+}
