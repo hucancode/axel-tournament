@@ -165,7 +165,14 @@ pub async fn get_tournament_participants(
 pub async fn leave_tournament(db: &Database, tournament_id: &str, user_id: &str) -> ApiResult<()> {
     let user_id_clean = user_id.trim_start_matches("user:");
     let tournament_id_clean = tournament_id.trim_start_matches("tournament:");
-    // Find participant first to avoid matching issues
+    // Check tournament status - cannot leave if tournament has started
+    let tournament = get_tournament(db, tournament_id_clean).await?;
+    if tournament.status != TournamentStatus::Registration {
+        return Err(ApiError::BadRequest(
+            "Cannot leave tournament after registration has closed".to_string(),
+        ));
+    }
+    // Find participant first to avoid matching issues and validate ownership
     let mut existing = db
         .query("SELECT * FROM tournament_participant WHERE tournament_id = $tournament_id AND user_id = $user_id")
         .bind(("tournament_id", Thing::from(("tournament", tournament_id_clean))))
@@ -173,8 +180,9 @@ pub async fn leave_tournament(db: &Database, tournament_id: &str, user_id: &str)
         .await?;
     let participants: Vec<TournamentParticipant> = existing.take(0)?;
     let participant = participants.into_iter().next().ok_or_else(|| {
-        ApiError::NotFound("Participant not found in this tournament".to_string())
+        ApiError::NotFound("You are not a participant in this tournament".to_string())
     })?;
+
     // Delete by specific participant id
     if let Some(pid) = participant.id.clone() {
         let delete_key = (pid.tb.as_str(), pid.id.to_string());
@@ -263,7 +271,55 @@ pub async fn start_tournament(db: &Database, tournament_id: &str) -> ApiResult<T
     Ok(updated_tournament)
 }
 
+async fn create_match_for_participants(
+    db: &Database,
+    tournament: &Tournament,
+    p1: &TournamentParticipant,
+    p2: &TournamentParticipant,
+) -> ApiResult<()> {
+    let submission_id_1 = p1.submission_id.clone().ok_or_else(|| {
+        ApiError::Internal("Participant missing submission".to_string())
+    })?;
+    let submission_id_2 = p2.submission_id.clone().ok_or_else(|| {
+        ApiError::Internal("Participant missing submission".to_string())
+    })?;
+
+    let match_data = Match {
+        id: None,
+        tournament_id: tournament.id.clone(),
+        game_id: tournament.game_id.clone(),
+        status: MatchStatus::Pending,
+        participants: vec![
+            MatchParticipant {
+                submission_id: submission_id_1,
+                user_id: p1.user_id.clone(),
+                score: None,
+                rank: None,
+                is_winner: false,
+                metadata: None,
+            },
+            MatchParticipant {
+                submission_id: submission_id_2,
+                user_id: p2.user_id.clone(),
+                score: None,
+                rank: None,
+                is_winner: false,
+                metadata: None,
+            },
+        ],
+        metadata: None,
+        created_at: Datetime::default(),
+        updated_at: Datetime::default(),
+        started_at: None,
+        completed_at: None,
+    };
+
+    let _: Option<Match> = db.create("match").content(match_data).await?;
+    Ok(())
+}
+
 /// Generate all vs all matches (each player plays against every player including themselves)
+/// For N players: N × N matches
 async fn generate_all_vs_all_matches(
     db: &Database,
     tournament: &Tournament,
@@ -273,44 +329,7 @@ async fn generate_all_vs_all_matches(
 
     for p1 in participants {
         for p2 in participants {
-            let submission_id_1 = p1.submission_id.clone().ok_or_else(|| {
-                ApiError::Internal("Participant missing submission".to_string())
-            })?;
-            let submission_id_2 = p2.submission_id.clone().ok_or_else(|| {
-                ApiError::Internal("Participant missing submission".to_string())
-            })?;
-
-            let match_data = Match {
-                id: None,
-                tournament_id: tournament.id.clone(),
-                game_id: tournament.game_id.clone(),
-                status: MatchStatus::Pending,
-                participants: vec![
-                    MatchParticipant {
-                        submission_id: submission_id_1,
-                        user_id: p1.user_id.clone(),
-                        score: None,
-                        rank: None,
-                        is_winner: false,
-                        metadata: None,
-                    },
-                    MatchParticipant {
-                        submission_id: submission_id_2,
-                        user_id: p2.user_id.clone(),
-                        score: None,
-                        rank: None,
-                        is_winner: false,
-                        metadata: None,
-                    },
-                ],
-                metadata: None,
-                created_at: Datetime::default(),
-                updated_at: Datetime::default(),
-                started_at: None,
-                completed_at: None,
-            };
-
-            let _: Option<Match> = db.create("match").content(match_data).await?;
+            create_match_for_participants(db, tournament, p1, p2).await?;
             matches_created += 1;
         }
     }
@@ -318,7 +337,8 @@ async fn generate_all_vs_all_matches(
     Ok(matches_created)
 }
 
-/// Generate round robin matches (each player plays against every other player, excluding themselves)
+/// Generate round robin matches (each player plays against every other player once, excluding themselves)
+/// For N players: N × (N-1) / 2 matches (only unique pairings, no duplicates)
 async fn generate_round_robin_matches(
     db: &Database,
     tournament: &Tournament,
@@ -326,53 +346,13 @@ async fn generate_round_robin_matches(
 ) -> ApiResult<usize> {
     let mut matches_created = 0;
 
+    // Only create matches for i < j to avoid duplicates
     for i in 0..participants.len() {
-        for j in 0..participants.len() {
-            if i == j {
-                continue; // Skip self-matches
-            }
-
+        for j in (i + 1)..participants.len() {
             let p1 = &participants[i];
             let p2 = &participants[j];
 
-            let submission_id_1 = p1.submission_id.clone().ok_or_else(|| {
-                ApiError::Internal("Participant missing submission".to_string())
-            })?;
-            let submission_id_2 = p2.submission_id.clone().ok_or_else(|| {
-                ApiError::Internal("Participant missing submission".to_string())
-            })?;
-
-            let match_data = Match {
-                id: None,
-                tournament_id: tournament.id.clone(),
-                game_id: tournament.game_id.clone(),
-                status: MatchStatus::Pending,
-                participants: vec![
-                    MatchParticipant {
-                        submission_id: submission_id_1,
-                        user_id: p1.user_id.clone(),
-                        score: None,
-                        rank: None,
-                        is_winner: false,
-                        metadata: None,
-                    },
-                    MatchParticipant {
-                        submission_id: submission_id_2,
-                        user_id: p2.user_id.clone(),
-                        score: None,
-                        rank: None,
-                        is_winner: false,
-                        metadata: None,
-                    },
-                ],
-                metadata: None,
-                created_at: Datetime::default(),
-                updated_at: Datetime::default(),
-                started_at: None,
-                completed_at: None,
-            };
-
-            let _: Option<Match> = db.create("match").content(match_data).await?;
+            create_match_for_participants(db, tournament, p1, p2).await?;
             matches_created += 1;
         }
     }

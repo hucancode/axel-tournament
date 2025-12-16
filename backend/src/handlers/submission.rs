@@ -22,6 +22,16 @@ pub async fn create_submission(
     payload
         .validate()
         .map_err(|e| crate::error::ApiError::Validation(e.to_string()))?;
+
+    // Validate code size
+    let max_bytes = state.config.app.max_code_size_mb * 1024 * 1024;
+    if payload.code.len() > max_bytes {
+        return Err(crate::error::ApiError::Validation(format!(
+            "Code size exceeds maximum of {} MB",
+            state.config.app.max_code_size_mb
+        )));
+    }
+
     // Validate language
     let language = ProgrammingLanguage::from_str(&payload.language).ok_or_else(|| {
         crate::error::ApiError::Validation("Invalid programming language".to_string())

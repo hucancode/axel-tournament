@@ -2,16 +2,28 @@ use crate::{AppState, handlers, middleware};
 use axum::{
     Router, middleware as axum_middleware,
     routing::{delete, get, patch, post, put},
+    http::{header, Method},
 };
-use tower_http::cors::{Any, CorsLayer};
+use tower_http::cors::CorsLayer;
 
 pub fn create_router(state: AppState) -> Router {
-    // Build CORS layer
+    // Build CORS layer - restrict to specific origins in production
+    // For development, you can use "http://localhost:3000" or configure via environment
     let cors = CorsLayer::new()
-        .allow_origin(Any)
-        .allow_methods(Any)
-        .allow_headers(Any);
-    // Public routes
+        .allow_origin(
+            std::env::var("FRONTEND_URL")
+                .unwrap_or_else(|_| "http://localhost:3000".to_string())
+                .parse::<axum::http::HeaderValue>()
+                .expect("Invalid FRONTEND_URL"),
+        )
+        .allow_methods([Method::GET, Method::POST, Method::PUT, Method::PATCH, Method::DELETE])
+        .allow_headers([
+            header::AUTHORIZATION,
+            header::CONTENT_TYPE,
+            axum::http::HeaderName::from_static("x-match-runner-key"),
+        ])
+        .allow_credentials(true);
+    // Public routes (no authentication required)
     let public_routes = Router::new()
         .route("/health", get(|| async { "OK" }))
         .route("/api/auth/register", post(handlers::register))
@@ -70,11 +82,6 @@ pub fn create_router(state: AppState) -> Router {
             "/api/admin/tournaments/{id}/start",
             post(handlers::start_tournament),
         )
-        .route("/api/admin/matches", post(handlers::create_match))
-        .route(
-            "/api/admin/matches/{id}/result",
-            put(handlers::update_match_result),
-        )
         .route("/api/admin/users", get(handlers::list_users))
         .route("/api/admin/users/{id}/ban", post(handlers::ban_user))
         .route("/api/admin/users/{id}/unban", post(handlers::unban_user))
@@ -86,11 +93,25 @@ pub fn create_router(state: AppState) -> Router {
             state.clone(),
             middleware::auth_middleware,
         ));
+
+    // Match runner routes (for external match management module)
+    // Requires X-Match-Runner-Key header for authentication
+    let match_runner_routes = Router::new()
+        .route(
+            "/api/matches/{id}/result",
+            put(handlers::update_match_result),
+        )
+        .route_layer(axum_middleware::from_fn_with_state(
+            state.clone(),
+            middleware::match_runner_middleware,
+        ));
+
     // Combine all routes
     Router::new()
         .merge(public_routes)
         .merge(protected_routes)
         .merge(admin_routes)
+        .merge(match_runner_routes)
         .layer(cors)
         .with_state(state)
 }

@@ -45,7 +45,6 @@ pub async fn get_leaderboard(
     let mut response = result.await?;
     #[derive(serde::Deserialize)]
     struct RawEntry {
-        id: Option<Thing>,
         user_id: Thing,
         tournament_id: Thing,
         score: f64,

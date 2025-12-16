@@ -378,11 +378,11 @@ async fn test_start_tournament_round_robin() {
     assert_eq!(started_tournament.status, TournamentStatus::Running);
     assert!(started_tournament.matches_generated);
 
-    // Verify matches were created (4 players, each vs 3 others = 12 matches)
+    // Verify matches were created (4 players, unique pairings = 6 matches)
     let created_matches = matches::list_matches(&db, Some(tournament_id.clone()), None, None)
         .await
         .unwrap();
-    assert_eq!(created_matches.len(), 12); // 4 * (4-1) = 12 matches
+    assert_eq!(created_matches.len(), 6); // 4 * (4-1) / 2 = 6 matches (no duplicates)
 }
 
 #[tokio::test]

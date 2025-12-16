@@ -101,20 +101,31 @@ pub async fn init_schema(db: &Database) -> Result<(), surrealdb::Error> {
          DEFINE FIELD IF NOT EXISTS created_at ON submission TYPE datetime;",
     )
     .await?;
-    // Matches table
+    // Matches table - SCHEMALESS to allow flexible participants array with nested objects
     db.query(
-        "DEFINE TABLE IF NOT EXISTS match SCHEMAFULL;
+        "DEFINE TABLE IF NOT EXISTS match SCHEMALESS;
          DEFINE FIELD IF NOT EXISTS tournament_id ON match TYPE option<record<tournament>>;
          DEFINE FIELD IF NOT EXISTS game_id ON match TYPE record<game>;
          DEFINE FIELD IF NOT EXISTS status ON match TYPE string;
-         DEFINE FIELD IF NOT EXISTS participants ON match TYPE array;
-         DEFINE FIELD IF NOT EXISTS metadata ON match TYPE option<object>;
          DEFINE FIELD IF NOT EXISTS created_at ON match TYPE datetime;
          DEFINE FIELD IF NOT EXISTS updated_at ON match TYPE datetime;
-         DEFINE FIELD IF NOT EXISTS started_at ON match TYPE option<datetime>;
-         DEFINE FIELD IF NOT EXISTS completed_at ON match TYPE option<datetime>;",
+         DEFINE INDEX IF NOT EXISTS idx_match_tournament ON match COLUMNS tournament_id;
+         DEFINE INDEX IF NOT EXISTS idx_match_status ON match COLUMNS status;
+         DEFINE INDEX IF NOT EXISTS idx_match_created ON match COLUMNS created_at;",
     )
     .await?;
+
+    // Add indexes for performance on commonly queried fields
+    db.query(
+        "DEFINE INDEX IF NOT EXISTS idx_tournament_status ON tournament COLUMNS status;
+         DEFINE INDEX IF NOT EXISTS idx_tournament_game ON tournament COLUMNS game_id;
+         DEFINE INDEX IF NOT EXISTS idx_tournament_created ON tournament COLUMNS created_at;
+         DEFINE INDEX IF NOT EXISTS idx_submission_user ON submission COLUMNS user_id;
+         DEFINE INDEX IF NOT EXISTS idx_submission_tournament ON submission COLUMNS tournament_id;
+         DEFINE INDEX IF NOT EXISTS idx_game_created ON game COLUMNS created_at;",
+    )
+    .await?;
+
     Ok(())
 }
 
