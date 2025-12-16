@@ -6,7 +6,7 @@
     import { onMount } from "svelte";
     import { goto } from "$app/navigation";
     import type { Tournament, TournamentParticipant, Game } from "$lib/types";
-    const tournamentId = $page.params.id;
+    const tournamentId = $derived(page.params.id!);
     let tournament = $state<Tournament | null>(null);
     let game = $state<Game | null>(null);
     let participants = $state<TournamentParticipant[]>([]);

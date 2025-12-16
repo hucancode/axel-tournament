@@ -12,7 +12,7 @@
     let loading = $state(false);
     let error = $state("");
     let validationErrors = $state<{ language?: string; code?: string }>({});
-    const tournamentId = $derived($page.params.id);
+    const tournamentId = $derived(page.params.id!);
     const auth = $derived($authStore);
     onMount(async () => {
         // Redirect if not authenticated

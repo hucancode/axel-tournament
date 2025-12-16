@@ -7,8 +7,8 @@
     let error = $state("");
     let loading = $state(true);
     onMount(async () => {
-        const code = $page.url.searchParams.get("code");
-        const state = $page.url.searchParams.get("state");
+        const code = page.url.searchParams.get("code");
+        const state = page.url.searchParams.get("state");
         if (!code || !state) {
             error = "Invalid callback parameters";
             loading = false;

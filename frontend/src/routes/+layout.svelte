@@ -10,6 +10,7 @@
     }
     let user = $derived($authStore.user);
     let isAuthenticated = $derived($authStore.isAuthenticated);
+    const currentPath = $derived(page.url.pathname);
 </script>
 
 <svelte:head>
@@ -23,19 +24,19 @@
                 <a href="/" class="logo">Axel Tournament</a>
                 <a
                     href="/tournaments"
-                    class:active={$page.url.pathname.startsWith("/tournaments")}
+                    class:active={currentPath.startsWith("/tournaments")}
                 >
                     Tournaments
                 </a>
                 <a
                     href="/games"
-                    class:active={$page.url.pathname.startsWith("/games")}
+                    class:active={currentPath.startsWith("/games")}
                 >
                     Games
                 </a>
                 <a
                     href="/leaderboard"
-                    class:active={$page.url.pathname === "/leaderboard"}
+                    class:active={currentPath === "/leaderboard"}
                 >
                     Leaderboard
                 </a>
