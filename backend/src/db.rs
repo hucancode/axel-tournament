@@ -11,18 +11,44 @@ pub type Database = Surreal<Client>;
 pub async fn connect(config: &DatabaseConfig) -> Result<Database, surrealdb::Error> {
     // Remove ws:// prefix if present, as Surreal::new::<Ws> expects just host:port
     let endpoint = config.url.trim_start_matches("ws://");
-    let db = Surreal::new::<Ws>(endpoint).await?;
-    db.signin(Root {
-        username: &config.user,
-        password: &config.pass,
-    })
-    .await?;
-    db.use_ns(&config.namespace)
-        .use_db(&config.database)
-        .await?;
-    // Initialize schema
-    init_schema(&db).await?;
-    Ok(db)
+
+    let max_retries = 10;
+    let mut retry_count = 0;
+
+    loop {
+        match Surreal::new::<Ws>(endpoint).await {
+            Ok(db) => {
+                match db.signin(Root {
+                    username: &config.user,
+                    password: &config.pass,
+                }).await {
+                    Ok(_) => {
+                        db.use_ns(&config.namespace)
+                            .use_db(&config.database)
+                            .await?;
+                        // Initialize schema
+                        init_schema(&db).await?;
+                        eprintln!("Successfully connected to database at {}", config.url);
+                        return Ok(db);
+                    }
+                    Err(e) if retry_count < max_retries => {
+                        retry_count += 1;
+                        eprintln!("Database signin failed (attempt {}/{}): {}. Retrying in 2s...",
+                                 retry_count, max_retries, e);
+                        tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+                    }
+                    Err(e) => return Err(e),
+                }
+            }
+            Err(e) if retry_count < max_retries => {
+                retry_count += 1;
+                eprintln!("Database connection failed (attempt {}/{}): {}. Retrying in 2s...",
+                         retry_count, max_retries, e);
+                tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+            }
+            Err(e) => return Err(e),
+        }
+    }
 }
 
 pub async fn init_schema(db: &Database) -> Result<(), surrealdb::Error> {
