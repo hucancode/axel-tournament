@@ -3,7 +3,7 @@ use crate::{
     error::{ApiError, ApiResult},
     models::{Game, ProgrammingLanguage},
 };
-use surrealdb::sql::Datetime;
+use surrealdb::sql::{Datetime, Thing};
 
 pub async fn create_game(
     db: &Database,
@@ -11,7 +11,10 @@ pub async fn create_game(
     description: String,
     rules: serde_json::Value,
     supported_languages: Vec<ProgrammingLanguage>,
+    owner_id: Option<String>,
 ) -> ApiResult<Game> {
+    let owner_thing = owner_id.map(|id| Thing::from(("user", id.trim_start_matches("user:"))));
+
     let game = Game {
         id: None,
         name,
@@ -19,6 +22,9 @@ pub async fn create_game(
         rules,
         supported_languages,
         is_active: true,
+        owner_id: owner_thing,
+        dockerfile_path: None,
+        docker_image: None,
         created_at: Datetime::default(),
         updated_at: Datetime::default(),
     };

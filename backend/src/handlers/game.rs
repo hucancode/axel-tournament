@@ -1,11 +1,11 @@
 use crate::{
     AppState,
     error::ApiResult,
-    models::{CreateGameRequest, Game, UpdateGameRequest},
+    models::{Claims, CreateGameRequest, Game, UpdateGameRequest},
     services,
 };
 use axum::{
-    Json,
+    Extension, Json,
     extract::{Path, State},
     http::StatusCode,
 };
@@ -24,6 +24,31 @@ pub async fn create_game(
         payload.description,
         payload.rules,
         payload.supported_languages,
+        None, // Admin creates games without owner
+    )
+    .await?;
+    Ok((StatusCode::CREATED, Json(game)))
+}
+
+pub async fn create_game_as_game_setter(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Claims>,
+    Json(payload): Json<CreateGameRequest>,
+) -> ApiResult<(StatusCode, Json<Game>)> {
+    payload
+        .validate()
+        .map_err(|e| crate::error::ApiError::Validation(e.to_string()))?;
+
+    // Get user from claims and set as owner
+    let owner_id = Some(claims.sub.clone());
+
+    let game = services::game::create_game(
+        &state.db,
+        payload.name,
+        payload.description,
+        payload.rules,
+        payload.supported_languages,
+        owner_id,
     )
     .await?;
     Ok((StatusCode::CREATED, Json(game)))

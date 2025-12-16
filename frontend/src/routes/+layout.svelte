@@ -46,6 +46,9 @@
                     {#if user?.role === "admin"}
                         <a href="/admin">Admin</a>
                     {/if}
+                    {#if user?.role === "gamesetter" || user?.role === "admin"}
+                        <a href="/game-setter">Game Setter</a>
+                    {/if}
                     <a href="/profile">{user?.username}</a>
                     <button onclick={logout} class="btn-secondary text-sm"
                         >Logout</button

@@ -10,6 +10,9 @@ pub struct Game {
     pub rules: serde_json::Value, // JSON object with game-specific rules
     pub supported_languages: Vec<ProgrammingLanguage>,
     pub is_active: bool,
+    pub owner_id: Option<Thing>, // reference to user who created the game
+    pub dockerfile_path: Option<String>, // path to Dockerfile for this game
+    pub docker_image: Option<String>, // built Docker image tag
     pub created_at: Datetime,
     pub updated_at: Datetime,
 }
@@ -40,7 +43,7 @@ impl ProgrammingLanguage {
     }
 }
 
-#[derive(Debug, Deserialize, Validate)]
+#[derive(Debug, Serialize, Deserialize, Validate)]
 pub struct CreateGameRequest {
     #[validate(length(min = 1, max = 100, message = "Game name must be 1-100 characters"))]
     pub name: String,
@@ -59,4 +62,16 @@ pub struct UpdateGameRequest {
     pub rules: Option<serde_json::Value>,
     pub supported_languages: Option<Vec<ProgrammingLanguage>>,
     pub is_active: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Validate)]
+pub struct UploadDockerfileRequest {
+    #[validate(length(min = 1, max = 100000, message = "Dockerfile must be 1-100000 characters"))]
+    pub dockerfile_content: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct BuildDockerImageResponse {
+    pub image_tag: String,
+    pub build_status: String,
 }

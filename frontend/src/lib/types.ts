@@ -1,5 +1,5 @@
 // User types
-export type UserRole = "admin" | "player";
+export type UserRole = "admin" | "gamesetter" | "player";
 export type OAuthProvider = "google";
 
 export interface User {
@@ -87,6 +87,9 @@ export interface Game {
   rules: Record<string, any>;
   supported_languages: ProgrammingLanguage[];
   is_active: boolean;
+  owner_id?: string;
+  dockerfile_path?: string;
+  docker_image?: string;
   created_at: string;
   updated_at: string;
 }
@@ -96,7 +99,48 @@ export interface CreateGameRequest {
   description: string;
   rules: Record<string, any>;
   supported_languages: ProgrammingLanguage[];
-  is_active: boolean;
+}
+
+export interface UploadDockerfileRequest {
+  dockerfile_content: string;
+}
+
+// Game Template types
+export interface GameTemplate {
+  id: string;
+  game_id: string;
+  language: ProgrammingLanguage;
+  template_code: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateGameTemplateRequest {
+  game_id: string;
+  language: string;
+  template_code: string;
+}
+
+// Match Policy types
+export interface MatchPolicy {
+  id: string;
+  tournament_id: string;
+  rounds_per_match: number;
+  repetitions: number;
+  timeout_seconds: number;
+  cpu_limit?: string;
+  memory_limit?: string;
+  scoring_weights?: Record<string, any>;
+}
+
+export interface CreateMatchPolicyRequest {
+  tournament_id: string;
+  rounds_per_match?: number;
+  repetitions?: number;
+  timeout_seconds?: number;
+  cpu_limit?: string;
+  memory_limit?: string;
+  scoring_weights?: Record<string, any>;
 }
 
 // Submission types

@@ -1,16 +1,22 @@
 pub mod auth;
+pub mod dockerfile;
 pub mod email;
 pub mod game;
+pub mod game_template;
 pub mod leaderboard;
+pub mod match_policy;
 pub mod matches;
 pub mod submission;
 pub mod tournament;
 pub mod user;
 
 pub use auth::*;
+pub use dockerfile::*;
 pub use email::*;
 pub use game::*;
+pub use game_template::*;
 pub use leaderboard::*;
+pub use match_policy::*;
 pub use matches::*;
 pub use submission::*;
 pub use tournament::*;

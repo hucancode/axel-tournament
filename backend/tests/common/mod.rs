@@ -28,6 +28,17 @@ pub struct TestApp {
     pub state: AppState,
 }
 
+pub fn extract_thing_id(value: &Value) -> String {
+    // SurrealDB Thing IDs are serialized as: {"tb": "table", "id": {"String": "id"}}
+    // We need to extract it as "table:id" format
+    if let Some(tb) = value["tb"].as_str() {
+        if let Some(id_str) = value["id"]["String"].as_str() {
+            return format!("{}:{}", tb, id_str);
+        }
+    }
+    panic!("Invalid Thing ID format: {:?}", value);
+}
+
 pub fn unique_name(prefix: &str) -> String {
     let timestamp = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -146,4 +157,51 @@ pub async fn admin_token(app: &TestApp) -> String {
     )
     .await;
     body["token"].as_str().unwrap_or_default().to_string()
+}
+
+pub async fn game_setter_token(app: &TestApp) -> String {
+    // Register a game setter user with unique email
+    let unique_email = format!("gamesetter{}@test.com", unique_name(""));
+    let unique_username = format!("gamesetter{}", unique_name(""));
+
+    let (_, body) = json_request(
+        app,
+        http::Method::POST,
+        "/api/auth/register",
+        Some(json!({
+            "email": unique_email,
+            "username": unique_username,
+            "password": "password123",
+            "location": "US"
+        })),
+        None,
+    )
+    .await;
+
+    let user_id_str = body["user"]["id"].as_str().unwrap();
+    let user_id: surrealdb::sql::Thing = user_id_str.parse().unwrap();
+
+    // Update user role to gamesetter via direct DB access
+    // Note: In production, this would be done by admin
+    let _: Result<Option<serde_json::Value>, _> = app.state.db.query(
+        "UPDATE $user_id SET role = 'gamesetter'"
+    )
+    .bind(("user_id", user_id))
+    .await
+    .and_then(|mut r| r.take(0));
+
+    // Login again to get token with updated role
+    let (_, login_body) = json_request(
+        app,
+        http::Method::POST,
+        "/api/auth/login",
+        Some(json!({
+            "email": unique_email,
+            "password": "password123",
+        })),
+        None,
+    )
+    .await;
+
+    login_body["token"].as_str().unwrap_or_default().to_string()
 }
