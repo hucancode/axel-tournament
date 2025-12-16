@@ -70,6 +70,8 @@ pub async fn init_schema(db: &Database) -> Result<(), surrealdb::Error> {
          DEFINE FIELD IF NOT EXISTS current_players ON tournament TYPE number DEFAULT 0;
          DEFINE FIELD IF NOT EXISTS start_time ON tournament TYPE option<datetime>;
          DEFINE FIELD IF NOT EXISTS end_time ON tournament TYPE option<datetime>;
+         DEFINE FIELD IF NOT EXISTS match_generation_type ON tournament TYPE string DEFAULT 'all_vs_all';
+         DEFINE FIELD IF NOT EXISTS matches_generated ON tournament TYPE bool DEFAULT false;
          DEFINE FIELD IF NOT EXISTS created_at ON tournament TYPE datetime;
          DEFINE FIELD IF NOT EXISTS updated_at ON tournament TYPE datetime;",
     )
@@ -97,6 +99,20 @@ pub async fn init_schema(db: &Database) -> Result<(), surrealdb::Error> {
          DEFINE FIELD IF NOT EXISTS status ON submission TYPE string DEFAULT 'pending';
          DEFINE FIELD IF NOT EXISTS error_message ON submission TYPE option<string>;
          DEFINE FIELD IF NOT EXISTS created_at ON submission TYPE datetime;",
+    )
+    .await?;
+    // Matches table
+    db.query(
+        "DEFINE TABLE IF NOT EXISTS match SCHEMAFULL;
+         DEFINE FIELD IF NOT EXISTS tournament_id ON match TYPE option<record<tournament>>;
+         DEFINE FIELD IF NOT EXISTS game_id ON match TYPE record<game>;
+         DEFINE FIELD IF NOT EXISTS status ON match TYPE string;
+         DEFINE FIELD IF NOT EXISTS participants ON match TYPE array;
+         DEFINE FIELD IF NOT EXISTS metadata ON match TYPE option<object>;
+         DEFINE FIELD IF NOT EXISTS created_at ON match TYPE datetime;
+         DEFINE FIELD IF NOT EXISTS updated_at ON match TYPE datetime;
+         DEFINE FIELD IF NOT EXISTS started_at ON match TYPE option<datetime>;
+         DEFINE FIELD IF NOT EXISTS completed_at ON match TYPE option<datetime>;",
     )
     .await?;
     Ok(())

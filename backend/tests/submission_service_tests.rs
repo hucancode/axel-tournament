@@ -68,6 +68,7 @@ async fn test_submission_create() {
         100,
         None,
         None,
+        None,
     )
     .await
     .unwrap();
@@ -125,6 +126,7 @@ async fn test_submission_get() {
         "Test tournament".to_string(),
         2,
         100,
+        None,
         None,
         None,
     )
@@ -187,6 +189,7 @@ async fn test_submission_list_by_user() {
         "Test tournament".to_string(),
         2,
         100,
+        None,
         None,
         None,
     )

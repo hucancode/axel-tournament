@@ -71,6 +71,7 @@ async fn test_match_create() {
             100,
             None,
             None,
+            None,
         )
         .await
         .unwrap();
@@ -140,6 +141,7 @@ async fn test_match_update_result() {
         "Test tournament".to_string(),
         2,
         100,
+        None,
         None,
         None,
     )

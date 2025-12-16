@@ -44,6 +44,7 @@ async fn test_leaderboard_ordering_and_limit() {
         32,
         None,
         None,
+        None,
     )
     .await
     .unwrap();

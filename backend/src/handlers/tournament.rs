@@ -36,6 +36,7 @@ pub async fn create_tournament(
         payload.max_players,
         payload.start_time,
         payload.end_time,
+        payload.match_generation_type,
     )
     .await?;
     Ok((StatusCode::CREATED, Json(tournament)))
@@ -117,4 +118,13 @@ pub async fn get_tournament_participants(
     let participants =
         services::tournament::get_tournament_participants(&state.db, &tournament_id).await?;
     Ok(Json(participants))
+}
+
+/// Start a tournament and generate matches (admin only)
+pub async fn start_tournament(
+    State(state): State<AppState>,
+    Path(tournament_id): Path<String>,
+) -> ApiResult<Json<Tournament>> {
+    let tournament = services::tournament::start_tournament(&state.db, &tournament_id).await?;
+    Ok(Json(tournament))
 }

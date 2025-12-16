@@ -1,7 +1,7 @@
 use crate::{
     db::Database,
     error::{ApiError, ApiResult},
-    models::{Tournament, TournamentParticipant, TournamentStatus},
+    models::{Tournament, TournamentParticipant, TournamentStatus, MatchGenerationType, Match, MatchStatus, MatchParticipant},
 };
 use chrono::{DateTime, Utc};
 use surrealdb::sql::{Datetime, Thing};
@@ -15,6 +15,7 @@ pub async fn create_tournament(
     max_players: u32,
     start_time: Option<DateTime<Utc>>,
     end_time: Option<DateTime<Utc>>,
+    match_generation_type: Option<MatchGenerationType>,
 ) -> ApiResult<Tournament> {
     let game_id_clean = game_id.trim_start_matches("game:").to_string();
     let game_thing = Thing::from(("game", game_id_clean.as_str()));
@@ -29,6 +30,8 @@ pub async fn create_tournament(
         current_players: 0,
         start_time: start_time.map(|dt| dt.into()),
         end_time: end_time.map(|dt| dt.into()),
+        match_generation_type: match_generation_type.unwrap_or_default(),
+        matches_generated: false,
         created_at: Datetime::default(),
         updated_at: Datetime::default(),
     };
@@ -185,4 +188,219 @@ pub async fn leave_tournament(db: &Database, tournament_id: &str, user_id: &str)
         ))
         .await?;
     Ok(())
+}
+
+/// Start a tournament and generate matches based on the configured match generation type
+pub async fn start_tournament(db: &Database, tournament_id: &str) -> ApiResult<Tournament> {
+    let tournament_id_clean = tournament_id.trim_start_matches("tournament:");
+    let mut tournament = get_tournament(db, tournament_id_clean).await?;
+
+    // Check if tournament is in registration state
+    if tournament.status != TournamentStatus::Registration {
+        return Err(ApiError::BadRequest(
+            "Tournament must be in registration state to start".to_string(),
+        ));
+    }
+
+    // Check if matches have already been generated
+    if tournament.matches_generated {
+        return Err(ApiError::BadRequest(
+            "Matches have already been generated for this tournament".to_string(),
+        ));
+    }
+
+    // Check if minimum players requirement is met
+    if tournament.current_players < tournament.min_players {
+        return Err(ApiError::BadRequest(format!(
+            "Not enough players. Need at least {} players, currently have {}",
+            tournament.min_players, tournament.current_players
+        )));
+    }
+
+    // Get all participants with their submissions
+    let participants = get_tournament_participants(db, tournament_id_clean).await?;
+
+    // Filter participants who have submitted code
+    let participants_with_submissions: Vec<TournamentParticipant> = participants
+        .into_iter()
+        .filter(|p| p.submission_id.is_some())
+        .collect();
+
+    if participants_with_submissions.is_empty() {
+        return Err(ApiError::BadRequest(
+            "No participants have submitted code yet".to_string(),
+        ));
+    }
+
+    // Generate matches based on the match generation type
+    let _matches_created = match tournament.match_generation_type {
+        MatchGenerationType::AllVsAll => {
+            generate_all_vs_all_matches(db, &tournament, &participants_with_submissions).await?
+        }
+        MatchGenerationType::RoundRobin => {
+            generate_round_robin_matches(db, &tournament, &participants_with_submissions).await?
+        }
+        MatchGenerationType::SingleElimination => {
+            generate_single_elimination_matches(db, &tournament, &participants_with_submissions).await?
+        }
+        MatchGenerationType::DoubleElimination => {
+            generate_double_elimination_matches(db, &tournament, &participants_with_submissions).await?
+        }
+    };
+
+    // Update tournament status
+    tournament.status = TournamentStatus::Running;
+    tournament.matches_generated = true;
+    tournament.updated_at = Datetime::default();
+
+    let updated: Option<Tournament> = db
+        .update(("tournament", tournament_id_clean))
+        .content(tournament)
+        .await?;
+
+    let updated_tournament = updated.ok_or_else(|| ApiError::NotFound("Tournament not found".to_string()))?;
+
+    Ok(updated_tournament)
+}
+
+/// Generate all vs all matches (each player plays against every player including themselves)
+async fn generate_all_vs_all_matches(
+    db: &Database,
+    tournament: &Tournament,
+    participants: &[TournamentParticipant],
+) -> ApiResult<usize> {
+    let mut matches_created = 0;
+
+    for p1 in participants {
+        for p2 in participants {
+            let submission_id_1 = p1.submission_id.clone().ok_or_else(|| {
+                ApiError::Internal("Participant missing submission".to_string())
+            })?;
+            let submission_id_2 = p2.submission_id.clone().ok_or_else(|| {
+                ApiError::Internal("Participant missing submission".to_string())
+            })?;
+
+            let match_data = Match {
+                id: None,
+                tournament_id: tournament.id.clone(),
+                game_id: tournament.game_id.clone(),
+                status: MatchStatus::Pending,
+                participants: vec![
+                    MatchParticipant {
+                        submission_id: submission_id_1,
+                        user_id: p1.user_id.clone(),
+                        score: None,
+                        rank: None,
+                        is_winner: false,
+                        metadata: None,
+                    },
+                    MatchParticipant {
+                        submission_id: submission_id_2,
+                        user_id: p2.user_id.clone(),
+                        score: None,
+                        rank: None,
+                        is_winner: false,
+                        metadata: None,
+                    },
+                ],
+                metadata: None,
+                created_at: Datetime::default(),
+                updated_at: Datetime::default(),
+                started_at: None,
+                completed_at: None,
+            };
+
+            let _: Option<Match> = db.create("match").content(match_data).await?;
+            matches_created += 1;
+        }
+    }
+
+    Ok(matches_created)
+}
+
+/// Generate round robin matches (each player plays against every other player, excluding themselves)
+async fn generate_round_robin_matches(
+    db: &Database,
+    tournament: &Tournament,
+    participants: &[TournamentParticipant],
+) -> ApiResult<usize> {
+    let mut matches_created = 0;
+
+    for i in 0..participants.len() {
+        for j in 0..participants.len() {
+            if i == j {
+                continue; // Skip self-matches
+            }
+
+            let p1 = &participants[i];
+            let p2 = &participants[j];
+
+            let submission_id_1 = p1.submission_id.clone().ok_or_else(|| {
+                ApiError::Internal("Participant missing submission".to_string())
+            })?;
+            let submission_id_2 = p2.submission_id.clone().ok_or_else(|| {
+                ApiError::Internal("Participant missing submission".to_string())
+            })?;
+
+            let match_data = Match {
+                id: None,
+                tournament_id: tournament.id.clone(),
+                game_id: tournament.game_id.clone(),
+                status: MatchStatus::Pending,
+                participants: vec![
+                    MatchParticipant {
+                        submission_id: submission_id_1,
+                        user_id: p1.user_id.clone(),
+                        score: None,
+                        rank: None,
+                        is_winner: false,
+                        metadata: None,
+                    },
+                    MatchParticipant {
+                        submission_id: submission_id_2,
+                        user_id: p2.user_id.clone(),
+                        score: None,
+                        rank: None,
+                        is_winner: false,
+                        metadata: None,
+                    },
+                ],
+                metadata: None,
+                created_at: Datetime::default(),
+                updated_at: Datetime::default(),
+                started_at: None,
+                completed_at: None,
+            };
+
+            let _: Option<Match> = db.create("match").content(match_data).await?;
+            matches_created += 1;
+        }
+    }
+
+    Ok(matches_created)
+}
+
+/// Generate single elimination matches (bracket tournament)
+async fn generate_single_elimination_matches(
+    _db: &Database,
+    _tournament: &Tournament,
+    _participants: &[TournamentParticipant],
+) -> ApiResult<usize> {
+    // TODO: Implement single elimination bracket generation
+    // This requires more complex logic for bracket seeding
+    Err(ApiError::BadRequest(
+        "Single elimination not yet implemented".to_string(),
+    ))
+}
+
+/// Generate double elimination matches (double bracket tournament)
+async fn generate_double_elimination_matches(
+    _db: &Database,
+    _tournament: &Tournament,
+    _participants: &[TournamentParticipant],
+) -> ApiResult<usize> {
+    // TODO: Implement double elimination bracket generation
+    Err(ApiError::BadRequest(
+        "Double elimination not yet implemented".to_string(),
+    ))
 }

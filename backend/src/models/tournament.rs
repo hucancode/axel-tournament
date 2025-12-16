@@ -15,8 +15,31 @@ pub struct Tournament {
     pub current_players: u32,
     pub start_time: Option<Datetime>,
     pub end_time: Option<Datetime>,
+    pub match_generation_type: MatchGenerationType,
+    pub matches_generated: bool, // Track if matches have been generated
     pub created_at: Datetime,
     pub updated_at: Datetime,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum MatchGenerationType {
+    /// Each player plays against every other player (including themselves)
+    /// For N players: N * N matches
+    AllVsAll,
+    /// Each player plays against every other player (excluding themselves)
+    /// For N players: N * (N-1) matches
+    RoundRobin,
+    /// Single elimination bracket
+    SingleElimination,
+    /// Double elimination bracket
+    DoubleElimination,
+}
+
+impl Default for MatchGenerationType {
+    fn default() -> Self {
+        MatchGenerationType::AllVsAll
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -57,6 +80,7 @@ pub struct CreateTournamentRequest {
     pub max_players: u32,
     pub start_time: Option<DateTime<Utc>>,
     pub end_time: Option<DateTime<Utc>>,
+    pub match_generation_type: Option<MatchGenerationType>, // Defaults to AllVsAll if not provided
 }
 
 #[derive(Debug, Deserialize, Validate)]

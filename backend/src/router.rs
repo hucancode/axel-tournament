@@ -66,6 +66,10 @@ pub fn create_router(state: AppState) -> Router {
             "/api/admin/tournaments/{id}",
             patch(handlers::update_tournament),
         )
+        .route(
+            "/api/admin/tournaments/{id}/start",
+            post(handlers::start_tournament),
+        )
         .route("/api/admin/matches", post(handlers::create_match))
         .route(
             "/api/admin/matches/{id}/result",
