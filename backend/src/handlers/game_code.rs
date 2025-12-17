@@ -54,7 +54,7 @@ pub async fn upload_game_code(
     }
 
     // Upload the game code
-    let file_path = services::game_code::upload_game_code(
+    services::game_code::upload_game_code(
         &state.db,
         game_id_thing,
         language,
@@ -63,7 +63,6 @@ pub async fn upload_game_code(
     .await?;
 
     Ok(Json(serde_json::json!({
-        "message": "Game code uploaded successfully",
-        "file_path": file_path
+        "message": "Game code uploaded successfully"
     })))
 }

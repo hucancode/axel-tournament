@@ -37,10 +37,6 @@ async fn test_game_create() {
         &db,
         name.clone(),
         "A competitive battle arena game".to_string(),
-        serde_json::json!({
-            "max_rounds": 100,
-            "time_limit": 60
-        }),
         vec![
             ProgrammingLanguage::Rust,
             ProgrammingLanguage::Go,
@@ -55,7 +51,6 @@ async fn test_game_create() {
     assert_eq!(created_game.description, "A competitive battle arena game");
     assert_eq!(created_game.is_active, true);
     assert_eq!(created_game.supported_languages.len(), 3);
-    assert!(created_game.rules["max_rounds"].as_i64().unwrap() == 100);
 }
 
 #[tokio::test]
@@ -67,7 +62,6 @@ async fn test_game_get() {
         &db,
         name.clone(),
         "Test Description".to_string(),
-        serde_json::json!({}),
         vec![ProgrammingLanguage::Rust],
         None,
     )
@@ -96,7 +90,6 @@ async fn test_game_list_all() {
         &db,
         unique_name("Game 1 "),
         "First game".to_string(),
-        serde_json::json!({}),
         vec![ProgrammingLanguage::Rust],
         None,
     )
@@ -106,7 +99,6 @@ async fn test_game_list_all() {
         &db,
         unique_name("Game 2 "),
         "Second game".to_string(),
-        serde_json::json!({}),
         vec![ProgrammingLanguage::Go],
         None,
     )
@@ -126,7 +118,6 @@ async fn test_game_list_active_only() {
         &db,
         active_name.clone(),
         "Active".to_string(),
-        serde_json::json!({}),
         vec![ProgrammingLanguage::Rust],
         None,
     )
@@ -137,7 +128,6 @@ async fn test_game_list_active_only() {
         &db,
         unique_name("Inactive Game "),
         "Inactive".to_string(),
-        serde_json::json!({}),
         vec![ProgrammingLanguage::C],
         None,
     )
@@ -147,7 +137,6 @@ async fn test_game_list_active_only() {
     game::update_game(
         &db,
         inactive_id,
-        None,
         None,
         None,
         Some(vec![]),
@@ -168,7 +157,6 @@ async fn test_game_update_name() {
         &db,
         unique_name("Original Name "),
         "Description".to_string(),
-        serde_json::json!({}),
         vec![ProgrammingLanguage::Rust],
         None,
     )
@@ -181,7 +169,6 @@ async fn test_game_update_name() {
         &db,
         game_id.clone(),
         Some(new_name.clone()),
-        None,
         None,
         None,
         None,
@@ -200,7 +187,6 @@ async fn test_game_update_description() {
         &db,
         unique_name("Game Name "),
         "Original Description".to_string(),
-        serde_json::json!({}),
         vec![ProgrammingLanguage::Rust],
         None,
     )
@@ -215,45 +201,10 @@ async fn test_game_update_description() {
         Some("New Description".to_string()),
         None,
         None,
-        None,
     )
     .await
     .unwrap();
     assert_eq!(updated_game.description, "New Description");
-}
-
-#[tokio::test]
-async fn test_game_update_rules() {
-    let db = setup_test_db().await;
-    let created_game = game::create_game(
-        &db,
-        unique_name("Game "),
-        "Desc".to_string(),
-        serde_json::json!({"initial": "rules"}),
-        vec![ProgrammingLanguage::Rust],
-        None,
-    )
-    .await
-    .unwrap();
-    let game_id = created_game.id.unwrap();
-    // Update the rules
-    let new_rules = serde_json::json!({
-        "max_rounds": 50,
-        "timeout": 30
-    });
-    let updated_game = game::update_game(
-        &db,
-        game_id.clone(),
-        None,
-        None,
-        Some(new_rules.clone()),
-        None,
-        None,
-    )
-    .await
-    .unwrap();
-    assert_eq!(updated_game.rules["max_rounds"].as_i64().unwrap(), 50);
-    assert_eq!(updated_game.rules["timeout"].as_i64().unwrap(), 30);
 }
 
 #[tokio::test]
@@ -263,7 +214,6 @@ async fn test_game_update_deactivate() {
         &db,
         unique_name("Game "),
         "Desc".to_string(),
-        serde_json::json!({}),
         vec![ProgrammingLanguage::Rust],
         None,
     )
@@ -272,7 +222,7 @@ async fn test_game_update_deactivate() {
     assert_eq!(created_game.is_active, true);
     let game_id = created_game.id.unwrap();
     // Deactivate
-    let updated_game = game::update_game(&db, game_id.clone(), None, None, None, None, Some(false))
+    let updated_game = game::update_game(&db, game_id.clone(), None, None, None, Some(false))
         .await
         .unwrap();
     assert_eq!(updated_game.is_active, false);
@@ -285,7 +235,6 @@ async fn test_game_delete() {
         &db,
         unique_name("To Delete "),
         "Will be deleted".to_string(),
-        serde_json::json!({}),
         vec![ProgrammingLanguage::Rust],
         None,
     )
@@ -306,7 +255,6 @@ async fn test_game_request_validation() {
     let valid = CreateGameRequest {
         name: "Valid Game".to_string(),
         description: "A valid game description".to_string(),
-        rules: serde_json::json!({}),
         supported_languages: vec![ProgrammingLanguage::Rust],
     };
     assert!(valid.validate().is_ok());
@@ -314,7 +262,6 @@ async fn test_game_request_validation() {
     let empty_name = CreateGameRequest {
         name: "".to_string(),
         description: "Description".to_string(),
-        rules: serde_json::json!({}),
         supported_languages: vec![ProgrammingLanguage::Rust],
     };
     assert!(empty_name.validate().is_err());
@@ -322,7 +269,6 @@ async fn test_game_request_validation() {
     let long_name = CreateGameRequest {
         name: "a".repeat(101),
         description: "Description".to_string(),
-        rules: serde_json::json!({}),
         supported_languages: vec![ProgrammingLanguage::Rust],
     };
     assert!(long_name.validate().is_err());
@@ -330,7 +276,6 @@ async fn test_game_request_validation() {
     let empty_desc = CreateGameRequest {
         name: "Name".to_string(),
         description: "".to_string(),
-        rules: serde_json::json!({}),
         supported_languages: vec![ProgrammingLanguage::Rust],
     };
     assert!(empty_desc.validate().is_err());
@@ -342,7 +287,6 @@ async fn test_game_update_request_validation() {
     let empty_update = UpdateGameRequest {
         name: None,
         description: None,
-        rules: None,
         supported_languages: None,
         is_active: None,
     };
@@ -351,7 +295,6 @@ async fn test_game_update_request_validation() {
     let partial = UpdateGameRequest {
         name: Some("New Name".to_string()),
         description: None,
-        rules: None,
         supported_languages: None,
         is_active: Some(false),
     };
@@ -360,7 +303,6 @@ async fn test_game_update_request_validation() {
     let invalid_name = UpdateGameRequest {
         name: Some("a".repeat(101)),
         description: None,
-        rules: None,
         supported_languages: None,
         is_active: None,
     };

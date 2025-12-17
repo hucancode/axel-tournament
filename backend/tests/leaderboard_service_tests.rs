@@ -29,7 +29,6 @@ async fn test_leaderboard_ordering_and_limit() {
         &db,
         common::unique_name("Leaderboard Game "),
         "Desc".to_string(),
-        serde_json::json!({}),
         vec![ProgrammingLanguage::Rust],
         None,
     )

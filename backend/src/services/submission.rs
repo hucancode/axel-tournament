@@ -3,9 +3,7 @@ use crate::{
     error::{ApiError, ApiResult},
     models::{ProgrammingLanguage, Submission, SubmissionStatus},
 };
-use std::path::Path;
 use surrealdb::sql::{Datetime, Thing};
-use tokio::fs;
 
 pub async fn create_submission(
     db: &Database,
@@ -15,24 +13,7 @@ pub async fn create_submission(
     language: ProgrammingLanguage,
     code: String,
 ) -> ApiResult<Submission> {
-    // Create uploads directory if it doesn't exist
-    let upload_dir = Path::new("uploads");
-    if !upload_dir.exists() {
-        fs::create_dir_all(upload_dir).await?;
-    }
-    // Generate file path
-    let timestamp = Datetime::default().timestamp();
-    let file_name = format!(
-        "{}_{}_{}_{}.{}",
-        user_id,
-        tournament_id,
-        timestamp,
-        uuid::Uuid::new_v4(),
-        language.to_extension()
-    );
-    let file_path = upload_dir.join(&file_name);
-    // Write code to file
-    fs::write(&file_path, &code).await?;
+    // Create submission with code stored as string in database
     let submission = Submission {
         id: None,
         user_id: user_id.clone(),
@@ -40,7 +21,6 @@ pub async fn create_submission(
         game_id,
         language,
         code,
-        file_path: file_path.to_string_lossy().to_string(),
         status: SubmissionStatus::Pending,
         error_message: None,
         created_at: Datetime::default(),

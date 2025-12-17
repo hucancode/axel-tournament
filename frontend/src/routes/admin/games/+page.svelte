@@ -17,7 +17,6 @@
     let formData = $state<CreateGameRequest>({
         name: "",
         description: "",
-        rules: {},
         supported_languages: [],
         is_active: true,
     });
@@ -54,7 +53,6 @@
         formData = {
             name: "",
             description: "",
-            rules: {},
             supported_languages: [],
             is_active: true,
         };
@@ -67,11 +65,9 @@
         formData = {
             name: game.name,
             description: game.description,
-            rules: game.rules,
             supported_languages: [...game.supported_languages],
             is_active: game.is_active,
         };
-        rulesJson = JSON.stringify(game.rules, null, 2);
         formError = "";
         showForm = true;
     }
@@ -96,14 +92,6 @@
         e.preventDefault();
         formLoading = true;
         formError = "";
-        // Validate and parse rules JSON
-        try {
-            formData.rules = JSON.parse(rulesJson);
-        } catch (err) {
-            formError = "Invalid JSON in rules field";
-            formLoading = false;
-            return;
-        }
         if (formData.supported_languages.length === 0) {
             formError = "Please select at least one supported language";
             formLoading = false;
@@ -205,18 +193,6 @@
                                 >
                             {/each}
                         </div>
-                    </div>
-                    <div class="mb-4">
-                        <h4 class="font-semibold text-sm text-gray-700 mb-1">
-                            Rules:
-                        </h4>
-                        <pre
-                            class="text-sm text-gray-600"
-                            style="background: var(--gray-50); padding: 0.5rem; border-radius: 0.25rem; overflow-x: auto;">{JSON.stringify(
-                                game.rules,
-                                null,
-                                2,
-                            )}</pre>
                     </div>
                     <p class="text-sm text-gray-500 mb-4">
                         Created: {formatDate(game.created_at)}

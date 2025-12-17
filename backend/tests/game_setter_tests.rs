@@ -16,7 +16,6 @@ async fn test_game_setter_can_create_game() {
     let game_request = CreateGameRequest {
         name: format!("Test Game {}", unique_name("")),
         description: "A test game".to_string(),
-        rules: json!({"rule1": "value1"}),
         supported_languages: vec![ProgrammingLanguage::Rust, ProgrammingLanguage::Go],
     };
 
@@ -32,7 +31,7 @@ async fn test_game_setter_can_create_game() {
 
     assert_eq!(status, StatusCode::CREATED);
     assert!(game["name"].as_str().unwrap().starts_with("Test Game"));
-    assert!(game["owner_id"].is_object()); // owner_id is a Thing (record ID)
+    assert!(game["owner_id"].is_string()); // owner_id is returned as string "user:id"
 }
 
 #[tokio::test]
@@ -62,7 +61,6 @@ async fn test_player_cannot_create_game() {
     let game_request = CreateGameRequest {
         name: format!("Test Game {}", unique_name("")),
         description: "A test game".to_string(),
-        rules: json!({"rule1": "value1"}),
         supported_languages: vec![ProgrammingLanguage::Rust],
     };
 
@@ -88,7 +86,7 @@ async fn test_game_setter_can_upload_dockerfile() {
     let game_request = CreateGameRequest {
         name: format!("Docker Game {}", unique_name("")),
         description: "A game with dockerfile".to_string(),
-        rules: json!({}),
+        
         supported_languages: vec![ProgrammingLanguage::Rust],
     };
 
@@ -120,7 +118,7 @@ async fn test_game_setter_can_upload_dockerfile() {
     .await;
 
     assert_eq!(status, StatusCode::OK);
-    assert!(result["path"].is_string());
+    assert!(result["message"].as_str().unwrap().contains("successfully"));
     assert_eq!(result["message"], "Dockerfile uploaded successfully");
 }
 
@@ -134,7 +132,7 @@ async fn test_admin_can_upload_to_any_game() {
     let game_request = CreateGameRequest {
         name: format!("Private Game {}", unique_name("")),
         description: "A private game".to_string(),
-        rules: json!({}),
+        
         supported_languages: vec![ProgrammingLanguage::Rust],
     };
 
@@ -177,7 +175,7 @@ async fn test_create_game_template() {
     let game_request = CreateGameRequest {
         name: format!("Template Game {}", unique_name("")),
         description: "A game with templates".to_string(),
-        rules: json!({}),
+        
         supported_languages: vec![ProgrammingLanguage::Rust, ProgrammingLanguage::Go],
     };
 
@@ -227,7 +225,7 @@ async fn test_list_game_templates() {
     let game_request = CreateGameRequest {
         name: format!("Multi-Lang Game {}", unique_name("")),
         description: "A game with multiple templates".to_string(),
-        rules: json!({}),
+        
         supported_languages: vec![ProgrammingLanguage::Rust, ProgrammingLanguage::Go],
     };
 
@@ -287,7 +285,7 @@ async fn test_create_match_policy() {
     let game_request = CreateGameRequest {
         name: format!("Policy Game {}", unique_name("")),
         description: "A game for policy testing".to_string(),
-        rules: json!({}),
+        
         supported_languages: vec![ProgrammingLanguage::Rust],
     };
 
@@ -358,7 +356,7 @@ async fn test_get_match_policy() {
     let game_request = CreateGameRequest {
         name: format!("Get Policy Game {}", unique_name("")),
         description: "Test".to_string(),
-        rules: json!({}),
+        
         supported_languages: vec![ProgrammingLanguage::Rust],
     };
 

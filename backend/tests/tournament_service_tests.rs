@@ -30,7 +30,6 @@ async fn test_create_and_get_tournament() {
         &db,
         common::unique_name("Tournament Game "),
         "Desc".to_string(),
-        serde_json::json!({}),
         vec![axel_tournament::models::ProgrammingLanguage::Rust],
         None,
     )
@@ -65,7 +64,6 @@ async fn test_update_tournament_status() {
         &db,
         common::unique_name("Status Game "),
         "Desc".to_string(),
-        serde_json::json!({}),
         vec![axel_tournament::models::ProgrammingLanguage::Rust],
         None,
     )
@@ -109,7 +107,6 @@ async fn test_join_and_leave_tournament() {
         &db,
         common::unique_name("Join Game "),
         "Desc".to_string(),
-        serde_json::json!({}),
         vec![axel_tournament::models::ProgrammingLanguage::Rust],
         None,
     )
@@ -223,7 +220,6 @@ async fn test_start_tournament_all_vs_all() {
         &db,
         common::unique_name("MatchGen Game "),
         "Match generation test".to_string(),
-        serde_json::json!({}),
         vec![axel_tournament::models::ProgrammingLanguage::Rust],
         None,
     )
@@ -316,7 +312,6 @@ async fn test_start_tournament_round_robin() {
         &db,
         common::unique_name("RoundRobin Game "),
         "Round robin test".to_string(),
-        serde_json::json!({}),
         vec![axel_tournament::models::ProgrammingLanguage::Rust],
         None,
     )
@@ -403,7 +398,6 @@ async fn test_start_tournament_without_submissions_fails() {
         &db,
         common::unique_name("NoSub Game "),
         "No submissions test".to_string(),
-        serde_json::json!({}),
         vec![axel_tournament::models::ProgrammingLanguage::Rust],
         None,
     )
@@ -462,7 +456,6 @@ async fn test_start_tournament_not_enough_players_fails() {
         &db,
         common::unique_name("MinPlayers Game "),
         "Min players test".to_string(),
-        serde_json::json!({}),
         vec![axel_tournament::models::ProgrammingLanguage::Rust],
         None,
     )

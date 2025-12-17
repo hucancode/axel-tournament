@@ -7,13 +7,12 @@ pub struct Game {
     pub id: Option<Thing>,
     pub name: String,
     pub description: String,
-    pub rules: serde_json::Value, // JSON object with game-specific rules
     pub supported_languages: Vec<ProgrammingLanguage>,
     pub is_active: bool,
     pub owner_id: Option<Thing>, // reference to user who created the game
-    pub dockerfile_path: Option<String>, // path to Dockerfile for this game
+    pub dockerfile: Option<String>, // Dockerfile content
     pub docker_image: Option<String>, // built Docker image tag
-    pub game_code_path: Option<String>, // path to game orchestration code
+    pub game_code: Option<String>, // game orchestration code content
     pub game_language: Option<ProgrammingLanguage>, // language of game code
     pub created_at: Datetime,
     pub updated_at: Datetime,
@@ -51,7 +50,6 @@ pub struct CreateGameRequest {
     pub name: String,
     #[validate(length(min = 1, max = 1000, message = "Description must be 1-1000 characters"))]
     pub description: String,
-    pub rules: serde_json::Value,
     pub supported_languages: Vec<ProgrammingLanguage>,
 }
 
@@ -61,7 +59,6 @@ pub struct UpdateGameRequest {
     pub name: Option<String>,
     #[validate(length(min = 1, max = 1000, message = "Description must be 1-1000 characters"))]
     pub description: Option<String>,
-    pub rules: Option<serde_json::Value>,
     pub supported_languages: Option<Vec<ProgrammingLanguage>>,
     pub is_active: Option<bool>,
 }
@@ -83,4 +80,39 @@ pub struct UploadGameCodeRequest {
 pub struct BuildDockerImageResponse {
     pub image_tag: String,
     pub build_status: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GameResponse {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub supported_languages: Vec<ProgrammingLanguage>,
+    pub is_active: bool,
+    pub owner_id: Option<String>,
+    pub dockerfile: Option<String>,
+    pub docker_image: Option<String>,
+    pub game_code: Option<String>,
+    pub game_language: Option<ProgrammingLanguage>,
+    pub created_at: Datetime,
+    pub updated_at: Datetime,
+}
+
+impl From<Game> for GameResponse {
+    fn from(game: Game) -> Self {
+        Self {
+            id: game.id.map(|t| t.to_string()).unwrap_or_default(),
+            name: game.name,
+            description: game.description,
+            supported_languages: game.supported_languages,
+            is_active: game.is_active,
+            owner_id: game.owner_id.map(|t| t.to_string()),
+            dockerfile: game.dockerfile,
+            docker_image: game.docker_image,
+            game_code: game.game_code,
+            game_language: game.game_language,
+            created_at: game.created_at,
+            updated_at: game.updated_at,
+        }
+    }
 }

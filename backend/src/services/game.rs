@@ -9,7 +9,6 @@ pub async fn create_game(
     db: &Database,
     name: String,
     description: String,
-    rules: serde_json::Value,
     supported_languages: Vec<ProgrammingLanguage>,
     owner_id: Option<String>,
 ) -> ApiResult<Game> {
@@ -24,13 +23,12 @@ pub async fn create_game(
         id: None,
         name,
         description,
-        rules,
         supported_languages,
         is_active: true,
         owner_id: owner_thing,
-        dockerfile_path: None,
+        dockerfile: None,
         docker_image: None,
-        game_code_path: None,
+        game_code: None,
         game_language: None,
         created_at: Datetime::default(),
         updated_at: Datetime::default(),
@@ -61,7 +59,6 @@ pub async fn update_game(
     game_id: Thing,
     name: Option<String>,
     description: Option<String>,
-    rules: Option<serde_json::Value>,
     supported_languages: Option<Vec<ProgrammingLanguage>>,
     is_active: Option<bool>,
 ) -> ApiResult<Game> {
@@ -71,9 +68,6 @@ pub async fn update_game(
     }
     if let Some(d) = description {
         game.description = d;
-    }
-    if let Some(r) = rules {
-        game.rules = r;
     }
     if let Some(sl) = supported_languages {
         game.supported_languages = sl;

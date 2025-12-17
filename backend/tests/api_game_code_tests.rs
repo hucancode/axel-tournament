@@ -16,7 +16,6 @@ async fn game_setter_can_upload_game_code() {
         Some(json!({
             "name": format!("Game {}", common::unique_name("")),
             "description": "Test game",
-            "rules": {"rounds": 5},
             "supported_languages": ["rust", "go"]
         })),
         Some(&game_setter_token),
@@ -47,7 +46,6 @@ async fn game_setter_can_upload_game_code() {
 
     assert_eq!(upload_status, StatusCode::OK);
     assert!(upload_body["message"].as_str().unwrap().contains("successfully"));
-    assert!(upload_body["file_path"].as_str().is_some());
 
     // Verify game was updated
     let (get_status, get_body) = common::json_request(
@@ -60,7 +58,7 @@ async fn game_setter_can_upload_game_code() {
     .await;
 
     assert_eq!(get_status, StatusCode::OK);
-    assert!(get_body["game_code_path"].as_str().is_some());
+    assert!(get_body["game_code"].as_str().is_some());
     assert_eq!(get_body["game_language"], "rust");
 }
 
@@ -77,7 +75,6 @@ async fn game_code_upload_validates_language() {
         Some(json!({
             "name": format!("Game {}", common::unique_name("")),
             "description": "Test game",
-            "rules": {},
             "supported_languages": ["rust"]  // Only Rust
         })),
         Some(&game_setter_token),
@@ -117,7 +114,6 @@ async fn game_code_upload_rejects_invalid_language() {
         Some(json!({
             "name": format!("Game {}", common::unique_name("")),
             "description": "Test game",
-            "rules": {},
             "supported_languages": ["rust"]
         })),
         Some(&game_setter_token),
@@ -158,7 +154,6 @@ async fn game_code_upload_checks_ownership() {
         Some(json!({
             "name": format!("Game {}", common::unique_name("")),
             "description": "Test game",
-            "rules": {},
             "supported_languages": ["rust"]
         })),
         Some(&game_setter1_token),
@@ -199,7 +194,6 @@ async fn admin_can_upload_game_code_to_any_game() {
         Some(json!({
             "name": format!("Game {}", common::unique_name("")),
             "description": "Test game",
-            "rules": {},
             "supported_languages": ["rust"]
         })),
         Some(&game_setter_token),
@@ -241,7 +235,6 @@ async fn game_setter_can_list_only_their_games() {
             Some(json!({
                 "name": format!("GS1 Game {} {}", i, common::unique_name("")),
                 "description": "Test",
-                "rules": {},
                 "supported_languages": ["rust"]
             })),
             Some(&game_setter1_token),
@@ -258,7 +251,6 @@ async fn game_setter_can_list_only_their_games() {
         Some(json!({
             "name": format!("GS2 Game {}", common::unique_name("")),
             "description": "Test",
-            "rules": {},
             "supported_languages": ["rust"]
         })),
         Some(&game_setter2_token),
@@ -315,7 +307,6 @@ async fn game_setter_can_delete_own_game() {
         Some(json!({
             "name": format!("Game {}", common::unique_name("")),
             "description": "Test game",
-            "rules": {},
             "supported_languages": ["rust"]
         })),
         Some(&game_setter_token),
@@ -364,7 +355,6 @@ async fn game_setter_cannot_delete_others_game() {
         Some(json!({
             "name": format!("Game {}", common::unique_name("")),
             "description": "Test game",
-            "rules": {},
             "supported_languages": ["rust"]
         })),
         Some(&game_setter1_token),
@@ -414,7 +404,6 @@ async fn admin_can_delete_any_game() {
         Some(json!({
             "name": format!("Game {}", common::unique_name("")),
             "description": "Test game",
-            "rules": {},
             "supported_languages": ["rust"]
         })),
         Some(&game_setter_token),
@@ -462,7 +451,6 @@ async fn game_code_upload_validates_code_length() {
         Some(json!({
             "name": format!("Game {}", common::unique_name("")),
             "description": "Test game",
-            "rules": {},
             "supported_languages": ["rust"]
         })),
         Some(&game_setter_token),

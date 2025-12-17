@@ -14,7 +14,6 @@ async fn create_and_list_submissions() {
         Some(serde_json::json!({
             "name": format!("Submission Game {}", common::unique_name("")),
             "description": "Game for submissions",
-            "rules": {},
             "supported_languages": ["rust"]
         })),
         Some(&admin_token),

@@ -114,22 +114,6 @@
                                     </div>
                                 </div>
                             </div>
-                            {#if game.rules && Object.keys(game.rules).length > 0}
-                                <div class="mb-4">
-                                    <div
-                                        class="text-sm font-semibold text-gray-700 mb-2"
-                                    >
-                                        Game Rules:
-                                    </div>
-                                    <pre
-                                        class="text-sm"
-                                        style="background: var(--gray-100); padding: 0.75rem; border-radius: 0.5rem; overflow-x: auto; max-height: 200px;">{JSON.stringify(
-                                            game.rules,
-                                            null,
-                                            2,
-                                        )}</pre>
-                                </div>
-                            {/if}
                             <div class="flex gap-2">
                                 {#if tournamentsByGame.get(game.id)?.length}
                                     <a

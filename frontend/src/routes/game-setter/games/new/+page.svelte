@@ -32,19 +32,10 @@
     e.preventDefault();
     loading = true;
     error = "";
-
     try {
-      let rules: Record<string, any>;
-      try {
-        rules = JSON.parse(rulesJson);
-      } catch {
-        throw new Error("Invalid JSON in rules field");
-      }
-
       const game = await gameSetterService.createGame({
         name,
         description,
-        rules,
         supported_languages: selectedLanguages,
         is_active: true,
       });

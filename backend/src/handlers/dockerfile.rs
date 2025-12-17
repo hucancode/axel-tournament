@@ -14,7 +14,6 @@ use validator::Validate;
 
 #[derive(Debug, Serialize)]
 pub struct UploadDockerfileResponse {
-    pub path: String,
     pub message: String,
 }
 
@@ -47,7 +46,7 @@ pub async fn upload_dockerfile(
         ));
     }
 
-    let path = services::dockerfile::upload_dockerfile(
+    services::dockerfile::upload_dockerfile(
         &state.db,
         game_thing,
         payload.dockerfile_content,
@@ -55,7 +54,6 @@ pub async fn upload_dockerfile(
     .await?;
 
     Ok(Json(UploadDockerfileResponse {
-        path,
         message: "Dockerfile uploaded successfully".to_string(),
     }))
 }

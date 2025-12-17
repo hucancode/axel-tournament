@@ -16,7 +16,6 @@ async fn leaderboard_returns_scored_players() {
         Some(serde_json::json!({
             "name": format!("Leaderboard Game {}", common::unique_name("")),
             "description": "Game for leaderboard API",
-            "rules": {},
             "supported_languages": ["rust"]
         })),
         Some(&admin_token),

@@ -78,11 +78,12 @@ pub async fn init_schema(db: &Database) -> Result<(), surrealdb::Error> {
         "DEFINE TABLE IF NOT EXISTS game SCHEMALESS;
          DEFINE FIELD IF NOT EXISTS name ON game TYPE string;
          DEFINE FIELD IF NOT EXISTS description ON game TYPE string;
+         DEFINE FIELD IF NOT EXISTS supported_languages ON game TYPE array;
          DEFINE FIELD IF NOT EXISTS is_active ON game TYPE bool DEFAULT true;
          DEFINE FIELD IF NOT EXISTS owner_id ON game TYPE option<record<user>>;
-         DEFINE FIELD IF NOT EXISTS dockerfile_path ON game TYPE option<string>;
+         DEFINE FIELD IF NOT EXISTS dockerfile ON game TYPE option<string>;
          DEFINE FIELD IF NOT EXISTS docker_image ON game TYPE option<string>;
-         DEFINE FIELD IF NOT EXISTS game_code_path ON game TYPE option<string>;
+         DEFINE FIELD IF NOT EXISTS game_code ON game TYPE option<string>;
          DEFINE FIELD IF NOT EXISTS game_language ON game TYPE option<string>;
          DEFINE FIELD IF NOT EXISTS created_at ON game TYPE datetime;
          DEFINE FIELD IF NOT EXISTS updated_at ON game TYPE datetime;
@@ -127,7 +128,6 @@ pub async fn init_schema(db: &Database) -> Result<(), surrealdb::Error> {
          DEFINE FIELD IF NOT EXISTS game_id ON submission TYPE record<game>;
          DEFINE FIELD IF NOT EXISTS language ON submission TYPE string;
          DEFINE FIELD IF NOT EXISTS code ON submission TYPE string;
-         DEFINE FIELD IF NOT EXISTS file_path ON submission TYPE string;
          DEFINE FIELD IF NOT EXISTS status ON submission TYPE string DEFAULT 'pending';
          DEFINE FIELD IF NOT EXISTS error_message ON submission TYPE option<string>;
          DEFINE FIELD IF NOT EXISTS created_at ON submission TYPE datetime;",

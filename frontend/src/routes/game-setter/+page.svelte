@@ -104,9 +104,6 @@
                     <span class="badge {game.is_active ? 'badge-running' : 'badge-cancelled'}">
                       {game.is_active ? 'Active' : 'Inactive'}
                     </span>
-                    {#if game.dockerfile_path}
-                      <span class="badge badge-completed">Has Dockerfile</span>
-                    {/if}
                   </div>
                 </div>
               {/each}

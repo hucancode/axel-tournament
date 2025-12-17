@@ -14,7 +14,6 @@ async fn tournament_create_join_and_leave() {
         Some(serde_json::json!({
             "name": format!("Tournament Game {}", common::unique_name("")),
             "description": "For tournament tests",
-            "rules": {},
             "supported_languages": ["rust"]
         })),
         Some(&admin_token),

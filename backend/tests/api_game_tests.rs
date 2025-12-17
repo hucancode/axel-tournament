@@ -23,7 +23,6 @@ async fn admin_can_crud_games() {
         Some(serde_json::json!({
             "name": game_name,
             "description": "API created game",
-            "rules": {},
             "supported_languages": ["rust"]
         })),
         Some(&admin_token),
@@ -53,7 +52,6 @@ async fn admin_can_crud_games() {
         Some(serde_json::json!({
             "name": format!("{} v2", create_body["name"].as_str().unwrap()),
             "description": "Updated description",
-            "rules": {"max_rounds": 10},
             "supported_languages": ["rust", "go"],
             "is_active": false
         })),

@@ -29,6 +29,10 @@ pub struct TestApp {
 }
 
 pub fn extract_thing_id(value: &Value) -> String {
+    // First try to parse "table:id"
+    if let Some(id_str) = value.as_str() {
+        return id_str.to_string();
+    }
     // SurrealDB Thing IDs are serialized as: {"tb": "table", "id": {"String": "id"}}
     // We need to extract it as "table:id" format
     if let Some(tb) = value["tb"].as_str() {

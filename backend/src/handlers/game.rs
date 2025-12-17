@@ -1,7 +1,7 @@
 use crate::{
     AppState,
     error::ApiResult,
-    models::{Claims, CreateGameRequest, Game, UpdateGameRequest},
+    models::{Claims, CreateGameRequest, GameResponse, UpdateGameRequest},
     services,
 };
 use axum::{
@@ -15,7 +15,7 @@ use validator::Validate;
 pub async fn create_game(
     State(state): State<AppState>,
     Json(payload): Json<CreateGameRequest>,
-) -> ApiResult<(StatusCode, Json<Game>)> {
+) -> ApiResult<(StatusCode, Json<GameResponse>)> {
     payload
         .validate()
         .map_err(|e| crate::error::ApiError::Validation(e.to_string()))?;
@@ -23,19 +23,18 @@ pub async fn create_game(
         &state.db,
         payload.name,
         payload.description,
-        payload.rules,
         payload.supported_languages,
         None, // Admin creates games without owner
     )
     .await?;
-    Ok((StatusCode::CREATED, Json(game)))
+    Ok((StatusCode::CREATED, Json(game.into())))
 }
 
 pub async fn create_game_as_game_setter(
     State(state): State<AppState>,
     Extension(claims): Extension<Claims>,
     Json(payload): Json<CreateGameRequest>,
-) -> ApiResult<(StatusCode, Json<Game>)> {
+) -> ApiResult<(StatusCode, Json<GameResponse>)> {
     payload
         .validate()
         .map_err(|e| crate::error::ApiError::Validation(e.to_string()))?;
@@ -47,35 +46,34 @@ pub async fn create_game_as_game_setter(
         &state.db,
         payload.name,
         payload.description,
-        payload.rules,
         payload.supported_languages,
         owner_id,
     )
     .await?;
-    Ok((StatusCode::CREATED, Json(game)))
+    Ok((StatusCode::CREATED, Json(game.into())))
 }
 
 pub async fn get_game(
     State(state): State<AppState>,
     Path(game_id): Path<String>,
-) -> ApiResult<Json<Game>> {
+) -> ApiResult<Json<GameResponse>> {
     let game_id: Thing = game_id
         .parse()
         .map_err(|_| crate::error::ApiError::BadRequest("Invalid game id".to_string()))?;
     let game = services::game::get_game(&state.db, game_id).await?;
-    Ok(Json(game))
+    Ok(Json(game.into()))
 }
 
-pub async fn list_games(State(state): State<AppState>) -> ApiResult<Json<Vec<Game>>> {
+pub async fn list_games(State(state): State<AppState>) -> ApiResult<Json<Vec<GameResponse>>> {
     let games = services::game::list_games(&state.db, true).await?;
-    Ok(Json(games))
+    Ok(Json(games.into_iter().map(|g| g.into()).collect()))
 }
 
 pub async fn update_game(
     State(state): State<AppState>,
     Path(game_id): Path<String>,
     Json(payload): Json<UpdateGameRequest>,
-) -> ApiResult<Json<Game>> {
+) -> ApiResult<Json<GameResponse>> {
     payload
         .validate()
         .map_err(|e| crate::error::ApiError::Validation(e.to_string()))?;
@@ -87,12 +85,11 @@ pub async fn update_game(
         game_id,
         payload.name,
         payload.description,
-        payload.rules,
         payload.supported_languages,
         payload.is_active,
     )
     .await?;
-    Ok(Json(game))
+    Ok(Json(game.into()))
 }
 
 pub async fn delete_game(
@@ -109,13 +106,13 @@ pub async fn delete_game(
 pub async fn list_my_games(
     State(state): State<AppState>,
     Extension(claims): Extension<Claims>,
-) -> ApiResult<Json<Vec<Game>>> {
+) -> ApiResult<Json<Vec<GameResponse>>> {
     let owner_id: Thing = claims
         .sub
         .parse()
         .map_err(|_| crate::error::ApiError::BadRequest("Invalid user id".to_string()))?;
     let games = services::game::list_games_by_owner(&state.db, owner_id).await?;
-    Ok(Json(games))
+    Ok(Json(games.into_iter().map(|g| g.into()).collect()))
 }
 
 pub async fn delete_game_as_game_setter(

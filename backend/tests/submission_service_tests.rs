@@ -52,7 +52,6 @@ async fn test_submission_create() {
         &db,
         unique_name("Game "),
         "Test game".to_string(),
-        serde_json::json!({}),
         vec![ProgrammingLanguage::Rust],
         None,
     )
@@ -88,7 +87,6 @@ async fn test_submission_create() {
     assert!(submission.is_ok());
     let created_submission = submission.unwrap();
     assert_eq!(created_submission.language, ProgrammingLanguage::Rust);
-    assert!(created_submission.file_path.contains(".rs"));
 }
 
 #[tokio::test]
@@ -114,7 +112,6 @@ async fn test_submission_get() {
         &db,
         unique_name("Game "),
         "Test game".to_string(),
-        serde_json::json!({}),
         vec![ProgrammingLanguage::Rust],
         None,
     )
@@ -178,7 +175,6 @@ async fn test_submission_list_by_user() {
         &db,
         unique_name("Game "),
         "Test game".to_string(),
-        serde_json::json!({}),
         vec![ProgrammingLanguage::Rust],
         None,
     )

@@ -22,7 +22,6 @@
   let editForm = $state({
     name: "",
     description: "",
-    rules: {} as Record<string, any>,
     supported_languages: [] as ProgrammingLanguage[],
     is_active: true
   });
@@ -56,7 +55,7 @@
     try {
       loading = true;
       error = "";
-      game = await api.get<Game>(`/api/admin/games/${gameId}`, true);
+      game = await api.get<Game>(`/api/games/${gameId}`);
     } catch (e: any) {
       error = e.message || "Failed to load game";
     } finally {
@@ -143,7 +142,6 @@
     editForm = {
       name: game.name,
       description: game.description,
-      rules: game.rules,
       supported_languages: [...game.supported_languages],
       is_active: game.is_active
     };
@@ -287,22 +285,6 @@
             </div>
 
             <div class="form-group">
-              <label for="edit-rules">Rules (JSON)</label>
-              <textarea
-                id="edit-rules"
-                class="textarea"
-                value={JSON.stringify(editForm.rules, null, 2)}
-                oninput={(e) => {
-                  try {
-                    editForm.rules = JSON.parse(e.currentTarget.value);
-                  } catch {}
-                }}
-                rows="8"
-                style="font-family: monospace;"
-              ></textarea>
-            </div>
-
-            <div class="form-group">
               <label>
                 <input type="checkbox" bind:checked={editForm.is_active} />
                 Active
@@ -330,23 +312,14 @@
               <dd>{game.supported_languages.join(", ")}</dd>
 
               <dt><strong>Dockerfile:</strong></dt>
-              <dd>{game.dockerfile_path ? "✓ Uploaded" : "Not uploaded yet"}</dd>
+              <dd>{game.dockerfile ? "✓ Uploaded" : "Not uploaded yet"}</dd>
 
               <dt><strong>Game Code:</strong></dt>
-              <dd>{game.game_code_path ? `✓ Uploaded (${game.game_language})` : "Not uploaded yet"}</dd>
+              <dd>{game.game_code ? `✓ Uploaded (${game.game_language})` : "Not uploaded yet"}</dd>
 
               <dt><strong>Created:</strong></dt>
               <dd>{new Date(game.created_at).toLocaleDateString()}</dd>
             </dl>
-
-            <div style="margin-top: 2rem;">
-              <h3>Rules</h3>
-              <pre style="background: #f5f5f5; padding: 1rem; border-radius: 4px; overflow-x: auto;">{JSON.stringify(
-                game.rules,
-                null,
-                2
-              )}</pre>
-            </div>
           {/if}
         </div>
       {:else if activeTab === "gamecode"}
@@ -368,9 +341,9 @@
             Error codes: TLE (timeout), WA (wrong answer), CE (compiler error), RE (runtime error).
           </p>
 
-          {#if game.game_code_path}
+          {#if game.game_code}
             <p class="text-sm">
-              <strong>Current Game Code:</strong> {game.game_code_path} ({game.game_language})
+              <strong>Current Game Code:</strong> Uploaded ({game.game_language})
             </p>
           {/if}
 
@@ -405,9 +378,9 @@
           <h2>Upload Dockerfile</h2>
           <p class="text-sm">This Dockerfile will be used to build the execution environment for matches.</p>
 
-          {#if game.dockerfile_path}
+          {#if game.dockerfile}
             <p class="text-sm">
-              <strong>Current Dockerfile:</strong> {game.dockerfile_path}
+              <strong>Current Dockerfile:</strong> Uploaded
             </p>
           {/if}
 

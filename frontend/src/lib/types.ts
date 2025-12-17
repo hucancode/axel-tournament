@@ -84,13 +84,12 @@ export interface Game {
   id: string;
   name: string;
   description: string;
-  rules: Record<string, any>;
   supported_languages: ProgrammingLanguage[];
   is_active: boolean;
   owner_id?: string;
-  dockerfile_path?: string;
+  dockerfile?: string;
   docker_image?: string;
-  game_code_path?: string;
+  game_code?: string;
   game_language?: ProgrammingLanguage;
   created_at: string;
   updated_at: string;
@@ -99,7 +98,6 @@ export interface Game {
 export interface CreateGameRequest {
   name: string;
   description: string;
-  rules: Record<string, any>;
   supported_languages: ProgrammingLanguage[];
   is_active: boolean;
 }
@@ -156,7 +154,6 @@ export interface Submission {
   game_id: string;
   language: ProgrammingLanguage;
   code: string;
-  file_path: string;
   status: SubmissionStatus;
   error_message?: string;
   created_at: string;

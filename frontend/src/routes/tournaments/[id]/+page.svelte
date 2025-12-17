@@ -233,22 +233,6 @@
                                     {/each}
                                 </div>
                             </div>
-                            {#if game.rules && Object.keys(game.rules).length > 0}
-                                <div>
-                                    <div
-                                        class="font-semibold text-gray-700 mb-2"
-                                    >
-                                        Game Rules:
-                                    </div>
-                                    <pre
-                                        class="text-sm"
-                                        style="background: var(--gray-100); padding: 1rem; border-radius: 0.5rem; overflow-x: auto;">{JSON.stringify(
-                                            game.rules,
-                                            null,
-                                            2,
-                                        )}</pre>
-                                </div>
-                            {/if}
                         </div>
                     {/if}
                     <!-- Participants -->

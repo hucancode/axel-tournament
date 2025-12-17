@@ -11,8 +11,7 @@ pub struct Submission {
     pub tournament_id: Thing,
     pub game_id: Thing,
     pub language: ProgrammingLanguage,
-    pub code: String,
-    pub file_path: String, // Stored file path
+    pub code: String, // Code content stored as string
     pub status: SubmissionStatus,
     pub error_message: Option<String>,
     pub created_at: Datetime,
