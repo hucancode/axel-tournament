@@ -130,7 +130,7 @@
                 </div>
                 <button
                     type="submit"
-                    class="btn-primary"
+                    class="btn btn-primary"
                     style="width: 100%;"
                     disabled={loading}
                 >

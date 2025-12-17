@@ -76,7 +76,7 @@
                 </div>
                 <button
                     type="submit"
-                    class="btn-primary"
+                    class="btn btn-primary"
                     style="width: 100%;"
                     disabled={loading}
                 >
@@ -90,7 +90,7 @@
             </div>
             <button
                 onclick={handleGoogleLogin}
-                class="btn-secondary"
+                class="btn btn-secondary"
                 style="width: 100%;"
             >
                 Continue with Google

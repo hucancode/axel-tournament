@@ -37,8 +37,8 @@
                     your code
                 </p>
                 <div class="flex gap-4" style="justify-content: center;">
-                    <a href="/register" class="btn-primary">Sign Up</a>
-                    <a href="/login" class="btn-secondary">Login</a>
+                    <a href="/register" class="btn btn-primary">Sign Up</a>
+                    <a href="/login" class="btn btn-secondary">Login</a>
                 </div>
             </div>
         {:else}
@@ -47,10 +47,10 @@
                     Welcome back, {user?.username}!
                 </h2>
                 <div class="flex gap-4" style="margin-top: 1rem;">
-                    <a href="/tournaments" class="btn-primary"
+                    <a href="/tournaments" class="btn btn-primary"
                         >Browse Tournaments</a
                     >
-                    <a href="/profile" class="btn-secondary">View Profile</a>
+                    <a href="/profile" class="btn btn-secondary">View Profile</a>
                 </div>
             </div>
         {/if}
@@ -99,7 +99,7 @@
             </div>
             {#if tournaments.length > 6}
                 <div class="text-center mt-4">
-                    <a href="/tournaments" class="btn-primary"
+                    <a href="/tournaments" class="btn btn-primary"
                         >View All Tournaments</a
                     >
                 </div>

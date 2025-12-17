@@ -109,7 +109,7 @@
             </div>
             <button
                 onclick={updateLocation}
-                class="btn-primary"
+                class="btn btn-primary"
                 disabled={loading}
             >
                 {loading ? "Updating..." : "Update Location"}

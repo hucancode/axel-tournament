@@ -50,12 +50,12 @@
                         <a href="/game-setter">Game Setter</a>
                     {/if}
                     <a href="/profile">{user?.username}</a>
-                    <button onclick={logout} class="btn-secondary text-sm"
+                    <button onclick={logout} class="btn btn-secondary text-sm"
                         >Logout</button
                     >
                 {:else}
                     <a href="/login">Login</a>
-                    <a href="/register" class="btn-primary text-sm">Sign Up</a>
+                    <a href="/register" class="btn btn-primary text-sm">Sign Up</a>
                 {/if}
             </div>
         </div>
