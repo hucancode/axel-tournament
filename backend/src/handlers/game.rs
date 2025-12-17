@@ -9,6 +9,7 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
 };
+use surrealdb::sql::Thing;
 use validator::Validate;
 
 pub async fn create_game(
@@ -58,7 +59,10 @@ pub async fn get_game(
     State(state): State<AppState>,
     Path(game_id): Path<String>,
 ) -> ApiResult<Json<Game>> {
-    let game = services::game::get_game(&state.db, &game_id).await?;
+    let game_id: Thing = game_id
+        .parse()
+        .map_err(|_| crate::error::ApiError::BadRequest("Invalid game id".to_string()))?;
+    let game = services::game::get_game(&state.db, game_id).await?;
     Ok(Json(game))
 }
 
@@ -75,9 +79,12 @@ pub async fn update_game(
     payload
         .validate()
         .map_err(|e| crate::error::ApiError::Validation(e.to_string()))?;
+    let game_id: Thing = game_id
+        .parse()
+        .map_err(|_| crate::error::ApiError::BadRequest("Invalid game id".to_string()))?;
     let game = services::game::update_game(
         &state.db,
-        &game_id,
+        game_id,
         payload.name,
         payload.description,
         payload.rules,
@@ -92,7 +99,10 @@ pub async fn delete_game(
     State(state): State<AppState>,
     Path(game_id): Path<String>,
 ) -> ApiResult<StatusCode> {
-    services::game::delete_game(&state.db, &game_id).await?;
+    let game_id: Thing = game_id
+        .parse()
+        .map_err(|_| crate::error::ApiError::BadRequest("Invalid game id".to_string()))?;
+    services::game::delete_game(&state.db, game_id).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -100,8 +110,11 @@ pub async fn list_my_games(
     State(state): State<AppState>,
     Extension(claims): Extension<Claims>,
 ) -> ApiResult<Json<Vec<Game>>> {
-    let owner_id = claims.sub.clone();
-    let games = services::game::list_games_by_owner(&state.db, &owner_id).await?;
+    let owner_id: Thing = claims
+        .sub
+        .parse()
+        .map_err(|_| crate::error::ApiError::BadRequest("Invalid user id".to_string()))?;
+    let games = services::game::list_games_by_owner(&state.db, owner_id).await?;
     Ok(Json(games))
 }
 
@@ -111,7 +124,10 @@ pub async fn delete_game_as_game_setter(
     Path(game_id): Path<String>,
 ) -> ApiResult<StatusCode> {
     // Get the game to check ownership
-    let game = services::game::get_game(&state.db, &game_id).await?;
+    let game_id: Thing = game_id
+        .parse()
+        .map_err(|_| crate::error::ApiError::BadRequest("Invalid game id".to_string()))?;
+    let game = services::game::get_game(&state.db, game_id.clone()).await?;
 
     // Verify ownership (owner or admin)
     let user_id = claims.sub.to_string();
@@ -127,6 +143,6 @@ pub async fn delete_game_as_game_setter(
         ));
     }
 
-    services::game::delete_game(&state.db, &game_id).await?;
+    services::game::delete_game(&state.db, game_id).await?;
     Ok(StatusCode::NO_CONTENT)
 }

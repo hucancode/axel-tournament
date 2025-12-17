@@ -1,7 +1,8 @@
 use crate::{
     error::{ApiError, ApiResult},
     models::{user::Claims, Game, ProgrammingLanguage, UploadGameCodeRequest, UserRole},
-    services, AppState,
+    services,
+    AppState,
 };
 use axum::{extract::{Path, State}, Extension, Json};
 use surrealdb::sql::Thing;
@@ -21,8 +22,13 @@ pub async fn upload_game_code(
         .ok_or_else(|| ApiError::BadRequest(format!("Invalid language: {}", payload.language)))?;
 
     // Get the game to check ownership and supported languages
-    let game_id_thing = Thing::from(("game", game_id.trim_start_matches("game:")));
-    let game: Option<Game> = state.db.select(("game", game_id_thing.id.to_string())).await?;
+    let game_id_thing: Thing = game_id
+        .parse()
+        .map_err(|_| ApiError::BadRequest("Invalid game id".to_string()))?;
+    let game: Option<Game> = state
+        .db
+        .select((game_id_thing.tb.as_str(), game_id_thing.id.to_string()))
+        .await?;
     let game = game.ok_or_else(|| ApiError::NotFound("Game not found".to_string()))?;
 
     // Verify ownership (owner or admin)
@@ -50,7 +56,7 @@ pub async fn upload_game_code(
     // Upload the game code
     let file_path = services::game_code::upload_game_code(
         &state.db,
-        &game_id_thing.id.to_string(),
+        game_id_thing,
         language,
         payload.code_content,
     )

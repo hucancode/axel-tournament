@@ -8,6 +8,7 @@ use axum::{
     middleware::Next,
     response::Response,
 };
+use surrealdb::sql::Thing;
 
 pub async fn auth_middleware(
     State(state): State<AppState>,
@@ -24,7 +25,14 @@ pub async fn auth_middleware(
         .ok_or_else(|| ApiError::Auth("Invalid authorization format".to_string()))?;
     let claims = state.auth_service.validate_token(token)?;
     // Check if user is banned
-    let user = crate::services::auth::get_user_by_id(&state.db, &claims.sub).await?;
+    let user = crate::services::auth::get_user_by_id(
+        &state.db,
+        claims
+            .sub
+            .parse::<Thing>()
+            .map_err(|_| ApiError::Auth("Invalid user id".to_string()))?,
+    )
+    .await?;
     if user.is_banned {
         return Err(ApiError::Forbidden("User is banned".to_string()));
     }

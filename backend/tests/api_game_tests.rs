@@ -2,14 +2,6 @@ mod common;
 
 use axum::http::{self, StatusCode};
 
-fn extract_id(body: &serde_json::Value) -> String {
-    body["id"]["id"]["String"]
-        .as_str()
-        .or_else(|| body["id"]["id"].as_str())
-        .unwrap_or_default()
-        .to_string()
-}
-
 #[tokio::test]
 async fn list_games_public() {
     let app = common::setup_app(&common::unique_name("game_api_")).await;
@@ -37,8 +29,13 @@ async fn admin_can_crud_games() {
         Some(&admin_token),
     )
     .await;
-    assert_eq!(create_status, StatusCode::CREATED);
-    let game_id = extract_id(&create_body);
+    if create_status != StatusCode::CREATED {
+        panic!(
+            "create game failed: status {} body {:?}",
+            create_status, create_body
+        );
+    }
+    let game_id = common::extract_thing_id(&create_body["id"]);
     let (get_status, get_body) = common::json_request(
         &app,
         http::Method::GET,

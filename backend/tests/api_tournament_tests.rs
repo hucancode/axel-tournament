@@ -2,14 +2,6 @@ mod common;
 
 use axum::http::{self, StatusCode};
 
-fn extract_id(body: &serde_json::Value) -> String {
-    body["id"]["id"]["String"]
-        .as_str()
-        .or_else(|| body["id"]["id"].as_str())
-        .unwrap_or_default()
-        .to_string()
-}
-
 #[tokio::test]
 async fn tournament_create_join_and_leave() {
     let app = common::setup_app(&common::unique_name("tournament_api_")).await;
@@ -28,14 +20,14 @@ async fn tournament_create_join_and_leave() {
         Some(&admin_token),
     )
     .await;
-    let game_id = extract_id(&game_body);
+    let game_id = common::extract_thing_id(&game_body["id"]);
     // Create tournament
     let (t_status, tournament_body) = common::json_request(
         &app,
         http::Method::POST,
         "/api/admin/tournaments",
         Some(serde_json::json!({
-            "game_id": format!("game:{}", game_id),
+            "game_id": game_id.clone(),
             "name": format!("Tournament {}", common::unique_name("")),
             "description": "API tournament",
             "min_players": 2,
@@ -45,7 +37,7 @@ async fn tournament_create_join_and_leave() {
     )
     .await;
     assert!(t_status == StatusCode::CREATED || t_status == StatusCode::OK);
-    let tournament_id = extract_id(&tournament_body);
+    let tournament_id = common::extract_thing_id(&tournament_body["id"]);
     // Register player
     let player_email = format!("{}@test.com", common::unique_name("tour_player"));
     let (_, player_body) = common::json_request(

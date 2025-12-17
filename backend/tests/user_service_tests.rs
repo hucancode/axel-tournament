@@ -36,13 +36,13 @@ async fn test_ban_and_unban_user() {
     )
     .await
     .unwrap();
-    let user_id = created_user.id.unwrap().id.to_string();
-    let banned = user::ban_user(&db, &user_id, "Violation".to_string())
+    let user_id = created_user.id.unwrap();
+    let banned = user::ban_user(&db, user_id.clone(), "Violation".to_string())
         .await
         .unwrap();
     assert!(banned.is_banned);
     assert_eq!(banned.ban_reason.unwrap(), "Violation");
-    let unbanned = user::unban_user(&db, &user_id).await.unwrap();
+    let unbanned = user::unban_user(&db, user_id).await.unwrap();
     assert!(!unbanned.is_banned);
     assert!(unbanned.ban_reason.is_none());
 }

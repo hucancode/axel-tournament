@@ -4,12 +4,12 @@ use crate::{
     models::Game,
 };
 use std::path::Path;
-use surrealdb::sql::Datetime;
+use surrealdb::sql::{Datetime, Thing};
 use tokio::fs;
 
 pub async fn upload_dockerfile(
     db: &Database,
-    game_id: &str,
+    game_id: Thing,
     dockerfile_content: String,
 ) -> ApiResult<String> {
     // Create dockerfiles directory if it doesn't exist
@@ -25,21 +25,21 @@ pub async fn upload_dockerfile(
         .map_err(|e| ApiError::Internal(format!("Failed to write Dockerfile: {}", e)))?;
 
     // Update game record
-    let game_id_clean = game_id.trim_start_matches("game:");
-    let game: Option<Game> = db.select(("game", game_id_clean)).await?;
+    let key = (game_id.tb.as_str(), game_id.id.to_string());
+    let game: Option<Game> = db.select(key.clone()).await?;
     let mut game = game.ok_or_else(|| ApiError::NotFound("Game not found".to_string()))?;
 
     game.dockerfile_path = Some(file_path.to_string_lossy().to_string());
     game.updated_at = Datetime::default();
 
-    let _: Option<Game> = db.update(("game", game_id_clean)).content(game).await?;
+    let _: Option<Game> = db.update(key).content(game).await?;
 
     Ok(file_path.to_string_lossy().to_string())
 }
 
-pub async fn get_dockerfile_path(db: &Database, game_id: &str) -> ApiResult<String> {
-    let game_id_clean = game_id.trim_start_matches("game:");
-    let game: Option<Game> = db.select(("game", game_id_clean)).await?;
+pub async fn get_dockerfile_path(db: &Database, game_id: Thing) -> ApiResult<String> {
+    let key = (game_id.tb.as_str(), game_id.id.to_string());
+    let game: Option<Game> = db.select(key).await?;
     let game = game.ok_or_else(|| ApiError::NotFound("Game not found".to_string()))?;
 
     game.dockerfile_path

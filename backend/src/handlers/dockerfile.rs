@@ -9,6 +9,7 @@ use axum::{
     extract::{Path, State},
 };
 use serde::Serialize;
+use surrealdb::sql::Thing;
 use validator::Validate;
 
 #[derive(Debug, Serialize)]
@@ -28,8 +29,10 @@ pub async fn upload_dockerfile(
         .map_err(|e| crate::error::ApiError::Validation(e.to_string()))?;
 
     // Verify ownership
-    let game_id_clean = game_id.trim_start_matches("game:");
-    let game = services::game::get_game(&state.db, game_id_clean).await?;
+    let game_thing: Thing = game_id
+        .parse()
+        .map_err(|_| crate::error::ApiError::BadRequest("Invalid game id".to_string()))?;
+    let game = services::game::get_game(&state.db, game_thing.clone()).await?;
 
     let user_id = claims.sub.clone();
     let is_owner = game
@@ -46,7 +49,7 @@ pub async fn upload_dockerfile(
 
     let path = services::dockerfile::upload_dockerfile(
         &state.db,
-        game_id_clean,
+        game_thing,
         payload.dockerfile_content,
     )
     .await?;

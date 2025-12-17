@@ -127,8 +127,8 @@ pub async fn request_password_reset(
         let expires: surrealdb::sql::Datetime = (Utc::now() + Duration::hours(1)).into();
         user.password_reset_token = Some(reset_token.clone());
         user.password_reset_expires = Some(expires);
-        let user_id = user.id.as_ref().unwrap().id.to_string();
-        services::user::update_user(&state.db, &user_id, user).await?;
+        let user_id = user.id.as_ref().unwrap().clone();
+        services::user::update_user(&state.db, user_id, user).await?;
         // Send email
         state
             .email_service
@@ -175,8 +175,8 @@ pub async fn confirm_password_reset(
     user.password_hash = Some(password_hash);
     user.password_reset_token = None;
     user.password_reset_expires = None;
-    let user_id = user.id.as_ref().unwrap().id.to_string();
-    services::user::update_user(&state.db, &user_id, user).await?;
+    let user_id = user.id.as_ref().unwrap().clone();
+    services::user::update_user(&state.db, user_id, user).await?;
     Ok(Json(serde_json::json!({
         "message": "Password has been reset successfully"
     })))

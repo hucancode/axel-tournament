@@ -49,7 +49,11 @@ async fn profile_update_and_admin_ban_flow() {
         .await
         .unwrap()
         .unwrap();
-    let user_id = user.id.unwrap().id.to_string();
+    let user_id = user
+        .id
+        .as_ref()
+        .map(|t| t.to_string())
+        .unwrap_or_default();
     let (ban_status, banned_body) = common::json_request(
         &app,
         http::Method::POST,

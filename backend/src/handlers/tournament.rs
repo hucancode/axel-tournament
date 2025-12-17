@@ -13,6 +13,7 @@ use axum::{
     http::StatusCode,
 };
 use serde::Deserialize;
+use surrealdb::sql::Thing;
 use validator::Validate;
 
 pub async fn create_tournament(
@@ -29,7 +30,10 @@ pub async fn create_tournament(
     }
     let tournament = services::tournament::create_tournament(
         &state.db,
-        payload.game_id,
+        payload
+            .game_id
+            .parse()
+            .map_err(|_| crate::error::ApiError::BadRequest("Invalid game id".to_string()))?,
         payload.name,
         payload.description,
         payload.min_players,
@@ -46,7 +50,13 @@ pub async fn get_tournament(
     State(state): State<AppState>,
     Path(tournament_id): Path<String>,
 ) -> ApiResult<Json<Tournament>> {
-    let tournament = services::tournament::get_tournament(&state.db, &tournament_id).await?;
+    let tournament = services::tournament::get_tournament(
+        &state.db,
+        tournament_id
+            .parse()
+            .map_err(|_| crate::error::ApiError::BadRequest("Invalid tournament id".to_string()))?,
+    )
+    .await?;
     Ok(Json(tournament))
 }
 
@@ -81,7 +91,9 @@ pub async fn update_tournament(
         .map_err(|e| crate::error::ApiError::Validation(e.to_string()))?;
     let tournament = services::tournament::update_tournament(
         &state.db,
-        &tournament_id,
+        tournament_id
+            .parse()
+            .map_err(|_| crate::error::ApiError::BadRequest("Invalid tournament id".to_string()))?,
         payload.name,
         payload.description,
         payload.status,
@@ -97,8 +109,17 @@ pub async fn join_tournament(
     Path(tournament_id): Path<String>,
     Extension(claims): Extension<Claims>,
 ) -> ApiResult<(StatusCode, Json<TournamentParticipant>)> {
-    let participant =
-        services::tournament::join_tournament(&state.db, &tournament_id, &claims.sub).await?;
+    let participant = services::tournament::join_tournament(
+        &state.db,
+        tournament_id
+            .parse()
+            .map_err(|_| crate::error::ApiError::BadRequest("Invalid tournament id".to_string()))?,
+        claims
+            .sub
+            .parse::<Thing>()
+            .map_err(|_| crate::error::ApiError::BadRequest("Invalid user id".to_string()))?,
+    )
+    .await?;
     Ok((StatusCode::CREATED, Json(participant)))
 }
 
@@ -107,7 +128,17 @@ pub async fn leave_tournament(
     Path(tournament_id): Path<String>,
     Extension(claims): Extension<Claims>,
 ) -> ApiResult<StatusCode> {
-    services::tournament::leave_tournament(&state.db, &tournament_id, &claims.sub).await?;
+    services::tournament::leave_tournament(
+        &state.db,
+        tournament_id
+            .parse()
+            .map_err(|_| crate::error::ApiError::BadRequest("Invalid tournament id".to_string()))?,
+        claims
+            .sub
+            .parse::<Thing>()
+            .map_err(|_| crate::error::ApiError::BadRequest("Invalid user id".to_string()))?,
+    )
+    .await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -116,7 +147,13 @@ pub async fn get_tournament_participants(
     Path(tournament_id): Path<String>,
 ) -> ApiResult<Json<Vec<TournamentParticipant>>> {
     let participants =
-        services::tournament::get_tournament_participants(&state.db, &tournament_id).await?;
+        services::tournament::get_tournament_participants(
+            &state.db,
+            tournament_id
+                .parse()
+                .map_err(|_| crate::error::ApiError::BadRequest("Invalid tournament id".to_string()))?,
+        )
+        .await?;
     Ok(Json(participants))
 }
 
@@ -125,6 +162,12 @@ pub async fn start_tournament(
     State(state): State<AppState>,
     Path(tournament_id): Path<String>,
 ) -> ApiResult<Json<Tournament>> {
-    let tournament = services::tournament::start_tournament(&state.db, &tournament_id).await?;
+    let tournament = services::tournament::start_tournament(
+        &state.db,
+        tournament_id
+            .parse()
+            .map_err(|_| crate::error::ApiError::BadRequest("Invalid tournament id".to_string()))?,
+    )
+    .await?;
     Ok(Json(tournament))
 }

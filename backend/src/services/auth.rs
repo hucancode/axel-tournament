@@ -8,6 +8,7 @@ use argon2::{
     password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString, rand_core::OsRng},
 };
 use chrono::Utc;
+use surrealdb::sql::Thing;
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 
 pub struct AuthService {
@@ -92,10 +93,9 @@ impl AuthService {
     }
 }
 
-pub async fn get_user_by_id(db: &Database, user_id: &str) -> ApiResult<User> {
-    // Strip "user:" prefix if present (from JWT claims which store full Thing)
-    let id_only = user_id.strip_prefix("user:").unwrap_or(user_id);
-    let user: Option<User> = db.select(("user", id_only)).await?;
+pub async fn get_user_by_id(db: &Database, user_id: Thing) -> ApiResult<User> {
+    let key = (user_id.tb.as_str(), user_id.id.to_string());
+    let user: Option<User> = db.select(key).await?;
     user.ok_or_else(|| ApiError::NotFound("User not found".to_string()))
 }
 

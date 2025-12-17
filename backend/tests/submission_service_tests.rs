@@ -46,7 +46,7 @@ async fn test_submission_create() {
     )
     .await
     .unwrap();
-    let user_id = created_user.id.unwrap().id.to_string();
+    let user_id = created_user.id.unwrap();
     // Create a game
     let game = game::create_game(
         &db,
@@ -58,7 +58,7 @@ async fn test_submission_create() {
     )
     .await
     .unwrap();
-    let game_id = game.id.unwrap().id.to_string();
+    let game_id = game.id.unwrap();
     // Create a tournament
     let tournament_data = tournament::create_tournament(
         &db,
@@ -73,14 +73,14 @@ async fn test_submission_create() {
     )
     .await
     .unwrap();
-    let tournament_id = tournament_data.id.unwrap().id.to_string();
+    let tournament_id = tournament_data.id.unwrap();
     // Create a submission
     let code = "fn main() { println!(\"Hello\"); }";
     let submission = submission::create_submission(
         &db,
-        &user_id,
-        &tournament_id,
-        &game_id,
+        user_id.clone(),
+        tournament_id.clone(),
+        game_id.clone(),
         ProgrammingLanguage::Rust,
         code.to_string(),
     )
@@ -109,7 +109,7 @@ async fn test_submission_get() {
     )
     .await
     .unwrap();
-    let user_id = created_user.id.unwrap().id.to_string();
+    let user_id = created_user.id.unwrap();
     let game = game::create_game(
         &db,
         unique_name("Game "),
@@ -120,7 +120,7 @@ async fn test_submission_get() {
     )
     .await
     .unwrap();
-    let game_id = game.id.unwrap().id.to_string();
+    let game_id = game.id.unwrap();
     let tournament_data = tournament::create_tournament(
         &db,
         game_id.clone(),
@@ -134,22 +134,22 @@ async fn test_submission_get() {
     )
     .await
     .unwrap();
-    let tournament_id = tournament_data.id.unwrap().id.to_string();
+    let tournament_id = tournament_data.id.unwrap();
     // Create a submission
     let code = "fn main() {}";
     let created_submission = submission::create_submission(
         &db,
-        &user_id,
-        &tournament_id,
-        &game_id,
+        user_id.clone(),
+        tournament_id.clone(),
+        game_id.clone(),
         ProgrammingLanguage::Rust,
         code.to_string(),
     )
     .await
     .unwrap();
-    let submission_id = created_submission.id.unwrap().id.to_string();
+    let submission_id = created_submission.id.unwrap();
     // Get the submission
-    let fetched_submission = submission::get_submission(&db, &submission_id).await;
+    let fetched_submission = submission::get_submission(&db, submission_id).await;
     assert!(fetched_submission.is_ok());
     let fetched = fetched_submission.unwrap();
     assert_eq!(fetched.language, ProgrammingLanguage::Rust);
@@ -173,7 +173,7 @@ async fn test_submission_list_by_user() {
     )
     .await
     .unwrap();
-    let user_id = created_user.id.unwrap().id.to_string();
+    let user_id = created_user.id.unwrap();
     let game = game::create_game(
         &db,
         unique_name("Game "),
@@ -184,7 +184,7 @@ async fn test_submission_list_by_user() {
     )
     .await
     .unwrap();
-    let game_id = game.id.unwrap().id.to_string();
+    let game_id = game.id.unwrap();
     let tournament_data = tournament::create_tournament(
         &db,
         game_id.clone(),
@@ -198,13 +198,13 @@ async fn test_submission_list_by_user() {
     )
     .await
     .unwrap();
-    let tournament_id = tournament_data.id.unwrap().id.to_string();
+    let tournament_id = tournament_data.id.unwrap();
     // Create multiple submissions
     submission::create_submission(
         &db,
-        &user_id,
-        &tournament_id,
-        &game_id,
+        user_id.clone(),
+        tournament_id.clone(),
+        game_id.clone(),
         ProgrammingLanguage::Rust,
         "fn main() { println!(\"1\"); }".to_string(),
     )
@@ -212,16 +212,16 @@ async fn test_submission_list_by_user() {
     .unwrap();
     submission::create_submission(
         &db,
-        &user_id,
-        &tournament_id,
-        &game_id,
+        user_id.clone(),
+        tournament_id.clone(),
+        game_id.clone(),
         ProgrammingLanguage::Rust,
         "fn main() { println!(\"2\"); }".to_string(),
     )
     .await
     .unwrap();
     // List submissions
-    let submissions = submission::list_user_submissions(&db, &user_id, None).await;
+    let submissions = submission::list_user_submissions(&db, user_id, None).await;
     assert!(submissions.is_ok());
     assert!(submissions.unwrap().len() >= 2);
 }

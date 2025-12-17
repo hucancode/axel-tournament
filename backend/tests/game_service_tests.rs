@@ -5,6 +5,7 @@ use axel_tournament::{
     models::{CreateGameRequest, ProgrammingLanguage, UpdateGameRequest},
     services::game,
 };
+use surrealdb::sql::Thing;
 use validator::Validate;
 
 async fn setup_test_db() -> axel_tournament::db::Database {
@@ -72,9 +73,9 @@ async fn test_game_get() {
     )
     .await
     .unwrap();
-    let game_id = created_game.id.unwrap().id.to_string();
+    let game_id = created_game.id.unwrap();
     // Get the game
-    let fetched_game = game::get_game(&db, &game_id).await;
+    let fetched_game = game::get_game(&db, game_id.clone()).await;
     assert!(fetched_game.is_ok());
     let fetched = fetched_game.unwrap();
     assert_eq!(fetched.name, name);
@@ -83,7 +84,7 @@ async fn test_game_get() {
 #[tokio::test]
 async fn test_game_get_nonexistent() {
     let db = setup_test_db().await;
-    let result = game::get_game(&db, "nonexistent_id").await;
+    let result = game::get_game(&db, Thing::from(("game", "nonexistent_id"))).await;
     assert!(result.is_err());
 }
 
@@ -142,10 +143,10 @@ async fn test_game_list_active_only() {
     )
     .await
     .unwrap();
-    let inactive_id = inactive_game.id.unwrap().id.to_string();
+    let inactive_id = inactive_game.id.unwrap();
     game::update_game(
         &db,
-        &inactive_id,
+        inactive_id,
         None,
         None,
         None,
@@ -173,12 +174,12 @@ async fn test_game_update_name() {
     )
     .await
     .unwrap();
-    let game_id = created_game.id.unwrap().id.to_string();
+    let game_id = created_game.id.unwrap();
     // Update the name
     let new_name = unique_name("Updated Name ");
     let updated_game = game::update_game(
         &db,
-        &game_id,
+        game_id.clone(),
         Some(new_name.clone()),
         None,
         None,
@@ -205,11 +206,11 @@ async fn test_game_update_description() {
     )
     .await
     .unwrap();
-    let game_id = created_game.id.unwrap().id.to_string();
+    let game_id = created_game.id.unwrap();
     // Update the description
     let updated_game = game::update_game(
         &db,
-        &game_id,
+        game_id,
         None,
         Some("New Description".to_string()),
         None,
@@ -234,7 +235,7 @@ async fn test_game_update_rules() {
     )
     .await
     .unwrap();
-    let game_id = created_game.id.unwrap().id.to_string();
+    let game_id = created_game.id.unwrap();
     // Update the rules
     let new_rules = serde_json::json!({
         "max_rounds": 50,
@@ -242,7 +243,7 @@ async fn test_game_update_rules() {
     });
     let updated_game = game::update_game(
         &db,
-        &game_id,
+        game_id.clone(),
         None,
         None,
         Some(new_rules.clone()),
@@ -269,9 +270,9 @@ async fn test_game_update_deactivate() {
     .await
     .unwrap();
     assert_eq!(created_game.is_active, true);
-    let game_id = created_game.id.unwrap().id.to_string();
+    let game_id = created_game.id.unwrap();
     // Deactivate
-    let updated_game = game::update_game(&db, &game_id, None, None, None, None, Some(false))
+    let updated_game = game::update_game(&db, game_id.clone(), None, None, None, None, Some(false))
         .await
         .unwrap();
     assert_eq!(updated_game.is_active, false);
@@ -290,12 +291,12 @@ async fn test_game_delete() {
     )
     .await
     .unwrap();
-    let game_id = created_game.id.unwrap().id.to_string();
+    let game_id = created_game.id.unwrap();
     // Delete the game
-    let result = game::delete_game(&db, &game_id).await;
+    let result = game::delete_game(&db, game_id.clone()).await;
     assert!(result.is_ok());
     // Try to fetch it - should fail
-    let fetch_result = game::get_game(&db, &game_id).await;
+    let fetch_result = game::get_game(&db, game_id).await;
     assert!(fetch_result.is_err());
 }
 

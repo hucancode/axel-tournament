@@ -2,14 +2,7 @@ mod common;
 
 use axel_tournament::services::tournament;
 use axum::http::{self, StatusCode};
-
-fn extract_id(body: &serde_json::Value) -> String {
-    body["id"]["id"]["String"]
-        .as_str()
-        .or_else(|| body["id"]["id"].as_str())
-        .unwrap_or_default()
-        .to_string()
-}
+use surrealdb::sql::Thing;
 
 #[tokio::test]
 async fn leaderboard_returns_scored_players() {
@@ -29,14 +22,14 @@ async fn leaderboard_returns_scored_players() {
         Some(&admin_token),
     )
     .await;
-    let game_id = extract_id(&game_body);
+    let game_id = common::extract_thing_id(&game_body["id"]);
     // Create tournament
     let (_, tournament_body) = common::json_request(
         &app,
         http::Method::POST,
         "/api/admin/tournaments",
         Some(serde_json::json!({
-            "game_id": format!("game:{}", game_id),
+            "game_id": game_id.clone(),
             "name": format!("Leaderboard Tournament {}", common::unique_name("")),
             "description": "Tournament for leaderboard API",
             "min_players": 2,
@@ -45,7 +38,7 @@ async fn leaderboard_returns_scored_players() {
         Some(&admin_token),
     )
     .await;
-    let tournament_id = extract_id(&tournament_body);
+    let tournament_id = common::extract_thing_id(&tournament_body["id"]);
     // Register two players and join
     for i in 0..2 {
         let (_, register_body) = common::json_request(
@@ -72,9 +65,12 @@ async fn leaderboard_returns_scored_players() {
         .await;
     }
     // Update scores via service helper
-    let participants = tournament::get_tournament_participants(&app.state.db, &tournament_id)
-        .await
-        .unwrap();
+    let participants = tournament::get_tournament_participants(
+        &app.state.db,
+        tournament_id.parse::<Thing>().unwrap(),
+    )
+    .await
+    .unwrap();
     for (idx, participant) in participants.iter().enumerate() {
         app.state
             .db

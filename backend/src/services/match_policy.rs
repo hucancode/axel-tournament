@@ -7,7 +7,7 @@ use surrealdb::sql::Thing;
 
 pub async fn create_policy(
     db: &Database,
-    tournament_id: String,
+    tournament_id: Thing,
     rounds_per_match: u32,
     repetitions: u32,
     timeout_seconds: u32,
@@ -15,11 +15,9 @@ pub async fn create_policy(
     memory_limit: Option<String>,
     scoring_weights: Option<serde_json::Value>,
 ) -> ApiResult<MatchPolicy> {
-    let tournament_id_thing = Thing::from(("tournament", tournament_id.trim_start_matches("tournament:")));
-
     let policy = MatchPolicy {
         id: None,
-        tournament_id: tournament_id_thing,
+        tournament_id,
         rounds_per_match,
         repetitions,
         timeout_seconds,
@@ -32,11 +30,10 @@ pub async fn create_policy(
     created.ok_or_else(|| ApiError::Internal("Failed to create match policy".to_string()))
 }
 
-pub async fn get_policy(db: &Database, tournament_id: &str) -> ApiResult<MatchPolicy> {
-    let tournament_id_clean = tournament_id.trim_start_matches("tournament:");
+pub async fn get_policy(db: &Database, tournament_id: Thing) -> ApiResult<MatchPolicy> {
     let mut result = db
         .query("SELECT * FROM match_policy WHERE tournament_id = $tournament_id")
-        .bind(("tournament_id", Thing::from(("tournament", tournament_id_clean))))
+        .bind(("tournament_id", tournament_id))
         .await?;
 
     let policies: Vec<MatchPolicy> = result.take(0)?;
@@ -46,7 +43,7 @@ pub async fn get_policy(db: &Database, tournament_id: &str) -> ApiResult<MatchPo
 
 pub async fn update_policy(
     db: &Database,
-    tournament_id: &str,
+    tournament_id: Thing,
     rounds_per_match: Option<u32>,
     repetitions: Option<u32>,
     timeout_seconds: Option<u32>,

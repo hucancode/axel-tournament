@@ -6,6 +6,7 @@ use axel_tournament::{
     models::{CreateTournamentRequest, TournamentStatus, MatchGenerationType, MatchStatus},
     services::{auth::AuthService, game, tournament, user, submission, matches},
 };
+use surrealdb::sql::Thing;
 use validator::Validate;
 
 async fn setup_test_db() -> axel_tournament::db::Database {
@@ -35,7 +36,7 @@ async fn test_create_and_get_tournament() {
     )
     .await
     .unwrap();
-    let game_id = game.id.unwrap().id.to_string();
+    let game_id = game.id.unwrap();
     let tournament = tournament::create_tournament(
         &db,
         game_id.clone(),
@@ -49,8 +50,8 @@ async fn test_create_and_get_tournament() {
     )
     .await
     .unwrap();
-    let tournament_id = tournament.id.unwrap().id.to_string();
-    let fetched = tournament::get_tournament(&db, &tournament_id)
+    let tournament_id = tournament.id.unwrap();
+    let fetched = tournament::get_tournament(&db, tournament_id.clone())
         .await
         .unwrap();
     assert_eq!(fetched.name, tournament.name);
@@ -70,7 +71,7 @@ async fn test_update_tournament_status() {
     )
     .await
     .unwrap();
-    let game_id = game.id.unwrap().id.to_string();
+    let game_id = game.id.unwrap();
     let tournament = tournament::create_tournament(
         &db,
         game_id,
@@ -84,10 +85,10 @@ async fn test_update_tournament_status() {
     )
     .await
     .unwrap();
-    let tournament_id = tournament.id.unwrap().id.to_string();
+    let tournament_id = tournament.id.unwrap();
     let updated = tournament::update_tournament(
         &db,
-        &tournament_id,
+        tournament_id,
         Some("Updated".to_string()),
         None,
         Some(TournamentStatus::Running),
@@ -114,7 +115,7 @@ async fn test_join_and_leave_tournament() {
     )
     .await
     .unwrap();
-    let game_id = game.id.unwrap().id.to_string();
+    let game_id = game.id.unwrap();
     let tournament = tournament::create_tournament(
         &db,
         game_id,
@@ -128,7 +129,7 @@ async fn test_join_and_leave_tournament() {
     )
     .await
     .unwrap();
-    let tournament_id = tournament.id.unwrap().id.to_string();
+    let tournament_id = tournament.id.unwrap();
     let password_hash = auth_service.hash_password("password123").unwrap();
     let user = user::create_user(
         &db,
@@ -141,19 +142,19 @@ async fn test_join_and_leave_tournament() {
     )
     .await
     .unwrap();
-    let user_id = user.id.unwrap().id.to_string();
-    let participant = tournament::join_tournament(&db, &tournament_id, &user_id)
+    let user_id = user.id.unwrap();
+    let participant = tournament::join_tournament(&db, tournament_id.clone(), user_id.clone())
         .await
         .unwrap();
-    assert_eq!(participant.user_id.id.to_string(), user_id);
-    let participants = tournament::get_tournament_participants(&db, &tournament_id)
+    assert_eq!(participant.user_id, user_id);
+    let participants = tournament::get_tournament_participants(&db, tournament_id.clone())
         .await
         .unwrap();
     assert_eq!(participants.len(), 1);
-    tournament::leave_tournament(&db, &tournament_id, &user_id)
+    tournament::leave_tournament(&db, tournament_id.clone(), user_id.clone())
         .await
         .unwrap();
-    let after_leave = tournament::get_tournament_participants(&db, &tournament_id)
+    let after_leave = tournament::get_tournament_participants(&db, tournament_id)
         .await
         .unwrap();
     assert!(after_leave.is_empty());
@@ -228,7 +229,7 @@ async fn test_start_tournament_all_vs_all() {
     )
     .await
     .unwrap();
-    let game_id = game.id.unwrap().id.to_string();
+    let game_id = game.id.unwrap();
 
     // Create tournament with AllVsAll match generation (default)
     let tournament = tournament::create_tournament(
@@ -244,10 +245,10 @@ async fn test_start_tournament_all_vs_all() {
     )
     .await
     .unwrap();
-    let tournament_id = tournament.id.clone().unwrap().id.to_string();
+    let tournament_id = tournament.id.clone().unwrap();
 
     // Create 3 users
-    let mut user_ids = Vec::new();
+    let mut user_ids: Vec<Thing> = Vec::new();
     for i in 0..3 {
         let password_hash = auth_service.hash_password("password123").unwrap();
         let user = user::create_user(
@@ -261,20 +262,20 @@ async fn test_start_tournament_all_vs_all() {
         )
         .await
         .unwrap();
-        user_ids.push(user.id.unwrap().id.to_string());
+        user_ids.push(user.id.unwrap());
     }
 
     // Join tournament and create submissions
     for user_id in &user_ids {
-        tournament::join_tournament(&db, &tournament_id, user_id)
+        tournament::join_tournament(&db, tournament_id.clone(), user_id.clone())
             .await
             .unwrap();
 
         submission::create_submission(
             &db,
-            user_id,
-            &tournament_id,
-            &game_id,
+            user_id.clone(),
+            tournament_id.clone(),
+            game_id.clone(),
             axel_tournament::models::ProgrammingLanguage::Rust,
             "fn main() {}".to_string(),
         )
@@ -283,7 +284,7 @@ async fn test_start_tournament_all_vs_all() {
     }
 
     // Start tournament and generate matches
-    let started_tournament = tournament::start_tournament(&db, &tournament_id)
+    let started_tournament = tournament::start_tournament(&db, tournament_id.clone())
         .await
         .unwrap();
 
@@ -292,9 +293,10 @@ async fn test_start_tournament_all_vs_all() {
     assert!(started_tournament.matches_generated);
 
     // Verify matches were created (3 players vs 3 players = 9 matches)
-    let created_matches = matches::list_matches(&db, Some(tournament_id.clone()), None, None)
-        .await
-        .unwrap();
+    let created_matches =
+        matches::list_matches(&db, Some(tournament_id.clone()), None, None)
+            .await
+            .unwrap();
     assert_eq!(created_matches.len(), 9); // 3x3 = 9 matches
 
     // Verify all matches are in pending state
@@ -320,7 +322,7 @@ async fn test_start_tournament_round_robin() {
     )
     .await
     .unwrap();
-    let game_id = game.id.unwrap().id.to_string();
+    let game_id = game.id.unwrap();
 
     // Create tournament with RoundRobin match generation
     let tournament = tournament::create_tournament(
@@ -336,10 +338,10 @@ async fn test_start_tournament_round_robin() {
     )
     .await
     .unwrap();
-    let tournament_id = tournament.id.clone().unwrap().id.to_string();
+    let tournament_id = tournament.id.clone().unwrap();
 
     // Create 4 users
-    let mut user_ids = Vec::new();
+    let mut user_ids: Vec<Thing> = Vec::new();
     for i in 0..4 {
         let password_hash = auth_service.hash_password("password123").unwrap();
         let user = user::create_user(
@@ -353,20 +355,20 @@ async fn test_start_tournament_round_robin() {
         )
         .await
         .unwrap();
-        user_ids.push(user.id.unwrap().id.to_string());
+        user_ids.push(user.id.unwrap());
     }
 
     // Join tournament and create submissions
     for user_id in &user_ids {
-        tournament::join_tournament(&db, &tournament_id, user_id)
+        tournament::join_tournament(&db, tournament_id.clone(), user_id.clone())
             .await
             .unwrap();
 
         submission::create_submission(
             &db,
-            user_id,
-            &tournament_id,
-            &game_id,
+            user_id.clone(),
+            tournament_id.clone(),
+            game_id.clone(),
             axel_tournament::models::ProgrammingLanguage::Rust,
             "fn main() {}".to_string(),
         )
@@ -375,7 +377,7 @@ async fn test_start_tournament_round_robin() {
     }
 
     // Start tournament and generate matches
-    let started_tournament = tournament::start_tournament(&db, &tournament_id)
+    let started_tournament = tournament::start_tournament(&db, tournament_id.clone())
         .await
         .unwrap();
 
@@ -384,9 +386,10 @@ async fn test_start_tournament_round_robin() {
     assert!(started_tournament.matches_generated);
 
     // Verify matches were created (4 players, unique pairings = 6 matches)
-    let created_matches = matches::list_matches(&db, Some(tournament_id.clone()), None, None)
-        .await
-        .unwrap();
+    let created_matches =
+        matches::list_matches(&db, Some(tournament_id.clone()), None, None)
+            .await
+            .unwrap();
     assert_eq!(created_matches.len(), 6); // 4 * (4-1) / 2 = 6 matches (no duplicates)
 }
 
@@ -406,7 +409,7 @@ async fn test_start_tournament_without_submissions_fails() {
     )
     .await
     .unwrap();
-    let game_id = game.id.unwrap().id.to_string();
+    let game_id = game.id.unwrap();
 
     // Create tournament
     let tournament = tournament::create_tournament(
@@ -422,7 +425,7 @@ async fn test_start_tournament_without_submissions_fails() {
     )
     .await
     .unwrap();
-    let tournament_id = tournament.id.clone().unwrap().id.to_string();
+    let tournament_id = tournament.id.clone().unwrap();
 
     // Create and join users but don't submit code
     for i in 0..2 {
@@ -438,15 +441,15 @@ async fn test_start_tournament_without_submissions_fails() {
         )
         .await
         .unwrap();
-        let user_id = user.id.unwrap().id.to_string();
+        let user_id = user.id.unwrap();
 
-        tournament::join_tournament(&db, &tournament_id, &user_id)
+        tournament::join_tournament(&db, tournament_id.clone(), user_id.clone())
             .await
             .unwrap();
     }
 
     // Try to start tournament - should fail because no submissions
-    let result = tournament::start_tournament(&db, &tournament_id).await;
+    let result = tournament::start_tournament(&db, tournament_id.clone()).await;
     assert!(result.is_err());
 }
 
@@ -465,7 +468,7 @@ async fn test_start_tournament_not_enough_players_fails() {
     )
     .await
     .unwrap();
-    let game_id = game.id.unwrap().id.to_string();
+    let game_id = game.id.unwrap();
 
     // Create tournament requiring 5 minimum players
     let tournament = tournament::create_tournament(
@@ -481,9 +484,9 @@ async fn test_start_tournament_not_enough_players_fails() {
     )
     .await
     .unwrap();
-    let tournament_id = tournament.id.clone().unwrap().id.to_string();
+    let tournament_id = tournament.id.clone().unwrap();
 
     // Try to start with 0 players - should fail
-    let result = tournament::start_tournament(&db, &tournament_id).await;
+    let result = tournament::start_tournament(&db, tournament_id.clone()).await;
     assert!(result.is_err());
 }

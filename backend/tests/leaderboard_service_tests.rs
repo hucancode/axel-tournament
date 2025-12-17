@@ -35,7 +35,7 @@ async fn test_leaderboard_ordering_and_limit() {
     )
     .await
     .unwrap();
-    let game_id = game.id.unwrap().id.to_string();
+    let game_id = game.id.unwrap();
     let tournament = tournament::create_tournament(
         &db,
         game_id,
@@ -49,7 +49,7 @@ async fn test_leaderboard_ordering_and_limit() {
     )
     .await
     .unwrap();
-    let tournament_id = tournament.id.unwrap().id.to_string();
+    let tournament_id = tournament.id.unwrap();
     // Create two players and join tournament
     let mut participants = Vec::new();
     for score in [120.0, 60.0] {
@@ -65,8 +65,8 @@ async fn test_leaderboard_ordering_and_limit() {
         )
         .await
         .unwrap();
-        let player_id = player.id.unwrap().id.to_string();
-        let participant = tournament::join_tournament(&db, &tournament_id, &player_id)
+        let player_id = player.id.unwrap();
+        let participant = tournament::join_tournament(&db, tournament_id.clone(), player_id)
             .await
             .unwrap();
         participants.push((participant.id.unwrap(), score));
@@ -79,7 +79,8 @@ async fn test_leaderboard_ordering_and_limit() {
             .await
             .unwrap();
     }
-    let leaderboard_entries = leaderboard::get_leaderboard(&db, 1, Some(&tournament_id), None)
+    let leaderboard_entries =
+        leaderboard::get_leaderboard(&db, 1, Some(tournament_id.clone()), None)
         .await
         .unwrap();
     assert_eq!(leaderboard_entries.len(), 1);

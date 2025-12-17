@@ -13,7 +13,12 @@ pub async fn create_game(
     supported_languages: Vec<ProgrammingLanguage>,
     owner_id: Option<String>,
 ) -> ApiResult<Game> {
-    let owner_thing = owner_id.map(|id| Thing::from(("user", id.trim_start_matches("user:"))));
+    let owner_thing = owner_id
+        .map(|id| {
+            id.parse::<Thing>()
+                .map_err(|_| ApiError::BadRequest("Invalid owner id".to_string()))
+        })
+        .transpose()?;
 
     let game = Game {
         id: None,
@@ -34,8 +39,9 @@ pub async fn create_game(
     created.ok_or_else(|| ApiError::Internal("Failed to create game".to_string()))
 }
 
-pub async fn get_game(db: &Database, game_id: &str) -> ApiResult<Game> {
-    let game: Option<Game> = db.select(("game", game_id)).await?;
+pub async fn get_game(db: &Database, game_id: Thing) -> ApiResult<Game> {
+    let key = (game_id.tb.as_str(), game_id.id.to_string());
+    let game: Option<Game> = db.select(key).await?;
     game.ok_or_else(|| ApiError::NotFound("Game not found".to_string()))
 }
 
@@ -52,14 +58,14 @@ pub async fn list_games(db: &Database, active_only: bool) -> ApiResult<Vec<Game>
 
 pub async fn update_game(
     db: &Database,
-    game_id: &str,
+    game_id: Thing,
     name: Option<String>,
     description: Option<String>,
     rules: Option<serde_json::Value>,
     supported_languages: Option<Vec<ProgrammingLanguage>>,
     is_active: Option<bool>,
 ) -> ApiResult<Game> {
-    let mut game = get_game(db, game_id).await?;
+    let mut game = get_game(db, game_id.clone()).await?;
     if let Some(n) = name {
         game.name = n;
     }
@@ -76,20 +82,23 @@ pub async fn update_game(
         game.is_active = ia;
     }
     game.updated_at = Datetime::default();
-    let updated: Option<Game> = db.update(("game", game_id)).content(game).await?;
-    updated.ok_or_else(|| ApiError::NotFound("Game not found".to_string()))
+    let key = (game_id.tb.as_str(), game_id.id.to_string());
+    db.update(key)
+        .content(game)
+        .await?
+        .ok_or_else(|| ApiError::NotFound("Game not found".to_string()))
 }
 
-pub async fn delete_game(db: &Database, game_id: &str) -> ApiResult<()> {
-    let _: Option<Game> = db.delete(("game", game_id)).await?;
+pub async fn delete_game(db: &Database, game_id: Thing) -> ApiResult<()> {
+    let key = (game_id.tb.as_str(), game_id.id.to_string());
+    let _: Option<Game> = db.delete(key).await?;
     Ok(())
 }
 
-pub async fn list_games_by_owner(db: &Database, owner_id: &str) -> ApiResult<Vec<Game>> {
-    let owner_thing = Thing::from(("user", owner_id.trim_start_matches("user:")));
+pub async fn list_games_by_owner(db: &Database, owner_id: Thing) -> ApiResult<Vec<Game>> {
     let mut result = db
         .query("SELECT * FROM game WHERE owner_id = $owner_id ORDER BY created_at DESC")
-        .bind(("owner_id", owner_thing))
+        .bind(("owner_id", owner_id))
         .await?;
     let games: Vec<Game> = result.take(0)?;
     Ok(games)

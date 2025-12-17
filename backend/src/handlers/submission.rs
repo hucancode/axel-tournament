@@ -12,6 +12,7 @@ use axum::{
     http::StatusCode,
 };
 use serde::Deserialize;
+use surrealdb::sql::Thing;
 use validator::Validate;
 
 pub async fn create_submission(
@@ -37,15 +38,27 @@ pub async fn create_submission(
         crate::error::ApiError::Validation("Invalid programming language".to_string())
     })?;
     // Get tournament to verify it exists and get game_id
-    let tournament =
-        services::tournament::get_tournament(&state.db, &payload.tournament_id).await?;
-    let game_id = tournament.game_id.id.to_string();
+    let tournament = services::tournament::get_tournament(
+        &state.db,
+        payload
+            .tournament_id
+            .parse()
+            .map_err(|_| crate::error::ApiError::BadRequest("Invalid tournament id".to_string()))?,
+    )
+    .await?;
+    let game_id = tournament.game_id.clone();
     // Create submission
     let submission = services::submission::create_submission(
         &state.db,
-        &claims.sub,
-        &payload.tournament_id,
-        &game_id,
+        claims
+            .sub
+            .parse::<Thing>()
+            .map_err(|_| crate::error::ApiError::BadRequest("Invalid user id".to_string()))?,
+        payload
+            .tournament_id
+            .parse::<Thing>()
+            .map_err(|_| crate::error::ApiError::BadRequest("Invalid tournament id".to_string()))?,
+        game_id,
         language,
         payload.code,
     )
@@ -65,11 +78,15 @@ pub async fn get_submission(
     Extension(claims): Extension<Claims>,
     Path(submission_id): Path<String>,
 ) -> ApiResult<Json<Submission>> {
-    let submission = services::submission::get_submission(&state.db, &submission_id).await?;
+    let submission = services::submission::get_submission(
+        &state.db,
+        submission_id
+            .parse::<Thing>()
+            .map_err(|_| crate::error::ApiError::BadRequest("Invalid submission id".to_string()))?,
+    )
+    .await?;
     // Check if user owns this submission
-    let submission_user = submission.user_id.to_string();
-    let token_user = claims.sub.clone();
-    if submission_user.trim_start_matches("user:") != token_user.trim_start_matches("user:") {
+    if submission.user_id.to_string() != claims.sub {
         return Err(crate::error::ApiError::Forbidden(
             "You don't have access to this submission".to_string(),
         ));
@@ -89,8 +106,18 @@ pub async fn list_submissions(
 ) -> ApiResult<Json<Vec<Submission>>> {
     let submissions = services::submission::list_user_submissions(
         &state.db,
-        &claims.sub,
-        query.tournament_id.as_deref(),
+        claims
+            .sub
+            .parse::<Thing>()
+            .map_err(|_| crate::error::ApiError::BadRequest("Invalid user id".to_string()))?,
+        query
+            .tournament_id
+            .as_deref()
+            .map(|id| {
+                id.parse::<Thing>()
+                    .map_err(|_| crate::error::ApiError::BadRequest("Invalid tournament id".to_string()))
+            })
+            .transpose()?,
     )
     .await?;
     Ok(Json(submissions))

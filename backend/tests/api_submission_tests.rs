@@ -2,14 +2,6 @@ mod common;
 
 use axum::http::{self, StatusCode};
 
-fn extract_id(body: &serde_json::Value) -> String {
-    body["id"]["id"]["String"]
-        .as_str()
-        .or_else(|| body["id"]["id"].as_str())
-        .unwrap_or_default()
-        .to_string()
-}
-
 #[tokio::test]
 async fn create_and_list_submissions() {
     let app = common::setup_app(&common::unique_name("submission_api_")).await;
@@ -28,14 +20,14 @@ async fn create_and_list_submissions() {
         Some(&admin_token),
     )
     .await;
-    let game_id = extract_id(&game_body);
+    let game_id = common::extract_thing_id(&game_body["id"]);
     // Tournament
     let (_, tournament_body) = common::json_request(
         &app,
         http::Method::POST,
         "/api/admin/tournaments",
         Some(serde_json::json!({
-            "game_id": format!("game:{}", game_id),
+            "game_id": game_id.clone(),
             "name": format!("Submission Tournament {}", common::unique_name("")),
             "description": "Tournament for submissions",
             "min_players": 2,
@@ -44,7 +36,7 @@ async fn create_and_list_submissions() {
         Some(&admin_token),
     )
     .await;
-    let tournament_id = extract_id(&tournament_body);
+    let tournament_id = common::extract_thing_id(&tournament_body["id"]);
     // Player
     let (_, user_body) = common::json_request(
         &app,
@@ -76,7 +68,7 @@ async fn create_and_list_submissions() {
         http::Method::POST,
         "/api/submissions",
         Some(serde_json::json!({
-            "tournament_id": tournament_id,
+            "tournament_id": tournament_id.clone(),
             "language": "rust",
             "code": "fn main() { println!(\"hello\"); }"
         })),
@@ -90,6 +82,7 @@ async fn create_and_list_submissions() {
         );
     }
     let submission_id = submission_body["id"].as_str().unwrap();
+    let submission_thing = format!("submission:{}", submission_id);
     // List submissions for user
     let (list_status, list_body) = common::json_request(
         &app,
@@ -105,15 +98,12 @@ async fn create_and_list_submissions() {
     let (get_status, get_body) = common::json_request(
         &app,
         http::Method::GET,
-        &format!("/api/submissions/{}", submission_id),
+        &format!("/api/submissions/{}", submission_thing),
         None,
         Some(player_token),
     )
     .await;
     assert_eq!(get_status, StatusCode::OK);
-    let fetched_id = get_body["id"]["id"]["String"]
-        .as_str()
-        .or_else(|| get_body["id"]["id"].as_str())
-        .unwrap_or_default();
-    assert_eq!(fetched_id, submission_id);
+    let fetched_id = common::extract_thing_id(&get_body["id"]);
+    assert_eq!(fetched_id, submission_thing);
 }
