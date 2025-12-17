@@ -101,6 +101,7 @@ export interface CreateGameRequest {
   description: string;
   rules: Record<string, any>;
   supported_languages: ProgrammingLanguage[];
+  is_active: boolean;
 }
 
 export interface UploadDockerfileRequest {

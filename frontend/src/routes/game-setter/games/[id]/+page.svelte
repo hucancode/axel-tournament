@@ -8,7 +8,7 @@
   import type { Game, GameTemplate, ProgrammingLanguage } from "$lib/types";
 
   let { user, isAuthenticated } = $derived($authStore);
-  let gameId = $derived($page.params.id);
+  const gameId = $derived($page.params.id!);
 
   let game: Game | null = $state(null);
   let templates: GameTemplate[] = $state([]);
@@ -211,7 +211,7 @@
 
 <div class="page">
   <div class="container">
-    <button class="btn btn-secondary" on:click={() => goto("/game-setter")} style="margin-bottom: 1rem;">
+    <button class="btn btn-secondary" onclick={() => goto("/game-setter")} style="margin-bottom: 1rem;">
       ← Back to Dashboard
     </button>
 
@@ -232,25 +232,25 @@
       <div style="display: flex; gap: 1rem; border-bottom: 2px solid #ddd; margin-bottom: 2rem;">
         <button
           class="tab-button {activeTab === 'info' ? 'active' : ''}"
-          on:click={() => (activeTab = "info")}
+          onclick={() => (activeTab = "info")}
         >
           Game Info
         </button>
         <button
           class="tab-button {activeTab === 'gamecode' ? 'active' : ''}"
-          on:click={() => (activeTab = "gamecode")}
+          onclick={() => (activeTab = "gamecode")}
         >
           Game Code
         </button>
         <button
           class="tab-button {activeTab === 'dockerfile' ? 'active' : ''}"
-          on:click={() => (activeTab = "dockerfile")}
+          onclick={() => (activeTab = "dockerfile")}
         >
           Dockerfile
         </button>
         <button
           class="tab-button {activeTab === 'templates' ? 'active' : ''}"
-          on:click={() => (activeTab = "templates")}
+          onclick={() => (activeTab = "templates")}
         >
           Templates
         </button>
@@ -263,8 +263,8 @@
             <h2>Basic Information</h2>
             <div style="display: flex; gap: 0.5rem;">
               {#if !editMode}
-                <button class="btn btn-secondary" on:click={enableEditMode}>Edit</button>
-                <button class="btn btn-danger" on:click={deleteGame}>Delete</button>
+                <button class="btn btn-secondary" onclick={enableEditMode}>Edit</button>
+                <button class="btn btn-danger" onclick={deleteGame}>Delete</button>
               {/if}
             </div>
           </div>
@@ -278,7 +278,12 @@
 
             <div class="form-group">
               <label for="edit-description">Description</label>
-              <textarea id="edit-description" class="textarea" bind:value={editForm.description} rows="3" />
+              <textarea
+                id="edit-description"
+                class="textarea"
+                bind:value={editForm.description}
+                rows="3"
+              ></textarea>
             </div>
 
             <div class="form-group">
@@ -287,14 +292,14 @@
                 id="edit-rules"
                 class="textarea"
                 value={JSON.stringify(editForm.rules, null, 2)}
-                on:input={(e) => {
+                oninput={(e) => {
                   try {
                     editForm.rules = JSON.parse(e.currentTarget.value);
                   } catch {}
                 }}
                 rows="8"
                 style="font-family: monospace;"
-              />
+              ></textarea>
             </div>
 
             <div class="form-group">
@@ -305,8 +310,8 @@
             </div>
 
             <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-              <button class="btn btn-primary" on:click={saveGameEdits}>Save Changes</button>
-              <button class="btn btn-secondary" on:click={cancelEdit}>Cancel</button>
+              <button class="btn btn-primary" onclick={saveGameEdits}>Save Changes</button>
+              <button class="btn btn-secondary" onclick={cancelEdit}>Cancel</button>
             </div>
           {:else}
             <!-- View Mode -->
@@ -347,7 +352,7 @@
       {:else if activeTab === "gamecode"}
         <div class="card">
           <h2>Upload Game Code</h2>
-          <p class="text-sm">
+          <div class="text-sm">
             This is your main game orchestration code that will:
             <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
               <li>Invoke player binaries via stdin/stdout</li>
@@ -355,7 +360,7 @@
               <li>Handle player timeouts/crashes/invalid responses</li>
               <li>Output score array to stdout</li>
             </ul>
-          </p>
+          </div>
 
           <p class="text-sm">
             <strong>Output Protocol:</strong> Print scores/error codes separated by spaces or newlines.
@@ -388,10 +393,10 @@
               rows="20"
               placeholder="Your game orchestration code..."
               style="font-family: monospace; font-size: 0.9em;"
-            />
+            ></textarea>
           </div>
 
-          <button class="btn btn-primary" on:click={uploadGameCode} disabled={uploadingGameCode}>
+          <button class="btn btn-primary" onclick={uploadGameCode} disabled={uploadingGameCode}>
             {uploadingGameCode ? "Uploading..." : "Upload Game Code"}
           </button>
         </div>
@@ -415,10 +420,10 @@
               rows="15"
               placeholder="FROM rust:1.92-slim&#10;&#10;WORKDIR /workspace&#10;&#10;# Install dependencies...&#10;&#10;CMD [&quot;/runner.sh&quot;]"
               style="font-family: monospace; font-size: 0.9em;"
-            />
+            ></textarea>
           </div>
 
-          <button class="btn btn-primary" on:click={uploadDockerfile} disabled={uploadingDockerfile}>
+          <button class="btn btn-primary" onclick={uploadDockerfile} disabled={uploadingDockerfile}>
             {uploadingDockerfile ? "Uploading..." : "Upload Dockerfile"}
           </button>
         </div>
@@ -437,10 +442,10 @@
                   rows="12"
                   placeholder={"fn main() {}"}
                   style="font-family: monospace; font-size: 0.9em;"
-                />
+                ></textarea>
                 <button
                   class="btn btn-primary"
-                  on:click={() => saveTemplate(lang)}
+                  onclick={() => saveTemplate(lang)}
                   disabled={savingTemplate[lang]}
                   style="margin-top: 0.5rem;"
                 >

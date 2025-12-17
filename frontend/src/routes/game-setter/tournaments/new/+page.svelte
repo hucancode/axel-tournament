@@ -84,7 +84,7 @@
 
 <div class="page">
   <div class="container">
-    <button class="btn btn-secondary" on:click={() => goto("/game-setter")} style="margin-bottom: 1rem;">
+    <button class="btn btn-secondary" onclick={() => goto("/game-setter")} style="margin-bottom: 1rem;">
       ← Back to Dashboard
     </button>
 
@@ -118,7 +118,14 @@
 
         <div class="form-group">
           <label for="description">Description *</label>
-          <textarea id="description" class="textarea" bind:value={form.description} rows="4" placeholder="Describe your tournament..." required />
+          <textarea
+            id="description"
+            class="textarea"
+            bind:value={form.description}
+            rows="4"
+            placeholder="Describe your tournament..."
+            required
+          ></textarea>
         </div>
 
         <div class="grid grid-2">
@@ -154,10 +161,10 @@
         </div>
 
         <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem;">
-          <button class="btn btn-primary" on:click={createTournament} disabled={creating}>
+          <button class="btn btn-primary" onclick={createTournament} disabled={creating}>
             {creating ? "Creating..." : "Create Tournament"}
           </button>
-          <button class="btn btn-secondary" on:click={() => goto("/game-setter")}>Cancel</button>
+          <button class="btn btn-secondary" onclick={() => goto("/game-setter")}>Cancel</button>
         </div>
       </div>
     {/if}

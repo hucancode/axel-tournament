@@ -57,6 +57,13 @@
   function createTournament() {
     goto("/game-setter/tournaments/new");
   }
+
+  function handleCardKeydown(event: KeyboardEvent, action: () => void) {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      action();
+    }
+  }
 </script>
 
 <div class="page">
@@ -75,7 +82,7 @@
         <div class="card">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
             <h2>My Games</h2>
-            <button class="btn btn-primary" on:click={createGame}>Create Game</button>
+            <button class="btn btn-primary" onclick={createGame}>Create Game</button>
           </div>
 
           {#if myGames.length === 0}
@@ -83,7 +90,14 @@
           {:else}
             <div style="display: flex; flex-direction: column; gap: 1rem;">
               {#each myGames as game}
-                <div class="card" style="cursor: pointer;" on:click={() => manageGame(game.id)}>
+                <div
+                  class="card"
+                  style="cursor: pointer;"
+                  role="button"
+                  tabindex="0"
+                  onclick={() => manageGame(game.id)}
+                  onkeydown={(event) => handleCardKeydown(event, () => manageGame(game.id))}
+                >
                   <h3>{game.name}</h3>
                   <p class="text-sm">{game.description}</p>
                   <div style="margin-top: 0.5rem;">
@@ -104,7 +118,7 @@
         <div class="card">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
             <h2>My Tournaments</h2>
-            <button class="btn btn-primary" on:click={createTournament}>Create Tournament</button>
+            <button class="btn btn-primary" onclick={createTournament}>Create Tournament</button>
           </div>
 
           {#if filteredTournaments.length === 0}
@@ -112,7 +126,16 @@
           {:else}
             <div style="display: flex; flex-direction: column; gap: 1rem;">
               {#each filteredTournaments as tournament}
-                <div class="card" style="cursor: pointer;" on:click={() => goto(`/tournaments/${tournament.id}`)}>
+                <div
+                  class="card"
+                  style="cursor: pointer;"
+                  role="button"
+                  tabindex="0"
+                  onclick={() => goto(`/tournaments/${tournament.id}`)}
+                  onkeydown={(event) =>
+                    handleCardKeydown(event, () => goto(`/tournaments/${tournament.id}`))
+                  }
+                >
                   <h3>{tournament.name}</h3>
                   <p class="text-sm">{tournament.description}</p>
                   <div style="margin-top: 0.5rem;">

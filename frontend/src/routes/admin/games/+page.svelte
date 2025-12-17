@@ -259,8 +259,20 @@
 			z-index: 1000;
 			padding: 1rem;
 		"
+        role="button"
+        tabindex="0"
+        aria-label="Close game form"
         onclick={(e) => {
             if (e.target === e.currentTarget) closeForm();
+        }}
+        onkeydown={(e) => {
+            if (
+                e.target === e.currentTarget &&
+                (e.key === "Escape" || e.key === "Enter" || e.key === " ")
+            ) {
+                e.preventDefault();
+                closeForm();
+            }
         }}
     >
         <div
@@ -305,9 +317,17 @@
                         required
                     ></textarea>
                 </div>
-                <div class="form-group">
-                    <label>Supported Languages</label>
-                    <div class="flex gap-4">
+                <fieldset
+                    class="form-group"
+                    style="border: none; padding: 0; margin: 0;"
+                >
+                    <legend
+                        class="text-sm font-semibold"
+                        style="margin-bottom: 0.25rem;"
+                    >
+                        Supported Languages
+                    </legend>
+                    <div class="flex gap-4" aria-label="Supported languages">
                         {#each ["rust", "go", "c"] as lang}
                             <label
                                 class="flex items-center gap-2"
@@ -328,7 +348,7 @@
                             </label>
                         {/each}
                     </div>
-                </div>
+                </fieldset>
                 <div class="form-group">
                     <label for="rules">Rules (JSON)</label>
                     <textarea

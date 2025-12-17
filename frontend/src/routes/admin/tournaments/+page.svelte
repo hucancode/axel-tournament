@@ -302,8 +302,20 @@
 			z-index: 1000;
 			padding: 1rem;
 		"
+        role="button"
+        tabindex="0"
+        aria-label="Close tournament form"
         onclick={(e) => {
             if (e.target === e.currentTarget) closeForm();
+        }}
+        onkeydown={(e) => {
+            if (
+                e.target === e.currentTarget &&
+                (e.key === "Escape" || e.key === "Enter" || e.key === " ")
+            ) {
+                e.preventDefault();
+                closeForm();
+            }
         }}
     >
         <div

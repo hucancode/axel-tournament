@@ -256,8 +256,20 @@
 			justify-content: center;
 			z-index: 1000;
 		"
+        role="button"
+        tabindex="0"
+        aria-label="Close ban dialog"
         onclick={(e) => {
             if (e.target === e.currentTarget) closeBanDialog();
+        }}
+        onkeydown={(e) => {
+            if (
+                e.target === e.currentTarget &&
+                (e.key === "Escape" || e.key === "Enter" || e.key === " ")
+            ) {
+                e.preventDefault();
+                closeBanDialog();
+            }
         }}
     >
         <div

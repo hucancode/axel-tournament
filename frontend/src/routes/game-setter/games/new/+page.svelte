@@ -46,6 +46,7 @@
         description,
         rules,
         supported_languages: selectedLanguages,
+        is_active: true,
       });
 
       goto(`/game-setter/games/${game.id}`);
@@ -65,7 +66,7 @@
       <p class="error-message">{error}</p>
     {/if}
 
-    <form on:submit={handleSubmit}>
+    <form onsubmit={handleSubmit}>
       <div class="form-group">
         <label for="name">Game Name *</label>
         <input
@@ -87,7 +88,7 @@
           required
           rows="3"
           placeholder="Describe your game..."
-        />
+        ></textarea>
       </div>
 
       <div class="form-group">
@@ -99,17 +100,17 @@
           required
           rows="5"
           placeholder={'{"rule1": "value1", "rule2": "value2"}'}
-        />
+        ></textarea>
       </div>
 
-      <div class="form-group">
-        <label>Supported Languages *</label>
+      <fieldset class="form-group" style="border: none; padding: 0;">
+        <legend style="font-weight: 600; margin-bottom: 0.25rem;">Supported Languages *</legend>
         <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
           <label style="display: flex; align-items: center; gap: 0.5rem;">
             <input
               type="checkbox"
               checked={selectedLanguages.includes("rust")}
-              on:change={() => toggleLanguage("rust")}
+              onchange={() => toggleLanguage("rust")}
             />
             Rust
           </label>
@@ -117,7 +118,7 @@
             <input
               type="checkbox"
               checked={selectedLanguages.includes("go")}
-              on:change={() => toggleLanguage("go")}
+              onchange={() => toggleLanguage("go")}
             />
             Go
           </label>
@@ -125,18 +126,18 @@
             <input
               type="checkbox"
               checked={selectedLanguages.includes("c")}
-              on:change={() => toggleLanguage("c")}
+              onchange={() => toggleLanguage("c")}
             />
             C
           </label>
         </div>
-      </div>
+      </fieldset>
 
       <div style="display: flex; gap: 1rem;">
         <button type="submit" class="btn btn-primary" disabled={loading || selectedLanguages.length === 0}>
           {loading ? "Creating..." : "Create Game"}
         </button>
-        <button type="button" class="btn btn-secondary" on:click={() => goto("/game-setter")}>
+        <button type="button" class="btn btn-secondary" onclick={() => goto("/game-setter")}>
           Cancel
         </button>
       </div>
