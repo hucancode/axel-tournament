@@ -358,8 +358,9 @@
           </p>
 
           <p class="text-sm">
-            <strong>Output Protocol:</strong> For each player, output either a number (score) or error code:
-            TLE (timeout), WA (wrong answer), CE (compiler error), RE (runtime error).
+            <strong>Output Protocol:</strong> Print scores/error codes separated by spaces or newlines.
+            Example: <code>100 TLE 92 WA</code> or one per line.
+            Error codes: TLE (timeout), WA (wrong answer), CE (compiler error), RE (runtime error).
           </p>
 
           {#if game.game_code_path}
