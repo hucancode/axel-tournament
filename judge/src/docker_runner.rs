@@ -141,40 +141,44 @@ impl DockerRunner {
                 .context("Failed to write game server code to workspace")?;
             tracing::info!("Wrote game server code to {}", dest_server);
         } else {
-            let game_id = game.id.as_deref().unwrap_or("unknown");
             tracing::warn!(
                 "Game {} has no game_code, container must provide server code",
-                game_id
+                game.id
             );
         }
 
-        // Copy submission files to workspace
+        // Fetch submission code from database and write to workspace
         for (idx, participant) in match_data.participants.iter().enumerate() {
-            let submission_id = participant.submission_id.replace(':', "_");
-            // Look for submission file in uploads directory
-            let possible_paths = vec![
-                format!("uploads/{}", submission_id),
-                format!("uploads/submission_{}", submission_id),
-            ];
-
-            let mut found = false;
-            for src_path in possible_paths {
-                if Path::new(&src_path).exists() {
-                    let dest_file = format!("{}/player_{}.code", workspace_dir, idx);
-                    fs::copy(&src_path, &dest_file).await.context(format!(
-                        "Failed to copy submission {}",
-                        participant.submission_id
-                    ))?;
-                    found = true;
-                    break;
-                }
-            }
-
-            if !found {
-                anyhow::bail!(
-                    "Submission file not found for {}",
+            let submission = self
+                .db_client
+                .fetch_submission(&participant.submission_id)
+                .await
+                .context(format!(
+                    "Failed to fetch submission {}",
                     participant.submission_id
+                ))?;
+
+            if let Some(code) = submission.code {
+                let language = submission.language.as_deref().unwrap_or("rust");
+                let ext = match language {
+                    "rust" => "rs",
+                    "go" => "go",
+                    "c" => "c",
+                    "cpp" => "cpp",
+                    "python" => "py",
+                    _ => "rs", // Default to Rust
+                };
+                let dest_file = format!("{}/player_{}.{}", workspace_dir, idx, ext);
+                fs::write(&dest_file, code)
+                    .await
+                    .context(format!("Failed to write submission code to {}", dest_file))?;
+                tracing::info!(
+                    "Wrote submission {} code to {}",
+                    participant.submission_id,
+                    dest_file
                 );
+            } else {
+                anyhow::bail!("Submission {} has no code", participant.submission_id);
             }
         }
 
@@ -191,10 +195,10 @@ impl DockerRunner {
         let config = ContainerCreateBody {
             image: Some(image_tag.to_string()),
             host_config: Some(HostConfig {
-                binds: Some(vec![format!("{}:/workspace:ro", work_dir)]),
-                memory: Some(512 * 1024 * 1024),        // 512MB
-                nano_cpus: Some(1_000_000_000),         // 1 CPU
-                network_mode: Some("none".to_string()), // No network access
+                binds: Some(vec![format!("{}:/workspace", work_dir)]), // Writable for compilation
+                memory: Some(512 * 1024 * 1024),                       // 512MB
+                nano_cpus: Some(1_000_000_000),                        // 1 CPU
+                network_mode: Some("none".to_string()),                // No network access
                 ..Default::default()
             }),
             working_dir: Some("/workspace".to_string()),
@@ -216,32 +220,40 @@ impl DockerRunner {
             .start_container(&container.id, None::<StartContainerOptions>)
             .await?;
 
-        // Wait for completion (with timeout)
+        // Wait for completion (with timeout) and capture exit code
         let timeout = std::time::Duration::from_secs(300); // 5 minutes
         let wait_result = tokio::time::timeout(timeout, async {
             let mut stream = self
                 .docker
                 .wait_container(&container.id, None::<WaitContainerOptions>);
-            while let Some(_) = stream.next().await {}
-            Ok::<(), anyhow::Error>(())
+            let mut exit_code: Option<i64> = None;
+            while let Some(result) = stream.next().await {
+                if let Ok(wait_result) = result {
+                    exit_code = Some(wait_result.status_code);
+                }
+            }
+            exit_code
         })
         .await;
 
-        if wait_result.is_err() {
-            // Timeout - stop and remove container
+        let exit_code = match wait_result {
+            Ok(code) => code,
+            Err(_) => {
+                // Timeout - stop and remove container
+                let _ = self
+                    .docker
+                    .stop_container(&container.id, None::<StopContainerOptions>)
+                    .await;
             let _ = self
                 .docker
-                .stop_container(&container.id, None::<StopContainerOptions>)
-                .await;
-            let _ = self
-                .docker
-                .remove_container(
-                    &container.id,
-                    Some(RemoveContainerOptionsBuilder::new().force(true).build()),
-                )
-                .await;
-            anyhow::bail!("Match execution timed out after 5 minutes");
-        }
+                    .remove_container(
+                        &container.id,
+                        Some(RemoveContainerOptionsBuilder::new().force(true).build()),
+                    )
+                    .await;
+                anyhow::bail!("Match execution timed out after 5 minutes");
+            }
+        };
 
         // Get container logs (stdout contains match results in JSON)
         let mut logs_stream = self.docker.logs(
@@ -265,6 +277,14 @@ impl DockerRunner {
             .await?;
 
         // Parse results from logs
+        if let Some(code) = exit_code {
+            match code {
+                1 => anyhow::bail!("GAME_CODE_COMPILATION_FAILED: {}", logs.trim()),
+                2 => anyhow::bail!("PLAYER_CODE_COMPILATION_FAILED: {}", logs.trim()),
+                _ => {}
+            }
+        }
+
         let results = self.parse_match_results(&logs, match_data)?;
 
         Ok(results)
@@ -388,6 +408,19 @@ impl DockerRunner {
                 is_winner: false,
                 metadata,
             });
+        }
+
+        // Treat any error token (TLE/WA/RE/CE) as a failed match so it doesn't get a false "completed" status
+        if results.iter().any(|r| r.metadata.is_some()) {
+            let mut snippet = logs.trim();
+            if snippet.len() > 2000 {
+                snippet = &snippet[..2000];
+            }
+            anyhow::bail!(
+                "Match returned error outputs: {}. Logs: {}",
+                last_line,
+                snippet.replace('\n', "\\n")
+            );
         }
 
         // Determine rankings (errors get lowest rank)

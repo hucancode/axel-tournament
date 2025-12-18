@@ -1,11 +1,11 @@
 use anyhow::{anyhow, Context, Result};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use std::sync::Arc;
-use surrealdb::Surreal;
 use surrealdb::engine::remote::ws::Client;
 use surrealdb::sql::{Datetime, Thing};
+use surrealdb::Surreal;
 
 #[derive(Clone)]
 pub struct DbClient {
@@ -17,13 +17,77 @@ impl DbClient {
         Self { db }
     }
 
+    pub async fn fetch_match(&self, match_id: &str) -> Result<Match> {
+        let match_thing: Thing = match_id
+            .parse()
+            .map_err(|_| anyhow!("Invalid match id {}", match_id))?;
+
+        // SELECT queries return: id as Thing, but relation fields as strings
+        #[derive(Deserialize)]
+        struct MatchRecord {
+            id: Thing,
+            game_id: String,
+            #[serde(default)]
+            tournament_id: Option<String>,
+            status: String,
+            participants: Vec<MatchParticipant>,
+        }
+
+        let mut response = self
+            .db
+            .query("SELECT * FROM $match_id")
+            .bind(("match_id", match_thing))
+            .await?;
+
+        let records: Vec<MatchRecord> = response.take(0)?;
+        let record = records
+            .into_iter()
+            .next()
+            .context(format!("Match {} not found", match_id))?;
+
+        Ok(Match {
+            id: record.id.to_string(),
+            game_id: record.game_id,
+            tournament_id: record.tournament_id,
+            status: record.status,
+            participants: record.participants,
+        })
+    }
+
     pub async fn fetch_game(&self, game_id: &str) -> Result<Game> {
         let game_thing: Thing = game_id
             .parse()
             .map_err(|_| anyhow!("Invalid game id {}", game_id))?;
-        let key = (game_thing.tb.as_str(), game_thing.id.to_string());
-        let game: Option<Game> = self.db.select(key).await?;
-        game.context(format!("Game {} not found", game_id))
+
+        let mut response = self
+            .db
+            .query("SELECT * FROM $game_id")
+            .bind(("game_id", game_thing))
+            .await?;
+
+        let games: Vec<Game> = response.take(0)?;
+        games
+            .into_iter()
+            .next()
+            .context(format!("Game {} not found", game_id))
+    }
+
+    pub async fn fetch_submission(&self, submission_id: &str) -> Result<Submission> {
+        let submission_thing: Thing = submission_id
+            .parse()
+            .map_err(|_| anyhow!("Invalid submission id {}", submission_id))?;
+
+        let mut response = self
+            .db
+            .query("SELECT * FROM $submission_id")
+            .bind(("submission_id", submission_thing))
+            .await?;
+
+        let submissions: Vec<Submission> = response.take(0)?;
+        submissions
+            .into_iter()
+            .next()
+            .context(format!("Submission {} not found", submission_id))
     }
 
     pub async fn update_match_status(&self, match_id: &str, status: &str) -> Result<()> {
@@ -31,20 +95,17 @@ impl DbClient {
             .parse()
             .map_err(|_| anyhow!("Invalid match id {}", match_id))?;
         let query = if status == "running" {
-            "UPDATE $match_id SET status = $status, started_at = time::now(), updated_at = time::now() RETURN *"
+            "UPDATE $match_id SET status = $status, started_at = time::now(), updated_at = time::now()"
         } else {
-            "UPDATE $match_id SET status = $status, updated_at = time::now() RETURN *"
+            "UPDATE $match_id SET status = $status, updated_at = time::now()"
         };
 
-        let mut response = self
-            .db
+        self.db
             .query(query)
             .bind(("match_id", match_thing))
             .bind(("status", status.to_string()))
             .await?;
 
-        let updated: Option<Value> = response.take(0)?;
-        updated.context("Failed to update match status")?;
         Ok(())
     }
 
@@ -70,8 +131,7 @@ impl DbClient {
             }
         }
 
-        let mut response = self
-            .db
+        self.db
             .query(
                 "UPDATE $match_id SET
                     status = 'completed',
@@ -79,8 +139,7 @@ impl DbClient {
                     metadata = $metadata,
                     started_at = $started_at,
                     completed_at = $completed_at,
-                    updated_at = time::now()
-                 RETURN *",
+                    updated_at = time::now()",
             )
             .bind(("match_id", match_id.clone()))
             .bind(("participants", participants))
@@ -88,9 +147,6 @@ impl DbClient {
             .bind(("started_at", started_at))
             .bind(("completed_at", completed_at))
             .await?;
-
-        let updated: Option<Value> = response.take(0)?;
-        updated.context("Failed to persist match result")?;
 
         self.update_tournament_scores(match_data, &result.participants)
             .await?;
@@ -103,22 +159,37 @@ impl DbClient {
             .parse()
             .map_err(|_| anyhow!("Invalid match id {}", match_id))?;
 
-        let mut response = self
-            .db
+        self.db
             .query(
                 "UPDATE $match_id SET
                     status = 'failed',
                     metadata = $metadata,
                     completed_at = time::now(),
-                    updated_at = time::now()
-                 RETURN *",
+                    updated_at = time::now()",
             )
             .bind(("match_id", match_id))
             .bind(("metadata", json!({ "error": error_msg })))
             .await?;
 
-        let updated: Option<Value> = response.take(0)?;
-        updated.context("Failed to mark match as failed")?;
+        Ok(())
+    }
+
+    pub async fn report_match_error(&self, match_id: &str, error_msg: &str) -> Result<()> {
+        let match_id: Thing = match_id
+            .parse()
+            .map_err(|_| anyhow!("Invalid match id {}", match_id))?;
+
+        self.db
+            .query(
+                "UPDATE $match_id SET
+                    status = 'error',
+                    metadata = $metadata,
+                    completed_at = time::now(),
+                    updated_at = time::now()",
+            )
+            .bind(("match_id", match_id))
+            .bind(("metadata", json!({ "error": error_msg })))
+            .await?;
 
         Ok(())
     }
@@ -203,12 +274,20 @@ pub struct MatchParticipant {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Game {
-    #[serde(default)]
-    pub id: Option<String>,
+    pub id: Thing,
     #[serde(default)]
     pub game_code: Option<String>,
     #[serde(default)]
     pub game_language: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct Submission {
+    pub id: Thing,
+    #[serde(default)]
+    pub code: Option<String>,
+    #[serde(default)]
+    pub language: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]

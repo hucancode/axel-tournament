@@ -32,6 +32,13 @@ ENV GOPATH="/root/go"
 # Pre-install common Rust dependencies to speed up compilation
 RUN cargo install cargo-script || true
 
+# Pre-cache common dependencies by compiling a dummy project
+RUN mkdir -p /tmp/cache_project && cd /tmp/cache_project && \
+    cargo init --name cache_project && \
+    echo 'rand = "0.8"' >> Cargo.toml && \
+    cargo fetch && \
+    cd / && rm -rf /tmp/cache_project
+
 WORKDIR /game
 
 # Create universal entrypoint script
@@ -101,37 +108,33 @@ done
 
 if [ -z "$SERVER_FILE" ]; then
     echo "RE RE"
-    exit 0
-fi
-
-# Create Cargo.toml if server is Rust (in case it needs dependencies)
-if [[ "$SERVER_FILE" == *.rs ]]; then
-    cat > Cargo.toml << 'CARGO_EOF'
-[package]
-name = "game_server"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-rand = "0.8"
-CARGO_EOF
+    exit 1
 fi
 
 # Compile server
 echo "Compiling server: $SERVER_FILE"
-if ! compile_code "$SERVER_FILE" "server"; then
+# If a Cargo.toml already exists (user provided), use cargo build; otherwise compile directly
+if [ -f "Cargo.toml" ] && [[ "$SERVER_FILE" == *.rs ]]; then
+    echo "Using cargo build for server with dependencies (offline)"
+    if ! CARGO_NET_OFFLINE=1 cargo build --offline --release --bin game_server 2>&1; then
+        echo "RE RE"
+        exit 1
+    fi
+    cp target/release/game_server server
+elif ! compile_code "$SERVER_FILE" "server"; then
     echo "RE RE"
-    exit 0
+    exit 1
 fi
 chmod +x server
 
 # Compile all player code files
 PLAYERS=()
 PLAYER_COUNT=0
+PLAYER_COMPILE_FAILED=false
 
-for file in player_*.code; do
-    if [ -f "$file" ]; then
-        idx=$(basename "$file" .code | sed 's/player_//')
+for file in player_*.*; do
+    if [ -f "$file" ] && [[ "$file" != *.toml ]]; then
+        idx=$(echo "$file" | sed 's/player_//; s/\.[^.]*$//')
         binary="player_${idx}"
 
         echo "Compiling player $idx: $file"
@@ -141,6 +144,7 @@ for file in player_*.code; do
             PLAYER_COUNT=$((PLAYER_COUNT + 1))
         else
             # Player compilation failed
+            PLAYER_COMPILE_FAILED=true
             PLAYERS+=("__CE__${idx}")
             PLAYER_COUNT=$((PLAYER_COUNT + 1))
         fi
@@ -150,21 +154,21 @@ done
 # Handle compilation errors
 if [ $PLAYER_COUNT -eq 0 ]; then
     echo "RE RE"
-    exit 0
+    exit 1
 fi
 
-# Check if we have exactly 2 players and handle CE
-if [ $PLAYER_COUNT -eq 2 ]; then
-    if [[ "${PLAYERS[0]}" == __CE__* ]] && [[ "${PLAYERS[1]}" == __CE__* ]]; then
-        echo "CE CE"
-        exit 0
-    elif [[ "${PLAYERS[0]}" == __CE__* ]]; then
-        echo "CE 0"
-        exit 0
-    elif [[ "${PLAYERS[1]}" == __CE__* ]]; then
-        echo "0 CE"
-        exit 0
-    fi
+# If any player failed to compile, emit CE tokens and exit with code 2
+if [ "$PLAYER_COMPILE_FAILED" = true ]; then
+    OUTPUT=""
+    for player in "${PLAYERS[@]}"; do
+        if [[ "$player" == __CE__* ]]; then
+            OUTPUT="$OUTPUT CE"
+        else
+            OUTPUT="$OUTPUT 0"
+        fi
+    done
+    echo "${OUTPUT# }"
+    exit 2
 fi
 
 # Run the game server with player binaries
