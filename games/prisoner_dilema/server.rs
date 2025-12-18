@@ -1,10 +1,9 @@
-use rand::Rng;
 use std::env;
 use std::io::{BufRead, BufReader, Write};
 use std::process::{Command, Stdio};
 use std::sync::mpsc::{channel, RecvTimeoutError};
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum Move {
@@ -96,6 +95,34 @@ impl Player {
     }
 }
 
+struct SimpleRng {
+    state: u64,
+}
+
+impl SimpleRng {
+    fn new() -> Self {
+        let seed = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_nanos() as u64)
+            .unwrap_or(0x1234_5678_9abc_def0);
+        Self { state: seed }
+    }
+
+    fn next_u64(&mut self) -> u64 {
+        let mut x = self.state;
+        x ^= x >> 12;
+        x ^= x << 25;
+        x ^= x >> 27;
+        self.state = x;
+        x.wrapping_mul(0x2545F4914F6CDD1D)
+    }
+
+    fn gen_range(&mut self, min: u32, max: u32) -> u32 {
+        let span = (max - min) as u64 + 1;
+        min + (self.next_u64() % span) as u32
+    }
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
     if args.len() != 3 {
@@ -118,8 +145,8 @@ fn main() {
             return;
         }
     };
-    let mut rng = rand::thread_rng();
-    let num_rounds = rng.gen_range(100..=120);
+    let mut rng = SimpleRng::new();
+    let num_rounds = rng.gen_range(100, 120);
     let mut score1 = 0;
     let mut score2 = 0;
     let mut last_move1: Option<Move> = None;

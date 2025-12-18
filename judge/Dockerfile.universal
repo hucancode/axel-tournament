@@ -32,13 +32,6 @@ ENV GOPATH="/root/go"
 # Pre-install common Rust dependencies to speed up compilation
 RUN cargo install cargo-script || true
 
-# Pre-cache common dependencies by compiling a dummy project
-RUN mkdir -p /tmp/cache_project && cd /tmp/cache_project && \
-    cargo init --name cache_project && \
-    echo 'rand = "0.8"' >> Cargo.toml && \
-    cargo fetch && \
-    cd / && rm -rf /tmp/cache_project
-
 WORKDIR /game
 
 # Create universal entrypoint script
