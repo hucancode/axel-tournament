@@ -2,6 +2,7 @@ use anyhow::Result;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
+#[derive(Clone)]
 pub struct ApiClient {
     client: Client,
     base_url: String,
@@ -13,6 +14,7 @@ pub struct Match {
     pub id: String,
     pub game_id: String,
     pub tournament_id: Option<String>,
+    pub status: String,
     pub participants: Vec<MatchParticipant>,
 }
 
@@ -20,6 +22,17 @@ pub struct Match {
 pub struct MatchParticipant {
     pub submission_id: String,
     pub user_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Game {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub dockerfile: Option<String>,
+    pub docker_image: Option<String>,
+    pub game_code: Option<String>,
+    pub game_language: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -51,6 +64,17 @@ impl ApiClient {
 
     pub async fn fetch_pending_matches(&self) -> Result<Vec<Match>> {
         let url = format!("{}/api/matches?status=pending", self.base_url);
+        let response = self.client
+            .get(&url)
+            .send()
+            .await?
+            .json()
+            .await?;
+        Ok(response)
+    }
+
+    pub async fn fetch_game(&self, game_id: &str) -> Result<Game> {
+        let url = format!("{}/api/games/{}", self.base_url, game_id);
         let response = self.client
             .get(&url)
             .send()

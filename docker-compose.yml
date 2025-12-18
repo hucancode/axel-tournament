@@ -58,17 +58,24 @@ services:
       dockerfile: Dockerfile
     container_name: judge
     environment:
+      - DATABASE_URL=ws://surrealdb:8000
+      - DATABASE_USER=root
+      - DATABASE_PASS=root
+      - DATABASE_NS=tournament
+      - DATABASE_DB=axel
       - API_URL=http://api:8080
       - MATCH_RUNNER_API_KEY=change-this-match-runner-key
       - RUST_LOG=info
     depends_on:
       - api
+      - surrealdb
     networks:
       - axel-network
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./backend/uploads:/app/uploads:ro
-      - ./backend/dockerfiles:/app/dockerfiles:ro
+      - ./games:/app/games:ro
+      - ./judge/Dockerfile.universal:/app/Dockerfile.universal:ro
     restart: unless-stopped
 
 networks:

@@ -12,25 +12,30 @@ use std::collections::HashMap;
 use std::path::Path;
 use tokio::fs;
 
-use crate::api_client::{Match, MatchResult, ParticipantResult};
+use crate::api_client::{ApiClient, Game, Match, MatchResult, ParticipantResult};
 
 pub struct DockerRunner {
     docker: Docker,
+    api_client: ApiClient,
 }
 
 impl DockerRunner {
-    pub fn new(docker: Docker) -> Self {
-        Self { docker }
+    pub fn new(docker: Docker, api_client: ApiClient) -> Self {
+        Self { docker, api_client }
     }
 
     pub async fn execute_match(&self, match_data: &Match) -> Result<MatchResult> {
         let started_at = Utc::now();
 
-        // 1. Get game Docker image (build if needed)
-        let image_tag = self.ensure_game_image(&match_data.game_id).await?;
+        // 0. Fetch game details from API
+        let game = self.api_client.fetch_game(&match_data.game_id).await
+            .context(format!("Failed to fetch game {}", match_data.game_id))?;
+
+        // 1. Use universal Docker image (no per-game image needed)
+        let image_tag = "axel-game-universal".to_string();
 
         // 2. Prepare submission files
-        let work_dir = self.prepare_workspace(match_data).await?;
+        let work_dir = self.prepare_workspace(match_data, &game).await?;
 
         // 3. Run match in container
         let results = self.run_match_container(&image_tag, &work_dir, match_data).await?;
@@ -51,25 +56,24 @@ impl DockerRunner {
         })
     }
 
-    async fn ensure_game_image(&self, game_id: &str) -> Result<String> {
-        let image_tag = format!("axel-game-{}", game_id);
+    pub async fn ensure_universal_image(&self) -> Result<()> {
+        let image_tag = "axel-game-universal";
 
         // Check if image exists
-        if self.docker.inspect_image(&image_tag).await.is_ok() {
-            tracing::info!("Using cached Docker image: {}", image_tag);
-            return Ok(image_tag);
+        if self.docker.inspect_image(image_tag).await.is_ok() {
+            tracing::info!("Universal Docker image already exists: {}", image_tag);
+            return Ok(());
         }
 
-        tracing::info!("Building Docker image for game {}", game_id);
+        tracing::info!("Building universal Docker image...");
 
-        // Build image from Dockerfile
-        let dockerfile_path = format!("dockerfiles/game_{}.dockerfile", game_id);
-        if !Path::new(&dockerfile_path).exists() {
-            anyhow::bail!("Dockerfile not found for game {}: {}", game_id, dockerfile_path);
+        // Read universal Dockerfile
+        let dockerfile_path = "Dockerfile.universal";
+        if !Path::new(dockerfile_path).exists() {
+            anyhow::bail!("Universal Dockerfile not found at {}", dockerfile_path);
         }
 
-        // Read Dockerfile content
-        let dockerfile_content = fs::read_to_string(&dockerfile_path).await?;
+        let dockerfile_content = fs::read_to_string(dockerfile_path).await?;
 
         // Create a tar archive with the Dockerfile
         let mut tar = tar::Builder::new(Vec::new());
@@ -83,7 +87,7 @@ impl DockerRunner {
 
         // Build image
         let build_options = BuildImageOptions {
-            t: image_tag.clone(),
+            t: image_tag.to_string(),
             rm: true,
             ..Default::default()
         };
@@ -95,7 +99,7 @@ impl DockerRunner {
             match result {
                 Ok(output) => {
                     if let Some(stream) = output.stream {
-                        tracing::debug!("Docker build: {}", stream.trim());
+                        tracing::info!("Docker build: {}", stream.trim());
                     }
                     if let Some(error) = output.error {
                         anyhow::bail!("Docker build error: {}", error);
@@ -105,13 +109,33 @@ impl DockerRunner {
             }
         }
 
-        tracing::info!("Successfully built Docker image: {}", image_tag);
-        Ok(image_tag)
+        tracing::info!("Successfully built universal Docker image!");
+        Ok(())
     }
 
-    async fn prepare_workspace(&self, match_data: &Match) -> Result<String> {
+    async fn prepare_workspace(&self, match_data: &Match, game: &Game) -> Result<String> {
         let workspace_dir = format!("/tmp/match_{}", match_data.id.replace(':', "_"));
         fs::create_dir_all(&workspace_dir).await?;
+
+        // Write game server code to workspace from database
+        if let Some(game_code) = &game.game_code {
+            // Determine file extension based on game language
+            let extension = match game.game_language.as_deref() {
+                Some("rust") => "rs",
+                Some("go") => "go",
+                Some("c") => "c",
+                Some("python") => "py",
+                _ => "rs", // default to Rust
+            };
+
+            let dest_server = format!("{}/server.{}", workspace_dir, extension);
+            fs::write(&dest_server, game_code)
+                .await
+                .context("Failed to write game server code to workspace")?;
+            tracing::info!("Wrote game server code to {}", dest_server);
+        } else {
+            tracing::warn!("Game {} has no game_code, container must provide server code", game.id);
+        }
 
         // Copy submission files to workspace
         for (idx, participant) in match_data.participants.iter().enumerate() {
@@ -248,6 +272,22 @@ impl DockerRunner {
         logs: &str,
         match_data: &Match,
     ) -> Result<Vec<ParticipantResult>> {
+        tracing::debug!("Raw container output:\n{}", logs);
+
+        // Try JSON format first (backward compatibility)
+        if let Ok(results) = self.parse_json_results(logs, match_data) {
+            return Ok(results);
+        }
+
+        // Fall back to space/newline-separated format (as per GAME_SETTER_GUIDE.md)
+        self.parse_simple_results(logs, match_data)
+    }
+
+    fn parse_json_results(
+        &self,
+        logs: &str,
+        match_data: &Match,
+    ) -> Result<Vec<ParticipantResult>> {
         // Expected format: JSON with scores for each submission_id
         // Try to find JSON in logs (may be mixed with other output)
         let json_start = logs.find('{');
@@ -259,8 +299,7 @@ impl DockerRunner {
             logs
         };
 
-        let scores: HashMap<String, f64> = serde_json::from_str(json_str)
-            .context("Failed to parse match results from container output")?;
+        let scores: HashMap<String, f64> = serde_json::from_str(json_str)?;
 
         let mut results: Vec<ParticipantResult> = match_data
             .participants
@@ -282,6 +321,78 @@ impl DockerRunner {
         for (idx, result) in results.iter_mut().enumerate() {
             result.rank = Some((idx + 1) as u32);
             result.is_winner = idx == 0;
+        }
+
+        Ok(results)
+    }
+
+    fn parse_simple_results(
+        &self,
+        logs: &str,
+        match_data: &Match,
+    ) -> Result<Vec<ParticipantResult>> {
+        // Expected format: space or newline-separated scores/error codes
+        // Examples: "100 85", "100\n85", "TLE 92", "100 WA RE"
+
+        // Get the last non-empty line (final output)
+        let last_line = logs
+            .lines()
+            .rev()
+            .find(|line| !line.trim().is_empty())
+            .context("No output found in container logs")?;
+
+        tracing::info!("Parsing results from: {}", last_line);
+
+        // Split by whitespace
+        let tokens: Vec<&str> = last_line.split_whitespace().collect();
+
+        if tokens.len() != match_data.participants.len() {
+            anyhow::bail!(
+                "Expected {} scores but got {}. Output: {}",
+                match_data.participants.len(),
+                tokens.len(),
+                last_line
+            );
+        }
+
+        let mut results: Vec<ParticipantResult> = Vec::new();
+
+        for (idx, (participant, token)) in match_data.participants.iter().zip(tokens.iter()).enumerate() {
+            let (score, metadata) = match token.to_uppercase().as_str() {
+                "TLE" => (0.0, Some(serde_json::json!({"error": "Time Limit Exceeded"}))),
+                "WA" => (0.0, Some(serde_json::json!({"error": "Wrong Answer"}))),
+                "RE" => (0.0, Some(serde_json::json!({"error": "Runtime Error"}))),
+                "CE" => (0.0, Some(serde_json::json!({"error": "Compilation Error"}))),
+                _ => {
+                    // Try to parse as number
+                    let score = token.parse::<f64>()
+                        .context(format!("Invalid score/error code for player {}: {}", idx + 1, token))?;
+                    (score, None)
+                }
+            };
+
+            results.push(ParticipantResult {
+                submission_id: participant.submission_id.clone(),
+                score,
+                rank: None,
+                is_winner: false,
+                metadata,
+            });
+        }
+
+        // Determine rankings (errors get lowest rank)
+        results.sort_by(|a, b| {
+            // Error results go to the end
+            match (a.metadata.is_some(), b.metadata.is_some()) {
+                (true, false) => std::cmp::Ordering::Greater,
+                (false, true) => std::cmp::Ordering::Less,
+                _ => b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal),
+            }
+        });
+
+        for (idx, result) in results.iter_mut().enumerate() {
+            result.rank = Some((idx + 1) as u32);
+            result.is_winner = idx == 0 && result.metadata.is_none();
         }
 
         Ok(results)
