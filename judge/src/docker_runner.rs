@@ -1,34 +1,39 @@
 use anyhow::{Context, Result};
-use bollard::container::{
-    Config, CreateContainerOptions, LogsOptions, RemoveContainerOptions, StartContainerOptions,
-    WaitContainerOptions,
+use bollard::models::{ContainerCreateBody, HostConfig};
+use bollard::query_parameters::{
+    BuildImageOptions, BuildImageOptionsBuilder, CreateContainerOptions,
+    CreateContainerOptionsBuilder, LogsOptionsBuilder, RemoveContainerOptionsBuilder,
+    StartContainerOptions, StopContainerOptions, WaitContainerOptions,
 };
-use bollard::image::BuildImageOptions;
-use bollard::models::HostConfig;
 use bollard::Docker;
+use bytes::Bytes;
 use chrono::Utc;
 use futures_util::StreamExt;
+use http_body_util::{Either, Full};
 use std::collections::HashMap;
 use std::path::Path;
 use tokio::fs;
 
-use crate::api_client::{ApiClient, Game, Match, MatchResult, ParticipantResult};
+use crate::db_client::{DbClient, Game, Match, MatchResult, ParticipantResult};
 
 pub struct DockerRunner {
     docker: Docker,
-    api_client: ApiClient,
+    db_client: DbClient,
 }
 
 impl DockerRunner {
-    pub fn new(docker: Docker, api_client: ApiClient) -> Self {
-        Self { docker, api_client }
+    pub fn new(docker: Docker, db_client: DbClient) -> Self {
+        Self { docker, db_client }
     }
 
     pub async fn execute_match(&self, match_data: &Match) -> Result<MatchResult> {
         let started_at = Utc::now();
 
         // 0. Fetch game details from API
-        let game = self.api_client.fetch_game(&match_data.game_id).await
+        let game = self
+            .db_client
+            .fetch_game(&match_data.game_id)
+            .await
             .context(format!("Failed to fetch game {}", match_data.game_id))?;
 
         // 1. Use universal Docker image (no per-game image needed)
@@ -38,7 +43,9 @@ impl DockerRunner {
         let work_dir = self.prepare_workspace(match_data, &game).await?;
 
         // 3. Run match in container
-        let results = self.run_match_container(&image_tag, &work_dir, match_data).await?;
+        let results = self
+            .run_match_container(&image_tag, &work_dir, match_data)
+            .await?;
 
         // 4. Cleanup
         self.cleanup_workspace(&work_dir).await?;
@@ -46,13 +53,12 @@ impl DockerRunner {
         let completed_at = Utc::now();
 
         Ok(MatchResult {
-            status: "completed".to_string(),
             participants: results,
             metadata: serde_json::json!({
                 "execution_time_ms": (completed_at - started_at).num_milliseconds()
             }),
-            started_at: started_at.to_rfc3339(),
-            completed_at: completed_at.to_rfc3339(),
+            started_at,
+            completed_at,
         })
     }
 
@@ -86,13 +92,14 @@ impl DockerRunner {
         let tar_bytes = tar.into_inner()?;
 
         // Build image
-        let build_options = BuildImageOptions {
-            t: image_tag.to_string(),
-            rm: true,
-            ..Default::default()
-        };
+        let build_options: BuildImageOptions = BuildImageOptionsBuilder::new()
+            .dockerfile("Dockerfile")
+            .t(image_tag)
+            .rm(true)
+            .build();
 
-        let mut stream = self.docker.build_image(build_options, None, Some(tar_bytes.into()));
+        let body = Either::Left(Full::new(Bytes::from(tar_bytes)));
+        let mut stream = self.docker.build_image(build_options, None, Some(body));
 
         // Wait for build to complete and log output
         while let Some(result) = stream.next().await {
@@ -134,7 +141,11 @@ impl DockerRunner {
                 .context("Failed to write game server code to workspace")?;
             tracing::info!("Wrote game server code to {}", dest_server);
         } else {
-            tracing::warn!("Game {} has no game_code, container must provide server code", game.id);
+            let game_id = game.id.as_deref().unwrap_or("unknown");
+            tracing::warn!(
+                "Game {} has no game_code, container must provide server code",
+                game_id
+            );
         }
 
         // Copy submission files to workspace
@@ -150,16 +161,20 @@ impl DockerRunner {
             for src_path in possible_paths {
                 if Path::new(&src_path).exists() {
                     let dest_file = format!("{}/player_{}.code", workspace_dir, idx);
-                    fs::copy(&src_path, &dest_file)
-                        .await
-                        .context(format!("Failed to copy submission {}", participant.submission_id))?;
+                    fs::copy(&src_path, &dest_file).await.context(format!(
+                        "Failed to copy submission {}",
+                        participant.submission_id
+                    ))?;
                     found = true;
                     break;
                 }
             }
 
             if !found {
-                anyhow::bail!("Submission file not found for {}", participant.submission_id);
+                anyhow::bail!(
+                    "Submission file not found for {}",
+                    participant.submission_id
+                );
             }
         }
 
@@ -173,12 +188,12 @@ impl DockerRunner {
         match_data: &Match,
     ) -> Result<Vec<ParticipantResult>> {
         // Create container with resource limits
-        let config = Config {
+        let config = ContainerCreateBody {
             image: Some(image_tag.to_string()),
             host_config: Some(HostConfig {
                 binds: Some(vec![format!("{}:/workspace:ro", work_dir)]),
-                memory: Some(512 * 1024 * 1024),      // 512MB
-                nano_cpus: Some(1_000_000_000),       // 1 CPU
+                memory: Some(512 * 1024 * 1024),        // 512MB
+                nano_cpus: Some(1_000_000_000),         // 1 CPU
                 network_mode: Some("none".to_string()), // No network access
                 ..Default::default()
             }),
@@ -187,10 +202,9 @@ impl DockerRunner {
         };
 
         let container_name = format!("match-{}", match_data.id.replace(':', "_"));
-        let create_options = CreateContainerOptions {
-            name: container_name.clone(),
-            ..Default::default()
-        };
+        let create_options: CreateContainerOptions = CreateContainerOptionsBuilder::new()
+            .name(&container_name)
+            .build();
 
         let container = self
             .docker
@@ -199,35 +213,31 @@ impl DockerRunner {
 
         // Start container
         self.docker
-            .start_container(&container.id, None::<StartContainerOptions<String>>)
+            .start_container(&container.id, None::<StartContainerOptions>)
             .await?;
 
         // Wait for completion (with timeout)
         let timeout = std::time::Duration::from_secs(300); // 5 minutes
-        let wait_result = tokio::time::timeout(
-            timeout,
-            async {
-                let mut stream = self.docker.wait_container(
-                    &container.id,
-                    None::<WaitContainerOptions<String>>,
-                );
-                while let Some(_) = stream.next().await {}
-                Ok::<(), anyhow::Error>(())
-            },
-        )
+        let wait_result = tokio::time::timeout(timeout, async {
+            let mut stream = self
+                .docker
+                .wait_container(&container.id, None::<WaitContainerOptions>);
+            while let Some(_) = stream.next().await {}
+            Ok::<(), anyhow::Error>(())
+        })
         .await;
 
         if wait_result.is_err() {
             // Timeout - stop and remove container
-            let _ = self.docker.stop_container(&container.id, None).await;
+            let _ = self
+                .docker
+                .stop_container(&container.id, None::<StopContainerOptions>)
+                .await;
             let _ = self
                 .docker
                 .remove_container(
                     &container.id,
-                    Some(RemoveContainerOptions {
-                        force: true,
-                        ..Default::default()
-                    }),
+                    Some(RemoveContainerOptionsBuilder::new().force(true).build()),
                 )
                 .await;
             anyhow::bail!("Match execution timed out after 5 minutes");
@@ -236,11 +246,7 @@ impl DockerRunner {
         // Get container logs (stdout contains match results in JSON)
         let mut logs_stream = self.docker.logs(
             &container.id,
-            Some(LogsOptions::<String> {
-                stdout: true,
-                stderr: true,
-                ..Default::default()
-            }),
+            Some(LogsOptionsBuilder::new().stdout(true).stderr(true).build()),
         );
 
         let mut logs = String::new();
@@ -254,10 +260,7 @@ impl DockerRunner {
         self.docker
             .remove_container(
                 &container.id,
-                Some(RemoveContainerOptions {
-                    force: true,
-                    ..Default::default()
-                }),
+                Some(RemoveContainerOptionsBuilder::new().force(true).build()),
             )
             .await?;
 
@@ -283,11 +286,7 @@ impl DockerRunner {
         self.parse_simple_results(logs, match_data)
     }
 
-    fn parse_json_results(
-        &self,
-        logs: &str,
-        match_data: &Match,
-    ) -> Result<Vec<ParticipantResult>> {
+    fn parse_json_results(&self, logs: &str, match_data: &Match) -> Result<Vec<ParticipantResult>> {
         // Expected format: JSON with scores for each submission_id
         // Try to find JSON in logs (may be mixed with other output)
         let json_start = logs.find('{');
@@ -357,16 +356,27 @@ impl DockerRunner {
 
         let mut results: Vec<ParticipantResult> = Vec::new();
 
-        for (idx, (participant, token)) in match_data.participants.iter().zip(tokens.iter()).enumerate() {
+        for (idx, (participant, token)) in match_data
+            .participants
+            .iter()
+            .zip(tokens.iter())
+            .enumerate()
+        {
             let (score, metadata) = match token.to_uppercase().as_str() {
-                "TLE" => (0.0, Some(serde_json::json!({"error": "Time Limit Exceeded"}))),
+                "TLE" => (
+                    0.0,
+                    Some(serde_json::json!({"error": "Time Limit Exceeded"})),
+                ),
                 "WA" => (0.0, Some(serde_json::json!({"error": "Wrong Answer"}))),
                 "RE" => (0.0, Some(serde_json::json!({"error": "Runtime Error"}))),
                 "CE" => (0.0, Some(serde_json::json!({"error": "Compilation Error"}))),
                 _ => {
                     // Try to parse as number
-                    let score = token.parse::<f64>()
-                        .context(format!("Invalid score/error code for player {}: {}", idx + 1, token))?;
+                    let score = token.parse::<f64>().context(format!(
+                        "Invalid score/error code for player {}: {}",
+                        idx + 1,
+                        token
+                    ))?;
                     (score, None)
                 }
             };
@@ -386,7 +396,10 @@ impl DockerRunner {
             match (a.metadata.is_some(), b.metadata.is_some()) {
                 (true, false) => std::cmp::Ordering::Greater,
                 (false, true) => std::cmp::Ordering::Less,
-                _ => b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal),
+                _ => b
+                    .score
+                    .partial_cmp(&a.score)
+                    .unwrap_or(std::cmp::Ordering::Equal),
             }
         });
 
