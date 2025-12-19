@@ -33,7 +33,7 @@ impl JudgeConfig {
             std::env::var("DATABASE_URL").unwrap_or_else(|_| "ws://surrealdb:8000".to_string());
         let db_user = std::env::var("DATABASE_USER").unwrap_or_else(|_| "root".to_string());
         let db_pass = std::env::var("DATABASE_PASS").unwrap_or_else(|_| "root".to_string());
-        let db_ns = std::env::var("DATABASE_NS").unwrap_or_else(|_| "tournament".to_string());
+        let db_ns = std::env::var("DATABASE_NS").unwrap_or_else(|_| "axel".to_string());
         let db_name = std::env::var("DATABASE_DB").unwrap_or_else(|_| "axel".to_string());
 
         Self {
@@ -124,11 +124,25 @@ where
     #[derive(Debug, Deserialize)]
     struct MatchNotification {
         id: Thing,
-        game_id: String,
+        game_id: Thing,
         #[serde(default)]
-        tournament_id: Option<String>,
+        tournament_id: Option<Thing>,
         status: String,
-        participants: Vec<MatchParticipant>,
+        participants: Vec<MatchNotificationParticipant>,
+    }
+
+    #[derive(Debug, Deserialize)]
+    struct MatchNotificationParticipant {
+        submission_id: Thing,
+        user_id: Thing,
+        #[serde(default)]
+        score: Option<f64>,
+        #[serde(default)]
+        rank: Option<u32>,
+        #[serde(default)]
+        is_winner: bool,
+        #[serde(default)]
+        metadata: Option<serde_json::Value>,
     }
 
     let mut stream = response.stream::<surrealdb::Notification<MatchNotification>>(0)?;
@@ -156,12 +170,25 @@ where
                             }
 
                             let match_id = live_match.id.to_string();
+                            let participants: Vec<MatchParticipant> = live_match
+                                .participants
+                                .into_iter()
+                                .map(|p| MatchParticipant {
+                                    submission_id: p.submission_id,
+                                    user_id: p.user_id,
+                                    score: p.score,
+                                    rank: p.rank,
+                                    is_winner: p.is_winner,
+                                    metadata: p.metadata,
+                                })
+                                .collect();
+
                             let match_data = Match {
                                 id: match_id.clone(),
-                                game_id: live_match.game_id,
-                                tournament_id: live_match.tournament_id,
+                                game_id: live_match.game_id.to_string(),
+                                tournament_id: live_match.tournament_id.map(|t| t.to_string()),
                                 status: live_match.status,
-                                participants: live_match.participants,
+                                participants,
                             };
 
                             info!("Processing match: {}", match_data.id);

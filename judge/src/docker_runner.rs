@@ -10,6 +10,7 @@ use bytes::Bytes;
 use chrono::Utc;
 use futures_util::StreamExt;
 use http_body_util::{Either, Full};
+use rand::{rng, Rng};
 use std::collections::HashMap;
 use std::path::Path;
 use tokio::fs;
@@ -28,6 +29,7 @@ impl DockerRunner {
 
     pub async fn execute_match(&self, match_data: &Match) -> Result<MatchResult> {
         let started_at = Utc::now();
+        let rounds: u32 = rng().random_range(100..=120);
 
         // 0. Fetch game details from API
         let game = self
@@ -44,7 +46,7 @@ impl DockerRunner {
 
         // 3. Run match in container
         let results = self
-            .run_match_container(&image_tag, &work_dir, match_data)
+            .run_match_container(&image_tag, &work_dir, match_data, rounds)
             .await?;
 
         // 4. Cleanup
@@ -55,7 +57,8 @@ impl DockerRunner {
         Ok(MatchResult {
             participants: results,
             metadata: serde_json::json!({
-                "execution_time_ms": (completed_at - started_at).num_milliseconds()
+                "execution_time_ms": (completed_at - started_at).num_milliseconds(),
+                "rounds": rounds
             }),
             started_at,
             completed_at,
@@ -149,14 +152,12 @@ impl DockerRunner {
 
         // Fetch submission code from database and write to workspace
         for (idx, participant) in match_data.participants.iter().enumerate() {
+            let submission_id = participant.submission_id.to_string();
             let submission = self
                 .db_client
-                .fetch_submission(&participant.submission_id)
+                .fetch_submission(&submission_id)
                 .await
-                .context(format!(
-                    "Failed to fetch submission {}",
-                    participant.submission_id
-                ))?;
+                .context(format!("Failed to fetch submission {}", submission_id))?;
 
             if let Some(code) = submission.code {
                 let language = submission.language.as_deref().unwrap_or("rust");
@@ -190,10 +191,12 @@ impl DockerRunner {
         image_tag: &str,
         work_dir: &str,
         match_data: &Match,
+        rounds: u32,
     ) -> Result<Vec<ParticipantResult>> {
         // Create container with resource limits
         let config = ContainerCreateBody {
             image: Some(image_tag.to_string()),
+            env: Some(vec![format!("MATCH_ROUNDS={}", rounds)]),
             host_config: Some(HostConfig {
                 binds: Some(vec![format!("{}:/workspace", work_dir)]), // Writable for compilation
                 memory: Some(512 * 1024 * 1024),                       // 512MB
@@ -244,8 +247,8 @@ impl DockerRunner {
                     .docker
                     .stop_container(&container.id, None::<StopContainerOptions>)
                     .await;
-            let _ = self
-                .docker
+                let _ = self
+                    .docker
                     .remove_container(
                         &container.id,
                         Some(RemoveContainerOptionsBuilder::new().force(true).build()),
@@ -324,9 +327,10 @@ impl DockerRunner {
             .participants
             .iter()
             .map(|p| {
-                let score = scores.get(&p.submission_id).copied().unwrap_or(0.0);
+                let sid = p.submission_id.to_string();
+                let score = scores.get(&sid).copied().unwrap_or(0.0);
                 ParticipantResult {
-                    submission_id: p.submission_id.clone(),
+                    submission_id: sid,
                     score,
                     rank: None,
                     is_winner: false,
@@ -402,7 +406,7 @@ impl DockerRunner {
             };
 
             results.push(ParticipantResult {
-                submission_id: participant.submission_id.clone(),
+                submission_id: participant.submission_id.to_string(),
                 score,
                 rank: None,
                 is_winner: false,

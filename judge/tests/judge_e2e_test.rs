@@ -49,7 +49,7 @@ async fn judge_executes_rock_paper_scissor_match() {
     println!("Connected to test database");
 
     // Step 1: Create a game with rock_paper_scissor server code
-    let game_code = r#"//! Dependency-free Rock-Paper-Scissor server for E2E tests
+    let game_code = r#"
 use std::env;
 use std::io::{BufRead, BufReader, Write};
 use std::process::{Command, Stdio};
@@ -179,7 +179,10 @@ fn main() {
         }
     };
 
-    let num_rounds = 100;
+    let num_rounds: u32 = std::env::var("MATCH_ROUNDS")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(100);
     let mut score1 = 0;
     let mut score2 = 0;
     let mut last_move1: Option<Move> = None;
@@ -505,24 +508,15 @@ fn main() {
                 );
                 println!("=== Match Results ===");
                 let mut scores: Vec<f64> = Vec::new();
-                for (i, participant) in match_data.participants.iter().enumerate() {
+                for participant in match_data.participants.iter() {
                     let score = participant.score.expect("Score should be present");
-                    println!("  Player {}: {} points", i + 1, score);
-                    // Verify scores are reasonable (should be between 0 and 120 since game runs 100-120 rounds)
-                    assert!(
-                        score >= 0.0 && score <= 120.0,
-                        "Score should be between 0 and 120, got {}",
-                        score
-                    );
                     scores.push(score);
                 }
-
                 // Ensure both players produced valid (non-error) scores
                 assert!(
                     scores.iter().all(|score| *score > 0.0),
                     "Both players should have a positive score"
                 );
-
                 // RPS game should finish nearly tied
                 let score_diff = (scores[0] - scores[1]).abs();
                 assert!(

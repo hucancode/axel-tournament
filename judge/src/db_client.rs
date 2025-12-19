@@ -26,9 +26,9 @@ impl DbClient {
         #[derive(Deserialize)]
         struct MatchRecord {
             id: Thing,
-            game_id: String,
+            game_id: Thing,
             #[serde(default)]
-            tournament_id: Option<String>,
+            tournament_id: Option<Thing>,
             status: String,
             participants: Vec<MatchParticipant>,
         }
@@ -47,8 +47,8 @@ impl DbClient {
 
         Ok(Match {
             id: record.id.to_string(),
-            game_id: record.game_id,
-            tournament_id: record.tournament_id,
+            game_id: record.game_id.to_string(),
+            tournament_id: record.tournament_id.map(|t| t.to_string()),
             status: record.status,
             participants: record.participants,
         })
@@ -119,11 +119,11 @@ impl DbClient {
 
         let mut participants = match_data.participants.clone();
         for participant in participants.iter_mut() {
-            if let Some(res) = result
-                .participants
-                .iter()
-                .find(|r| r.submission_id == participant.submission_id)
-            {
+            if let Some(res) = result.participants.iter().find(|r| {
+                match participant.submission_id.to_string().as_str() {
+                    s => s == r.submission_id,
+                }
+            }) {
                 participant.score = Some(res.score);
                 participant.rank = res.rank;
                 participant.is_winner = res.is_winner;
@@ -260,8 +260,8 @@ pub struct Match {
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct MatchParticipant {
-    pub submission_id: String,
-    pub user_id: String,
+    pub submission_id: Thing,
+    pub user_id: Thing,
     #[serde(default)]
     pub score: Option<f64>,
     #[serde(default)]

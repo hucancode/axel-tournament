@@ -13,9 +13,10 @@ use serde_json::json;
 /// 7. Verify actual scores from real gameplay and leaderboard
 #[tokio::test]
 async fn complete_tournament_flow_with_two_players() {
-    // Setup test app with unique namespace
-    let app = common::setup_app(&common::unique_name("e2e_tournament_")).await;
-
+    // Ensure we use the same DB namespace/database defaults as the running judge/database.
+    let db_namespace = std::env::var("DATABASE_NS").unwrap_or_else(|_| "axel".to_string());
+    // Setup test app with shared namespace so the judge process can see the same matches
+    let app = common::setup_app(&db_namespace).await;
     // Get game setter token
     let game_setter_token = common::game_setter_token(&app).await;
 
@@ -48,7 +49,6 @@ use std::process::{Command, Stdio};
 use std::sync::mpsc::{channel, RecvTimeoutError};
 use std::thread;
 use std::time::Duration;
-use rand::Rng;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum Move {
@@ -173,8 +173,10 @@ fn main() {
         }
     };
 
-    let mut rng = rand::thread_rng();
-    let num_rounds = rng.gen_range(100..=120);
+    let num_rounds = std::env::var("MATCH_ROUNDS")
+        .ok()
+        .and_then(|v| v.parse::<u32>().ok())
+        .unwrap_or(100);
     let mut score1 = 0;
     let mut score2 = 0;
     let mut last_move1: Option<Move> = None;
@@ -521,7 +523,8 @@ fn main() {
     let mut completed_count = 0;
     let total_matches = matches.len();
 
-    for attempt in 0..60 {  // 5 minute timeout (60 * 5 seconds)
+    for attempt in 0..60 {
+        // 5 minute timeout (60 * 5 seconds)
         tokio::time::sleep(std::time::Duration::from_secs(5)).await;
 
         let (status, body) = common::json_request(

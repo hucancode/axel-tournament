@@ -18,3 +18,4 @@ futures-util = "0.3"
 surrealdb = { version = "2.4", features = ["protocol-ws"] }
 tar = "0.4"
 http-body-util = "0.1"
+rand = "0.9"
