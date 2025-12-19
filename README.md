@@ -3,6 +3,7 @@
 A tournament system where users submit code to play a multiplayer game to compete with other players.
 
 Tech stack:
-- Rust, Axum
+- SurrealDB
+- Rust, Axum, Docker
 - TypeScript, Svelte
 - Terraform, Kubernetes, AWS
