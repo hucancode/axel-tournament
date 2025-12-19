@@ -1,19 +1,28 @@
 <script lang="ts">
     import { tournamentService } from "$lib/services/tournaments";
     import { gameService } from "$lib/services/games";
+    import { submissionService } from "$lib/services/submissions";
     import { authStore } from "$lib/stores/auth";
     import { page } from "$app/state";
     import { onMount } from "svelte";
     import { goto } from "$app/navigation";
-    import type { Tournament, TournamentParticipant, Game } from "$lib/types";
+    import type {
+        Tournament,
+        TournamentParticipant,
+        Game,
+        Submission,
+    } from "$lib/types";
     const tournamentId = $derived(page.params.id!);
     let tournament = $state<Tournament | null>(null);
     let game = $state<Game | null>(null);
     let participants = $state<TournamentParticipant[]>([]);
+    let userSubmissions = $state<Submission[]>([]);
     let loading = $state(true);
+    let submissionsLoading = $state(false);
     let actionLoading = $state(false);
     let error = $state("");
     let actionError = $state("");
+    let submissionError = $state("");
     let isParticipant = $state(false);
     onMount(async () => {
         await loadTournamentData();
@@ -34,6 +43,9 @@
                 isParticipant = participants.some(
                     (p) => p.user_id === $authStore.user!.id,
                 );
+                await loadUserSubmissions();
+            } else {
+                userSubmissions = [];
             }
             // Load game information
             if (tournament.game_id) {
@@ -47,6 +59,21 @@
             console.error("Failed to load tournament:", err);
         } finally {
             loading = false;
+        }
+    }
+    async function loadUserSubmissions() {
+        submissionsLoading = true;
+        submissionError = "";
+        userSubmissions = [];
+        try {
+            userSubmissions = await submissionService.list(tournamentId);
+        } catch (err) {
+            submissionError =
+                err instanceof Error
+                    ? err.message
+                    : "Failed to load your submissions";
+        } finally {
+            submissionsLoading = false;
         }
     }
     async function joinTournament() {
@@ -291,6 +318,78 @@
                             </table>
                         {/if}
                     </div>
+                    <!-- User submissions -->
+                    <div class="card">
+                        <div class="flex justify-between items-center mb-3">
+                            <h2 class="text-xl font-semibold">
+                                Your Submissions
+                            </h2>
+                            {#if canSubmit()}
+                                <a
+                                    href="/tournaments/{tournamentId}/submit"
+                                    class="btn btn-primary"
+                                    style="padding: 0.35rem 0.75rem; font-size: 0.9rem;"
+                                >
+                                    New Submission
+                                </a>
+                            {/if}
+                        </div>
+                        {#if !$authStore.isAuthenticated}
+                            <p class="text-sm text-gray-500">
+                                Login to view and submit your code.
+                            </p>
+                        {:else if submissionsLoading}
+                            <p class="text-sm text-gray-500">
+                                Loading your submissions...
+                            </p>
+                        {:else if submissionError}
+                            <p class="text-sm text-red-600">
+                                {submissionError}
+                            </p>
+                        {:else if userSubmissions.length === 0}
+                            <p class="text-sm text-gray-500">
+                                You have not submitted any code yet.
+                            </p>
+                        {:else}
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Language</th>
+                                        <th>Status</th>
+                                        <th>Submitted</th>
+                                        <th>Notes</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {#each userSubmissions as submission, index}
+                                        <tr>
+                                            <td>#{index + 1}</td>
+                                            <td class="font-semibold">
+                                                {submission.language.toUpperCase()}
+                                            </td>
+                                            <td>
+                                                <span
+                                                    class="badge badge-{submission.status}"
+                                                >
+                                                    {submission.status}
+                                                </span>
+                                            </td>
+                                            <td class="text-sm text-gray-500">
+                                                {formatDate(
+                                                    submission.created_at,
+                                                )}
+                                            </td>
+                                            <td class="text-sm text-gray-600">
+                                                {submission.error_message ||
+                                                    "-"}
+                                            </td>
+                                        </tr>
+                                    {/each}
+                                </tbody>
+                            </table>
+                        {/if}
+                    </div>
                 </div>
                 <!-- Actions Sidebar -->
                 <div class="flex-col gap-4" style="display: flex;">
@@ -334,7 +433,7 @@
                             {/if}
                             {#if canSubmit()}
                                 <a
-                                    href="/submissions/new?tournament={tournamentId}"
+                                    href="/tournaments/{tournamentId}/submit"
                                     class="btn btn-primary"
                                     style="width: 100%;"
                                 >

@@ -1,9 +1,13 @@
 import { api } from "../api";
-import type { Submission, CreateSubmissionRequest } from "../types";
+import type {
+  Submission,
+  SubmissionResponse,
+  CreateSubmissionRequest,
+} from "../types";
 
 export const submissionService = {
-  async create(data: CreateSubmissionRequest): Promise<Submission> {
-    return api.post<Submission, CreateSubmissionRequest>(
+  async create(data: CreateSubmissionRequest): Promise<SubmissionResponse> {
+    return api.post<SubmissionResponse, CreateSubmissionRequest>(
       "/api/submissions",
       data,
       true,

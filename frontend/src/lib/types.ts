@@ -91,6 +91,8 @@ export interface Game {
   docker_image?: string;
   game_code?: string;
   game_language?: ProgrammingLanguage;
+  turn_timeout_ms?: number;
+  memory_limit_mb?: number;
   created_at: string;
   updated_at: string;
 }
@@ -100,6 +102,8 @@ export interface CreateGameRequest {
   description: string;
   supported_languages: ProgrammingLanguage[];
   is_active: boolean;
+  turn_timeout_ms?: number;
+  memory_limit_mb?: number;
 }
 
 export interface UploadDockerfileRequest {
@@ -165,6 +169,14 @@ export interface CreateSubmissionRequest {
   code: string;
 }
 
+export interface SubmissionResponse {
+  id: string;
+  tournament_id: string;
+  language: ProgrammingLanguage;
+  status: SubmissionStatus;
+  created_at: string;
+}
+
 // Match types
 export type MatchStatus =
   | "pending"
@@ -176,10 +188,7 @@ export type MatchStatus =
 
 export interface MatchParticipant {
   submission_id: string;
-  user_id: string;
   score?: number;
-  rank?: number;
-  is_winner: boolean;
   metadata?: Record<string, any>;
 }
 
@@ -189,7 +198,7 @@ export interface Match {
   game_id: string;
   status: MatchStatus;
   participants: MatchParticipant[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, any> | null;
   created_at: string;
   updated_at: string;
   started_at?: string;
@@ -199,14 +208,13 @@ export interface Match {
 export interface CreateMatchRequest {
   tournament_id?: string;
   game_id: string;
-  submission_ids: string[];
+  participant_submission_ids: string[];
 }
 
 export interface UpdateMatchResultRequest {
   participants: {
     submission_id: string;
     score: number;
-    is_winner: boolean;
     metadata?: Record<string, any>;
   }[];
   metadata?: Record<string, any>;

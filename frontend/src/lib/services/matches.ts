@@ -17,23 +17,18 @@ export const matchService = {
     if (filters?.game_id) params.append("game_id", filters.game_id);
     if (filters?.user_id) params.append("user_id", filters.user_id);
     const query = params.toString() ? `?${params.toString()}` : "";
-    return api.get<Match[]>(`/api/matches${query}`);
+    return api.get<Match[]>(`/api/matches${query}`, true);
   },
   async get(id: string): Promise<Match> {
-    return api.get<Match>(`/api/matches/${id}`);
+    return api.get<Match>(`/api/matches/${id}`, true);
   },
-  // Admin endpoints
   async create(data: CreateMatchRequest): Promise<Match> {
-    return api.post<Match, CreateMatchRequest>(
-      "/api/admin/matches",
-      data,
-      true,
-    );
+    return api.post<Match, CreateMatchRequest>("/api/matches", data, true);
   },
   async updateResult(
     id: string,
     data: UpdateMatchResultRequest,
   ): Promise<Match> {
-    return api.put<Match>(`/api/admin/matches/${id}/result`, data, true);
+    return api.put<Match>(`/api/matches/${id}/result`, data, true);
   },
 };

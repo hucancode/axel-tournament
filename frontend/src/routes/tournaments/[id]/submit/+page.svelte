@@ -5,12 +5,18 @@
     import { authStore } from "$lib/stores/auth";
     import { submissionService } from "$lib/services/submissions";
     import { tournamentService } from "$lib/services/tournaments";
-    import type { Tournament, ProgrammingLanguage } from "$lib/types";
+    import type {
+        Tournament,
+        TournamentParticipant,
+        ProgrammingLanguage,
+    } from "$lib/types";
     let tournament = $state<Tournament | null>(null);
     let language = $state<ProgrammingLanguage>("rust");
     let code = $state("");
     let loading = $state(false);
+    let initialLoading = $state(true);
     let error = $state("");
+    let isParticipant = $state(false);
     let validationErrors = $state<{ language?: string; code?: string }>({});
     const tournamentId = $derived(page.params.id!);
     const auth = $derived($authStore);
@@ -22,12 +28,28 @@
         }
         // Load tournament details
         try {
-            tournament = await tournamentService.get(tournamentId);
+            const [tournamentData, participantData] = await Promise.all([
+                tournamentService.get(tournamentId),
+                tournamentService.getParticipants(tournamentId),
+            ]);
+            tournament = tournamentData;
+            if (auth.user) {
+                isParticipant = participantData.some(
+                    (p: TournamentParticipant) =>
+                        p.user_id === auth.user!.id,
+                );
+            }
+            if (!isParticipant) {
+                error =
+                    "Join this tournament before submitting your solution.";
+            }
         } catch (err) {
             error =
                 err instanceof Error
                     ? err.message
                     : "Failed to load tournament";
+        } finally {
+            initialLoading = false;
         }
     });
     function validate(): boolean {
@@ -49,6 +71,10 @@
     }
     async function handleSubmit(e: Event) {
         e.preventDefault();
+        if (!isParticipant) {
+            error = "Join this tournament before submitting your solution.";
+            return;
+        }
         if (!validate()) {
             return;
         }
@@ -78,62 +104,88 @@
             <p class="text-gray-500">Tournament: {tournament.name}</p>
         {/if}
     </div>
-    {#if error}
-        <div
-            class="card"
-            style="background-color: #fee2e2; border-left: 4px solid var(--red-600); margin-bottom: 1rem;"
-        >
-            <p class="text-red-600">{error}</p>
+    {#if initialLoading}
+        <div class="card text-center">
+            <p class="text-gray-500">Loading tournament...</p>
+        </div>
+    {:else}
+        {#if error}
+            <div
+                class="card"
+                style="background-color: #fee2e2; border-left: 4px solid var(--red-600); margin-bottom: 1rem;"
+            >
+                <p class="text-red-600">{error}</p>
+            </div>
+        {/if}
+        <div class="card">
+            {#if !isParticipant}
+                <div
+                    class="text-sm text-red-600"
+                    style="margin-bottom: 1rem;"
+                >
+                    You must join this tournament before submitting code.
+                    <a
+                        href="/tournaments/{tournamentId}"
+                        style="margin-left: 0.35rem; color: var(--primary-600);"
+                    >
+                        Go back
+                    </a>
+                </div>
+            {/if}
+            <form onsubmit={handleSubmit}>
+                <div class="form-group">
+                    <label for="language">Programming Language</label>
+                    <select
+                        id="language"
+                        class="select"
+                        bind:value={language}
+                        disabled={loading || !isParticipant}
+                    >
+                        <option value="rust">Rust</option>
+                        <option value="go">Go</option>
+                        <option value="c">C</option>
+                    </select>
+                    {#if validationErrors.language}
+                        <p class="form-error">{validationErrors.language}</p>
+                    {/if}
+                </div>
+                <div class="form-group">
+                    <label for="code">Code</label>
+                    <textarea
+                        id="code"
+                        class="textarea"
+                        bind:value={code}
+                        disabled={loading || !isParticipant}
+                        rows="25"
+                        placeholder="Paste your code here..."
+                        style="font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace; font-size: 0.875rem;"
+                    ></textarea>
+                    {#if validationErrors.code}
+                        <p class="form-error">{validationErrors.code}</p>
+                    {/if}
+                    <p
+                        class="text-sm text-gray-500"
+                        style="margin-top: 0.5rem;"
+                    >
+                        {code.length.toLocaleString()} characters
+                    </p>
+                </div>
+                <div class="flex gap-2">
+                    <button
+                        type="submit"
+                        class="btn btn-primary"
+                        disabled={loading || !isParticipant}
+                    >
+                        {loading ? "Submitting..." : "Submit Code"}
+                    </button>
+                    <a
+                        href="/tournaments/{tournamentId}"
+                        class="btn btn-secondary"
+                    >
+                        Cancel
+                    </a>
+                </div>
+            </form>
         </div>
     {/if}
-    <div class="card">
-        <form onsubmit={handleSubmit}>
-            <div class="form-group">
-                <label for="language">Programming Language</label>
-                <select
-                    id="language"
-                    class="select"
-                    bind:value={language}
-                    disabled={loading}
-                >
-                    <option value="rust">Rust</option>
-                    <option value="go">Go</option>
-                    <option value="c">C</option>
-                </select>
-                {#if validationErrors.language}
-                    <p class="form-error">{validationErrors.language}</p>
-                {/if}
-            </div>
-            <div class="form-group">
-                <label for="code">Code</label>
-                <textarea
-                    id="code"
-                    class="textarea"
-                    bind:value={code}
-                    disabled={loading}
-                    rows="25"
-                    placeholder="Paste your code here..."
-                    style="font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace; font-size: 0.875rem;"
-                ></textarea>
-                {#if validationErrors.code}
-                    <p class="form-error">{validationErrors.code}</p>
-                {/if}
-                <p class="text-sm text-gray-500" style="margin-top: 0.5rem;">
-                    {code.length.toLocaleString()} characters
-                </p>
-            </div>
-            <div class="flex gap-2">
-                <button
-                    type="submit"
-                    class="btn btn-primary"
-                    disabled={loading}
-                >
-                    {loading ? "Submitting..." : "Submit Code"}
-                </button>
-                <a href="/tournaments/{tournamentId}" class="btn btn-secondary">
-                    Cancel
-                </a>
-            </div>
-        </form>
-    </div>
 </div>
