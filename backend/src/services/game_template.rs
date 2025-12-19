@@ -28,7 +28,11 @@ pub async fn create_template(
     created.ok_or_else(|| ApiError::Internal("Failed to create template".to_string()))
 }
 
-pub async fn get_template(db: &Database, game_id: Thing, language: &str) -> ApiResult<GameTemplate> {
+pub async fn get_template(
+    db: &Database,
+    game_id: Thing,
+    language: &str,
+) -> ApiResult<GameTemplate> {
     let language_owned = language.to_string();
     let mut result = db
         .query("SELECT * FROM game_template WHERE game_id = $game_id AND language = $language")
@@ -37,7 +41,9 @@ pub async fn get_template(db: &Database, game_id: Thing, language: &str) -> ApiR
         .await?;
 
     let templates: Vec<GameTemplate> = result.take(0)?;
-    templates.into_iter().next()
+    templates
+        .into_iter()
+        .next()
         .ok_or_else(|| ApiError::NotFound("Template not found".to_string()))
 }
 

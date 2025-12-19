@@ -21,7 +21,9 @@ pub async fn game_setter_middleware(
 
     // Allow Admin or GameSetter roles
     if claims.role != UserRole::GameSetter && claims.role != UserRole::Admin {
-        return Err(ApiError::Forbidden("Game setter access required".to_string()));
+        return Err(ApiError::Forbidden(
+            "Game setter access required".to_string(),
+        ));
     }
 
     Ok(next.run(req).await)

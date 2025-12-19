@@ -19,7 +19,6 @@ async fn complete_tournament_flow_with_two_players() {
     let app = common::setup_app(&db_namespace).await;
     // Get game setter token
     let game_setter_token = common::game_setter_token(&app).await;
-
     // Step 1: Game setter creates a rock_paper_scissor game
     let (game_status, game_body) = common::json_request(
         &app,
@@ -516,7 +515,6 @@ fn main() {
     let matches = matches_body.as_array().unwrap();
     assert_eq!(matches.len(), 4, "Should have 4 matches (2x2 AllVsAll)");
     println!("Generated {} matches", matches.len());
-
     // Step 6: Wait for judge to execute matches
     println!("Waiting for matches to complete...");
 
@@ -533,7 +531,8 @@ fn main() {
             &format!("/api/matches?tournament_id={}", tournament_id),
             None,
             None,
-        ).await;
+        )
+        .await;
 
         assert_eq!(status, StatusCode::OK);
         let current_matches = body.as_array().unwrap();
@@ -543,7 +542,12 @@ fn main() {
             .filter(|m| m["status"] == "completed")
             .count();
 
-        println!("[Attempt {}/60] Matches completed: {}/{}", attempt + 1, completed_count, total_matches);
+        println!(
+            "[Attempt {}/60] Matches completed: {}/{}",
+            attempt + 1,
+            completed_count,
+            total_matches
+        );
 
         if completed_count == total_matches {
             println!("All matches completed!");
@@ -553,7 +557,8 @@ fn main() {
 
     assert_eq!(
         completed_count, total_matches,
-        "Expected all {} matches to complete within timeout", total_matches
+        "Expected all {} matches to complete within timeout",
+        total_matches
     );
 
     // Step 7: Verify actual scores from real gameplay
@@ -580,7 +585,10 @@ fn main() {
         println!("  {}. {}: {} points", rank, username, score);
 
         // Scores should be non-zero from real matches
-        assert!(score > 0.0, "Score should be greater than 0 from real matches");
+        assert!(
+            score > 0.0,
+            "Score should be greater than 0 from real matches"
+        );
     }
 
     // Verify tournament participants have updated scores
@@ -596,12 +604,24 @@ fn main() {
     let final_participants = final_participants_body.as_array().unwrap();
     assert_eq!(final_participants.len(), 2);
 
+    let mut scores: Vec<f64> = Vec::new();
     for participant in final_participants {
         let score = participant["score"].as_f64().unwrap();
+        scores.push(score);
         let user_id = common::extract_thing_id(&participant["user_id"]);
         println!("  Participant {}: Score = {}", user_id, score);
         // Verify scores are from real match execution
-        assert!(score > 0.0, "Participant score should be greater than 0 from real matches");
+        assert!(
+            score > 0.0,
+            "Participant score should be greater than 0 from real matches"
+        );
     }
-    println!("✅ E2E test passed with real match execution!");
+    // Rock vs. cycling strategy should end up nearly tied.
+    let score_diff = (scores[0] - scores[1]).abs();
+    assert!(
+        score_diff <= 20.0,
+        "Expected players to end near a tie, got diff {} with scores {:?}",
+        score_diff,
+        scores
+    );
 }

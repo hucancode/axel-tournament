@@ -1,10 +1,13 @@
 use crate::{
-    error::{ApiError, ApiResult},
-    models::{user::Claims, Game, ProgrammingLanguage, UploadGameCodeRequest, UserRole},
-    services,
     AppState,
+    error::{ApiError, ApiResult},
+    models::{Game, ProgrammingLanguage, UploadGameCodeRequest, UserRole, user::Claims},
+    services,
 };
-use axum::{extract::{Path, State}, Extension, Json};
+use axum::{
+    Extension, Json,
+    extract::{Path, State},
+};
 use surrealdb::sql::Thing;
 use validator::Validate;
 
@@ -14,7 +17,8 @@ pub async fn upload_game_code(
     Path(game_id): Path<String>,
     Json(payload): Json<UploadGameCodeRequest>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    payload.validate()
+    payload
+        .validate()
         .map_err(|e| ApiError::Validation(e.to_string()))?;
 
     // Parse and validate language
@@ -54,13 +58,8 @@ pub async fn upload_game_code(
     }
 
     // Upload the game code
-    services::game_code::upload_game_code(
-        &state.db,
-        game_id_thing,
-        language,
-        payload.code_content,
-    )
-    .await?;
+    services::game_code::upload_game_code(&state.db, game_id_thing, language, payload.code_content)
+        .await?;
 
     Ok(Json(serde_json::json!({
         "message": "Game code uploaded successfully"

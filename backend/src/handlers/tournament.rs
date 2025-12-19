@@ -146,14 +146,13 @@ pub async fn get_tournament_participants(
     State(state): State<AppState>,
     Path(tournament_id): Path<String>,
 ) -> ApiResult<Json<Vec<TournamentParticipant>>> {
-    let participants =
-        services::tournament::get_tournament_participants(
-            &state.db,
-            tournament_id
-                .parse()
-                .map_err(|_| crate::error::ApiError::BadRequest("Invalid tournament id".to_string()))?,
-        )
-        .await?;
+    let participants = services::tournament::get_tournament_participants(
+        &state.db,
+        tournament_id
+            .parse()
+            .map_err(|_| crate::error::ApiError::BadRequest("Invalid tournament id".to_string()))?,
+    )
+    .await?;
     Ok(Json(participants))
 }
 

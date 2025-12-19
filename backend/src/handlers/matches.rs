@@ -31,8 +31,9 @@ pub async fn create_match(
         .tournament_id
         .as_deref()
         .map(|id| {
-            id.parse::<Thing>()
-                .map_err(|_| crate::error::ApiError::BadRequest("Invalid tournament id".to_string()))
+            id.parse::<Thing>().map_err(|_| {
+                crate::error::ApiError::BadRequest("Invalid tournament id".to_string())
+            })
         })
         .transpose()?;
     let game_id: Thing = payload
@@ -43,17 +44,13 @@ pub async fn create_match(
         .participant_submission_ids
         .iter()
         .map(|id| {
-            id.parse::<Thing>()
-                .map_err(|_| crate::error::ApiError::BadRequest("Invalid submission id".to_string()))
+            id.parse::<Thing>().map_err(|_| {
+                crate::error::ApiError::BadRequest("Invalid submission id".to_string())
+            })
         })
         .collect::<Result<Vec<_>, _>>()?;
-    let match_data = services::matches::create_match(
-        &state.db,
-        tournament_id,
-        game_id,
-        submission_ids,
-    )
-    .await?;
+    let match_data =
+        services::matches::create_match(&state.db, tournament_id, game_id, submission_ids).await?;
     Ok((StatusCode::CREATED, Json(match_data)))
 }
 
@@ -61,14 +58,13 @@ pub async fn get_match(
     State(state): State<AppState>,
     Path(match_id): Path<String>,
 ) -> ApiResult<Json<Match>> {
-    let match_data =
-        services::matches::get_match(
-            &state.db,
-            match_id
-                .parse::<Thing>()
-                .map_err(|_| crate::error::ApiError::BadRequest("Invalid match id".to_string()))?,
-        )
-        .await?;
+    let match_data = services::matches::get_match(
+        &state.db,
+        match_id
+            .parse::<Thing>()
+            .map_err(|_| crate::error::ApiError::BadRequest("Invalid match id".to_string()))?,
+    )
+    .await?;
     Ok(Json(match_data))
 }
 
@@ -80,8 +76,9 @@ pub async fn list_matches(
         .tournament_id
         .as_deref()
         .map(|id| {
-            id.parse::<Thing>()
-                .map_err(|_| crate::error::ApiError::BadRequest("Invalid tournament id".to_string()))
+            id.parse::<Thing>().map_err(|_| {
+                crate::error::ApiError::BadRequest("Invalid tournament id".to_string())
+            })
         })
         .transpose()?;
     let game_id = query
@@ -100,13 +97,8 @@ pub async fn list_matches(
                 .map_err(|_| crate::error::ApiError::BadRequest("Invalid user id".to_string()))
         })
         .transpose()?;
-    let matches = services::matches::list_matches(
-        &state.db,
-        tournament_id,
-        game_id,
-        user_id,
-    )
-    .await?;
+    let matches =
+        services::matches::list_matches(&state.db, tournament_id, game_id, user_id).await?;
     Ok(Json(matches))
 }
 

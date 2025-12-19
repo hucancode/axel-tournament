@@ -19,7 +19,9 @@ pub async fn match_runner_middleware(
         Ok(key) if !key.is_empty() => key,
         _ => {
             // No key configured - allow access (development mode)
-            eprintln!("WARNING: MATCH_RUNNER_API_KEY not set - match runner authentication disabled");
+            eprintln!(
+                "WARNING: MATCH_RUNNER_API_KEY not set - match runner authentication disabled"
+            );
             return Ok(next.run(request).await);
         }
     };

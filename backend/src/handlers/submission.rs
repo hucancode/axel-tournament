@@ -114,8 +114,9 @@ pub async fn list_submissions(
             .tournament_id
             .as_deref()
             .map(|id| {
-                id.parse::<Thing>()
-                    .map_err(|_| crate::error::ApiError::BadRequest("Invalid tournament id".to_string()))
+                id.parse::<Thing>().map_err(|_| {
+                    crate::error::ApiError::BadRequest("Invalid tournament id".to_string())
+                })
             })
             .transpose()?,
     )

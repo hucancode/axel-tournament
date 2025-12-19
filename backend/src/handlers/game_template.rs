@@ -1,7 +1,9 @@
 use crate::{
     AppState,
     error::ApiResult,
-    models::{Claims, CreateGameTemplateRequest, GameTemplate, UpdateGameTemplateRequest, UserRole},
+    models::{
+        Claims, CreateGameTemplateRequest, GameTemplate, UpdateGameTemplateRequest, UserRole,
+    },
     services,
 };
 use axum::{
@@ -66,8 +68,7 @@ pub async fn get_template(
     let game_id: Thing = game_id
         .parse()
         .map_err(|_| crate::error::ApiError::BadRequest("Invalid game id".to_string()))?;
-    let template = services::game_template::get_template(&state.db, game_id, &language)
-    .await?;
+    let template = services::game_template::get_template(&state.db, game_id, &language).await?;
     Ok(Json(template))
 }
 

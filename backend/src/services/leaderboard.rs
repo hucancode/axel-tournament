@@ -8,9 +8,7 @@ pub async fn get_leaderboard(
     game_id: Option<Thing>,
 ) -> ApiResult<Vec<LeaderboardEntry>> {
     let limit = limit.min(1000); // Cap at 1000
-    let tournament_id_val = tournament_id
-        .as_ref()
-        .map(|t| t.id.to_string());
+    let tournament_id_val = tournament_id.as_ref().map(|t| t.id.to_string());
     let game_id_val = game_id.as_ref().map(|g| g.id.to_string());
     let query = if let Some(_tid) = tournament_id_val {
         "SELECT id, score, user_id, tournament_id,

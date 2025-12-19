@@ -37,7 +37,9 @@ pub async fn get_policy(db: &Database, tournament_id: Thing) -> ApiResult<MatchP
         .await?;
 
     let policies: Vec<MatchPolicy> = result.take(0)?;
-    policies.into_iter().next()
+    policies
+        .into_iter()
+        .next()
         .ok_or_else(|| ApiError::NotFound("Match policy not found".to_string()))
 }
 
@@ -53,12 +55,24 @@ pub async fn update_policy(
 ) -> ApiResult<MatchPolicy> {
     let mut policy = get_policy(db, tournament_id).await?;
 
-    if let Some(r) = rounds_per_match { policy.rounds_per_match = r; }
-    if let Some(rep) = repetitions { policy.repetitions = rep; }
-    if let Some(t) = timeout_seconds { policy.timeout_seconds = t; }
-    if cpu_limit.is_some() { policy.cpu_limit = cpu_limit; }
-    if memory_limit.is_some() { policy.memory_limit = memory_limit; }
-    if scoring_weights.is_some() { policy.scoring_weights = scoring_weights; }
+    if let Some(r) = rounds_per_match {
+        policy.rounds_per_match = r;
+    }
+    if let Some(rep) = repetitions {
+        policy.repetitions = rep;
+    }
+    if let Some(t) = timeout_seconds {
+        policy.timeout_seconds = t;
+    }
+    if cpu_limit.is_some() {
+        policy.cpu_limit = cpu_limit;
+    }
+    if memory_limit.is_some() {
+        policy.memory_limit = memory_limit;
+    }
+    if scoring_weights.is_some() {
+        policy.scoring_weights = scoring_weights;
+    }
 
     let policy_id = policy.id.clone().unwrap();
     let updated: Option<MatchPolicy> = db

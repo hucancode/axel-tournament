@@ -1,11 +1,13 @@
 mod common;
 
-use axum::http::{Method, StatusCode};
 use axel_tournament::models::{
     CreateGameRequest, CreateGameTemplateRequest, CreateMatchPolicyRequest, ProgrammingLanguage,
     UploadDockerfileRequest,
 };
-use common::{admin_token, extract_thing_id, game_setter_token, json_request, setup_app, unique_name};
+use axum::http::{Method, StatusCode};
+use common::{
+    admin_token, extract_thing_id, game_setter_token, json_request, setup_app, unique_name,
+};
 use serde_json::json;
 
 #[tokio::test]
@@ -86,7 +88,7 @@ async fn test_game_setter_can_upload_dockerfile() {
     let game_request = CreateGameRequest {
         name: format!("Docker Game {}", unique_name("")),
         description: "A game with dockerfile".to_string(),
-        
+
         supported_languages: vec![ProgrammingLanguage::Rust],
     };
 
@@ -132,7 +134,7 @@ async fn test_admin_can_upload_to_any_game() {
     let game_request = CreateGameRequest {
         name: format!("Private Game {}", unique_name("")),
         description: "A private game".to_string(),
-        
+
         supported_languages: vec![ProgrammingLanguage::Rust],
     };
 
@@ -175,7 +177,7 @@ async fn test_create_game_template() {
     let game_request = CreateGameRequest {
         name: format!("Template Game {}", unique_name("")),
         description: "A game with templates".to_string(),
-        
+
         supported_languages: vec![ProgrammingLanguage::Rust, ProgrammingLanguage::Go],
     };
 
@@ -210,10 +212,12 @@ async fn test_create_game_template() {
 
     assert_eq!(status, StatusCode::CREATED);
     assert_eq!(template["language"], "rust");
-    assert!(template["template_code"]
-        .as_str()
-        .unwrap()
-        .contains("Hello, world"));
+    assert!(
+        template["template_code"]
+            .as_str()
+            .unwrap()
+            .contains("Hello, world")
+    );
 }
 
 #[tokio::test]
@@ -225,7 +229,7 @@ async fn test_list_game_templates() {
     let game_request = CreateGameRequest {
         name: format!("Multi-Lang Game {}", unique_name("")),
         description: "A game with multiple templates".to_string(),
-        
+
         supported_languages: vec![ProgrammingLanguage::Rust, ProgrammingLanguage::Go],
     };
 
@@ -285,7 +289,7 @@ async fn test_create_match_policy() {
     let game_request = CreateGameRequest {
         name: format!("Policy Game {}", unique_name("")),
         description: "A game for policy testing".to_string(),
-        
+
         supported_languages: vec![ProgrammingLanguage::Rust],
     };
 
@@ -356,7 +360,7 @@ async fn test_get_match_policy() {
     let game_request = CreateGameRequest {
         name: format!("Get Policy Game {}", unique_name("")),
         description: "Test".to_string(),
-        
+
         supported_languages: vec![ProgrammingLanguage::Rust],
     };
 

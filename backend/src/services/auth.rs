@@ -8,8 +8,8 @@ use argon2::{
     password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString, rand_core::OsRng},
 };
 use chrono::Utc;
-use surrealdb::sql::Thing;
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
+use surrealdb::sql::Thing;
 
 pub struct AuthService {
     jwt_secret: String,

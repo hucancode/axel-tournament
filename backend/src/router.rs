@@ -1,8 +1,9 @@
 use crate::{AppState, handlers, middleware};
 use axum::{
-    Router, middleware as axum_middleware,
+    Router,
+    http::{Method, header},
+    middleware as axum_middleware,
     routing::{delete, get, patch, post, put},
-    http::{header, Method},
 };
 use tower_http::cors::CorsLayer;
 
@@ -16,7 +17,13 @@ pub fn create_router(state: AppState) -> Router {
                 .parse::<axum::http::HeaderValue>()
                 .expect("Invalid FRONTEND_URL"),
         )
-        .allow_methods([Method::GET, Method::POST, Method::PUT, Method::PATCH, Method::DELETE])
+        .allow_methods([
+            Method::GET,
+            Method::POST,
+            Method::PUT,
+            Method::PATCH,
+            Method::DELETE,
+        ])
         .allow_headers([
             header::AUTHORIZATION,
             header::CONTENT_TYPE,
@@ -110,28 +117,63 @@ pub fn create_router(state: AppState) -> Router {
     let game_setter_routes = Router::new()
         // Game management
         .route("/api/game-setter/games", get(handlers::list_my_games))
-        .route("/api/game-setter/games", post(handlers::create_game_as_game_setter))
+        .route(
+            "/api/game-setter/games",
+            post(handlers::create_game_as_game_setter),
+        )
         .route("/api/game-setter/games/{id}", put(handlers::update_game))
-        .route("/api/game-setter/games/{id}", delete(handlers::delete_game_as_game_setter))
-        .route("/api/game-setter/games/{id}/dockerfile", post(handlers::upload_dockerfile))
-        .route("/api/game-setter/games/{id}/game-code", post(handlers::upload_game_code))
-
+        .route(
+            "/api/game-setter/games/{id}",
+            delete(handlers::delete_game_as_game_setter),
+        )
+        .route(
+            "/api/game-setter/games/{id}/dockerfile",
+            post(handlers::upload_dockerfile),
+        )
+        .route(
+            "/api/game-setter/games/{id}/game-code",
+            post(handlers::upload_game_code),
+        )
         // Template management
-        .route("/api/game-setter/templates", post(handlers::create_template))
-        .route("/api/game-setter/templates/{game_id}/{language}", get(handlers::get_template))
-        .route("/api/game-setter/templates/{game_id}/{language}", put(handlers::update_template))
+        .route(
+            "/api/game-setter/templates",
+            post(handlers::create_template),
+        )
+        .route(
+            "/api/game-setter/templates/{game_id}/{language}",
+            get(handlers::get_template),
+        )
+        .route(
+            "/api/game-setter/templates/{game_id}/{language}",
+            put(handlers::update_template),
+        )
         .route("/api/game-setter/templates", get(handlers::list_templates))
-
         // Tournament management (game setters can create tournaments for their games)
-        .route("/api/game-setter/tournaments", post(handlers::create_tournament))
-        .route("/api/game-setter/tournaments/{id}", patch(handlers::update_tournament))
-        .route("/api/game-setter/tournaments/{id}/start", post(handlers::start_tournament))
-
+        .route(
+            "/api/game-setter/tournaments",
+            post(handlers::create_tournament),
+        )
+        .route(
+            "/api/game-setter/tournaments/{id}",
+            patch(handlers::update_tournament),
+        )
+        .route(
+            "/api/game-setter/tournaments/{id}/start",
+            post(handlers::start_tournament),
+        )
         // Match policy
-        .route("/api/game-setter/tournaments/{id}/policy", post(handlers::create_policy))
-        .route("/api/game-setter/tournaments/{id}/policy", get(handlers::get_policy))
-        .route("/api/game-setter/tournaments/{id}/policy", put(handlers::update_policy))
-
+        .route(
+            "/api/game-setter/tournaments/{id}/policy",
+            post(handlers::create_policy),
+        )
+        .route(
+            "/api/game-setter/tournaments/{id}/policy",
+            get(handlers::get_policy),
+        )
+        .route(
+            "/api/game-setter/tournaments/{id}/policy",
+            put(handlers::update_policy),
+        )
         .route_layer(axum_middleware::from_fn_with_state(
             state.clone(),
             middleware::game_setter_middleware,

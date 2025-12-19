@@ -18,10 +18,13 @@ pub async fn connect(config: &DatabaseConfig) -> Result<Database, surrealdb::Err
     loop {
         match Surreal::new::<Ws>(endpoint).await {
             Ok(db) => {
-                match db.signin(Root {
-                    username: &config.user,
-                    password: &config.pass,
-                }).await {
+                match db
+                    .signin(Root {
+                        username: &config.user,
+                        password: &config.pass,
+                    })
+                    .await
+                {
                     Ok(_) => {
                         db.use_ns(&config.namespace)
                             .use_db(&config.database)
@@ -33,8 +36,10 @@ pub async fn connect(config: &DatabaseConfig) -> Result<Database, surrealdb::Err
                     }
                     Err(e) if retry_count < max_retries => {
                         retry_count += 1;
-                        eprintln!("Database signin failed (attempt {}/{}): {}. Retrying in 2s...",
-                                 retry_count, max_retries, e);
+                        eprintln!(
+                            "Database signin failed (attempt {}/{}): {}. Retrying in 2s...",
+                            retry_count, max_retries, e
+                        );
                         tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
                     }
                     Err(e) => return Err(e),
@@ -42,8 +47,10 @@ pub async fn connect(config: &DatabaseConfig) -> Result<Database, surrealdb::Err
             }
             Err(e) if retry_count < max_retries => {
                 retry_count += 1;
-                eprintln!("Database connection failed (attempt {}/{}): {}. Retrying in 2s...",
-                         retry_count, max_retries, e);
+                eprintln!(
+                    "Database connection failed (attempt {}/{}): {}. Retrying in 2s...",
+                    retry_count, max_retries, e
+                );
                 tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
             }
             Err(e) => return Err(e),

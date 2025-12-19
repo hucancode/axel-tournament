@@ -80,8 +80,8 @@ async fn test_leaderboard_ordering_and_limit() {
     }
     let leaderboard_entries =
         leaderboard::get_leaderboard(&db, 1, Some(tournament_id.clone()), None)
-        .await
-        .unwrap();
+            .await
+            .unwrap();
     assert_eq!(leaderboard_entries.len(), 1);
     assert!(leaderboard_entries[0].score >= 100.0);
     assert_eq!(leaderboard_entries[0].rank, 1);

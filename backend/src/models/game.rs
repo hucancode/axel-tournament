@@ -65,7 +65,11 @@ pub struct UpdateGameRequest {
 
 #[derive(Debug, Serialize, Deserialize, Validate)]
 pub struct UploadDockerfileRequest {
-    #[validate(length(min = 1, max = 100000, message = "Dockerfile must be 1-100000 characters"))]
+    #[validate(length(
+        min = 1,
+        max = 100000,
+        message = "Dockerfile must be 1-100000 characters"
+    ))]
     pub dockerfile_content: String,
 }
 

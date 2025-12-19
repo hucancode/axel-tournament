@@ -134,16 +134,9 @@ async fn test_game_list_active_only() {
     .await
     .unwrap();
     let inactive_id = inactive_game.id.unwrap();
-    game::update_game(
-        &db,
-        inactive_id,
-        None,
-        None,
-        Some(vec![]),
-        Some(false),
-    )
-    .await
-    .unwrap();
+    game::update_game(&db, inactive_id, None, None, Some(vec![]), Some(false))
+        .await
+        .unwrap();
     // List only active games
     let active_games = game::list_games(&db, true).await.unwrap();
     // Should have at least the active game

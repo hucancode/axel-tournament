@@ -9,7 +9,7 @@ pub struct MatchPolicy {
     pub rounds_per_match: u32,
     pub repetitions: u32,
     pub timeout_seconds: u32,
-    pub cpu_limit: Option<String>, // e.g., "1.0" for 1 CPU
+    pub cpu_limit: Option<String>,    // e.g., "1.0" for 1 CPU
     pub memory_limit: Option<String>, // e.g., "512m"
     pub scoring_weights: Option<serde_json::Value>, // JSON for custom weights
 }

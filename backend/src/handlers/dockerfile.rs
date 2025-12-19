@@ -46,12 +46,8 @@ pub async fn upload_dockerfile(
         ));
     }
 
-    services::dockerfile::upload_dockerfile(
-        &state.db,
-        game_thing,
-        payload.dockerfile_content,
-    )
-    .await?;
+    services::dockerfile::upload_dockerfile(&state.db, game_thing, payload.dockerfile_content)
+        .await?;
 
     Ok(Json(UploadDockerfileResponse {
         message: "Dockerfile uploaded successfully".to_string(),

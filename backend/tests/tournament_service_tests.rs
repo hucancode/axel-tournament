@@ -3,8 +3,8 @@ mod common;
 use axel_tournament::{
     config::DatabaseConfig,
     db,
-    models::{CreateTournamentRequest, TournamentStatus, MatchGenerationType, MatchStatus},
-    services::{auth::AuthService, game, tournament, user, submission, matches},
+    models::{CreateTournamentRequest, MatchGenerationType, MatchStatus, TournamentStatus},
+    services::{auth::AuthService, game, matches, submission, tournament, user},
 };
 use surrealdb::sql::Thing;
 use validator::Validate;
@@ -289,10 +289,9 @@ async fn test_start_tournament_all_vs_all() {
     assert!(started_tournament.matches_generated);
 
     // Verify matches were created (3 players vs 3 players = 9 matches)
-    let created_matches =
-        matches::list_matches(&db, Some(tournament_id.clone()), None, None)
-            .await
-            .unwrap();
+    let created_matches = matches::list_matches(&db, Some(tournament_id.clone()), None, None)
+        .await
+        .unwrap();
     assert_eq!(created_matches.len(), 9); // 3x3 = 9 matches
 
     // Verify all matches are in pending state
@@ -341,7 +340,10 @@ async fn test_start_tournament_round_robin() {
         let password_hash = auth_service.hash_password("password123").unwrap();
         let user = user::create_user(
             &db,
-            format!("{}@test.com", common::unique_name(&format!("rrplayer{}_", i))),
+            format!(
+                "{}@test.com",
+                common::unique_name(&format!("rrplayer{}_", i))
+            ),
             common::unique_name(&format!("rrplayer{}_", i)),
             Some(password_hash),
             "US".to_string(),
@@ -381,10 +383,9 @@ async fn test_start_tournament_round_robin() {
     assert!(started_tournament.matches_generated);
 
     // Verify matches were created (4 players, unique pairings = 6 matches)
-    let created_matches =
-        matches::list_matches(&db, Some(tournament_id.clone()), None, None)
-            .await
-            .unwrap();
+    let created_matches = matches::list_matches(&db, Some(tournament_id.clone()), None, None)
+        .await
+        .unwrap();
     assert_eq!(created_matches.len(), 6); // 4 * (4-1) / 2 = 6 matches (no duplicates)
 }
 

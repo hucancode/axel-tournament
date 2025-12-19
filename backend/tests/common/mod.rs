@@ -187,12 +187,13 @@ pub async fn game_setter_token(app: &TestApp) -> String {
 
     // Update user role to gamesetter via direct DB access
     // Note: In production, this would be done by admin
-    let _: Result<Option<serde_json::Value>, _> = app.state.db.query(
-        "UPDATE $user_id SET role = 'gamesetter'"
-    )
-    .bind(("user_id", user_id))
-    .await
-    .and_then(|mut r| r.take(0));
+    let _: Result<Option<serde_json::Value>, _> = app
+        .state
+        .db
+        .query("UPDATE $user_id SET role = 'gamesetter'")
+        .bind(("user_id", user_id))
+        .await
+        .and_then(|mut r| r.take(0));
 
     // Login again to get token with updated role
     let (_, login_body) = json_request(

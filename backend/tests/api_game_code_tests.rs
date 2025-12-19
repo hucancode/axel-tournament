@@ -45,7 +45,12 @@ async fn game_setter_can_upload_game_code() {
     .await;
 
     assert_eq!(upload_status, StatusCode::OK);
-    assert!(upload_body["message"].as_str().unwrap().contains("successfully"));
+    assert!(
+        upload_body["message"]
+            .as_str()
+            .unwrap()
+            .contains("successfully")
+    );
 
     // Verify game was updated
     let (get_status, get_body) = common::json_request(
@@ -98,7 +103,12 @@ async fn game_code_upload_validates_language() {
     .await;
 
     assert_eq!(upload_status, StatusCode::BAD_REQUEST);
-    assert!(upload_body["error"].as_str().unwrap().contains("not supported"));
+    assert!(
+        upload_body["error"]
+            .as_str()
+            .unwrap()
+            .contains("not supported")
+    );
 }
 
 #[tokio::test]
@@ -137,7 +147,12 @@ async fn game_code_upload_rejects_invalid_language() {
     .await;
 
     assert_eq!(upload_status, StatusCode::BAD_REQUEST);
-    assert!(upload_body["error"].as_str().unwrap().contains("Invalid language"));
+    assert!(
+        upload_body["error"]
+            .as_str()
+            .unwrap()
+            .contains("Invalid language")
+    );
 }
 
 #[tokio::test]
@@ -177,7 +192,12 @@ async fn game_code_upload_checks_ownership() {
     .await;
 
     assert_eq!(upload_status, StatusCode::FORBIDDEN);
-    assert!(upload_body["error"].as_str().unwrap().contains("permission"));
+    assert!(
+        upload_body["error"]
+            .as_str()
+            .unwrap()
+            .contains("permission")
+    );
 }
 
 #[tokio::test]
@@ -217,7 +237,12 @@ async fn admin_can_upload_game_code_to_any_game() {
     .await;
 
     assert_eq!(upload_status, StatusCode::OK);
-    assert!(upload_body["message"].as_str().unwrap().contains("successfully"));
+    assert!(
+        upload_body["message"]
+            .as_str()
+            .unwrap()
+            .contains("successfully")
+    );
 }
 
 #[tokio::test]
@@ -375,7 +400,12 @@ async fn game_setter_cannot_delete_others_game() {
     .await;
 
     assert_eq!(delete_status, StatusCode::FORBIDDEN);
-    assert!(delete_body["error"].as_str().unwrap().contains("permission"));
+    assert!(
+        delete_body["error"]
+            .as_str()
+            .unwrap()
+            .contains("permission")
+    );
 
     // Verify game still exists
     let (get_status, _) = common::json_request(
@@ -474,5 +504,10 @@ async fn game_code_upload_validates_code_length() {
     .await;
 
     assert_eq!(upload_status, StatusCode::BAD_REQUEST);
-    assert!(upload_body["error"].as_str().unwrap().contains("1 byte to 1MB"));
+    assert!(
+        upload_body["error"]
+            .as_str()
+            .unwrap()
+            .contains("1 byte to 1MB")
+    );
 }

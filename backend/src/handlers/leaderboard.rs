@@ -19,8 +19,9 @@ pub async fn get_leaderboard(
         .tournament_id
         .as_deref()
         .map(|id| {
-            id.parse::<Thing>()
-                .map_err(|_| crate::error::ApiError::BadRequest("Invalid tournament id".to_string()))
+            id.parse::<Thing>().map_err(|_| {
+                crate::error::ApiError::BadRequest("Invalid tournament id".to_string())
+            })
         })
         .transpose()?;
     let game_id = query
@@ -31,12 +32,7 @@ pub async fn get_leaderboard(
                 .map_err(|_| crate::error::ApiError::BadRequest("Invalid game id".to_string()))
         })
         .transpose()?;
-    let entries = services::leaderboard::get_leaderboard(
-        &state.db,
-        limit,
-        tournament_id,
-        game_id,
-    )
-    .await?;
+    let entries =
+        services::leaderboard::get_leaderboard(&state.db, limit, tournament_id, game_id).await?;
     Ok(Json(entries))
 }

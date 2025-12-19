@@ -5,9 +5,9 @@ use crate::{
     services,
 };
 use axum::{
+    Json,
     extract::{Path, State},
     http::StatusCode,
-    Json,
 };
 use surrealdb::sql::Thing;
 use validator::Validate;

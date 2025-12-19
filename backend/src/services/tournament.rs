@@ -1,7 +1,10 @@
 use crate::{
     db::Database,
     error::{ApiError, ApiResult},
-    models::{Tournament, TournamentParticipant, TournamentStatus, MatchGenerationType, Match, MatchStatus, MatchParticipant},
+    models::{
+        Match, MatchGenerationType, MatchParticipant, MatchStatus, Tournament,
+        TournamentParticipant, TournamentStatus,
+    },
 };
 use chrono::{DateTime, Utc};
 use surrealdb::sql::{Datetime, Thing};
@@ -137,10 +140,7 @@ pub async fn join_tournament(
         .await?;
     // Increment current_players
     db.query("UPDATE $tournament_id SET current_players += 1")
-        .bind((
-            "tournament_id",
-            tournament_id,
-        ))
+        .bind(("tournament_id", tournament_id))
         .await?;
     created.ok_or_else(|| ApiError::Internal("Failed to join tournament".to_string()))
 }
@@ -157,7 +157,11 @@ pub async fn get_tournament_participants(
     Ok(participants)
 }
 
-pub async fn leave_tournament(db: &Database, tournament_id: Thing, user_id: Thing) -> ApiResult<()> {
+pub async fn leave_tournament(
+    db: &Database,
+    tournament_id: Thing,
+    user_id: Thing,
+) -> ApiResult<()> {
     // Check tournament status - cannot leave if tournament has started
     let tournament = get_tournament(db, tournament_id.clone()).await?;
     if tournament.status != TournamentStatus::Registration {
@@ -183,10 +187,7 @@ pub async fn leave_tournament(db: &Database, tournament_id: Thing, user_id: Thin
     }
     // Decrement current_players
     db.query("UPDATE $tournament_id SET current_players -= 1")
-        .bind((
-            "tournament_id",
-            tournament_id,
-        ))
+        .bind(("tournament_id", tournament_id))
         .await?;
     Ok(())
 }
@@ -242,10 +243,12 @@ pub async fn start_tournament(db: &Database, tournament_id: Thing) -> ApiResult<
             generate_round_robin_matches(db, &tournament, &participants_with_submissions).await?
         }
         MatchGenerationType::SingleElimination => {
-            generate_single_elimination_matches(db, &tournament, &participants_with_submissions).await?
+            generate_single_elimination_matches(db, &tournament, &participants_with_submissions)
+                .await?
         }
         MatchGenerationType::DoubleElimination => {
-            generate_double_elimination_matches(db, &tournament, &participants_with_submissions).await?
+            generate_double_elimination_matches(db, &tournament, &participants_with_submissions)
+                .await?
         }
     };
 
@@ -260,7 +263,8 @@ pub async fn start_tournament(db: &Database, tournament_id: Thing) -> ApiResult<
     );
     let updated: Option<Tournament> = db.update(key).content(tournament).await?;
 
-    let updated_tournament = updated.ok_or_else(|| ApiError::NotFound("Tournament not found".to_string()))?;
+    let updated_tournament =
+        updated.ok_or_else(|| ApiError::NotFound("Tournament not found".to_string()))?;
 
     Ok(updated_tournament)
 }
@@ -271,12 +275,14 @@ async fn create_match_for_participants(
     p1: &TournamentParticipant,
     p2: &TournamentParticipant,
 ) -> ApiResult<()> {
-    let submission_id_1 = p1.submission_id.clone().ok_or_else(|| {
-        ApiError::Internal("Participant missing submission".to_string())
-    })?;
-    let submission_id_2 = p2.submission_id.clone().ok_or_else(|| {
-        ApiError::Internal("Participant missing submission".to_string())
-    })?;
+    let submission_id_1 = p1
+        .submission_id
+        .clone()
+        .ok_or_else(|| ApiError::Internal("Participant missing submission".to_string()))?;
+    let submission_id_2 = p2
+        .submission_id
+        .clone()
+        .ok_or_else(|| ApiError::Internal("Participant missing submission".to_string()))?;
 
     let match_data = Match {
         id: None,
