@@ -3,7 +3,7 @@ use std::io::{BufRead, BufReader, Write};
 use std::process::{Command, Stdio};
 use std::sync::mpsc::{channel, RecvTimeoutError};
 use std::thread;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::Duration;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum Move {
@@ -75,9 +75,7 @@ impl Player {
 
     fn read_with_timeout(&mut self, timeout: Duration) -> Result<String, String> {
         let (tx, rx) = channel();
-
         let reader = &mut self.stdout_reader;
-
         thread::scope(|s| {
             s.spawn(|| {
                 let mut response = String::new();
@@ -87,7 +85,6 @@ impl Player {
                     Err(_) => tx.send(Err("Read error".to_string())).unwrap_or(()),
                 }
             });
-
             match rx.recv_timeout(timeout) {
                 Ok(result) => result,
                 Err(RecvTimeoutError::Timeout) => Err("TLE".to_string()),
@@ -103,45 +100,13 @@ impl Player {
     }
 }
 
-struct SimpleRng {
-    state: u64,
-}
-
-impl SimpleRng {
-    fn new() -> Self {
-        let seed = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map(|d| d.as_nanos() as u64)
-            .unwrap_or(0x1234_5678_9abc_def0);
-        Self { state: seed }
-    }
-
-    fn next_u64(&mut self) -> u64 {
-        // Xorshift64*
-        let mut x = self.state;
-        x ^= x >> 12;
-        x ^= x << 25;
-        x ^= x >> 27;
-        self.state = x;
-        x.wrapping_mul(0x2545F4914F6CDD1D)
-    }
-
-    fn gen_range(&mut self, min: u32, max: u32) -> u32 {
-        let span = (max - min) as u64 + 1;
-        min + (self.next_u64() % span) as u32
-    }
-}
-
 fn main() {
     let args: Vec<String> = env::args().collect();
-
     if args.len() != 3 {
         eprintln!("Usage: {} <player1_binary> <player2_binary>", args[0]);
         println!("RE RE");
         return;
     }
-
-    // Initialize players
     let mut player1 = match Player::new(&args[1]) {
         Ok(p) => p,
         Err(_) => {
@@ -149,7 +114,6 @@ fn main() {
             return;
         }
     };
-
     let mut player2 = match Player::new(&args[2]) {
         Ok(p) => p,
         Err(_) => {
@@ -158,20 +122,16 @@ fn main() {
             return;
         }
     };
-
-    // Pseudorandom number of rounds (100-120) without external deps
-    let mut rng = SimpleRng::new();
-    let num_rounds = rng.gen_range(100, 120);
-
+    let num_rounds: u32 = std::env::var("MATCH_ROUNDS")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(100);
     let mut score1 = 0;
     let mut score2 = 0;
     let mut last_move1: Option<Move> = None;
     let mut last_move2: Option<Move> = None;
-
     let timeout = Duration::from_secs(2);
-
     for round in 0..num_rounds {
-        // Send opponent's last move (if exists)
         if round > 0 {
             if let Some(m) = last_move2 {
                 if player1.send(&format!("OPP {}", m.to_str())).is_err() {
@@ -190,8 +150,6 @@ fn main() {
                 }
             }
         }
-
-        // Request moves
         if player1.send("MOVE").is_err() {
             player1.cleanup();
             player2.cleanup();
@@ -204,8 +162,6 @@ fn main() {
             println!("{} RE", score1);
             return;
         }
-
-        // Read moves with timeout
         let response1 = match player1.read_with_timeout(timeout) {
             Ok(r) => r,
             Err(e) => {
@@ -219,7 +175,6 @@ fn main() {
                 return;
             }
         };
-
         let response2 = match player2.read_with_timeout(timeout) {
             Ok(r) => r,
             Err(e) => {
@@ -233,8 +188,6 @@ fn main() {
                 return;
             }
         };
-
-        // Parse moves
         let move1 = match Move::from_str(&response1) {
             Some(m) => m,
             None => {
@@ -244,7 +197,6 @@ fn main() {
                 return;
             }
         };
-
         let move2 = match Move::from_str(&response2) {
             Some(m) => m,
             None => {
@@ -254,31 +206,21 @@ fn main() {
                 return;
             }
         };
-
-        // Update scores
         if move1.beats(&move2) {
             score1 += 1;
         } else if move2.beats(&move1) {
             score2 += 1;
         }
-        // Tie: no points
-
         last_move1 = Some(move1);
         last_move2 = Some(move2);
     }
-
-    // Send final opponent moves
     if let Some(m) = last_move2 {
         let _ = player1.send(&format!("OPP {}", m.to_str()));
     }
     if let Some(m) = last_move1 {
         let _ = player2.send(&format!("OPP {}", m.to_str()));
     }
-
-    // Cleanup
     player1.cleanup();
     player2.cleanup();
-
-    // Output final scores
     println!("{} {}", score1, score2);
 }
