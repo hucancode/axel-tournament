@@ -14,6 +14,8 @@ pub struct Game {
     pub docker_image: Option<String>, // built Docker image tag
     pub game_code: Option<String>, // game orchestration code content
     pub game_language: Option<ProgrammingLanguage>, // language of game code
+    pub turn_timeout_ms: Option<u64>, // per-turn timeout forwarded to game code
+    pub memory_limit_mb: Option<u64>, // container memory cap for player processes
     pub created_at: Datetime,
     pub updated_at: Datetime,
 }
@@ -51,6 +53,12 @@ pub struct CreateGameRequest {
     #[validate(length(min = 1, max = 1000, message = "Description must be 1-1000 characters"))]
     pub description: String,
     pub supported_languages: Vec<ProgrammingLanguage>,
+    #[serde(default)]
+    #[validate(range(min = 100, max = 300000, message = "Turn timeout must be 100-300000ms"))]
+    pub turn_timeout_ms: Option<u64>,
+    #[serde(default)]
+    #[validate(range(min = 32, max = 8192, message = "Memory limit must be 32-8192 MB"))]
+    pub memory_limit_mb: Option<u64>,
 }
 
 #[derive(Debug, Deserialize, Validate)]
@@ -61,6 +69,12 @@ pub struct UpdateGameRequest {
     pub description: Option<String>,
     pub supported_languages: Option<Vec<ProgrammingLanguage>>,
     pub is_active: Option<bool>,
+    #[serde(default)]
+    #[validate(range(min = 100, max = 300000, message = "Turn timeout must be 100-300000ms"))]
+    pub turn_timeout_ms: Option<u64>,
+    #[serde(default)]
+    #[validate(range(min = 32, max = 8192, message = "Memory limit must be 32-8192 MB"))]
+    pub memory_limit_mb: Option<u64>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Validate)]
@@ -98,6 +112,8 @@ pub struct GameResponse {
     pub docker_image: Option<String>,
     pub game_code: Option<String>,
     pub game_language: Option<ProgrammingLanguage>,
+    pub turn_timeout_ms: Option<u64>,
+    pub memory_limit_mb: Option<u64>,
     pub created_at: Datetime,
     pub updated_at: Datetime,
 }
@@ -115,6 +131,8 @@ impl From<Game> for GameResponse {
             docker_image: game.docker_image,
             game_code: game.game_code,
             game_language: game.game_language,
+            turn_timeout_ms: game.turn_timeout_ms,
+            memory_limit_mb: game.memory_limit_mb,
             created_at: game.created_at,
             updated_at: game.updated_at,
         }

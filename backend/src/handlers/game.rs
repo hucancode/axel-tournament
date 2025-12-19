@@ -25,6 +25,8 @@ pub async fn create_game(
         payload.description,
         payload.supported_languages,
         None, // Admin creates games without owner
+        payload.turn_timeout_ms,
+        payload.memory_limit_mb,
     )
     .await?;
     Ok((StatusCode::CREATED, Json(game.into())))
@@ -48,6 +50,8 @@ pub async fn create_game_as_game_setter(
         payload.description,
         payload.supported_languages,
         owner_id,
+        payload.turn_timeout_ms,
+        payload.memory_limit_mb,
     )
     .await?;
     Ok((StatusCode::CREATED, Json(game.into())))
@@ -87,6 +91,8 @@ pub async fn update_game(
         payload.description,
         payload.supported_languages,
         payload.is_active,
+        payload.turn_timeout_ms,
+        payload.memory_limit_mb,
     )
     .await?;
     Ok(Json(game.into()))

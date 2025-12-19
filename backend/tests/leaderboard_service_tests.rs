@@ -31,6 +31,8 @@ async fn test_leaderboard_ordering_and_limit() {
         "Desc".to_string(),
         vec![ProgrammingLanguage::Rust],
         None,
+        None,
+        None,
     )
     .await
     .unwrap();

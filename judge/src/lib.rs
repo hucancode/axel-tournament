@@ -134,13 +134,8 @@ where
     #[derive(Debug, Deserialize)]
     struct MatchNotificationParticipant {
         submission_id: Thing,
-        user_id: Thing,
         #[serde(default)]
         score: Option<f64>,
-        #[serde(default)]
-        rank: Option<u32>,
-        #[serde(default)]
-        is_winner: bool,
         #[serde(default)]
         metadata: Option<serde_json::Value>,
     }
@@ -175,10 +170,7 @@ where
                                 .into_iter()
                                 .map(|p| MatchParticipant {
                                     submission_id: p.submission_id,
-                                    user_id: p.user_id,
                                     score: p.score,
-                                    rank: p.rank,
-                                    is_winner: p.is_winner,
                                     metadata: p.metadata,
                                 })
                                 .collect();

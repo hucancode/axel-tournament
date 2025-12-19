@@ -30,10 +30,7 @@ pub enum MatchStatus {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MatchParticipant {
     pub submission_id: Thing,
-    pub user_id: Thing, // Denormalized for easy access
     pub score: Option<f64>,
-    pub rank: Option<u32>,
-    pub is_winner: bool,
     pub metadata: Option<serde_json::Value>, // Player specific stats
 }
 
@@ -59,7 +56,5 @@ pub struct UpdateMatchResultRequest {
 pub struct MatchParticipantResult {
     pub submission_id: String,
     pub score: f64,
-    pub rank: Option<u32>,
-    pub is_winner: bool,
     pub metadata: Option<serde_json::Value>,
 }

@@ -32,6 +32,8 @@ async fn test_create_and_get_tournament() {
         "Desc".to_string(),
         vec![axel_tournament::models::ProgrammingLanguage::Rust],
         None,
+        None,
+        None,
     )
     .await
     .unwrap();
@@ -65,6 +67,8 @@ async fn test_update_tournament_status() {
         common::unique_name("Status Game "),
         "Desc".to_string(),
         vec![axel_tournament::models::ProgrammingLanguage::Rust],
+        None,
+        None,
         None,
     )
     .await
@@ -108,6 +112,8 @@ async fn test_join_and_leave_tournament() {
         common::unique_name("Join Game "),
         "Desc".to_string(),
         vec![axel_tournament::models::ProgrammingLanguage::Rust],
+        None,
+        None,
         None,
     )
     .await
@@ -222,6 +228,8 @@ async fn test_start_tournament_all_vs_all() {
         "Match generation test".to_string(),
         vec![axel_tournament::models::ProgrammingLanguage::Rust],
         None,
+        None,
+        None,
     )
     .await
     .unwrap();
@@ -313,6 +321,8 @@ async fn test_start_tournament_round_robin() {
         "Round robin test".to_string(),
         vec![axel_tournament::models::ProgrammingLanguage::Rust],
         None,
+        None,
+        None,
     )
     .await
     .unwrap();
@@ -401,6 +411,8 @@ async fn test_start_tournament_without_submissions_fails() {
         "No submissions test".to_string(),
         vec![axel_tournament::models::ProgrammingLanguage::Rust],
         None,
+        None,
+        None,
     )
     .await
     .unwrap();
@@ -458,6 +470,8 @@ async fn test_start_tournament_not_enough_players_fails() {
         common::unique_name("MinPlayers Game "),
         "Min players test".to_string(),
         vec![axel_tournament::models::ProgrammingLanguage::Rust],
+        None,
+        None,
         None,
     )
     .await

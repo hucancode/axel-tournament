@@ -43,6 +43,8 @@ async fn test_game_create() {
             ProgrammingLanguage::C,
         ],
         None,
+        None,
+        None,
     )
     .await;
     assert!(game.is_ok());
@@ -63,6 +65,8 @@ async fn test_game_get() {
         name.clone(),
         "Test Description".to_string(),
         vec![ProgrammingLanguage::Rust],
+        None,
+        None,
         None,
     )
     .await
@@ -92,6 +96,8 @@ async fn test_game_list_all() {
         "First game".to_string(),
         vec![ProgrammingLanguage::Rust],
         None,
+        None,
+        None,
     )
     .await
     .unwrap();
@@ -100,6 +106,8 @@ async fn test_game_list_all() {
         unique_name("Game 2 "),
         "Second game".to_string(),
         vec![ProgrammingLanguage::Go],
+        None,
+        None,
         None,
     )
     .await
@@ -120,6 +128,8 @@ async fn test_game_list_active_only() {
         "Active".to_string(),
         vec![ProgrammingLanguage::Rust],
         None,
+        None,
+        None,
     )
     .await
     .unwrap();
@@ -130,11 +140,22 @@ async fn test_game_list_active_only() {
         "Inactive".to_string(),
         vec![ProgrammingLanguage::C],
         None,
+        None,
+        None,
     )
     .await
     .unwrap();
     let inactive_id = inactive_game.id.unwrap();
-    game::update_game(&db, inactive_id, None, None, Some(vec![]), Some(false))
+    game::update_game(
+        &db,
+        inactive_id,
+        None,
+        None,
+        Some(vec![]),
+        Some(false),
+        None,
+        None,
+    )
         .await
         .unwrap();
     // List only active games
@@ -152,6 +173,8 @@ async fn test_game_update_name() {
         "Description".to_string(),
         vec![ProgrammingLanguage::Rust],
         None,
+        None,
+        None,
     )
     .await
     .unwrap();
@@ -162,6 +185,8 @@ async fn test_game_update_name() {
         &db,
         game_id.clone(),
         Some(new_name.clone()),
+        None,
+        None,
         None,
         None,
         None,
@@ -182,6 +207,8 @@ async fn test_game_update_description() {
         "Original Description".to_string(),
         vec![ProgrammingLanguage::Rust],
         None,
+        None,
+        None,
     )
     .await
     .unwrap();
@@ -192,6 +219,8 @@ async fn test_game_update_description() {
         game_id,
         None,
         Some("New Description".to_string()),
+        None,
+        None,
         None,
         None,
     )
@@ -209,13 +238,24 @@ async fn test_game_update_deactivate() {
         "Desc".to_string(),
         vec![ProgrammingLanguage::Rust],
         None,
+        None,
+        None,
     )
     .await
     .unwrap();
     assert_eq!(created_game.is_active, true);
     let game_id = created_game.id.unwrap();
     // Deactivate
-    let updated_game = game::update_game(&db, game_id.clone(), None, None, None, Some(false))
+    let updated_game = game::update_game(
+        &db,
+        game_id.clone(),
+        None,
+        None,
+        None,
+        Some(false),
+        None,
+        None,
+    )
         .await
         .unwrap();
     assert_eq!(updated_game.is_active, false);
@@ -229,6 +269,8 @@ async fn test_game_delete() {
         unique_name("To Delete "),
         "Will be deleted".to_string(),
         vec![ProgrammingLanguage::Rust],
+        None,
+        None,
         None,
     )
     .await
@@ -249,6 +291,8 @@ async fn test_game_request_validation() {
         name: "Valid Game".to_string(),
         description: "A valid game description".to_string(),
         supported_languages: vec![ProgrammingLanguage::Rust],
+        turn_timeout_ms: None,
+        memory_limit_mb: None,
     };
     assert!(valid.validate().is_ok());
     // Empty name - should fail
@@ -256,6 +300,8 @@ async fn test_game_request_validation() {
         name: "".to_string(),
         description: "Description".to_string(),
         supported_languages: vec![ProgrammingLanguage::Rust],
+        turn_timeout_ms: None,
+        memory_limit_mb: None,
     };
     assert!(empty_name.validate().is_err());
     // Name too long
@@ -263,6 +309,8 @@ async fn test_game_request_validation() {
         name: "a".repeat(101),
         description: "Description".to_string(),
         supported_languages: vec![ProgrammingLanguage::Rust],
+        turn_timeout_ms: None,
+        memory_limit_mb: None,
     };
     assert!(long_name.validate().is_err());
     // Empty description
@@ -270,6 +318,8 @@ async fn test_game_request_validation() {
         name: "Name".to_string(),
         description: "".to_string(),
         supported_languages: vec![ProgrammingLanguage::Rust],
+        turn_timeout_ms: None,
+        memory_limit_mb: None,
     };
     assert!(empty_desc.validate().is_err());
 }
@@ -282,6 +332,8 @@ async fn test_game_update_request_validation() {
         description: None,
         supported_languages: None,
         is_active: None,
+        turn_timeout_ms: None,
+        memory_limit_mb: None,
     };
     assert!(empty_update.validate().is_ok());
     // Valid partial update
@@ -290,6 +342,8 @@ async fn test_game_update_request_validation() {
         description: None,
         supported_languages: None,
         is_active: Some(false),
+        turn_timeout_ms: None,
+        memory_limit_mb: None,
     };
     assert!(partial.validate().is_ok());
     // Invalid: name too long
@@ -298,6 +352,8 @@ async fn test_game_update_request_validation() {
         description: None,
         supported_languages: None,
         is_active: None,
+        turn_timeout_ms: None,
+        memory_limit_mb: None,
     };
     assert!(invalid_name.validate().is_err());
 }

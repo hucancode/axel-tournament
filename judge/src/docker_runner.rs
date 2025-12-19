@@ -36,6 +36,8 @@ impl DockerRunner {
             .fetch_game(&match_data.game_id)
             .await
             .context(format!("Failed to fetch game {}", match_data.game_id))?;
+        let turn_timeout_ms = game.turn_timeout_ms.unwrap_or(2000).max(100);
+        let memory_limit_mb = game.memory_limit_mb.unwrap_or(512).max(32);
 
         // 1. Use universal Docker image
         let image_tag = "axel-sandbox".to_string();
@@ -45,7 +47,14 @@ impl DockerRunner {
 
         // 3. Run match in container
         let results = self
-            .run_match_container(&image_tag, &work_dir, match_data, rounds)
+            .run_match_container(
+                &image_tag,
+                &work_dir,
+                match_data,
+                rounds,
+                turn_timeout_ms,
+                memory_limit_mb,
+            )
             .await?;
 
         // 4. Cleanup
@@ -193,14 +202,22 @@ impl DockerRunner {
         work_dir: &str,
         match_data: &Match,
         rounds: u32,
+        turn_timeout_ms: u64,
+        memory_limit_mb: u64,
     ) -> Result<Vec<ParticipantResult>> {
+        let memory_limit_bytes = (memory_limit_mb * 1024 * 1024) as i64;
+
         // Create container with resource limits
         let config = ContainerCreateBody {
             image: Some(image_tag.to_string()),
-            env: Some(vec![format!("MATCH_ROUNDS={}", rounds)]),
+            env: Some(vec![
+                format!("MATCH_ROUNDS={}", rounds),
+                format!("TURN_TIMEOUT_MS={}", turn_timeout_ms),
+                format!("MEMORY_LIMIT_MB={}", memory_limit_mb),
+            ]),
             host_config: Some(HostConfig {
                 binds: Some(vec![format!("{}:/workspace", work_dir)]), // Writable for compilation
-                memory: Some(512 * 1024 * 1024),                       // 512MB
+                memory: Some(memory_limit_bytes),                      // per-game cap
                 nano_cpus: Some(1_000_000_000),                        // 1 CPU
                 network_mode: Some("none".to_string()),                // No network access
                 ..Default::default()
@@ -333,19 +350,12 @@ impl DockerRunner {
                 ParticipantResult {
                     submission_id: sid,
                     score,
-                    rank: None,
-                    is_winner: false,
                     metadata: None,
                 }
             })
             .collect();
 
-        // Determine rankings
         results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
-        for (idx, result) in results.iter_mut().enumerate() {
-            result.rank = Some((idx + 1) as u32);
-            result.is_winner = idx == 0;
-        }
 
         Ok(results)
     }
@@ -409,8 +419,6 @@ impl DockerRunner {
             results.push(ParticipantResult {
                 submission_id: participant.submission_id.to_string(),
                 score,
-                rank: None,
-                is_winner: false,
                 metadata,
             });
         }
@@ -428,7 +436,7 @@ impl DockerRunner {
             );
         }
 
-        // Determine rankings (errors get lowest rank)
+        // Sort so valid scores stay ahead of error results
         results.sort_by(|a, b| {
             // Error results go to the end
             match (a.metadata.is_some(), b.metadata.is_some()) {
@@ -440,11 +448,6 @@ impl DockerRunner {
                     .unwrap_or(std::cmp::Ordering::Equal),
             }
         });
-
-        for (idx, result) in results.iter_mut().enumerate() {
-            result.rank = Some((idx + 1) as u32);
-            result.is_winner = idx == 0 && result.metadata.is_none();
-        }
 
         Ok(results)
     }

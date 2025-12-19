@@ -158,12 +158,10 @@ async fn judge_executes_rock_paper_scissor_match() {
         .bind(("game_id", game_id.clone()))
         .bind(("participants", json!([
             {
-                "submission_id": submission1_id,
-                "user_id": "user:test_user1"
+                "submission_id": submission1_id
             },
             {
-                "submission_id": submission2_id,
-                "user_id": "user:test_user2"
+                "submission_id": submission2_id
             }
         ])))
         .await

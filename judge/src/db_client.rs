@@ -125,8 +125,6 @@ impl DbClient {
                 }
             }) {
                 participant.score = Some(res.score);
-                participant.rank = res.rank;
-                participant.is_winner = res.is_winner;
                 participant.metadata = res.metadata.clone();
             }
         }
@@ -261,13 +259,8 @@ pub struct Match {
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct MatchParticipant {
     pub submission_id: Thing,
-    pub user_id: Thing,
     #[serde(default)]
     pub score: Option<f64>,
-    #[serde(default)]
-    pub rank: Option<u32>,
-    #[serde(default)]
-    pub is_winner: bool,
     #[serde(default)]
     pub metadata: Option<Value>,
 }
@@ -279,6 +272,10 @@ pub struct Game {
     pub game_code: Option<String>,
     #[serde(default)]
     pub game_language: Option<String>,
+    #[serde(default)]
+    pub turn_timeout_ms: Option<u64>,
+    #[serde(default)]
+    pub memory_limit_mb: Option<u64>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -302,7 +299,5 @@ pub struct MatchResult {
 pub struct ParticipantResult {
     pub submission_id: String,
     pub score: f64,
-    pub rank: Option<u32>,
-    pub is_winner: bool,
     pub metadata: Option<Value>,
 }

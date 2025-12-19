@@ -122,15 +122,19 @@ fn main() {
             return;
         }
     };
-    let num_rounds: u32 = std::env::var("MATCH_ROUNDS")
+    let num_rounds: u32 = env::var("MATCH_ROUNDS")
         .ok()
         .and_then(|v| v.parse().ok())
         .unwrap_or(100);
+    let turn_timeout_ms: u64 = env::var("TURN_TIMEOUT_MS")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(2000);
+    let timeout = Duration::from_millis(turn_timeout_ms);
     let mut score1 = 0;
     let mut score2 = 0;
     let mut last_move1: Option<Move> = None;
     let mut last_move2: Option<Move> = None;
-    let timeout = Duration::from_secs(2);
     for round in 0..num_rounds {
         if round > 0 {
             if let Some(m) = last_move2 {

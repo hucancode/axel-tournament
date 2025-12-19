@@ -11,7 +11,11 @@ pub async fn create_game(
     description: String,
     supported_languages: Vec<ProgrammingLanguage>,
     owner_id: Option<String>,
+    turn_timeout_ms: Option<u64>,
+    memory_limit_mb: Option<u64>,
 ) -> ApiResult<Game> {
+    let resolved_turn_timeout_ms = turn_timeout_ms.unwrap_or(2000);
+    let resolved_memory_limit_mb = memory_limit_mb.unwrap_or(512);
     let owner_thing = owner_id
         .map(|id| {
             id.parse::<Thing>()
@@ -30,6 +34,8 @@ pub async fn create_game(
         docker_image: None,
         game_code: None,
         game_language: None,
+        turn_timeout_ms: Some(resolved_turn_timeout_ms),
+        memory_limit_mb: Some(resolved_memory_limit_mb),
         created_at: Datetime::default(),
         updated_at: Datetime::default(),
     };
@@ -61,6 +67,8 @@ pub async fn update_game(
     description: Option<String>,
     supported_languages: Option<Vec<ProgrammingLanguage>>,
     is_active: Option<bool>,
+    turn_timeout_ms: Option<u64>,
+    memory_limit_mb: Option<u64>,
 ) -> ApiResult<Game> {
     let mut game = get_game(db, game_id.clone()).await?;
     if let Some(n) = name {
@@ -74,6 +82,12 @@ pub async fn update_game(
     }
     if let Some(ia) = is_active {
         game.is_active = ia;
+    }
+    if turn_timeout_ms.is_some() {
+        game.turn_timeout_ms = turn_timeout_ms;
+    }
+    if memory_limit_mb.is_some() {
+        game.memory_limit_mb = memory_limit_mb;
     }
     game.updated_at = Datetime::default();
     let key = (game_id.tb.as_str(), game_id.id.to_string());

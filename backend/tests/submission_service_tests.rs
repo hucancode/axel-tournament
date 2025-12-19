@@ -54,6 +54,8 @@ async fn test_submission_create() {
         "Test game".to_string(),
         vec![ProgrammingLanguage::Rust],
         None,
+        None,
+        None,
     )
     .await
     .unwrap();
@@ -113,6 +115,8 @@ async fn test_submission_get() {
         unique_name("Game "),
         "Test game".to_string(),
         vec![ProgrammingLanguage::Rust],
+        None,
+        None,
         None,
     )
     .await
@@ -176,6 +180,8 @@ async fn test_submission_list_by_user() {
         unique_name("Game "),
         "Test game".to_string(),
         vec![ProgrammingLanguage::Rust],
+        None,
+        None,
         None,
     )
     .await

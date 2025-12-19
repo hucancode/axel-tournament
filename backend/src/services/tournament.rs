@@ -292,18 +292,12 @@ async fn create_match_for_participants(
         participants: vec![
             MatchParticipant {
                 submission_id: submission_id_1,
-                user_id: p1.user_id.clone(),
                 score: None,
-                rank: None,
-                is_winner: false,
                 metadata: None,
             },
             MatchParticipant {
                 submission_id: submission_id_2,
-                user_id: p2.user_id.clone(),
                 score: None,
-                rank: None,
-                is_winner: false,
                 metadata: None,
             },
         ],

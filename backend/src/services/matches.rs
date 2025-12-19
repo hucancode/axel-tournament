@@ -7,6 +7,8 @@ use crate::{
         submission::Submission,
     },
 };
+use serde::Deserialize;
+use std::collections::HashSet;
 use surrealdb::sql::{Datetime, Thing};
 
 pub async fn create_match(
@@ -39,10 +41,7 @@ pub async fn create_match(
         }
         participants.push(MatchParticipant {
             submission_id: submission.id.unwrap(),
-            user_id: submission.user_id,
             score: None,
-            rank: None,
-            is_winner: false,
             metadata: None,
         });
     }
@@ -79,6 +78,9 @@ pub async fn list_matches(
 ) -> ApiResult<Vec<Match>> {
     let mut query = "SELECT * FROM match WHERE 1=1".to_string();
 
+    let tournament_filter = tournament_id.clone();
+    let game_filter = game_id.clone();
+
     if let Some(tid) = tournament_id {
         let tid_val = tid.id.to_string();
         query.push_str(&format!(
@@ -93,18 +95,52 @@ pub async fn list_matches(
             gid_val
         ));
     }
-    // Filtering by user_id in participants array
-    if let Some(uid) = user_id {
-        let uid_val = uid.id.to_string();
-        query.push_str(&format!(
-            " AND participants[?].user_id CONTAINS type::thing('user', '{}')",
-            uid_val
-        ));
-    }
 
     query.push_str(" ORDER BY created_at DESC");
     let mut result = db.query(query).await?;
-    let matches: Vec<Match> = result.take(0)?;
+    let mut matches: Vec<Match> = result.take(0)?;
+
+    // Optional filtering by user_id through their submissions
+    if let Some(uid) = user_id {
+        let mut submissions_sql =
+            "SELECT id FROM submission WHERE user_id = $user_id".to_string();
+
+        if tournament_filter.is_some() {
+            submissions_sql.push_str(" AND tournament_id = $tournament_id");
+        }
+        if game_filter.is_some() {
+            submissions_sql.push_str(" AND game_id = $game_id");
+        }
+
+        let mut submissions_query = db.query(submissions_sql).bind(("user_id", uid));
+        if let Some(tid) = tournament_filter {
+            submissions_query = submissions_query.bind(("tournament_id", tid));
+        }
+        if let Some(gid) = game_filter {
+            submissions_query = submissions_query.bind(("game_id", gid));
+        }
+
+        #[derive(Deserialize)]
+        struct SubmissionRow {
+            id: Thing,
+        }
+
+        let mut submission_rows = submissions_query.await?;
+        let submissions: Vec<SubmissionRow> = submission_rows.take(0)?;
+        let submission_ids: HashSet<Thing> =
+            submissions.into_iter().map(|row| row.id).collect();
+
+        if submission_ids.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        matches.retain(|m| {
+            m.participants
+                .iter()
+                .any(|p| submission_ids.contains(&p.submission_id))
+        });
+    }
+
     Ok(matches)
 }
 
@@ -143,8 +179,6 @@ pub async fn update_match_result(
             .find(|p| p.submission_id == target_thing)
         {
             p.score = Some(res.score);
-            p.rank = res.rank;
-            p.is_winner = res.is_winner;
             p.metadata = res.metadata;
         }
     }
