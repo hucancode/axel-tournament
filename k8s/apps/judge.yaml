@@ -1,0 +1,78 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: judge-db-credentials
+  namespace: judge
+stringData:
+  db_user: "root"
+  db_pass: "change-me"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: judge
+  namespace: judge
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: judge
+  template:
+    metadata:
+      labels:
+        app: judge
+    spec:
+      nodeSelector:
+        role: judge
+      tolerations:
+        - key: "dedicated"
+          operator: "Equal"
+          value: "judge"
+          effect: "NoSchedule"
+      containers:
+        - name: judge
+          image: ${JUDGE_IMAGE}
+          env:
+            - name: DATABASE_URL
+              value: "ws://surrealdb.db.svc.cluster.local:8000"
+            - name: DATABASE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: judge-db-credentials
+                  key: db_user
+            - name: DATABASE_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: judge-db-credentials
+                  key: db_pass
+            - name: DATABASE_NS
+              value: "axel"
+            - name: DATABASE_DB
+              value: "axel"
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "256Mi"
+            limits:
+              cpu: "1500m"
+              memory: "1Gi"
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: judge
+  namespace: judge
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: judge
+  minReplicas: 1
+  maxReplicas: 2
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60
