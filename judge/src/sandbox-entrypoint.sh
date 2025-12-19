@@ -1,41 +1,3 @@
-# Universal Game Runner Dockerfile
-# Supports Rust, Go, C, and Python game servers and player submissions
-
-FROM ubuntu:22.04
-
-# Prevent interactive prompts during installation
-ENV DEBIAN_FRONTEND=noninteractive
-
-# Install basic dependencies
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    gcc \
-    g++ \
-    curl \
-    wget \
-    git \
-    python3 \
-    python3-pip \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install Rust
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-ENV PATH="/root/.cargo/bin:${PATH}"
-
-# Install Go
-RUN wget https://go.dev/dl/go1.21.5.linux-amd64.tar.gz && \
-    tar -C /usr/local -xzf go1.21.5.linux-amd64.tar.gz && \
-    rm go1.21.5.linux-amd64.tar.gz
-ENV PATH="/usr/local/go/bin:${PATH}"
-ENV GOPATH="/root/go"
-
-# Pre-install common Rust dependencies to speed up compilation
-RUN cargo install cargo-script || true
-
-WORKDIR /game
-
-# Create universal entrypoint script
-RUN cat > /game/entrypoint.sh << 'ENTRYPOINT_EOF'
 #!/bin/bash
 set -e
 
@@ -179,9 +141,3 @@ if [[ "$SERVER_FILE" == *.py ]]; then
 else
     ./server "${VALID_PLAYERS[@]}" 2>&1
 fi
-ENTRYPOINT_EOF
-
-RUN chmod +x /game/entrypoint.sh
-
-# Set entrypoint
-ENTRYPOINT ["/bin/bash", "/game/entrypoint.sh"]

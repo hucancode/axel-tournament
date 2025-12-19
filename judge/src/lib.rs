@@ -113,8 +113,8 @@ where
     let docker = Docker::connect_with_socket_defaults()?;
     let docker_runner = DockerRunner::new(docker, db_client.clone());
 
-    info!("Ensuring universal Docker image is built...");
-    docker_runner.ensure_universal_image().await?;
+    info!("Ensuring Docker image is built...");
+    docker_runner.ensure_docker_image().await?;
 
     info!("Judge service ready. Subscribing to pending matches...");
     let mut response = db

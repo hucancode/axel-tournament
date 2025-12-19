@@ -12,7 +12,6 @@ use futures_util::StreamExt;
 use http_body_util::{Either, Full};
 use rand::{rng, Rng};
 use std::collections::HashMap;
-use std::path::Path;
 use tokio::fs;
 
 use crate::db_client::{DbClient, Game, Match, MatchResult, ParticipantResult};
@@ -38,8 +37,8 @@ impl DockerRunner {
             .await
             .context(format!("Failed to fetch game {}", match_data.game_id))?;
 
-        // 1. Use universal Docker image (no per-game image needed)
-        let image_tag = "axel-game-universal".to_string();
+        // 1. Use universal Docker image
+        let image_tag = "axel-sandbox".to_string();
 
         // 2. Prepare submission files
         let work_dir = self.prepare_workspace(match_data, &game).await?;
@@ -65,8 +64,8 @@ impl DockerRunner {
         })
     }
 
-    pub async fn ensure_universal_image(&self) -> Result<()> {
-        let image_tag = "axel-game-universal";
+    pub async fn ensure_docker_image(&self) -> Result<()> {
+        let image_tag = "axel-sandbox";
 
         // Check if image exists
         if self.docker.inspect_image(image_tag).await.is_ok() {
@@ -76,22 +75,24 @@ impl DockerRunner {
 
         tracing::info!("Building universal Docker image...");
 
-        // Read universal Dockerfile
-        let dockerfile_path = "Dockerfile.universal";
-        if !Path::new(dockerfile_path).exists() {
-            anyhow::bail!("Universal Dockerfile not found at {}", dockerfile_path);
-        }
+        // Embed Dockerfile and entrypoint at compile time
+        let dockerfile_bytes = include_str!("sandbox.Dockerfile").as_bytes();
+        let entrypoint_bytes = include_str!("sandbox-entrypoint.sh").as_bytes();
 
-        let dockerfile_content = fs::read_to_string(dockerfile_path).await?;
-
-        // Create a tar archive with the Dockerfile
+        // Create a tar archive with the Dockerfile and entrypoint
         let mut tar = tar::Builder::new(Vec::new());
-        let dockerfile_bytes = dockerfile_content.as_bytes();
-        let mut header = tar::Header::new_gnu();
-        header.set_size(dockerfile_bytes.len() as u64);
-        header.set_mode(0o644);
-        header.set_cksum();
-        tar.append_data(&mut header, "Dockerfile", dockerfile_bytes)?;
+        let mut append_bytes =
+            |name: &str, bytes: &[u8]| -> Result<()> {
+                let mut header = tar::Header::new_gnu();
+                header.set_size(bytes.len() as u64);
+                header.set_mode(0o644);
+                header.set_cksum();
+                tar.append_data(&mut header, name, bytes)?;
+                Ok(())
+            };
+
+        append_bytes("Dockerfile", &dockerfile_bytes)?;
+        append_bytes("sandbox-entrypoint.sh", &entrypoint_bytes)?;
         let tar_bytes = tar.into_inner()?;
 
         // Build image

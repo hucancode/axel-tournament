@@ -84,7 +84,6 @@ async fn judge_executes_rock_paper_scissor_match() {
 
     #[derive(Deserialize, Debug)]
     struct GameVerify {
-        id: Thing,
         #[serde(default)]
         game_code: Option<String>,
         #[serde(default)]
