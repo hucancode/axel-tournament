@@ -90,6 +90,24 @@ impl DbClient {
             .context(format!("Submission {} not found", submission_id))
     }
 
+    pub async fn try_queue_match(&self, match_id: &str) -> Result<bool> {
+        let match_thing: Thing = match_id
+            .parse()
+            .map_err(|_| anyhow!("Invalid match id {}", match_id))?;
+
+        let mut response = self
+            .db
+            .query(
+                "UPDATE $match_id SET status = 'queued', updated_at = time::now()
+                 WHERE status = 'pending' RETURN AFTER",
+            )
+            .bind(("match_id", match_thing))
+            .await?;
+
+        let updated: Vec<Value> = response.take(0)?;
+        Ok(!updated.is_empty())
+    }
+
     pub async fn update_match_status(&self, match_id: &str, status: &str) -> Result<()> {
         let match_thing: Thing = match_id
             .parse()

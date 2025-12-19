@@ -163,7 +163,6 @@ where
                             if live_match.status != "pending" {
                                 continue;
                             }
-
                             let match_id = live_match.id.to_string();
                             let participants: Vec<MatchParticipant> = live_match
                                 .participants
@@ -183,12 +182,23 @@ where
                                 participants,
                             };
 
-                            info!("Processing match: {}", match_data.id);
+                            let claimed = match db_client.try_queue_match(&match_data.id).await {
+                                Ok(claimed) => claimed,
+                                Err(e) => {
+                                    error!("Failed to update match status to queued: {}", e);
+                                    continue;
+                                }
+                            };
 
-                            if let Err(e) = db_client.update_match_status(&match_data.id, "queued").await {
-                                error!("Failed to update match status to queued: {}", e);
+                            if !claimed {
+                                info!(
+                                    "Match {} already queued by another judge, skipping",
+                                    match_data.id
+                                );
                                 continue;
                             }
+
+                            info!("Processing match: {}", match_data.id);
 
                             if let Err(e) = db_client.update_match_status(&match_data.id, "running").await {
                                 error!("Failed to update match status to running: {}", e);
