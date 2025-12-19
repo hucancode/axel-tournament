@@ -20,7 +20,6 @@
         supported_languages: [],
         is_active: true,
     });
-    let rulesJson = $state("{}");
     let formLoading = $state(false);
     let formError = $state("");
     const auth = $derived($authStore);
@@ -56,7 +55,6 @@
             supported_languages: [],
             is_active: true,
         };
-        rulesJson = "{}";
         formError = "";
         showForm = true;
     }
@@ -325,26 +323,6 @@
                         {/each}
                     </div>
                 </fieldset>
-                <div class="form-group">
-                    <label for="rules">Rules (JSON)</label>
-                    <textarea
-                        id="rules"
-                        class="textarea"
-                        bind:value={rulesJson}
-                        disabled={formLoading}
-                        rows="8"
-                        placeholder={'{"example": "value"}'}
-                        style="font-family: monospace;"
-                        required
-                    ></textarea>
-                    <p
-                        class="text-sm text-gray-500"
-                        style="margin-top: 0.25rem;"
-                    >
-                        Enter game rules as JSON. Example: {"{"}"max_turns":
-                        100, "grid_size": 10{"}"}
-                    </p>
-                </div>
                 <div class="form-group">
                     <label
                         class="flex items-center gap-2"

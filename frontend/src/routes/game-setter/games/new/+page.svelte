@@ -8,7 +8,6 @@
 
   let name = $state("");
   let description = $state("");
-  let rulesJson = $state("{}");
   let selectedLanguages: ProgrammingLanguage[] = $state([]);
   let error = $state("");
   let loading = $state(false);
@@ -79,18 +78,6 @@
           required
           rows="3"
           placeholder="Describe your game..."
-        ></textarea>
-      </div>
-
-      <div class="form-group">
-        <label for="rules">Rules (JSON) *</label>
-        <textarea
-          id="rules"
-          class="textarea"
-          bind:value={rulesJson}
-          required
-          rows="5"
-          placeholder={'{"rule1": "value1", "rule2": "value2"}'}
         ></textarea>
       </div>
 
