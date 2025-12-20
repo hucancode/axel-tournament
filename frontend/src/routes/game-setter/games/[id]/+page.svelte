@@ -1,14 +1,14 @@
 <script lang="ts">
   import { authStore } from "$lib/stores/auth";
   import { goto } from "$app/navigation";
-  import { page } from "$app/stores";
+  import { page } from "$app/state";
   import { onMount } from "svelte";
   import { api } from "$lib/api";
   import { gameSetterService } from "$lib/services/game-setter";
   import type { Game, GameTemplate, ProgrammingLanguage } from "$lib/types";
 
   let { user, isAuthenticated } = $derived($authStore);
-  const gameId = $derived($page.params.id!);
+  const gameId = $derived(page.params.id!);
 
   let game: Game | null = $state(null);
   let templates: GameTemplate[] = $state([]);
