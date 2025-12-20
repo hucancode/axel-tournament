@@ -27,6 +27,7 @@ async fn judge_executes_rock_paper_scissor_match() {
         db_pass: "root".to_string(),
         db_ns: "tournament".to_string(),
         db_name: "axel".to_string(),
+        sandbox_image: "axel-sandbox".to_string(),
     };
     tracing_subscriber::fmt::init();
     let judge_handle = spawn_judge_server(judge_config);

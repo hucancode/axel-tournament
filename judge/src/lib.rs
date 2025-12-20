@@ -25,6 +25,7 @@ pub struct JudgeConfig {
     pub db_pass: String,
     pub db_ns: String,
     pub db_name: String,
+    pub sandbox_image: String,
 }
 
 impl JudgeConfig {
@@ -35,6 +36,7 @@ impl JudgeConfig {
         let db_pass = std::env::var("DATABASE_PASS").unwrap_or_else(|_| "root".to_string());
         let db_ns = std::env::var("DATABASE_NS").unwrap_or_else(|_| "axel".to_string());
         let db_name = std::env::var("DATABASE_DB").unwrap_or_else(|_| "axel".to_string());
+        let sandbox_image = std::env::var("JUDGE_SANDBOX_IMAGE").unwrap_or_else(|_| "axel-sandbox".to_string());
 
         Self {
             db_url,
@@ -42,6 +44,7 @@ impl JudgeConfig {
             db_pass,
             db_ns,
             db_name,
+            sandbox_image,
         }
     }
 }
@@ -111,10 +114,11 @@ where
     let db = Arc::new(db);
     let db_client = DbClient::new(db.clone());
     let docker = Docker::connect_with_socket_defaults()?;
-    let docker_runner = DockerRunner::new(docker, db_client.clone());
+    let docker_runner =
+        DockerRunner::new(docker, db_client.clone(), config.sandbox_image.clone());
 
-    info!("Ensuring Docker image is built...");
-    docker_runner.ensure_docker_image().await?;
+    info!("Using sandbox image: {}", config.sandbox_image);
+    docker_runner.ensure_image_present().await?;
 
     info!("Judge service ready. Subscribing to pending matches...");
     let mut response = db

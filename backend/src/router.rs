@@ -27,7 +27,6 @@ pub fn create_router(state: AppState) -> Router {
         .allow_headers([
             header::AUTHORIZATION,
             header::CONTENT_TYPE,
-            axum::http::HeaderName::from_static("x-match-runner-key"),
         ])
         .allow_credentials(true);
     // Public routes (no authentication required)
@@ -101,17 +100,11 @@ pub fn create_router(state: AppState) -> Router {
             middleware::auth_middleware,
         ));
 
-    // Match runner routes (for external match management module)
-    // Requires X-Match-Runner-Key header for authentication
     let match_runner_routes = Router::new()
         .route(
             "/api/matches/{id}/result",
             put(handlers::update_match_result),
-        )
-        .route_layer(axum_middleware::from_fn_with_state(
-            state.clone(),
-            middleware::match_runner_middleware,
-        ));
+        );
 
     // Game Setter routes (require GameSetter or Admin role)
     let game_setter_routes = Router::new()

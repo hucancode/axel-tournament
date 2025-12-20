@@ -49,6 +49,8 @@ spec:
               value: "axel"
             - name: DATABASE_DB
               value: "axel"
+            - name: JUDGE_SANDBOX_IMAGE
+              value: "${SANDBOX_IMAGE}"
           resources:
             requests:
               cpu: "200m"

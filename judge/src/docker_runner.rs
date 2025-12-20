@@ -1,15 +1,13 @@
 use anyhow::{Context, Result};
 use bollard::models::{ContainerCreateBody, HostConfig};
 use bollard::query_parameters::{
-    BuildImageOptions, BuildImageOptionsBuilder, CreateContainerOptions,
-    CreateContainerOptionsBuilder, LogsOptionsBuilder, RemoveContainerOptionsBuilder,
-    StartContainerOptions, StopContainerOptions, WaitContainerOptions,
+    CreateContainerOptions, CreateContainerOptionsBuilder, LogsOptionsBuilder,
+    RemoveContainerOptionsBuilder, StartContainerOptions, StopContainerOptions,
+    WaitContainerOptions,
 };
 use bollard::Docker;
-use bytes::Bytes;
 use chrono::Utc;
 use futures_util::StreamExt;
-use http_body_util::{Either, Full};
 use rand::{rng, Rng};
 use std::collections::HashMap;
 use tokio::fs;
@@ -19,11 +17,16 @@ use crate::db_client::{DbClient, Game, Match, MatchResult, ParticipantResult};
 pub struct DockerRunner {
     docker: Docker,
     db_client: DbClient,
+    sandbox_image: String,
 }
 
 impl DockerRunner {
-    pub fn new(docker: Docker, db_client: DbClient) -> Self {
-        Self { docker, db_client }
+    pub fn new(docker: Docker, db_client: DbClient, sandbox_image: String) -> Self {
+        Self {
+            docker,
+            db_client,
+            sandbox_image,
+        }
     }
 
     pub async fn execute_match(&self, match_data: &Match) -> Result<MatchResult> {
@@ -39,16 +42,13 @@ impl DockerRunner {
         let turn_timeout_ms = game.turn_timeout_ms.unwrap_or(2000).max(100);
         let memory_limit_mb = game.memory_limit_mb.unwrap_or(512).max(32);
 
-        // 1. Use universal Docker image
-        let image_tag = "axel-sandbox".to_string();
-
         // 2. Prepare submission files
         let work_dir = self.prepare_workspace(match_data, &game).await?;
 
         // 3. Run match in container
         let results = self
             .run_match_container(
-                &image_tag,
+                &self.sandbox_image,
                 &work_dir,
                 match_data,
                 rounds,
@@ -73,63 +73,16 @@ impl DockerRunner {
         })
     }
 
-    pub async fn ensure_docker_image(&self) -> Result<()> {
-        let image_tag = "axel-sandbox";
-
-        // Check if image exists
-        if self.docker.inspect_image(image_tag).await.is_ok() {
-            tracing::info!("Universal Docker image already exists: {}", image_tag);
-            return Ok(());
-        }
-
-        tracing::info!("Building universal Docker image...");
-
-        // Embed Dockerfile and entrypoint at compile time
-        let dockerfile_bytes = include_str!("sandbox.Dockerfile").as_bytes();
-        let entrypoint_bytes = include_str!("sandbox-entrypoint.sh").as_bytes();
-
-        // Create a tar archive with the Dockerfile and entrypoint
-        let mut tar = tar::Builder::new(Vec::new());
-        let mut append_bytes =
-            |name: &str, bytes: &[u8]| -> Result<()> {
-                let mut header = tar::Header::new_gnu();
-                header.set_size(bytes.len() as u64);
-                header.set_mode(0o644);
-                header.set_cksum();
-                tar.append_data(&mut header, name, bytes)?;
-                Ok(())
-            };
-
-        append_bytes("Dockerfile", &dockerfile_bytes)?;
-        append_bytes("sandbox-entrypoint.sh", &entrypoint_bytes)?;
-        let tar_bytes = tar.into_inner()?;
-
-        // Build image
-        let build_options: BuildImageOptions = BuildImageOptionsBuilder::new()
-            .dockerfile("Dockerfile")
-            .t(image_tag)
-            .rm(true)
-            .build();
-
-        let body = Either::Left(Full::new(Bytes::from(tar_bytes)));
-        let mut stream = self.docker.build_image(build_options, None, Some(body));
-
-        // Wait for build to complete and log output
-        while let Some(result) = stream.next().await {
-            match result {
-                Ok(output) => {
-                    if let Some(stream) = output.stream {
-                        tracing::info!("Docker build: {}", stream.trim());
-                    }
-                    if let Some(error) = output.error {
-                        anyhow::bail!("Docker build error: {}", error);
-                    }
-                }
-                Err(e) => anyhow::bail!("Docker build failed: {}", e),
-            }
-        }
-
-        tracing::info!("Successfully built universal Docker image!");
+    pub async fn ensure_image_present(&self) -> Result<()> {
+        self.docker
+            .inspect_image(&self.sandbox_image)
+            .await
+            .with_context(|| {
+                format!(
+                    "Sandbox image not found: {}. Prebuild it before starting the judge.",
+                    self.sandbox_image
+                )
+            })?;
         Ok(())
     }
 

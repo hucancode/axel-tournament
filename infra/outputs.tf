@@ -25,3 +25,7 @@ output "ecr_backend_repository" {
 output "ecr_judge_repository" {
   value = try(aws_ecr_repository.repos["judge"].repository_url, "")
 }
+
+output "ecr_sandbox_repository" {
+  value = try(aws_ecr_repository.repos["sandbox"].repository_url, "")
+}
