@@ -1,5 +1,5 @@
 use anyhow::Result;
-use axel_tournament_judge::{run_judge, JudgeConfig};
+use axel_judge::{run_judge, JudgeConfig};
 use tracing::warn;
 
 #[tokio::main]

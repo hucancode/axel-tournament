@@ -1,6 +1,6 @@
 mod common;
 
-use axel_tournament::services::auth;
+use axel_tournament::services::{auth, user};
 use axum::http::{self, StatusCode};
 
 #[tokio::test]
@@ -80,17 +80,24 @@ async fn password_reset_round_trip() {
         );
     }
     // Fetch token from DB and confirm reset
-    let user = auth::get_user_by_email(&app.state.db, &email)
+    let mut user = auth::get_user_by_email(&app.state.db, &email)
         .await
         .unwrap()
         .unwrap();
-    let reset_token = user.password_reset_token.unwrap();
+    assert!(user.password_reset_token.is_some());
+    let raw_reset_token = common::unique_name("reset_token_");
+    let reset_token_hash = app.state.auth_service.hash_reset_token(&raw_reset_token);
+    user.password_reset_token = Some(reset_token_hash);
+    let user_id = user.id.clone().expect("user id should exist");
+    user::update_user(&app.state.db, user_id, user)
+        .await
+        .expect("Failed to update reset token");
     let (confirm_status, confirm_body) = common::json_request(
         &app,
         http::Method::POST,
         "/api/auth/confirm-reset",
         Some(serde_json::json!({
-            "token": reset_token,
+            "token": raw_reset_token,
             "new_password": "new_password_123"
         })),
         None,

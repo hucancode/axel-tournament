@@ -1,4 +1,4 @@
-use axel_tournament_judge::{spawn_judge_server, JudgeConfig};
+use axel_judge::{spawn_judge_server, JudgeConfig};
 use serde::Deserialize;
 use serde_json::json;
 use std::time::Duration;
@@ -28,6 +28,7 @@ async fn judge_executes_rock_paper_scissor_match() {
         db_ns: "tournament".to_string(),
         db_name: "axel".to_string(),
         sandbox_image: "axel-sandbox".to_string(),
+        workspace_root: "/workspaces".to_string(),
     };
     tracing_subscriber::fmt::init();
     let judge_handle = spawn_judge_server(judge_config);

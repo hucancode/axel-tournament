@@ -16,11 +16,6 @@ Cargo.lock
 *~
 .DS_Store
 
-# Uploads
-uploads/
-dockerfiles/
-game_code/
-
 # Database
 *.db
 data/

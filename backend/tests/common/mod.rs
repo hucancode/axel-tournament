@@ -72,6 +72,8 @@ fn test_config(namespace: &str) -> Config {
             google_client_id: "".to_string(),
             google_client_secret: "".to_string(),
             google_redirect_uri: "http://localhost:8080/callback".to_string(),
+            cookie_secure: false,
+            state_ttl_seconds: 300,
         },
         email: EmailConfig {
             smtp_host: "smtp.test.com".to_string(),
