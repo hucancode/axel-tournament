@@ -11,6 +11,7 @@ use futures_util::StreamExt;
 use rand::{rng, Rng};
 use std::collections::HashMap;
 use tokio::fs;
+use tracing::warn;
 
 use crate::db_client::{DbClient, Game, Match, MatchResult, ParticipantResult};
 
@@ -18,14 +19,21 @@ pub struct DockerRunner {
     docker: Docker,
     db_client: DbClient,
     sandbox_image: String,
+    workspace_root: String,
 }
 
 impl DockerRunner {
-    pub fn new(docker: Docker, db_client: DbClient, sandbox_image: String) -> Self {
+    pub fn new(
+        docker: Docker,
+        db_client: DbClient,
+        sandbox_image: String,
+        workspace_root: String,
+    ) -> Self {
         Self {
             docker,
             db_client,
             sandbox_image,
+            workspace_root,
         }
     }
 
@@ -55,10 +63,14 @@ impl DockerRunner {
                 turn_timeout_ms,
                 memory_limit_mb,
             )
-            .await?;
+            .await;
 
         // 4. Cleanup
-        self.cleanup_workspace(&work_dir).await?;
+        if let Err(err) = self.cleanup_workspace(&work_dir).await {
+            warn!("Failed to cleanup workspace {}: {}", work_dir, err);
+        }
+
+        let results = results?;
 
         let completed_at = Utc::now();
 
@@ -87,7 +99,8 @@ impl DockerRunner {
     }
 
     async fn prepare_workspace(&self, match_data: &Match, game: &Game) -> Result<String> {
-        let workspace_dir = format!("/tmp/match_{}", match_data.id.replace(':', "_"));
+        let root = self.workspace_root.trim_end_matches('/');
+        let workspace_dir = format!("{}/match_{}", root, match_data.id.replace(':', "_"));
         fs::create_dir_all(&workspace_dir).await?;
 
         // Write game server code to workspace from database

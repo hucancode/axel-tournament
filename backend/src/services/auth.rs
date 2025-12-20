@@ -9,6 +9,7 @@ use argon2::{
 };
 use chrono::Utc;
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
+use sha2::{Digest, Sha256};
 use surrealdb::sql::Thing;
 
 pub struct AuthService {
@@ -76,6 +77,10 @@ impl AuthService {
             .map(char::from)
             .collect()
     }
+    pub fn hash_reset_token(&self, token: &str) -> String {
+        let digest = Sha256::digest(token.as_bytes());
+        format!("{:x}", digest)
+    }
     pub fn user_to_info(user: &User) -> ApiResult<UserInfo> {
         let id = user
             .id
@@ -120,6 +125,16 @@ pub async fn get_user_by_oauth(
         .query("SELECT * FROM user WHERE oauth_provider = $provider AND oauth_id = $oauth_id")
         .bind(("provider", provider_owned))
         .bind(("oauth_id", oauth_id_owned))
+        .await?;
+    let users: Vec<User> = result.take(0)?;
+    Ok(users.into_iter().next())
+}
+
+pub async fn get_user_by_username(db: &Database, username: &str) -> ApiResult<Option<User>> {
+    let username_owned = username.to_string();
+    let mut result = db
+        .query("SELECT * FROM user WHERE username = $username")
+        .bind(("username", username_owned))
         .await?;
     let users: Vec<User> = result.take(0)?;
     Ok(users.into_iter().next())

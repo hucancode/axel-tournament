@@ -100,12 +100,6 @@ pub fn create_router(state: AppState) -> Router {
             middleware::auth_middleware,
         ));
 
-    let match_runner_routes = Router::new()
-        .route(
-            "/api/matches/{id}/result",
-            put(handlers::update_match_result),
-        );
-
     // Game Setter routes (require GameSetter or Admin role)
     let game_setter_routes = Router::new()
         // Game management
@@ -182,7 +176,6 @@ pub fn create_router(state: AppState) -> Router {
         .merge(protected_routes)
         .merge(admin_routes)
         .merge(game_setter_routes)
-        .merge(match_runner_routes)
         .layer(cors)
         .with_state(state)
 }

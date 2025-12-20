@@ -4,18 +4,25 @@ use crate::{
     models::*,
     services::{self, AuthService},
 };
-use axum::{Json, extract::State, http::StatusCode};
+use axum::{
+    Json,
+    extract::State,
+    http::{HeaderMap, StatusCode, header},
+};
 use chrono::{Duration, Utc};
 use oauth2::{
-    AuthUrl, AuthorizationCode, ClientId, ClientSecret, EndpointNotSet, EndpointSet, RedirectUrl,
-    TokenResponse, TokenUrl, basic::BasicClient,
+    AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, EndpointNotSet, EndpointSet,
+    RedirectUrl, TokenResponse, TokenUrl, basic::BasicClient,
 };
 use reqwest;
+use rand::{rng, Rng};
 use serde::Deserialize;
 use validator::Validate;
 
 type GoogleClient =
     BasicClient<EndpointSet, EndpointNotSet, EndpointNotSet, EndpointNotSet, EndpointSet>;
+
+const OAUTH_STATE_COOKIE: &str = "oauth_state";
 
 fn build_google_client(config: &crate::config::Config) -> Result<GoogleClient, ApiError> {
     let client = BasicClient::new(ClientId::new(config.oauth.google_client_id.clone()))
@@ -33,6 +40,69 @@ fn build_google_client(config: &crate::config::Config) -> Result<GoogleClient, A
                 .map_err(|e| ApiError::Auth(format!("Invalid redirect url: {}", e)))?,
         );
     Ok(client)
+}
+
+fn build_state_cookie(state: &str, ttl_seconds: i64, secure: bool) -> Result<header::HeaderValue, ApiError> {
+    let max_age = ttl_seconds.max(60);
+    let mut cookie = format!(
+        "{}={}; Max-Age={}; Path=/api/auth/google/callback; HttpOnly; SameSite=Lax",
+        OAUTH_STATE_COOKIE,
+        state,
+        max_age
+    );
+    if secure {
+        cookie.push_str("; Secure");
+    }
+    cookie
+        .parse()
+        .map_err(|_| ApiError::Internal("Failed to build OAuth cookie".to_string()))
+}
+
+fn expire_state_cookie(secure: bool) -> Result<header::HeaderValue, ApiError> {
+    let mut cookie = format!(
+        "{}=; Max-Age=0; Path=/api/auth/google/callback; HttpOnly; SameSite=Lax",
+        OAUTH_STATE_COOKIE
+    );
+    if secure {
+        cookie.push_str("; Secure");
+    }
+    cookie
+        .parse()
+        .map_err(|_| ApiError::Internal("Failed to clear OAuth cookie".to_string()))
+}
+
+fn get_cookie(headers: &HeaderMap, name: &str) -> Option<String> {
+    let header_value = headers.get(header::COOKIE)?.to_str().ok()?;
+    header_value.split(';').find_map(|pair| {
+        let mut parts = pair.trim().splitn(2, '=');
+        let key = parts.next()?.trim();
+        let value = parts.next()?.trim();
+        if key == name {
+            Some(value.to_string())
+        } else {
+            None
+        }
+    })
+}
+
+fn normalize_username(name: &str, email: &str) -> String {
+    let base = if name.trim().is_empty() {
+        email.split('@').next().unwrap_or("player")
+    } else {
+        name
+    };
+    let mut normalized: String = base
+        .chars()
+        .filter(|c| c.is_ascii_alphanumeric() || *c == '_' || *c == '-')
+        .collect();
+    if normalized.is_empty() {
+        normalized = "player".to_string();
+    }
+    if normalized.len() < 3 {
+        normalized.push_str("player");
+    }
+    normalized.truncate(50);
+    normalized
 }
 
 pub async fn register(
@@ -124,8 +194,9 @@ pub async fn request_password_reset(
     if let Some(mut user) = services::auth::get_user_by_email(&state.db, &payload.email).await? {
         // Generate reset token
         let reset_token = state.auth_service.generate_reset_token();
+        let reset_token_hash = state.auth_service.hash_reset_token(&reset_token);
         let expires: surrealdb::sql::Datetime = (Utc::now() + Duration::hours(1)).into();
-        user.password_reset_token = Some(reset_token.clone());
+        user.password_reset_token = Some(reset_token_hash);
         user.password_reset_expires = Some(expires);
         let user_id = user.id.as_ref().unwrap().clone();
         services::user::update_user(&state.db, user_id, user).await?;
@@ -149,7 +220,7 @@ pub async fn confirm_password_reset(
         .validate()
         .map_err(|e| ApiError::Validation(e.to_string()))?;
     // Find user with this reset token
-    let token = payload.token.clone();
+    let token = state.auth_service.hash_reset_token(&payload.token);
     let mut result = state
         .db
         .query("SELECT * FROM user WHERE password_reset_token = $reset_token")
@@ -184,7 +255,10 @@ pub async fn confirm_password_reset(
 
 #[derive(Deserialize)]
 pub struct GoogleCallbackQuery {
-    code: String,
+    code: Option<String>,
+    state: Option<String>,
+    error: Option<String>,
+    error_description: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -192,28 +266,64 @@ pub struct GoogleUserInfo {
     id: String,
     email: String,
     name: String,
+    #[serde(default)]
+    verified_email: Option<bool>,
 }
 
-pub async fn google_login(State(state): State<AppState>) -> ApiResult<Json<serde_json::Value>> {
+pub async fn google_login(
+    State(state): State<AppState>,
+) -> ApiResult<(HeaderMap, Json<serde_json::Value>)> {
     let client = build_google_client(&state.config)?;
-    let (auth_url, _csrf_token) = client
-        .authorize_url(|| oauth2::CsrfToken::new("csrf_token".to_string()))
+    let (auth_url, csrf_token) = client
+        .authorize_url(CsrfToken::new_random)
+        .add_scope(oauth2::Scope::new("openid".to_string()))
         .add_scope(oauth2::Scope::new("email".to_string()))
         .add_scope(oauth2::Scope::new("profile".to_string()))
         .url();
-    Ok(Json(serde_json::json!({
-        "auth_url": auth_url.to_string()
-    })))
+    let mut headers = HeaderMap::new();
+    let cookie = build_state_cookie(
+        csrf_token.secret(),
+        state.config.oauth.state_ttl_seconds,
+        state.config.oauth.cookie_secure,
+    )?;
+    headers.insert(header::SET_COOKIE, cookie);
+    Ok((
+        headers,
+        Json(serde_json::json!({
+            "auth_url": auth_url.to_string()
+        })),
+    ))
 }
 
 pub async fn google_callback(
     State(state): State<AppState>,
     axum::extract::Query(query): axum::extract::Query<GoogleCallbackQuery>,
-) -> ApiResult<Json<AuthResponse>> {
+    headers: HeaderMap,
+) -> ApiResult<(HeaderMap, Json<AuthResponse>)> {
+    if let Some(error) = query.error.as_deref() {
+        let detail = query
+            .error_description
+            .as_deref()
+            .unwrap_or("OAuth error");
+        return Err(ApiError::Auth(format!("Google OAuth error: {} ({})", error, detail)));
+    }
+    let code = query
+        .code
+        .as_deref()
+        .ok_or_else(|| ApiError::Auth("Missing OAuth code".to_string()))?;
+    let state_value = query
+        .state
+        .as_deref()
+        .ok_or_else(|| ApiError::Auth("Missing OAuth state".to_string()))?;
+    let cookie_state = get_cookie(&headers, OAUTH_STATE_COOKIE)
+        .ok_or_else(|| ApiError::Auth("Missing OAuth state cookie".to_string()))?;
+    if cookie_state != state_value {
+        return Err(ApiError::Auth("Invalid OAuth state".to_string()));
+    }
     let client = build_google_client(&state.config)?;
     let http_client = reqwest::Client::new();
     let token_result = client
-        .exchange_code(AuthorizationCode::new(query.code))
+        .exchange_code(AuthorizationCode::new(code.to_string()))
         .request_async(&http_client)
         .await
         .map_err(|e| ApiError::Auth(format!("Failed to exchange code: {}", e)))?;
@@ -228,17 +338,56 @@ pub async fn google_callback(
         .json()
         .await
         .map_err(|e| ApiError::Auth(format!("Failed to parse user info: {}", e)))?;
+    if user_info.email.trim().is_empty() {
+        return Err(ApiError::Auth("Google account email missing".to_string()));
+    }
+    if user_info.verified_email != Some(true) {
+        return Err(ApiError::Forbidden(
+            "Google account email is not verified".to_string(),
+        ));
+    }
     // Check if user exists with this OAuth ID
     let user = if let Some(existing_user) =
         services::auth::get_user_by_oauth(&state.db, "google", &user_info.id).await?
     {
         existing_user
+    } else if let Some(existing_user) =
+        services::auth::get_user_by_email(&state.db, &user_info.email).await?
+    {
+        if existing_user.oauth_provider.is_some() {
+            return Err(ApiError::Conflict(
+                "Email already registered with another sign-in method".to_string(),
+            ));
+        }
+        let mut updated_user = existing_user;
+        updated_user.oauth_provider = Some(OAuthProvider::Google);
+        updated_user.oauth_id = Some(user_info.id.clone());
+        let user_id = updated_user
+            .id
+            .as_ref()
+            .ok_or_else(|| ApiError::Internal("User ID is missing".to_string()))?
+            .clone();
+        services::user::update_user(&state.db, user_id, updated_user).await?
     } else {
+        let base_username = normalize_username(&user_info.name, &user_info.email);
+        let mut username = base_username.clone();
+        let mut attempts = 0;
+        while services::auth::get_user_by_username(&state.db, &username).await?.is_some() {
+            if attempts >= 5 {
+                return Err(ApiError::Conflict(
+                    "Unable to allocate unique username".to_string(),
+                ));
+            }
+            let suffix = rng().random_range(1000..=9999);
+            username = format!("{base_username}-{suffix}");
+            username.truncate(50);
+            attempts += 1;
+        }
         // Create new user
         services::user::create_user(
             &state.db,
             user_info.email,
-            user_info.name,
+            username,
             None,
             state.config.app.default_location.clone(),
             Some(OAuthProvider::Google),
@@ -257,8 +406,14 @@ pub async fn google_callback(
     // Generate token
     let token = state.auth_service.generate_token(&user)?;
     let user_info = AuthService::user_to_info(&user)?;
-    Ok(Json(AuthResponse {
-        token,
-        user: user_info,
-    }))
+    let mut response_headers = HeaderMap::new();
+    let cookie = expire_state_cookie(state.config.oauth.cookie_secure)?;
+    response_headers.insert(header::SET_COOKIE, cookie);
+    Ok((
+        response_headers,
+        Json(AuthResponse {
+            token,
+            user: user_info,
+        }),
+    ))
 }

@@ -42,19 +42,3 @@ pub struct CreateMatchRequest {
     #[validate(length(min = 2, message = "Match must have at least 2 participants"))]
     pub participant_submission_ids: Vec<String>,
 }
-
-#[derive(Debug, Deserialize, Validate)]
-pub struct UpdateMatchResultRequest {
-    pub status: MatchStatus,
-    pub participants: Vec<MatchParticipantResult>,
-    pub metadata: Option<serde_json::Value>,
-    pub started_at: Option<chrono::DateTime<chrono::Utc>>,
-    pub completed_at: Option<chrono::DateTime<chrono::Utc>>,
-}
-
-#[derive(Debug, Deserialize, Clone)]
-pub struct MatchParticipantResult {
-    pub submission_id: String,
-    pub score: f64,
-    pub metadata: Option<serde_json::Value>,
-}

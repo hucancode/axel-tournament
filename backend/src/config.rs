@@ -44,6 +44,8 @@ pub struct OAuthConfig {
     pub google_client_id: String,
     pub google_client_secret: String,
     pub google_redirect_uri: String,
+    pub cookie_secure: bool,
+    pub state_ttl_seconds: i64,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -93,6 +95,14 @@ impl Config {
                 google_redirect_uri: env::var("GOOGLE_REDIRECT_URI").unwrap_or_else(|_| {
                     "http://localhost:8080/api/auth/google/callback".to_string()
                 }),
+                cookie_secure: env::var("OAUTH_COOKIE_SECURE")
+                    .unwrap_or_else(|_| "false".to_string())
+                    .parse()
+                    .unwrap_or(false),
+                state_ttl_seconds: env::var("OAUTH_STATE_TTL_SECONDS")
+                    .unwrap_or_else(|_| "300".to_string())
+                    .parse()
+                    .unwrap_or(300),
             },
             email: EmailConfig {
                 smtp_host: env::var("SMTP_HOST").unwrap_or_else(|_| "smtp.gmail.com".to_string()),

@@ -28,6 +28,18 @@ variable "cluster_public_access_cidrs" {
   default     = ["0.0.0.0/0"]
 }
 
+variable "cluster_public_access_enabled" {
+  type        = bool
+  description = "Whether the EKS public API endpoint is enabled."
+  default     = false
+}
+
+variable "cluster_private_access_enabled" {
+  type        = bool
+  description = "Whether the EKS private API endpoint is enabled."
+  default     = true
+}
+
 variable "app_instance_type" {
   type        = string
   description = "Instance type for the shared app node group."
@@ -48,14 +60,38 @@ variable "db_instance_type" {
 
 variable "app_desired_size" {
   type        = number
-  description = "Fixed size for the app node group."
+  description = "Desired size for the app node group."
   default     = 1
+}
+
+variable "app_min_size" {
+  type        = number
+  description = "Minimum size for the app node group."
+  default     = 1
+}
+
+variable "app_max_size" {
+  type        = number
+  description = "Maximum size for the app node group."
+  default     = 3
 }
 
 variable "judge_desired_size" {
   type        = number
-  description = "Fixed size for the judge node group."
+  description = "Desired size for the judge node group."
   default     = 2
+}
+
+variable "judge_min_size" {
+  type        = number
+  description = "Minimum size for the judge node group."
+  default     = 1
+}
+
+variable "judge_max_size" {
+  type        = number
+  description = "Maximum size for the judge node group."
+  default     = 4
 }
 
 variable "db_desired_size" {

@@ -60,6 +60,10 @@ spec:
                 secretKeyRef:
                   name: backend-secrets
                   key: admin_password
+            - name: OAUTH_COOKIE_SECURE
+              value: "true"
+            - name: OAUTH_STATE_TTL_SECONDS
+              value: "300"
           resources:
             requests:
               cpu: "200m"

@@ -62,8 +62,9 @@ module "eks" {
   subnet_ids = module.vpc.private_subnets
 
   enable_irsa                               = true
-  cluster_endpoint_public_access            = true
+  cluster_endpoint_public_access            = var.cluster_public_access_enabled
   cluster_endpoint_public_access_cidrs      = var.cluster_public_access_cidrs
+  cluster_endpoint_private_access           = var.cluster_private_access_enabled
   enable_cluster_creator_admin_permissions  = true
 
   cluster_addons = {
@@ -106,8 +107,8 @@ module "eks" {
       name           = "app"
       instance_types = [var.app_instance_type]
       desired_size   = var.app_desired_size
-      min_size       = var.app_desired_size
-      max_size       = var.app_desired_size
+      min_size       = var.app_min_size
+      max_size       = var.app_max_size
       labels = {
         role = "app"
       }
@@ -120,8 +121,8 @@ module "eks" {
       name           = "judge"
       instance_types = [var.judge_instance_type]
       desired_size   = var.judge_desired_size
-      min_size       = var.judge_desired_size
-      max_size       = var.judge_desired_size
+      min_size       = var.judge_min_size
+      max_size       = var.judge_max_size
       labels = {
         role = "judge"
       }

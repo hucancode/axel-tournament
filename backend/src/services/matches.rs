@@ -3,7 +3,7 @@ use crate::{
     error::{ApiError, ApiResult},
     models::{
         Game,
-        matches::{Match, MatchParticipant, MatchParticipantResult, MatchStatus},
+        matches::{Match, MatchParticipant, MatchStatus},
         submission::Submission,
     },
 };
@@ -81,23 +81,22 @@ pub async fn list_matches(
     let tournament_filter = tournament_id.clone();
     let game_filter = game_id.clone();
 
-    if let Some(tid) = tournament_id {
-        let tid_val = tid.id.to_string();
-        query.push_str(&format!(
-            " AND tournament_id = type::thing('tournament', '{}')",
-            tid_val
-        ));
+    if tournament_id.is_some() {
+        query.push_str(" AND tournament_id = $tournament_id");
     }
-    if let Some(gid) = game_id {
-        let gid_val = gid.id.to_string();
-        query.push_str(&format!(
-            " AND game_id = type::thing('game', '{}')",
-            gid_val
-        ));
+    if game_id.is_some() {
+        query.push_str(" AND game_id = $game_id");
     }
 
     query.push_str(" ORDER BY created_at DESC");
-    let mut result = db.query(query).await?;
+    let mut db_query = db.query(query);
+    if let Some(tid) = tournament_id {
+        db_query = db_query.bind(("tournament_id", tid));
+    }
+    if let Some(gid) = game_id {
+        db_query = db_query.bind(("game_id", gid));
+    }
+    let mut result = db_query.await?;
     let mut matches: Vec<Match> = result.take(0)?;
 
     // Optional filtering by user_id through their submissions
@@ -142,50 +141,4 @@ pub async fn list_matches(
     }
 
     Ok(matches)
-}
-
-pub async fn update_match_result(
-    db: &Database,
-    match_id: Thing,
-    status: MatchStatus,
-    participants_results: Vec<MatchParticipantResult>,
-    metadata: Option<serde_json::Value>,
-    started_at: Option<chrono::DateTime<chrono::Utc>>,
-    completed_at: Option<chrono::DateTime<chrono::Utc>>,
-) -> ApiResult<Match> {
-    let mut match_data = get_match(db, match_id.clone()).await?;
-
-    match_data.status = status;
-    if let Some(m) = metadata {
-        match_data.metadata = Some(m);
-    }
-
-    if let Some(sa) = started_at {
-        match_data.started_at = Some(sa.into());
-    }
-    if let Some(ca) = completed_at {
-        match_data.completed_at = Some(ca.into());
-    }
-    // Update participants
-    for res in participants_results {
-        let target_thing: Thing = res
-            .submission_id
-            .parse()
-            .map_err(|_| ApiError::BadRequest("Invalid submission id".to_string()))?;
-
-        if let Some(p) = match_data
-            .participants
-            .iter_mut()
-            .find(|p| p.submission_id == target_thing)
-        {
-            p.score = Some(res.score);
-            p.metadata = res.metadata;
-        }
-    }
-
-    match_data.updated_at = Datetime::default();
-
-    let match_key = (match_id.tb.as_str(), match_id.id.to_string());
-    let updated: Option<Match> = db.update(match_key).content(match_data).await?;
-    updated.ok_or_else(|| ApiError::Internal("Failed to update match".to_string()))
 }

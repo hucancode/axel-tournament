@@ -25,6 +25,7 @@ thiserror = "1"
 validator = { version = "0.20", features = ["derive"] }
 # Email (for password reset)
 lettre = "0.11"
+sha2 = "0.10"
 
 [dev-dependencies]
 http-body-util = "0.1"

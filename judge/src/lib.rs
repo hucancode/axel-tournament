@@ -26,6 +26,7 @@ pub struct JudgeConfig {
     pub db_ns: String,
     pub db_name: String,
     pub sandbox_image: String,
+    pub workspace_root: String,
 }
 
 impl JudgeConfig {
@@ -37,6 +38,8 @@ impl JudgeConfig {
         let db_ns = std::env::var("DATABASE_NS").unwrap_or_else(|_| "axel".to_string());
         let db_name = std::env::var("DATABASE_DB").unwrap_or_else(|_| "axel".to_string());
         let sandbox_image = std::env::var("JUDGE_SANDBOX_IMAGE").unwrap_or_else(|_| "axel-sandbox".to_string());
+        let workspace_root =
+            std::env::var("JUDGE_WORKSPACE_DIR").unwrap_or_else(|_| "/workspaces".to_string());
 
         Self {
             db_url,
@@ -45,6 +48,7 @@ impl JudgeConfig {
             db_ns,
             db_name,
             sandbox_image,
+            workspace_root,
         }
     }
 }
@@ -113,9 +117,13 @@ where
 
     let db = Arc::new(db);
     let db_client = DbClient::new(db.clone());
-    let docker = Docker::connect_with_socket_defaults()?;
-    let docker_runner =
-        DockerRunner::new(docker, db_client.clone(), config.sandbox_image.clone());
+    let docker = Docker::connect_with_defaults()?;
+    let docker_runner = DockerRunner::new(
+        docker,
+        db_client.clone(),
+        config.sandbox_image.clone(),
+        config.workspace_root.clone(),
+    );
 
     info!("Using sandbox image: {}", config.sandbox_image);
     docker_runner.ensure_image_present().await?;

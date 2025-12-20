@@ -1,7 +1,7 @@
 use crate::{
     AppState,
     error::ApiResult,
-    models::matches::{CreateMatchRequest, Match, UpdateMatchResultRequest},
+    models::matches::{CreateMatchRequest, Match},
     services,
 };
 use axum::{
@@ -100,27 +100,4 @@ pub async fn list_matches(
     let matches =
         services::matches::list_matches(&state.db, tournament_id, game_id, user_id).await?;
     Ok(Json(matches))
-}
-
-pub async fn update_match_result(
-    State(state): State<AppState>,
-    Path(match_id): Path<String>,
-    Json(payload): Json<UpdateMatchResultRequest>,
-) -> ApiResult<Json<Match>> {
-    payload
-        .validate()
-        .map_err(|e| crate::error::ApiError::Validation(e.to_string()))?;
-    let match_data = services::matches::update_match_result(
-        &state.db,
-        match_id
-            .parse::<Thing>()
-            .map_err(|_| crate::error::ApiError::BadRequest("Invalid match id".to_string()))?,
-        payload.status,
-        payload.participants,
-        payload.metadata,
-        payload.started_at,
-        payload.completed_at,
-    )
-    .await?;
-    Ok(Json(match_data))
 }
