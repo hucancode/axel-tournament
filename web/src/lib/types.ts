@@ -86,29 +86,25 @@ export interface Game {
   description: string;
   supported_languages: ProgrammingLanguage[];
   is_active: boolean;
-  owner_id?: string;
-  dockerfile?: string;
-  docker_image?: string;
-  game_code?: string;
-  game_language?: ProgrammingLanguage;
+  owner_id: string;
+  game_code: string;
+  game_language: ProgrammingLanguage;
+  rounds_per_match: number;
+  repetitions: number;
+  timeout_seconds: number;
+  cpu_limit: string;
+  memory_limit: string;
   turn_timeout_ms?: number;
   memory_limit_mb?: number;
   created_at: string;
   updated_at: string;
 }
 
-export interface CreateGameRequest {
-  name: string;
-  description: string;
-  supported_languages: ProgrammingLanguage[];
-  is_active: boolean;
-  turn_timeout_ms?: number;
-  memory_limit_mb?: number;
-}
+type GameEditableFields = Omit<Game, "id" | "owner_id" | "created_at" | "updated_at">;
 
-export interface UploadDockerfileRequest {
-  dockerfile_content: string;
-}
+export type CreateGameRequest = Omit<GameEditableFields, "is_active">;
+
+export type UpdateGameRequest = Partial<GameEditableFields>;
 
 // Game Template types
 export interface GameTemplate {
@@ -124,28 +120,6 @@ export interface CreateGameTemplateRequest {
   game_id: string;
   language: string;
   template_code: string;
-}
-
-// Match Policy types
-export interface MatchPolicy {
-  id: string;
-  tournament_id: string;
-  rounds_per_match: number;
-  repetitions: number;
-  timeout_seconds: number;
-  cpu_limit?: string;
-  memory_limit?: string;
-  scoring_weights?: Record<string, any>;
-}
-
-export interface CreateMatchPolicyRequest {
-  tournament_id: string;
-  rounds_per_match?: number;
-  repetitions?: number;
-  timeout_seconds?: number;
-  cpu_limit?: string;
-  memory_limit?: string;
-  scoring_weights?: Record<string, any>;
 }
 
 // Submission types
@@ -194,7 +168,7 @@ export interface MatchParticipant {
 
 export interface Match {
   id: string;
-  tournament_id?: string;
+  tournament_id: string;
   game_id: string;
   status: MatchStatus;
   participants: MatchParticipant[];
@@ -206,7 +180,7 @@ export interface Match {
 }
 
 export interface CreateMatchRequest {
-  tournament_id?: string;
+  tournament_id: string;
   game_id: string;
   participant_submission_ids: string[];
 }

@@ -31,7 +31,14 @@ async fn complete_tournament_flow_with_two_players() {
         Some(json!({
             "name": format!("Rock Paper Scissor {}", common::unique_name("")),
             "description": "Classic RPS game for e2e test",
-            "supported_languages": ["rust", "go", "c"]
+            "supported_languages": ["rust", "go", "c"],
+            "game_code": RPS_SERVER_CODE,
+            "game_language": "rust",
+            "rounds_per_match": 3,
+            "repetitions": 1,
+            "timeout_seconds": 120,
+            "cpu_limit": "1.0",
+            "memory_limit": "512m"
         })),
         Some(&game_setter_token),
     )
@@ -44,28 +51,6 @@ async fn complete_tournament_flow_with_two_players() {
     );
     let game_id = common::extract_thing_id(&game_body["id"]);
     println!("Created game: {}", game_id);
-
-    // Step 1b: Game setter uploads the server code (game orchestrator)
-    let server_code = RPS_SERVER_CODE;
-
-    let (upload_status, upload_body) = common::json_request(
-        &app,
-        http::Method::POST,
-        &format!("/api/game-setter/games/{}/game-code", game_id),
-        Some(json!({
-            "language": "rust",
-            "code_content": server_code
-        })),
-        Some(&game_setter_token),
-    )
-    .await;
-    assert!(
-        upload_status == StatusCode::OK,
-        "Failed to upload game code: status {}, body {:?}",
-        upload_status,
-        upload_body
-    );
-    println!("Uploaded server code for game");
 
     // Step 2: Game setter creates/opens a tournament
     let (tournament_status, tournament_body) = common::json_request(

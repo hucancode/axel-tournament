@@ -1,9 +1,30 @@
 #!/bin/bash
 set -e
 
-OUTPUT_DIR="${OUTPUT_DIR:-$PWD}"
+WORKSPACE_DIR="${WORKSPACE_DIR:-$PWD}"
+OUTPUT_DIR="${OUTPUT_DIR:-$WORKSPACE_DIR}"
+
+if [ ! -d "${WORKSPACE_DIR}" ]; then
+    echo "RE RE"
+    exit 1
+fi
 
 mkdir -p "${OUTPUT_DIR}"
+
+if [ -n "${DEBUG:-}" ]; then
+    echo "[sandbox] User: $(id)"
+    echo "[sandbox] Workspace: ${WORKSPACE_DIR}"
+    echo "[sandbox] Output: ${OUTPUT_DIR}"
+    echo "[sandbox] PWD (before): ${PWD}"
+    echo "[sandbox] Workspace perms: $(ls -ld "${WORKSPACE_DIR}" 2>/dev/null || true)"
+    echo "[sandbox] Output perms: $(ls -ld "${OUTPUT_DIR}" 2>/dev/null || true)"
+fi
+
+cd "${OUTPUT_DIR}"
+
+if [ -n "${DEBUG:-}" ]; then
+    echo "[sandbox] PWD (after): ${PWD}"
+fi
 
 # Function to detect file language
 detect_language() {
@@ -57,8 +78,8 @@ compile_code() {
 # Find server code (server.rs, server.go, server.c, server.py, etc.)
 SERVER_FILE=""
 for ext in rs go c cpp py; do
-    if [ -f "server.$ext" ]; then
-        SERVER_FILE="server.$ext"
+    if [ -f "${WORKSPACE_DIR}/server.$ext" ]; then
+        SERVER_FILE="${WORKSPACE_DIR}/server.$ext"
         break
     fi
 done
@@ -82,9 +103,10 @@ PLAYERS=()
 PLAYER_COUNT=0
 PLAYER_COMPILE_FAILED=false
 
-for file in player_*.*; do
+for file in "${WORKSPACE_DIR}"/player_*.*; do
     if [ -f "$file" ] && [[ "$file" != *.toml ]]; then
-        idx=$(echo "$file" | sed 's/player_//; s/\.[^.]*$//')
+        filename=$(basename "$file")
+        idx=$(echo "$filename" | sed 's/player_//; s/\.[^.]*$//')
         binary="player_${idx}"
         output="${OUTPUT_DIR}/${binary}"
 

@@ -375,9 +375,13 @@ async fn create_match_for_participants(
         .clone()
         .ok_or_else(|| ApiError::Internal("Participant missing submission".to_string()))?;
 
+    let tournament_id = tournament
+        .id
+        .clone()
+        .ok_or_else(|| ApiError::Internal("Tournament missing id".to_string()))?;
     let match_data = Match {
         id: None,
-        tournament_id: tournament.id.clone(),
+        tournament_id,
         game_id: tournament.game_id.clone(),
         status: MatchStatus::Pending,
         participants: vec![

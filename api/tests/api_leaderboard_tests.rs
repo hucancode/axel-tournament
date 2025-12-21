@@ -13,11 +13,10 @@ async fn leaderboard_returns_scored_players() {
         &app,
         http::Method::POST,
         "/api/admin/games",
-        Some(serde_json::json!({
-            "name": format!("Leaderboard Game {}", common::unique_name("")),
-            "description": "Game for leaderboard API",
-            "supported_languages": ["rust"]
-        })),
+        Some(common::game_payload(
+            format!("Leaderboard Game {}", common::unique_name("")),
+            "Game for leaderboard API",
+        )),
         Some(&admin_token),
     )
     .await;

@@ -3,7 +3,6 @@ use crate::{
     error::{ApiError, ApiResult},
     models::{ProgrammingLanguage, Submission, SubmissionStatus},
 };
-use serde::Deserialize;
 use surrealdb::sql::{Datetime, Thing};
 
 pub async fn create_submission(
@@ -14,59 +13,39 @@ pub async fn create_submission(
     language: ProgrammingLanguage,
     code: String,
 ) -> ApiResult<Submission> {
-    let mut existing = db
+    let status = serde_json::to_string(&SubmissionStatus::Pending)
+        .unwrap()
+        .trim_matches('"')
+        .to_string();
+    let now = Datetime::default();
+    let mut result = db
         .query(
-            "SELECT VALUE count() FROM tournament_participant
-             WHERE tournament_id = $tournament_id AND user_id = $user_id",
+            "LET $participant = (SELECT id FROM tournament_participant WHERE tournament_id = $tournament_id AND user_id = $user_id LIMIT 1);
+             LET $submission = (IF array::len($participant) = 0 THEN [] ELSE
+                (CREATE submission SET user_id = $user_id, tournament_id = $tournament_id,
+                 game_id = $game_id, language = $language, code = $code, status = $status,
+                 error_message = NONE, created_at = $now RETURN AFTER) END);
+             IF array::len($participant) > 0 THEN
+                UPDATE $participant[0].id SET submission_id = $submission[0].id;
+             END;
+             RETURN $submission;",
         )
-        .bind(("tournament_id", tournament_id.clone()))
-        .bind(("user_id", user_id.clone()))
-        .await?;
-    let counts: Vec<i64> = existing.take(0)?;
-    if counts.first().copied().unwrap_or(0) == 0 {
-        return Err(ApiError::Forbidden(
-            "You must join the tournament before submitting code".to_string(),
-        ));
-    }
-
-    // Create submission with code stored as string in database
-    let submission = Submission {
-        id: None,
-        user_id: user_id.clone(),
-        tournament_id: tournament_id.clone(),
-        game_id,
-        language,
-        code,
-        status: SubmissionStatus::Pending,
-        error_message: None,
-        created_at: Datetime::default(),
-    };
-    let created: Option<Submission> = db.create("submission").content(submission).await?;
-    let submission =
-        created.ok_or_else(|| ApiError::Internal("Failed to create submission".to_string()))?;
-    // Update tournament participant with latest submission
-    let mut updated = db
-        .query(
-            "UPDATE tournament_participant
-             SET submission_id = $submission_id
-             WHERE tournament_id = $tournament_id AND user_id = $user_id
-             RETURN AFTER",
-        )
-        .bind(("submission_id", submission.id.clone().unwrap()))
-        .bind(("tournament_id", tournament_id))
         .bind(("user_id", user_id))
-        .await?;
-    #[derive(Deserialize)]
-    struct ParticipantRow {
-        id: Thing,
-    }
-
-    let participants: Vec<ParticipantRow> = updated.take(0)?;
-    if participants.is_empty() {
-        return Err(ApiError::Internal(
-            "Failed to link submission to tournament participant".to_string(),
-        ));
-    }
+        .bind(("tournament_id", tournament_id))
+        .bind(("game_id", game_id))
+        .bind(("language", serde_json::to_string(&language).unwrap().trim_matches('"').to_string()))
+        .bind(("code", code))
+        .bind(("status", status))
+        .bind(("now", now))
+        .await?
+        .check()?;
+    let submissions: Vec<Submission> = result.take(3)?; // take the 4th result
+    let submission = submissions
+        .into_iter()
+        .next()
+        .ok_or_else(|| ApiError::Forbidden(
+            "You must join the tournament before submitting code".to_string(),
+        ))?;
     Ok(submission)
 }
 

@@ -9,11 +9,14 @@ pub struct Game {
     pub description: String,
     pub supported_languages: Vec<ProgrammingLanguage>,
     pub is_active: bool,
-    pub owner_id: Option<Thing>, // reference to user who created the game
-    pub dockerfile: Option<String>, // Dockerfile content
-    pub docker_image: Option<String>, // built Docker image tag
-    pub game_code: Option<String>, // game orchestration code content
-    pub game_language: Option<ProgrammingLanguage>, // language of game code
+    pub owner_id: Thing, // reference to user who created the game
+    pub game_code: String, // game orchestration code content
+    pub game_language: ProgrammingLanguage, // language of game code
+    pub rounds_per_match: u32, // match policy
+    pub repetitions: u32,
+    pub timeout_seconds: u32,
+    pub cpu_limit: String,
+    pub memory_limit: String,
     pub turn_timeout_ms: Option<u64>, // per-turn timeout forwarded to game code
     pub memory_limit_mb: Option<u64>, // container memory cap for player processes
     pub created_at: Datetime,
@@ -53,6 +56,19 @@ pub struct CreateGameRequest {
     #[validate(length(min = 1, max = 1000, message = "Description must be 1-1000 characters"))]
     pub description: String,
     pub supported_languages: Vec<ProgrammingLanguage>,
+    #[validate(length(min = 1, max = 1048576, message = "Game code must be 1 byte to 1MB"))]
+    pub game_code: String,
+    pub game_language: ProgrammingLanguage,
+    #[validate(range(min = 1, max = 100, message = "Rounds per match must be 1-100"))]
+    pub rounds_per_match: u32,
+    #[validate(range(min = 1, max = 100, message = "Repetitions must be 1-100"))]
+    pub repetitions: u32,
+    #[validate(range(min = 1, max = 3600, message = "Timeout must be 1-3600 seconds"))]
+    pub timeout_seconds: u32,
+    #[validate(length(min = 1, max = 64, message = "CPU limit must be 1-64 characters"))]
+    pub cpu_limit: String,
+    #[validate(length(min = 1, max = 64, message = "Memory limit must be 1-64 characters"))]
+    pub memory_limit: String,
     #[serde(default)]
     #[validate(range(min = 100, max = 300000, message = "Turn timeout must be 100-300000ms"))]
     pub turn_timeout_ms: Option<u64>,
@@ -70,34 +86,25 @@ pub struct UpdateGameRequest {
     pub supported_languages: Option<Vec<ProgrammingLanguage>>,
     pub is_active: Option<bool>,
     #[serde(default)]
+    #[validate(length(min = 1, max = 1048576, message = "Game code must be 1 byte to 1MB"))]
+    pub game_code: Option<String>,
+    pub game_language: Option<ProgrammingLanguage>,
+    #[validate(range(min = 1, max = 100, message = "Rounds per match must be 1-100"))]
+    pub rounds_per_match: Option<u32>,
+    #[validate(range(min = 1, max = 100, message = "Repetitions must be 1-100"))]
+    pub repetitions: Option<u32>,
+    #[validate(range(min = 1, max = 3600, message = "Timeout must be 1-3600 seconds"))]
+    pub timeout_seconds: Option<u32>,
+    #[validate(length(min = 1, max = 64, message = "CPU limit must be 1-64 characters"))]
+    pub cpu_limit: Option<String>,
+    #[validate(length(min = 1, max = 64, message = "Memory limit must be 1-64 characters"))]
+    pub memory_limit: Option<String>,
+    #[serde(default)]
     #[validate(range(min = 100, max = 300000, message = "Turn timeout must be 100-300000ms"))]
     pub turn_timeout_ms: Option<u64>,
     #[serde(default)]
     #[validate(range(min = 32, max = 8192, message = "Memory limit must be 32-8192 MB"))]
     pub memory_limit_mb: Option<u64>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Validate)]
-pub struct UploadDockerfileRequest {
-    #[validate(length(
-        min = 1,
-        max = 100000,
-        message = "Dockerfile must be 1-100000 characters"
-    ))]
-    pub dockerfile_content: String,
-}
-
-#[derive(Debug, Serialize, Deserialize, Validate)]
-pub struct UploadGameCodeRequest {
-    pub language: String,
-    #[validate(length(min = 1, max = 1048576, message = "Game code must be 1 byte to 1MB"))]
-    pub code_content: String,
-}
-
-#[derive(Debug, Serialize)]
-pub struct BuildDockerImageResponse {
-    pub image_tag: String,
-    pub build_status: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -107,11 +114,14 @@ pub struct GameResponse {
     pub description: String,
     pub supported_languages: Vec<ProgrammingLanguage>,
     pub is_active: bool,
-    pub owner_id: Option<String>,
-    pub dockerfile: Option<String>,
-    pub docker_image: Option<String>,
-    pub game_code: Option<String>,
-    pub game_language: Option<ProgrammingLanguage>,
+    pub owner_id: String,
+    pub game_code: String,
+    pub game_language: ProgrammingLanguage,
+    pub rounds_per_match: u32,
+    pub repetitions: u32,
+    pub timeout_seconds: u32,
+    pub cpu_limit: String,
+    pub memory_limit: String,
     pub turn_timeout_ms: Option<u64>,
     pub memory_limit_mb: Option<u64>,
     pub created_at: Datetime,
@@ -126,11 +136,14 @@ impl From<Game> for GameResponse {
             description: game.description,
             supported_languages: game.supported_languages,
             is_active: game.is_active,
-            owner_id: game.owner_id.map(|t| t.to_string()),
-            dockerfile: game.dockerfile,
-            docker_image: game.docker_image,
+            owner_id: game.owner_id.to_string(),
             game_code: game.game_code,
             game_language: game.game_language,
+            rounds_per_match: game.rounds_per_match,
+            repetitions: game.repetitions,
+            timeout_seconds: game.timeout_seconds,
+            cpu_limit: game.cpu_limit,
+            memory_limit: game.memory_limit,
             turn_timeout_ms: game.turn_timeout_ms,
             memory_limit_mb: game.memory_limit_mb,
             created_at: game.created_at,

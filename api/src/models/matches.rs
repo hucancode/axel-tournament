@@ -5,7 +5,7 @@ use validator::Validate;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Match {
     pub id: Option<Thing>,
-    pub tournament_id: Option<Thing>,
+    pub tournament_id: Thing,
     pub game_id: Thing,
     pub status: MatchStatus,
     pub participants: Vec<MatchParticipant>,
@@ -36,7 +36,7 @@ pub struct MatchParticipant {
 
 #[derive(Debug, Deserialize, Validate)]
 pub struct CreateMatchRequest {
-    pub tournament_id: Option<String>,
+    pub tournament_id: String,
     pub game_id: String,
 
     #[validate(length(min = 2, message = "Match must have at least 2 participants"))]

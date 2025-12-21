@@ -51,6 +51,21 @@ pub fn unique_name(prefix: &str) -> String {
     format!("{}{}", prefix, timestamp)
 }
 
+pub fn game_payload(name: String, description: &str) -> Value {
+    json!({
+        "name": name,
+        "description": description,
+        "supported_languages": ["rust"],
+        "game_code": "fn main() {}",
+        "game_language": "rust",
+        "rounds_per_match": 3,
+        "repetitions": 1,
+        "timeout_seconds": 120,
+        "cpu_limit": "1.0",
+        "memory_limit": "512m"
+    })
+}
+
 fn test_config(namespace: &str) -> Config {
     Config {
         server: ServerConfig {

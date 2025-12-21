@@ -11,11 +11,10 @@ async fn create_and_list_submissions() {
         &app,
         http::Method::POST,
         "/api/admin/games",
-        Some(serde_json::json!({
-            "name": format!("Submission Game {}", common::unique_name("")),
-            "description": "Game for submissions",
-            "supported_languages": ["rust"]
-        })),
+        Some(common::game_payload(
+            format!("Submission Game {}", common::unique_name("")),
+            "Game for submissions",
+        )),
         Some(&admin_token),
     )
     .await;

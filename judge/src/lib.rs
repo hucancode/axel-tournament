@@ -137,8 +137,7 @@ where
     struct MatchNotification {
         id: Thing,
         game_id: Thing,
-        #[serde(default)]
-        tournament_id: Option<Thing>,
+        tournament_id: Thing,
         status: String,
         participants: Vec<MatchNotificationParticipant>,
     }
@@ -189,7 +188,7 @@ where
                             let match_data = Match {
                                 id: match_id.clone(),
                                 game_id: live_match.game_id.to_string(),
-                                tournament_id: live_match.tournament_id.map(|t| t.to_string()),
+                                tournament_id: live_match.tournament_id.to_string(),
                                 status: live_match.status,
                                 participants,
                             };

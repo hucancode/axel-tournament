@@ -21,6 +21,17 @@ async fn setup_test_db() -> axel_tournament::db::Database {
         .expect("Failed to connect to test database")
 }
 
+const DEFAULT_GAME_CODE: &str = "fn main() {}";
+const DEFAULT_ROUNDS_PER_MATCH: u32 = 3;
+const DEFAULT_REPETITIONS: u32 = 1;
+const DEFAULT_TIMEOUT_SECONDS: u32 = 120;
+const DEFAULT_CPU_LIMIT: &str = "1.0";
+const DEFAULT_MEMORY_LIMIT: &str = "512m";
+
+fn default_owner_id() -> String {
+    "user:owner".to_string()
+}
+
 #[tokio::test]
 async fn test_leaderboard_ordering_and_limit() {
     let db = setup_test_db().await;
@@ -30,7 +41,14 @@ async fn test_leaderboard_ordering_and_limit() {
         common::unique_name("Leaderboard Game "),
         "Desc".to_string(),
         vec![ProgrammingLanguage::Rust],
-        None,
+        default_owner_id(),
+        DEFAULT_GAME_CODE.to_string(),
+        ProgrammingLanguage::Rust,
+        DEFAULT_ROUNDS_PER_MATCH,
+        DEFAULT_REPETITIONS,
+        DEFAULT_TIMEOUT_SECONDS,
+        DEFAULT_CPU_LIMIT.to_string(),
+        DEFAULT_MEMORY_LIMIT.to_string(),
         None,
         None,
     )
@@ -44,6 +62,8 @@ async fn test_leaderboard_ordering_and_limit() {
         "Test tournament".to_string(),
         2,
         32,
+        None,
+        None,
         None,
         None,
         None,

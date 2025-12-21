@@ -7,6 +7,7 @@
         Game,
         ProgrammingLanguage,
         CreateGameRequest,
+        UpdateGameRequest,
     } from "$lib/types";
     let games = $state<Game[]>([]);
     let loading = $state(true);
@@ -14,10 +15,19 @@
     // Create/Edit form state
     let showForm = $state(false);
     let editingGame = $state<Game | null>(null);
-    let formData = $state<CreateGameRequest>({
+    type GameFormData = CreateGameRequest & { is_active: boolean };
+
+    let formData = $state<GameFormData>({
         name: "",
         description: "",
         supported_languages: [],
+        game_code: "",
+        game_language: "rust",
+        rounds_per_match: 3,
+        repetitions: 1,
+        timeout_seconds: 120,
+        cpu_limit: "1.0",
+        memory_limit: "512m",
         is_active: true,
     });
     let formLoading = $state(false);
@@ -53,6 +63,13 @@
             name: "",
             description: "",
             supported_languages: [],
+            game_code: "",
+            game_language: "rust",
+            rounds_per_match: 3,
+            repetitions: 1,
+            timeout_seconds: 120,
+            cpu_limit: "1.0",
+            memory_limit: "512m",
             is_active: true,
         };
         formError = "";
@@ -64,6 +81,13 @@
             name: game.name,
             description: game.description,
             supported_languages: [...game.supported_languages],
+            game_code: game.game_code,
+            game_language: game.game_language,
+            rounds_per_match: game.rounds_per_match,
+            repetitions: game.repetitions,
+            timeout_seconds: game.timeout_seconds,
+            cpu_limit: game.cpu_limit,
+            memory_limit: game.memory_limit,
             is_active: game.is_active,
         };
         formError = "";
@@ -95,11 +119,25 @@
             formLoading = false;
             return;
         }
+        if (!formData.game_code.trim()) {
+            formError = "Game code is required";
+            formLoading = false;
+            return;
+        }
+        if (!formData.supported_languages.includes(formData.game_language)) {
+            formError = "Game code language must be one of the supported languages";
+            formLoading = false;
+            return;
+        }
         try {
             if (isEditing && editingGame) {
-                await gameService.update(editingGame.id, formData);
+                const updatePayload: UpdateGameRequest = {
+                    ...formData,
+                };
+                await gameService.update(editingGame.id, updatePayload);
             } else {
-                await gameService.create(formData);
+                const { is_active, ...createPayload } = formData;
+                await gameService.create(createPayload);
             }
             await loadGames();
             closeForm();
@@ -323,6 +361,96 @@
                         {/each}
                     </div>
                 </fieldset>
+                <div class="form-group">
+                    <label for="game-language">Game Code Language</label>
+                    <select
+                        id="game-language"
+                        class="input"
+                        bind:value={formData.game_language}
+                        disabled={formLoading || formData.supported_languages.length === 0}
+                        required
+                    >
+                        <option value="" disabled>
+                            Select language...
+                        </option>
+                        {#each formData.supported_languages as lang}
+                            <option value={lang}>{lang}</option>
+                        {/each}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="game-code">Game Code</label>
+                    <textarea
+                        id="game-code"
+                        class="textarea"
+                        bind:value={formData.game_code}
+                        disabled={formLoading}
+                        rows="6"
+                        required
+                        style="font-family: monospace; font-size: 0.9em;"
+                    ></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="rounds-per-match">Rounds per Match</label>
+                    <input
+                        id="rounds-per-match"
+                        type="number"
+                        class="input"
+                        min="1"
+                        max="100"
+                        bind:value={formData.rounds_per_match}
+                        disabled={formLoading}
+                        required
+                    />
+                </div>
+                <div class="form-group">
+                    <label for="repetitions">Repetitions</label>
+                    <input
+                        id="repetitions"
+                        type="number"
+                        class="input"
+                        min="1"
+                        max="100"
+                        bind:value={formData.repetitions}
+                        disabled={formLoading}
+                        required
+                    />
+                </div>
+                <div class="form-group">
+                    <label for="timeout-seconds">Match Timeout (seconds)</label>
+                    <input
+                        id="timeout-seconds"
+                        type="number"
+                        class="input"
+                        min="1"
+                        max="3600"
+                        bind:value={formData.timeout_seconds}
+                        disabled={formLoading}
+                        required
+                    />
+                </div>
+                <div class="form-group">
+                    <label for="cpu-limit">CPU Limit</label>
+                    <input
+                        id="cpu-limit"
+                        type="text"
+                        class="input"
+                        bind:value={formData.cpu_limit}
+                        disabled={formLoading}
+                        required
+                    />
+                </div>
+                <div class="form-group">
+                    <label for="memory-limit">Memory Limit</label>
+                    <input
+                        id="memory-limit"
+                        type="text"
+                        class="input"
+                        bind:value={formData.memory_limit}
+                        disabled={formLoading}
+                        required
+                    />
+                </div>
                 <div class="form-group">
                     <label
                         class="flex items-center gap-2"

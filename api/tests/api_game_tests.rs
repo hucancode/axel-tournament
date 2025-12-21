@@ -20,11 +20,7 @@ async fn admin_can_crud_games() {
         &app,
         http::Method::POST,
         "/api/admin/games",
-        Some(serde_json::json!({
-            "name": game_name,
-            "description": "API created game",
-            "supported_languages": ["rust"]
-        })),
+        Some(common::game_payload(game_name, "API created game")),
         Some(&admin_token),
     )
     .await;

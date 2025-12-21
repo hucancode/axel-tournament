@@ -82,16 +82,21 @@ pub async fn init_schema(db: &Database) -> Result<(), surrealdb::Error> {
     .await?;
     // Games table
     db.query(
-        "DEFINE TABLE IF NOT EXISTS game SCHEMALESS;
+        "DEFINE TABLE IF NOT EXISTS game SCHEMAFULL;
          DEFINE FIELD IF NOT EXISTS name ON game TYPE string;
          DEFINE FIELD IF NOT EXISTS description ON game TYPE string;
          DEFINE FIELD IF NOT EXISTS supported_languages ON game TYPE array;
          DEFINE FIELD IF NOT EXISTS is_active ON game TYPE bool DEFAULT true;
-         DEFINE FIELD IF NOT EXISTS owner_id ON game TYPE option<record<user>>;
-         DEFINE FIELD IF NOT EXISTS game_code ON game TYPE option<string>;
-         DEFINE FIELD IF NOT EXISTS game_language ON game TYPE option<string>;
-         DEFINE FIELD IF NOT EXISTS turn_timeout_ms ON game TYPE option<number> DEFAULT 2000;
-         DEFINE FIELD IF NOT EXISTS memory_limit_mb ON game TYPE option<number> DEFAULT 512;
+         DEFINE FIELD IF NOT EXISTS owner_id ON game TYPE record<user>;
+         DEFINE FIELD IF NOT EXISTS game_code ON game TYPE string;
+         DEFINE FIELD IF NOT EXISTS game_language ON game TYPE string;
+         DEFINE FIELD IF NOT EXISTS rounds_per_match ON game TYPE number;
+         DEFINE FIELD IF NOT EXISTS repetitions ON game TYPE number;
+         DEFINE FIELD IF NOT EXISTS timeout_seconds ON game TYPE number;
+         DEFINE FIELD IF NOT EXISTS cpu_limit ON game TYPE string;
+         DEFINE FIELD IF NOT EXISTS memory_limit ON game TYPE string;
+         DEFINE FIELD IF NOT EXISTS turn_timeout_ms ON game TYPE number DEFAULT 2000;
+         DEFINE FIELD IF NOT EXISTS memory_limit_mb ON game TYPE number DEFAULT 512;
          DEFINE FIELD IF NOT EXISTS created_at ON game TYPE datetime;
          DEFINE FIELD IF NOT EXISTS updated_at ON game TYPE datetime;
          DEFINE INDEX IF NOT EXISTS unique_game_name ON game COLUMNS name UNIQUE;
@@ -139,14 +144,18 @@ pub async fn init_schema(db: &Database) -> Result<(), surrealdb::Error> {
          DEFINE FIELD IF NOT EXISTS created_at ON submission TYPE datetime;",
     )
     .await?;
-    // Matches table - SCHEMALESS to allow flexible participants array with nested objects
+    // Matches table
     db.query(
-        "DEFINE TABLE IF NOT EXISTS match SCHEMALESS;
-         DEFINE FIELD IF NOT EXISTS tournament_id ON match TYPE option<record<tournament>>;
+        "DEFINE TABLE IF NOT EXISTS match SCHEMAFULL;
+         DEFINE FIELD IF NOT EXISTS tournament_id ON match TYPE record<tournament>;
          DEFINE FIELD IF NOT EXISTS game_id ON match TYPE record<game>;
          DEFINE FIELD IF NOT EXISTS status ON match TYPE string;
+         DEFINE FIELD IF NOT EXISTS participants ON match TYPE array;
+         DEFINE FIELD IF NOT EXISTS metadata ON match TYPE option<object>;
          DEFINE FIELD IF NOT EXISTS created_at ON match TYPE datetime;
          DEFINE FIELD IF NOT EXISTS updated_at ON match TYPE datetime;
+         DEFINE FIELD IF NOT EXISTS started_at ON match TYPE option<datetime>;
+         DEFINE FIELD IF NOT EXISTS completed_at ON match TYPE option<datetime>;
          DEFINE INDEX IF NOT EXISTS idx_match_tournament ON match COLUMNS tournament_id;
          DEFINE INDEX IF NOT EXISTS idx_match_status ON match COLUMNS status;
          DEFINE INDEX IF NOT EXISTS idx_match_created ON match COLUMNS created_at;",
@@ -162,20 +171,6 @@ pub async fn init_schema(db: &Database) -> Result<(), surrealdb::Error> {
          DEFINE FIELD IF NOT EXISTS created_at ON game_template TYPE datetime;
          DEFINE FIELD IF NOT EXISTS updated_at ON game_template TYPE datetime;
          DEFINE INDEX IF NOT EXISTS unique_game_language ON game_template COLUMNS game_id, language UNIQUE;",
-    )
-    .await?;
-
-    // Match policy table
-    db.query(
-        "DEFINE TABLE IF NOT EXISTS match_policy SCHEMAFULL;
-         DEFINE FIELD IF NOT EXISTS tournament_id ON match_policy TYPE record<tournament>;
-         DEFINE FIELD IF NOT EXISTS rounds_per_match ON match_policy TYPE number DEFAULT 1;
-         DEFINE FIELD IF NOT EXISTS repetitions ON match_policy TYPE number DEFAULT 1;
-         DEFINE FIELD IF NOT EXISTS timeout_seconds ON match_policy TYPE number DEFAULT 300;
-         DEFINE FIELD IF NOT EXISTS cpu_limit ON match_policy TYPE option<string>;
-         DEFINE FIELD IF NOT EXISTS memory_limit ON match_policy TYPE option<string>;
-         DEFINE FIELD IF NOT EXISTS scoring_weights ON match_policy TYPE option<object>;
-         DEFINE INDEX IF NOT EXISTS idx_policy_tournament ON match_policy COLUMNS tournament_id UNIQUE;",
     )
     .await?;
 

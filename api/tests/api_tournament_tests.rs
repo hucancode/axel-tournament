@@ -11,11 +11,10 @@ async fn tournament_create_join_and_leave() {
         &app,
         http::Method::POST,
         "/api/admin/games",
-        Some(serde_json::json!({
-            "name": format!("Tournament Game {}", common::unique_name("")),
-            "description": "For tournament tests",
-            "supported_languages": ["rust"]
-        })),
+        Some(common::game_payload(
+            format!("Tournament Game {}", common::unique_name("")),
+            "For tournament tests",
+        )),
         Some(&admin_token),
     )
     .await;

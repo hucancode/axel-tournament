@@ -38,11 +38,7 @@ pub async fn create_template(
 
     // Check if user owns the game or is admin
     let user_id = claims.sub.clone();
-    let is_owner = game
-        .owner_id
-        .as_ref()
-        .map(|owner| owner.to_string() == user_id)
-        .unwrap_or(false);
+    let is_owner = game.owner_id.to_string() == user_id;
 
     if !is_owner && claims.role != UserRole::Admin {
         return Err(crate::error::ApiError::Forbidden(
@@ -102,11 +98,7 @@ pub async fn update_template(
     let game = services::game::get_game(&state.db, game_id_thing.clone()).await?;
 
     let user_id = claims.sub.clone();
-    let is_owner = game
-        .owner_id
-        .as_ref()
-        .map(|owner| owner.to_string() == user_id)
-        .unwrap_or(false);
+    let is_owner = game.owner_id.to_string() == user_id;
 
     if !is_owner && claims.role != UserRole::Admin {
         return Err(crate::error::ApiError::Forbidden(

@@ -9,6 +9,13 @@
   let name = $state("");
   let description = $state("");
   let selectedLanguages: ProgrammingLanguage[] = $state([]);
+  let gameCodeContent = $state("");
+  let gameLanguage: ProgrammingLanguage | "" = $state("");
+  let roundsPerMatch = $state(3);
+  let repetitions = $state(1);
+  let timeoutSeconds = $state(120);
+  let cpuLimit = $state("1.0");
+  let memoryLimit = $state("512m");
   let error = $state("");
   let loading = $state(false);
 
@@ -32,11 +39,28 @@
     loading = true;
     error = "";
     try {
+      if (!gameCodeContent.trim() || !gameLanguage) {
+        error = "Game code and language are required";
+        loading = false;
+        return;
+      }
+      if (!selectedLanguages.includes(gameLanguage)) {
+        error = "Game code language must be one of the supported languages";
+        loading = false;
+        return;
+      }
+
       const game = await gameSetterService.createGame({
         name,
         description,
         supported_languages: selectedLanguages,
-        is_active: true,
+        game_code: gameCodeContent,
+        game_language: gameLanguage as ProgrammingLanguage,
+        rounds_per_match: roundsPerMatch,
+        repetitions,
+        timeout_seconds: timeoutSeconds,
+        cpu_limit: cpuLimit,
+        memory_limit: memoryLimit,
       });
 
       goto(`/game-setter/games/${game.id}`);
@@ -110,6 +134,96 @@
           </label>
         </div>
       </fieldset>
+
+      <div class="form-group">
+        <label for="game-lang">Game Code Language *</label>
+        <select
+          id="game-lang"
+          class="input"
+          bind:value={gameLanguage}
+          disabled={selectedLanguages.length === 0}
+          required
+        >
+          <option value="">Select language...</option>
+          {#each selectedLanguages as lang}
+            <option value={lang}>{lang}</option>
+          {/each}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="game-code">Game Code *</label>
+        <textarea
+          id="game-code"
+          class="textarea"
+          bind:value={gameCodeContent}
+          rows="10"
+          placeholder="Your game orchestration code..."
+          style="font-family: monospace; font-size: 0.9em;"
+          required
+        ></textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="rounds">Rounds per Match *</label>
+        <input
+          id="rounds"
+          type="number"
+          class="input"
+          min="1"
+          max="100"
+          bind:value={roundsPerMatch}
+          required
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="repetitions">Repetitions *</label>
+        <input
+          id="repetitions"
+          type="number"
+          class="input"
+          min="1"
+          max="100"
+          bind:value={repetitions}
+          required
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="timeout-seconds">Match Timeout (seconds) *</label>
+        <input
+          id="timeout-seconds"
+          type="number"
+          class="input"
+          min="1"
+          max="3600"
+          bind:value={timeoutSeconds}
+          required
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="cpu-limit">CPU Limit *</label>
+        <input
+          id="cpu-limit"
+          type="text"
+          class="input"
+          bind:value={cpuLimit}
+          required
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="memory-limit">Memory Limit *</label>
+        <input
+          id="memory-limit"
+          type="text"
+          class="input"
+          bind:value={memoryLimit}
+          required
+        />
+      </div>
 
       <div style="display: flex; gap: 1rem;">
         <button type="submit" class="btn btn-primary" disabled={loading || selectedLanguages.length === 0}>

@@ -1,5 +1,5 @@
 import { api } from "../api";
-import type { Game, CreateGameRequest } from "../types";
+import type { Game, CreateGameRequest, UpdateGameRequest } from "../types";
 
 export const gameService = {
   async list(): Promise<Game[]> {
@@ -12,7 +12,7 @@ export const gameService = {
   async create(data: CreateGameRequest): Promise<Game> {
     return api.post<Game, CreateGameRequest>("/api/admin/games", data, true);
   },
-  async update(id: string, data: Partial<CreateGameRequest>): Promise<Game> {
+  async update(id: string, data: UpdateGameRequest): Promise<Game> {
     return api.put<Game>(`/api/admin/games/${id}`, data, true);
   },
   async delete(id: string): Promise<void> {

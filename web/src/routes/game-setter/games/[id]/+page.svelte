@@ -12,7 +12,7 @@
 
   let game: Game | null = $state(null);
   let templates: GameTemplate[] = $state([]);
-  let activeTab: "info" | "dockerfile" | "gamecode" | "templates" = $state("info");
+  let activeTab: "info" | "gamecode" | "templates" = $state("info");
   let loading = $state(true);
   let error = $state("");
   let success = $state("");
@@ -23,12 +23,15 @@
     name: "",
     description: "",
     supported_languages: [] as ProgrammingLanguage[],
-    is_active: true
+    is_active: true,
+    rounds_per_match: 3,
+    repetitions: 1,
+    timeout_seconds: 120,
+    cpu_limit: "1.0",
+    memory_limit: "512m",
+    turn_timeout_ms: undefined as number | undefined,
+    memory_limit_mb: undefined as number | undefined
   });
-
-  // Dockerfile tab
-  let dockerfileContent = $state("");
-  let uploadingDockerfile = $state(false);
 
   // Game Code tab
   let gameCodeContent = $state("");
@@ -56,6 +59,14 @@
       loading = true;
       error = "";
       game = await api.get<Game>(`/api/games/${gameId}`);
+      if (game) {
+        if (!gameCodeContent && game.game_code) {
+          gameCodeContent = game.game_code;
+        }
+        if (!selectedGameLang && game.game_language) {
+          selectedGameLang = game.game_language;
+        }
+      }
     } catch (e: any) {
       error = e.message || "Failed to load game";
     } finally {
@@ -78,30 +89,6 @@
       templatesByLang = tempByLang;
     } catch (e: any) {
       console.error("Failed to load templates:", e);
-    }
-  }
-
-  async function uploadDockerfile() {
-    if (!dockerfileContent.trim()) {
-      error = "Dockerfile content cannot be empty";
-      return;
-    }
-
-    try {
-      uploadingDockerfile = true;
-      error = "";
-      success = "";
-
-      await gameSetterService.uploadDockerfile(gameId, {
-        dockerfile_content: dockerfileContent,
-      });
-
-      success = "Dockerfile uploaded successfully!";
-      await loadGame();
-    } catch (e: any) {
-      error = e.message || "Failed to upload Dockerfile";
-    } finally {
-      uploadingDockerfile = false;
     }
   }
 
@@ -143,7 +130,14 @@
       name: game.name,
       description: game.description,
       supported_languages: [...game.supported_languages],
-      is_active: game.is_active
+      is_active: game.is_active,
+      rounds_per_match: game.rounds_per_match,
+      repetitions: game.repetitions,
+      timeout_seconds: game.timeout_seconds,
+      cpu_limit: game.cpu_limit,
+      memory_limit: game.memory_limit,
+      turn_timeout_ms: game.turn_timeout_ms,
+      memory_limit_mb: game.memory_limit_mb
     };
     editMode = true;
   }
@@ -195,12 +189,15 @@
       error = "";
       success = "";
 
-      await gameSetterService.uploadGameCode(gameId, selectedGameLang, gameCodeContent);
+      await gameSetterService.updateGame(gameId, {
+        game_code: gameCodeContent,
+        game_language: selectedGameLang as ProgrammingLanguage
+      });
 
-      success = "Game code uploaded successfully!";
+      success = "Game code updated successfully!";
       await loadGame();
     } catch (e: any) {
-      error = e.message || "Failed to upload game code";
+      error = e.message || "Failed to update game code";
     } finally {
       uploadingGameCode = false;
     }
@@ -241,12 +238,6 @@
           Game Code
         </button>
         <button
-          class="tab-button {activeTab === 'dockerfile' ? 'active' : ''}"
-          onclick={() => (activeTab = "dockerfile")}
-        >
-          Dockerfile
-        </button>
-        <button
           class="tab-button {activeTab === 'templates' ? 'active' : ''}"
           onclick={() => (activeTab = "templates")}
         >
@@ -285,6 +276,62 @@
             </div>
 
             <div class="form-group">
+              <label for="edit-rounds">Rounds per Match</label>
+              <input
+                type="number"
+                id="edit-rounds"
+                class="input"
+                min="1"
+                max="100"
+                bind:value={editForm.rounds_per_match}
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="edit-repetitions">Repetitions</label>
+              <input
+                type="number"
+                id="edit-repetitions"
+                class="input"
+                min="1"
+                max="100"
+                bind:value={editForm.repetitions}
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="edit-timeout">Match Timeout (seconds)</label>
+              <input
+                type="number"
+                id="edit-timeout"
+                class="input"
+                min="1"
+                max="3600"
+                bind:value={editForm.timeout_seconds}
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="edit-cpu-limit">CPU Limit</label>
+              <input
+                type="text"
+                id="edit-cpu-limit"
+                class="input"
+                bind:value={editForm.cpu_limit}
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="edit-memory-limit">Memory Limit</label>
+              <input
+                type="text"
+                id="edit-memory-limit"
+                class="input"
+                bind:value={editForm.memory_limit}
+              />
+            </div>
+
+            <div class="form-group">
               <label>
                 <input type="checkbox" bind:checked={editForm.is_active} />
                 Active
@@ -311,8 +358,20 @@
               <dt><strong>Languages:</strong></dt>
               <dd>{game.supported_languages.join(", ")}</dd>
 
-              <dt><strong>Dockerfile:</strong></dt>
-              <dd>{game.dockerfile ? "✓ Uploaded" : "Not uploaded yet"}</dd>
+              <dt><strong>Rounds per Match:</strong></dt>
+              <dd>{game.rounds_per_match}</dd>
+
+              <dt><strong>Repetitions:</strong></dt>
+              <dd>{game.repetitions}</dd>
+
+              <dt><strong>Match Timeout:</strong></dt>
+              <dd>{game.timeout_seconds}s</dd>
+
+              <dt><strong>CPU Limit:</strong></dt>
+              <dd>{game.cpu_limit}</dd>
+
+              <dt><strong>Memory Limit:</strong></dt>
+              <dd>{game.memory_limit}</dd>
 
               <dt><strong>Game Code:</strong></dt>
               <dd>{game.game_code ? `✓ Uploaded (${game.game_language})` : "Not uploaded yet"}</dd>
@@ -371,33 +430,6 @@
 
           <button class="btn btn-primary" onclick={uploadGameCode} disabled={uploadingGameCode}>
             {uploadingGameCode ? "Uploading..." : "Upload Game Code"}
-          </button>
-        </div>
-      {:else if activeTab === "dockerfile"}
-        <div class="card">
-          <h2>Upload Dockerfile</h2>
-          <p class="text-sm">This Dockerfile will be used to build the execution environment for matches.</p>
-
-          {#if game.dockerfile}
-            <p class="text-sm">
-              <strong>Current Dockerfile:</strong> Uploaded
-            </p>
-          {/if}
-
-          <div class="form-group" style="margin-top: 1rem;">
-            <label for="dockerfile">Dockerfile Content</label>
-            <textarea
-              id="dockerfile"
-              class="textarea"
-              bind:value={dockerfileContent}
-              rows="15"
-              placeholder="FROM rust:1.92-slim&#10;&#10;WORKDIR /workspace&#10;&#10;# Install dependencies...&#10;&#10;CMD [&quot;/runner.sh&quot;]"
-              style="font-family: monospace; font-size: 0.9em;"
-            ></textarea>
-          </div>
-
-          <button class="btn btn-primary" onclick={uploadDockerfile} disabled={uploadingDockerfile}>
-            {uploadingDockerfile ? "Uploading..." : "Upload Dockerfile"}
           </button>
         </div>
       {:else if activeTab === "templates"}

@@ -27,8 +27,7 @@ impl DbClient {
         struct MatchRecord {
             id: Thing,
             game_id: Thing,
-            #[serde(default)]
-            tournament_id: Option<Thing>,
+            tournament_id: Thing,
             status: String,
             participants: Vec<MatchParticipant>,
         }
@@ -48,7 +47,7 @@ impl DbClient {
         Ok(Match {
             id: record.id.to_string(),
             game_id: record.game_id.to_string(),
-            tournament_id: record.tournament_id.map(|t| t.to_string()),
+            tournament_id: record.tournament_id.to_string(),
             status: record.status,
             participants: record.participants,
         })
@@ -216,13 +215,10 @@ impl DbClient {
         match_data: &Match,
         results: &[ParticipantResult],
     ) -> Result<()> {
-        let Some(tournament_id) = match_data.tournament_id.as_ref() else {
-            return Ok(());
-        };
-
-        let tournament_thing: Thing = tournament_id
+        let tournament_thing: Thing = match_data
+            .tournament_id
             .parse()
-            .map_err(|_| anyhow!("Invalid tournament id {}", tournament_id))?;
+            .map_err(|_| anyhow!("Invalid tournament id {}", match_data.tournament_id))?;
 
         for result in results {
             let submission_thing: Thing = result
@@ -260,8 +256,7 @@ impl DbClient {
 pub struct Match {
     pub id: String,
     pub game_id: String,
-    #[serde(default)]
-    pub tournament_id: Option<String>,
+    pub tournament_id: String,
     pub status: String,
     pub participants: Vec<MatchParticipant>,
 }
@@ -278,23 +273,22 @@ pub struct MatchParticipant {
 #[derive(Debug, Deserialize, Clone)]
 pub struct Game {
     pub id: Thing,
-    #[serde(default)]
-    pub game_code: Option<String>,
-    #[serde(default)]
-    pub game_language: Option<String>,
-    #[serde(default)]
-    pub turn_timeout_ms: Option<u64>,
-    #[serde(default)]
-    pub memory_limit_mb: Option<u64>,
+    pub game_code: String,
+    pub game_language: String,
+    pub rounds_per_match: u32,
+    pub repetitions: u32,
+    pub timeout_seconds: u32,
+    pub cpu_limit: String,
+    pub memory_limit: String,
+    pub turn_timeout_ms: u64,
+    pub memory_limit_mb: u64,
 }
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Submission {
     pub id: Thing,
-    #[serde(default)]
-    pub code: Option<String>,
-    #[serde(default)]
-    pub language: Option<String>,
+    pub code: String,
+    pub language: String,
 }
 
 #[derive(Debug, Clone, Serialize)]

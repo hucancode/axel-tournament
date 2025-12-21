@@ -13,7 +13,7 @@ use surrealdb::sql::{Datetime, Thing};
 
 pub async fn create_match(
     db: &Database,
-    tournament_id: Option<Thing>,
+    tournament_id: Thing,
     game_id: Thing,
     participant_submission_ids: Vec<Thing>,
 ) -> ApiResult<Match> {

@@ -60,13 +60,24 @@ async fn judge_executes_rock_paper_scissor_match() {
     let game_code = RPS_SERVER_CODE;
 
     // Use raw SQL query to insert game record
+    let owner_thing: Thing = "user:judge_owner"
+        .parse()
+        .expect("Failed to parse owner id");
     let mut result = db
-        .query("CREATE game SET name = $name, description = $description, supported_languages = $supported_languages, game_code = $code, game_language = $lang, created_at = time::now(), updated_at = time::now() RETURN id")
+        .query(
+            "CREATE game SET name = $name, description = $description, supported_languages = $supported_languages, owner_id = $owner_id, game_code = $code, game_language = $lang, rounds_per_match = $rounds_per_match, repetitions = $repetitions, timeout_seconds = $timeout_seconds, cpu_limit = $cpu_limit, memory_limit = $memory_limit, created_at = time::now(), updated_at = time::now() RETURN id",
+        )
         .bind(("name", "Rock Paper Scissor"))
         .bind(("description", "RPS game for judge e2e test"))
         .bind(("supported_languages", json!(["rust"])))
+        .bind(("owner_id", owner_thing))
         .bind(("code", game_code))
         .bind(("lang", "rust"))
+        .bind(("rounds_per_match", 3))
+        .bind(("repetitions", 1))
+        .bind(("timeout_seconds", 120))
+        .bind(("cpu_limit", "1.0"))
+        .bind(("memory_limit", "512m"))
         .await
         .expect("Failed to create game");
 
@@ -89,10 +100,8 @@ async fn judge_executes_rock_paper_scissor_match() {
 
     #[derive(Deserialize, Debug)]
     struct GameVerify {
-        #[serde(default)]
-        game_code: Option<String>,
-        #[serde(default)]
-        game_language: Option<String>,
+        game_code: String,
+        game_language: String,
     }
 
     let verified_games: Vec<GameVerify> =
@@ -101,14 +110,8 @@ async fn judge_executes_rock_paper_scissor_match() {
         .first()
         .expect("Game should exist after creation");
     println!("Verified game exists: {:?}", verified_game);
-    assert!(
-        verified_game.game_code.is_some(),
-        "Game should have game_code"
-    );
-    assert!(
-        verified_game.game_language.is_some(),
-        "Game should have game_language"
-    );
+    assert!(!verified_game.game_code.is_empty());
+    assert!(!verified_game.game_language.is_empty());
 
     // Step 2: Create a tournament for submissions
     let mut result = db
@@ -218,8 +221,9 @@ async fn judge_executes_rock_paper_scissor_match() {
 
     // Step 4: Create a match in "pending" status
     let mut result = db
-        .query("CREATE match SET game_id = $game_id, status = 'pending', participants = $participants, created_at = time::now(), updated_at = time::now() RETURN id")
+        .query("CREATE match SET game_id = $game_id, tournament_id = $tournament_id, status = 'pending', participants = $participants, created_at = time::now(), updated_at = time::now() RETURN id")
         .bind(("game_id", game_thing.clone()))
+        .bind(("tournament_id", tournament_thing.clone()))
         .bind(("participants", json!([
             {
                 "submission_id": submission1_thing

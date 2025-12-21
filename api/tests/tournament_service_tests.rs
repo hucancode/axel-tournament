@@ -3,7 +3,7 @@ mod common;
 use axel_tournament::{
     config::DatabaseConfig,
     db,
-    models::{CreateTournamentRequest, MatchGenerationType, MatchStatus, TournamentStatus},
+    models::{CreateTournamentRequest, MatchGenerationType, MatchStatus, ProgrammingLanguage, TournamentStatus},
     services::{auth::AuthService, game, matches, submission, tournament, user},
 };
 use surrealdb::sql::Thing;
@@ -23,6 +23,17 @@ async fn setup_test_db() -> axel_tournament::db::Database {
         .expect("Failed to connect to test database")
 }
 
+const DEFAULT_GAME_CODE: &str = "fn main() {}";
+const DEFAULT_ROUNDS_PER_MATCH: u32 = 3;
+const DEFAULT_REPETITIONS: u32 = 1;
+const DEFAULT_TIMEOUT_SECONDS: u32 = 120;
+const DEFAULT_CPU_LIMIT: &str = "1.0";
+const DEFAULT_MEMORY_LIMIT: &str = "512m";
+
+fn default_owner_id() -> String {
+    "user:owner".to_string()
+}
+
 #[tokio::test]
 async fn test_create_and_get_tournament() {
     let db = setup_test_db().await;
@@ -30,8 +41,15 @@ async fn test_create_and_get_tournament() {
         &db,
         common::unique_name("Tournament Game "),
         "Desc".to_string(),
-        vec![axel_tournament::models::ProgrammingLanguage::Rust],
-        None,
+        vec![ProgrammingLanguage::Rust],
+        default_owner_id(),
+        DEFAULT_GAME_CODE.to_string(),
+        ProgrammingLanguage::Rust,
+        DEFAULT_ROUNDS_PER_MATCH,
+        DEFAULT_REPETITIONS,
+        DEFAULT_TIMEOUT_SECONDS,
+        DEFAULT_CPU_LIMIT.to_string(),
+        DEFAULT_MEMORY_LIMIT.to_string(),
         None,
         None,
     )
@@ -45,6 +63,8 @@ async fn test_create_and_get_tournament() {
         "Test tournament".to_string(),
         2,
         16,
+        None,
+        None,
         None,
         None,
         None,
@@ -66,8 +86,15 @@ async fn test_update_tournament_status() {
         &db,
         common::unique_name("Status Game "),
         "Desc".to_string(),
-        vec![axel_tournament::models::ProgrammingLanguage::Rust],
-        None,
+        vec![ProgrammingLanguage::Rust],
+        default_owner_id(),
+        DEFAULT_GAME_CODE.to_string(),
+        ProgrammingLanguage::Rust,
+        DEFAULT_ROUNDS_PER_MATCH,
+        DEFAULT_REPETITIONS,
+        DEFAULT_TIMEOUT_SECONDS,
+        DEFAULT_CPU_LIMIT.to_string(),
+        DEFAULT_MEMORY_LIMIT.to_string(),
         None,
         None,
     )
@@ -81,6 +108,8 @@ async fn test_update_tournament_status() {
         "Test tournament".to_string(),
         2,
         8,
+        None,
+        None,
         None,
         None,
         None,
@@ -111,8 +140,15 @@ async fn test_join_and_leave_tournament() {
         &db,
         common::unique_name("Join Game "),
         "Desc".to_string(),
-        vec![axel_tournament::models::ProgrammingLanguage::Rust],
-        None,
+        vec![ProgrammingLanguage::Rust],
+        default_owner_id(),
+        DEFAULT_GAME_CODE.to_string(),
+        ProgrammingLanguage::Rust,
+        DEFAULT_ROUNDS_PER_MATCH,
+        DEFAULT_REPETITIONS,
+        DEFAULT_TIMEOUT_SECONDS,
+        DEFAULT_CPU_LIMIT.to_string(),
+        DEFAULT_MEMORY_LIMIT.to_string(),
         None,
         None,
     )
@@ -126,6 +162,8 @@ async fn test_join_and_leave_tournament() {
         "Test tournament".to_string(),
         2,
         8,
+        None,
+        None,
         None,
         None,
         None,
@@ -227,8 +265,15 @@ async fn test_start_tournament_all_vs_all() {
         &db,
         common::unique_name("MatchGen Game "),
         "Match generation test".to_string(),
-        vec![axel_tournament::models::ProgrammingLanguage::Rust],
-        None,
+        vec![ProgrammingLanguage::Rust],
+        default_owner_id(),
+        DEFAULT_GAME_CODE.to_string(),
+        ProgrammingLanguage::Rust,
+        DEFAULT_ROUNDS_PER_MATCH,
+        DEFAULT_REPETITIONS,
+        DEFAULT_TIMEOUT_SECONDS,
+        DEFAULT_CPU_LIMIT.to_string(),
+        DEFAULT_MEMORY_LIMIT.to_string(),
         None,
         None,
     )
@@ -320,8 +365,15 @@ async fn test_start_tournament_round_robin() {
         &db,
         common::unique_name("RoundRobin Game "),
         "Round robin test".to_string(),
-        vec![axel_tournament::models::ProgrammingLanguage::Rust],
-        None,
+        vec![ProgrammingLanguage::Rust],
+        default_owner_id(),
+        DEFAULT_GAME_CODE.to_string(),
+        ProgrammingLanguage::Rust,
+        DEFAULT_ROUNDS_PER_MATCH,
+        DEFAULT_REPETITIONS,
+        DEFAULT_TIMEOUT_SECONDS,
+        DEFAULT_CPU_LIMIT.to_string(),
+        DEFAULT_MEMORY_LIMIT.to_string(),
         None,
         None,
     )
@@ -410,8 +462,15 @@ async fn test_start_tournament_without_submissions_fails() {
         &db,
         common::unique_name("NoSub Game "),
         "No submissions test".to_string(),
-        vec![axel_tournament::models::ProgrammingLanguage::Rust],
-        None,
+        vec![ProgrammingLanguage::Rust],
+        default_owner_id(),
+        DEFAULT_GAME_CODE.to_string(),
+        ProgrammingLanguage::Rust,
+        DEFAULT_ROUNDS_PER_MATCH,
+        DEFAULT_REPETITIONS,
+        DEFAULT_TIMEOUT_SECONDS,
+        DEFAULT_CPU_LIMIT.to_string(),
+        DEFAULT_MEMORY_LIMIT.to_string(),
         None,
         None,
     )
@@ -427,6 +486,8 @@ async fn test_start_tournament_without_submissions_fails() {
         "Test tournament".to_string(),
         2,
         10,
+        None,
+        None,
         None,
         None,
         None,
@@ -470,8 +531,15 @@ async fn test_start_tournament_not_enough_players_fails() {
         &db,
         common::unique_name("MinPlayers Game "),
         "Min players test".to_string(),
-        vec![axel_tournament::models::ProgrammingLanguage::Rust],
-        None,
+        vec![ProgrammingLanguage::Rust],
+        default_owner_id(),
+        DEFAULT_GAME_CODE.to_string(),
+        ProgrammingLanguage::Rust,
+        DEFAULT_ROUNDS_PER_MATCH,
+        DEFAULT_REPETITIONS,
+        DEFAULT_TIMEOUT_SECONDS,
+        DEFAULT_CPU_LIMIT.to_string(),
+        DEFAULT_MEMORY_LIMIT.to_string(),
         None,
         None,
     )
@@ -487,6 +555,8 @@ async fn test_start_tournament_not_enough_players_fails() {
         "Test tournament".to_string(),
         5,
         10,
+        None,
+        None,
         None,
         None,
         None,

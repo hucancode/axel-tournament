@@ -10,18 +10,22 @@ pub async fn create_game(
     name: String,
     description: String,
     supported_languages: Vec<ProgrammingLanguage>,
-    owner_id: Option<String>,
+    owner_id: String,
+    game_code: String,
+    game_language: ProgrammingLanguage,
+    rounds_per_match: u32,
+    repetitions: u32,
+    timeout_seconds: u32,
+    cpu_limit: String,
+    memory_limit: String,
     turn_timeout_ms: Option<u64>,
     memory_limit_mb: Option<u64>,
 ) -> ApiResult<Game> {
     let resolved_turn_timeout_ms = turn_timeout_ms.unwrap_or(2000);
     let resolved_memory_limit_mb = memory_limit_mb.unwrap_or(512);
     let owner_thing = owner_id
-        .map(|id| {
-            id.parse::<Thing>()
-                .map_err(|_| ApiError::BadRequest("Invalid owner id".to_string()))
-        })
-        .transpose()?;
+        .parse::<Thing>()
+        .map_err(|_| ApiError::BadRequest("Invalid owner id".to_string()))?;
 
     let game = Game {
         id: None,
@@ -30,10 +34,13 @@ pub async fn create_game(
         supported_languages,
         is_active: true,
         owner_id: owner_thing,
-        dockerfile: None,
-        docker_image: None,
-        game_code: None,
-        game_language: None,
+        game_code,
+        game_language,
+        rounds_per_match,
+        repetitions,
+        timeout_seconds,
+        cpu_limit,
+        memory_limit,
         turn_timeout_ms: Some(resolved_turn_timeout_ms),
         memory_limit_mb: Some(resolved_memory_limit_mb),
         created_at: Datetime::default(),
@@ -67,6 +74,13 @@ pub async fn update_game(
     description: Option<String>,
     supported_languages: Option<Vec<ProgrammingLanguage>>,
     is_active: Option<bool>,
+    game_code: Option<String>,
+    game_language: Option<ProgrammingLanguage>,
+    rounds_per_match: Option<u32>,
+    repetitions: Option<u32>,
+    timeout_seconds: Option<u32>,
+    cpu_limit: Option<String>,
+    memory_limit: Option<String>,
     turn_timeout_ms: Option<u64>,
     memory_limit_mb: Option<u64>,
 ) -> ApiResult<Game> {
@@ -82,6 +96,27 @@ pub async fn update_game(
     }
     if let Some(ia) = is_active {
         game.is_active = ia;
+    }
+    if let Some(code) = game_code {
+        game.game_code = code;
+    }
+    if let Some(lang) = game_language {
+        game.game_language = lang;
+    }
+    if let Some(rpm) = rounds_per_match {
+        game.rounds_per_match = rpm;
+    }
+    if let Some(rep) = repetitions {
+        game.repetitions = rep;
+    }
+    if let Some(ts) = timeout_seconds {
+        game.timeout_seconds = ts;
+    }
+    if let Some(cpu) = cpu_limit {
+        game.cpu_limit = cpu;
+    }
+    if let Some(mem) = memory_limit {
+        game.memory_limit = mem;
     }
     if turn_timeout_ms.is_some() {
         game.turn_timeout_ms = turn_timeout_ms;

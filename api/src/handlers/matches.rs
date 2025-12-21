@@ -29,15 +29,10 @@ pub async fn create_match(
     payload
         .validate()
         .map_err(|e| crate::error::ApiError::Validation(e.to_string()))?;
-    let tournament_id = payload
+    let tournament_id: Thing = payload
         .tournament_id
-        .as_deref()
-        .map(|id| {
-            id.parse::<Thing>().map_err(|_| {
-                crate::error::ApiError::BadRequest("Invalid tournament id".to_string())
-            })
-        })
-        .transpose()?;
+        .parse()
+        .map_err(|_| crate::error::ApiError::BadRequest("Invalid tournament id".to_string()))?;
     let game_id: Thing = payload
         .game_id
         .parse()

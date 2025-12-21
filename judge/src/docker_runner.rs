@@ -8,7 +8,6 @@ use bollard::query_parameters::{
 use bollard::Docker;
 use chrono::Utc;
 use futures_util::StreamExt;
-use rand::{rng, Rng};
 use std::collections::HashMap;
 use tokio::fs;
 use tracing::warn;
@@ -39,7 +38,6 @@ impl DockerRunner {
 
     pub async fn execute_match(&self, match_data: &Match) -> Result<MatchResult> {
         let started_at = Utc::now();
-        let rounds: u32 = rng().random_range(100..=120);
 
         // 0. Fetch game details from API
         let game = self
@@ -47,8 +45,11 @@ impl DockerRunner {
             .fetch_game(&match_data.game_id)
             .await
             .context(format!("Failed to fetch game {}", match_data.game_id))?;
-        let turn_timeout_ms = game.turn_timeout_ms.unwrap_or(2000).max(100);
-        let memory_limit_mb = game.memory_limit_mb.unwrap_or(512).max(32);
+        let rounds: u32 = game.rounds_per_match;
+        let turn_timeout_ms = (game.timeout_seconds as u64)
+            .saturating_mul(1000)
+            .max(100);
+        let memory_limit_mb = game.memory_limit_mb.max(32);
 
         // 2. Prepare submission files
         let work_dir = self.prepare_workspace(match_data, &game).await?;
@@ -104,27 +105,20 @@ impl DockerRunner {
         fs::create_dir_all(&workspace_dir).await?;
 
         // Write game server code to workspace from database
-        if let Some(game_code) = &game.game_code {
-            // Determine file extension based on game language
-            let extension = match game.game_language.as_deref() {
-                Some("rust") => "rs",
-                Some("go") => "go",
-                Some("c") => "c",
-                Some("python") => "py",
-                _ => "rs", // default to Rust
-            };
+        // Determine file extension based on game language
+        let extension = match game.game_language.as_str() {
+            "rust" => "rs",
+            "go" => "go",
+            "c" => "c",
+            "python" => "py",
+            _ => "rs", // default to Rust
+        };
 
-            let dest_server = format!("{}/server.{}", workspace_dir, extension);
-            fs::write(&dest_server, game_code)
-                .await
-                .context("Failed to write game server code to workspace")?;
-            tracing::info!("Wrote game server code to {}", dest_server);
-        } else {
-            tracing::warn!(
-                "Game {} has no game_code, container must provide server code",
-                game.id
-            );
-        }
+        let dest_server = format!("{}/server.{}", workspace_dir, extension);
+        fs::write(&dest_server, &game.game_code)
+            .await
+            .context("Failed to write game server code to workspace")?;
+        tracing::info!("Wrote game server code to {}", dest_server);
 
         // Fetch submission code from database and write to workspace
         for (idx, participant) in match_data.participants.iter().enumerate() {
@@ -135,28 +129,23 @@ impl DockerRunner {
                 .await
                 .context(format!("Failed to fetch submission {}", submission_id))?;
 
-            if let Some(code) = submission.code {
-                let language = submission.language.as_deref().unwrap_or("rust");
-                let ext = match language {
-                    "rust" => "rs",
-                    "go" => "go",
-                    "c" => "c",
-                    "cpp" => "cpp",
-                    "python" => "py",
-                    _ => "rs", // Default to Rust
-                };
-                let dest_file = format!("{}/player_{}.{}", workspace_dir, idx, ext);
-                fs::write(&dest_file, code)
-                    .await
-                    .context(format!("Failed to write submission code to {}", dest_file))?;
-                tracing::info!(
-                    "Wrote submission {} code to {}",
-                    participant.submission_id,
-                    dest_file
-                );
-            } else {
-                anyhow::bail!("Submission {} has no code", participant.submission_id);
-            }
+            let ext = match submission.language.as_str() {
+                "rust" => "rs",
+                "go" => "go",
+                "c" => "c",
+                "cpp" => "cpp",
+                "python" => "py",
+                _ => "rs", // Default to Rust
+            };
+            let dest_file = format!("{}/player_{}.{}", workspace_dir, idx, ext);
+            fs::write(&dest_file, &submission.code)
+                .await
+                .context(format!("Failed to write submission code to {}", dest_file))?;
+            tracing::info!(
+                "Wrote submission {} code to {}",
+                participant.submission_id,
+                dest_file
+            );
         }
 
         Ok(workspace_dir)
@@ -222,7 +211,11 @@ impl DockerRunner {
             .await?;
 
         // Wait for completion (with timeout) and capture exit code
-        let timeout = std::time::Duration::from_secs(300); // 5 minutes
+        let total_turns = (rounds as u64).saturating_mul(match_data.participants.len() as u64);
+        let timeout_ms = turn_timeout_ms
+            .saturating_mul(total_turns.max(1))
+            .saturating_add(5_000);
+        let timeout = std::time::Duration::from_millis(timeout_ms);
         let wait_result = tokio::time::timeout(timeout, async {
             let mut stream = self
                 .docker
@@ -252,7 +245,11 @@ impl DockerRunner {
                         Some(RemoveContainerOptionsBuilder::new().force(true).build()),
                     )
                     .await;
-                anyhow::bail!("Match execution timed out after 5 minutes");
+                let timeout_secs = timeout.as_secs().max(1);
+                anyhow::bail!(
+                    "Match execution timed out after {} seconds",
+                    timeout_secs
+                );
             }
         };
 

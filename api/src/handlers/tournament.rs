@@ -25,11 +25,7 @@ async fn ensure_game_owner(
         return Ok(());
     }
     let game = services::game::get_game(&state.db, game_id).await?;
-    let is_owner = game
-        .owner_id
-        .as_ref()
-        .map(|owner| owner.to_string() == claims.sub)
-        .unwrap_or(false);
+    let is_owner = game.owner_id.to_string() == claims.sub;
     if !is_owner {
         return Err(crate::error::ApiError::Forbidden(
             "You don't have permission to manage tournaments for this game".to_string(),
@@ -52,36 +48,6 @@ async fn ensure_tournament_owner(
 
 pub async fn create_tournament(
     State(state): State<AppState>,
-    Json(payload): Json<CreateTournamentRequest>,
-) -> ApiResult<(StatusCode, Json<Tournament>)> {
-    payload
-        .validate()
-        .map_err(|e| crate::error::ApiError::Validation(e.to_string()))?;
-    if payload.min_players > payload.max_players {
-        return Err(crate::error::ApiError::Validation(
-            "min_players cannot be greater than max_players".to_string(),
-        ));
-    }
-    let tournament = services::tournament::create_tournament(
-        &state.db,
-        payload
-            .game_id
-            .parse()
-            .map_err(|_| crate::error::ApiError::BadRequest("Invalid game id".to_string()))?,
-        payload.name,
-        payload.description,
-        payload.min_players,
-        payload.max_players,
-        payload.start_time,
-        payload.end_time,
-        payload.match_generation_type,
-    )
-    .await?;
-    Ok((StatusCode::CREATED, Json(tournament)))
-}
-
-pub async fn create_tournament_as_game_setter(
-    State(state): State<AppState>,
     Extension(claims): Extension<Claims>,
     Json(payload): Json<CreateTournamentRequest>,
 ) -> ApiResult<(StatusCode, Json<Tournament>)> {
@@ -97,8 +63,9 @@ pub async fn create_tournament_as_game_setter(
         .game_id
         .parse()
         .map_err(|_| crate::error::ApiError::BadRequest("Invalid game id".to_string()))?;
-    ensure_game_owner(&state, game_id.clone(), &claims).await?;
-
+    if claims.role == UserRole::GameSetter {
+        ensure_game_owner(&state, game_id.clone(), &claims).await?;
+    }
     let tournament = services::tournament::create_tournament(
         &state.db,
         game_id,
@@ -155,29 +122,6 @@ pub async fn list_tournaments(
 
 pub async fn update_tournament(
     State(state): State<AppState>,
-    Path(tournament_id): Path<String>,
-    Json(payload): Json<UpdateTournamentRequest>,
-) -> ApiResult<Json<Tournament>> {
-    payload
-        .validate()
-        .map_err(|e| crate::error::ApiError::Validation(e.to_string()))?;
-    let tournament = services::tournament::update_tournament(
-        &state.db,
-        tournament_id
-            .parse()
-            .map_err(|_| crate::error::ApiError::BadRequest("Invalid tournament id".to_string()))?,
-        payload.name,
-        payload.description,
-        payload.status,
-        payload.start_time,
-        payload.end_time,
-    )
-    .await?;
-    Ok(Json(tournament))
-}
-
-pub async fn update_tournament_as_game_setter(
-    State(state): State<AppState>,
     Extension(claims): Extension<Claims>,
     Path(tournament_id): Path<String>,
     Json(payload): Json<UpdateTournamentRequest>,
@@ -188,7 +132,9 @@ pub async fn update_tournament_as_game_setter(
     let tournament_id: Thing = tournament_id
         .parse()
         .map_err(|_| crate::error::ApiError::BadRequest("Invalid tournament id".to_string()))?;
-    ensure_tournament_owner(&state, tournament_id.clone(), &claims).await?;
+    if claims.role == UserRole::GameSetter {
+        ensure_tournament_owner(&state, tournament_id.clone(), &claims).await?;
+    }
     let tournament = services::tournament::update_tournament(
         &state.db,
         tournament_id,
@@ -257,28 +203,19 @@ pub async fn get_tournament_participants(
 /// Start a tournament and generate matches (admin only)
 pub async fn start_tournament(
     State(state): State<AppState>,
-    Path(tournament_id): Path<String>,
-) -> ApiResult<Json<Tournament>> {
-    let tournament = services::tournament::start_tournament(
-        &state.db,
-        tournament_id
-            .parse()
-            .map_err(|_| crate::error::ApiError::BadRequest("Invalid tournament id".to_string()))?,
-    )
-    .await?;
-    Ok(Json(tournament))
-}
-
-pub async fn start_tournament_as_game_setter(
-    State(state): State<AppState>,
     Extension(claims): Extension<Claims>,
     Path(tournament_id): Path<String>,
 ) -> ApiResult<Json<Tournament>> {
     let tournament_id: Thing = tournament_id
         .parse()
         .map_err(|_| crate::error::ApiError::BadRequest("Invalid tournament id".to_string()))?;
-    ensure_tournament_owner(&state, tournament_id.clone(), &claims).await?;
-    let tournament =
-        services::tournament::start_tournament(&state.db, tournament_id).await?;
+    if claims.role == UserRole::GameSetter {
+        ensure_tournament_owner(&state, tournament_id.clone(), &claims).await?;
+    }
+    let tournament = services::tournament::start_tournament(
+        &state.db,
+        tournament_id,
+    )
+    .await?;
     Ok(Json(tournament))
 }
