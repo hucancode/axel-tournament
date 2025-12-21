@@ -88,8 +88,6 @@ pub async fn init_schema(db: &Database) -> Result<(), surrealdb::Error> {
          DEFINE FIELD IF NOT EXISTS supported_languages ON game TYPE array;
          DEFINE FIELD IF NOT EXISTS is_active ON game TYPE bool DEFAULT true;
          DEFINE FIELD IF NOT EXISTS owner_id ON game TYPE option<record<user>>;
-         DEFINE FIELD IF NOT EXISTS dockerfile ON game TYPE option<string>;
-         DEFINE FIELD IF NOT EXISTS docker_image ON game TYPE option<string>;
          DEFINE FIELD IF NOT EXISTS game_code ON game TYPE option<string>;
          DEFINE FIELD IF NOT EXISTS game_language ON game TYPE option<string>;
          DEFINE FIELD IF NOT EXISTS turn_timeout_ms ON game TYPE option<number> DEFAULT 2000;
@@ -113,7 +111,6 @@ pub async fn init_schema(db: &Database) -> Result<(), surrealdb::Error> {
          DEFINE FIELD IF NOT EXISTS start_time ON tournament TYPE option<datetime>;
          DEFINE FIELD IF NOT EXISTS end_time ON tournament TYPE option<datetime>;
          DEFINE FIELD IF NOT EXISTS match_generation_type ON tournament TYPE string DEFAULT 'all_vs_all';
-         DEFINE FIELD IF NOT EXISTS matches_generated ON tournament TYPE bool DEFAULT false;
          DEFINE FIELD IF NOT EXISTS created_at ON tournament TYPE datetime;
          DEFINE FIELD IF NOT EXISTS updated_at ON tournament TYPE datetime;",
     )

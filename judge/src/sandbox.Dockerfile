@@ -3,6 +3,8 @@
 
 FROM debian:bookworm-slim
 
+WORKDIR /workspace
+
 ENV DEBIAN_FRONTEND=noninteractive \
     RUSTUP_HOME=/usr/local/rustup \
     CARGO_HOME=/usr/local/cargo \
@@ -15,7 +17,7 @@ RUN apt-get update && \
         curl \
         golang \
         python3 && \
-    rm -rf /var/lib/apt/lists/* \
+    rm -rf /var/lib/apt/lists/* && \
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable && \
     rm -rf /usr/local/cargo/registry /usr/local/cargo/git /root/.cache &&\
     rm -rf /usr/share/{doc,man,locale}

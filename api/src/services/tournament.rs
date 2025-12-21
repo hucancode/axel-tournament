@@ -32,7 +32,6 @@ pub async fn create_tournament(
         start_time: start_time.map(|dt| dt.into()),
         end_time: end_time.map(|dt| dt.into()),
         match_generation_type: match_generation_type.unwrap_or_default(),
-        matches_generated: false,
         created_at: Datetime::default(),
         updated_at: Datetime::default(),
     };
@@ -49,17 +48,34 @@ pub async fn get_tournament(db: &Database, tournament_id: Thing) -> ApiResult<To
 pub async fn list_tournaments(
     db: &Database,
     status: Option<TournamentStatus>,
+    limit: Option<u32>,
+    offset: Option<u32>,
 ) -> ApiResult<Vec<Tournament>> {
+    let limit = limit.unwrap_or(50).min(200);
+    let offset = offset.unwrap_or(0);
     let mut result = if let Some(s) = status {
         let status_str = serde_json::to_string(&s)
             .unwrap()
             .trim_matches('"')
             .to_string();
-        db.query("SELECT * FROM tournament WHERE status = $status ORDER BY created_at DESC")
+        db.query(
+            "SELECT * FROM tournament
+             WHERE status = $status
+             ORDER BY created_at DESC
+             LIMIT $limit START $offset",
+        )
             .bind(("status", status_str))
+            .bind(("limit", limit))
+            .bind(("offset", offset))
             .await?
     } else {
-        db.query("SELECT * FROM tournament ORDER BY created_at DESC")
+        db.query(
+            "SELECT * FROM tournament
+             ORDER BY created_at DESC
+             LIMIT $limit START $offset",
+        )
+        .bind(("limit", limit))
+        .bind(("offset", offset))
             .await?
     };
     let tournaments: Vec<Tournament> = result.take(0)?;
@@ -138,11 +154,29 @@ pub async fn join_tournament(
         .create("tournament_participant")
         .content(participant)
         .await?;
-    // Increment current_players
-    db.query("UPDATE $tournament_id SET current_players += 1")
-        .bind(("tournament_id", tournament_id))
+    let created =
+        created.ok_or_else(|| ApiError::Internal("Failed to join tournament".to_string()))?;
+    // Increment current_players with a capacity check for concurrent joins
+    let mut updated = db
+        .query(
+            "UPDATE $tournament_id
+             SET current_players += 1
+             WHERE status = 'registration' AND current_players < max_players
+             RETURN AFTER",
+        )
+        .bind(("tournament_id", tournament_id.clone()))
         .await?;
-    created.ok_or_else(|| ApiError::Internal("Failed to join tournament".to_string()))
+    let updated_rows: Vec<Tournament> = updated.take(0)?;
+    if updated_rows.is_empty() {
+        if let Some(pid) = created.id.clone() {
+            let delete_key = (pid.tb.as_str(), pid.id.to_string());
+            let _: Option<TournamentParticipant> = db.delete(delete_key).await?;
+        }
+        return Err(ApiError::BadRequest(
+            "Tournament is full or not accepting registrations".to_string(),
+        ));
+    }
+    Ok(created)
 }
 
 pub async fn get_tournament_participants(
@@ -185,29 +219,34 @@ pub async fn leave_tournament(
         let delete_key = (pid.tb.as_str(), pid.id.to_string());
         let _: Option<TournamentParticipant> = db.delete(delete_key).await?;
     }
-    // Decrement current_players
-    db.query("UPDATE $tournament_id SET current_players -= 1")
+    // Decrement current_players with a floor at zero
+    let mut updated = db
+        .query(
+            "UPDATE $tournament_id
+             SET current_players -= 1
+             WHERE current_players > 0
+             RETURN AFTER",
+        )
         .bind(("tournament_id", tournament_id))
         .await?;
+    let updated_rows: Vec<Tournament> = updated.take(0)?;
+    if updated_rows.is_empty() {
+        return Err(ApiError::Internal(
+            "Failed to update tournament participant count".to_string(),
+        ));
+    }
     Ok(())
 }
 
 /// Start a tournament and generate matches based on the configured match generation type
 pub async fn start_tournament(db: &Database, tournament_id: Thing) -> ApiResult<Tournament> {
     let tournament_id_thing = tournament_id.clone();
-    let mut tournament = get_tournament(db, tournament_id_thing.clone()).await?;
+    let tournament = get_tournament(db, tournament_id_thing.clone()).await?;
 
     // Check if tournament is in registration state
     if tournament.status != TournamentStatus::Registration {
         return Err(ApiError::BadRequest(
             "Tournament must be in registration state to start".to_string(),
-        ));
-    }
-
-    // Check if matches have already been generated
-    if tournament.matches_generated {
-        return Err(ApiError::BadRequest(
-            "Matches have already been generated for this tournament".to_string(),
         ));
     }
 
@@ -234,38 +273,90 @@ pub async fn start_tournament(db: &Database, tournament_id: Thing) -> ApiResult<
         ));
     }
 
+    // Claim tournament start to prevent duplicate match generation
+    let mut claimed = db
+        .query(
+            "UPDATE $tournament_id
+             SET status = 'generating', updated_at = time::now()
+             WHERE status = 'registration'
+             RETURN AFTER",
+        )
+        .bind(("tournament_id", tournament_id_thing.clone()))
+        .await?;
+    let claimed_rows: Vec<Tournament> = claimed.take(0)?;
+    if claimed_rows.is_empty() {
+        return Err(ApiError::BadRequest(
+            "Tournament has already been started".to_string(),
+        ));
+    }
+
     // Generate matches based on the match generation type
-    let _matches_created = match tournament.match_generation_type {
+    let matches_created = match tournament.match_generation_type {
         MatchGenerationType::AllVsAll => {
-            generate_all_vs_all_matches(db, &tournament, &participants_with_submissions).await?
+            generate_all_vs_all_matches(db, &tournament, &participants_with_submissions).await
         }
         MatchGenerationType::RoundRobin => {
-            generate_round_robin_matches(db, &tournament, &participants_with_submissions).await?
+            generate_round_robin_matches(db, &tournament, &participants_with_submissions).await
         }
         MatchGenerationType::SingleElimination => {
             generate_single_elimination_matches(db, &tournament, &participants_with_submissions)
-                .await?
+                .await
         }
         MatchGenerationType::DoubleElimination => {
             generate_double_elimination_matches(db, &tournament, &participants_with_submissions)
-                .await?
+                .await
+        }
+    };
+    let matches_created = match matches_created {
+        Ok(count) => count,
+        Err(err) => {
+            let _ = db
+                .query("DELETE match WHERE tournament_id = $tournament_id")
+                .bind(("tournament_id", tournament_id_thing.clone()))
+                .await;
+            let _ = db
+                .query(
+                    "UPDATE $tournament_id
+                     SET status = 'registration', updated_at = time::now()",
+                )
+                .bind(("tournament_id", tournament_id_thing.clone()))
+                .await;
+            return Err(err);
         }
     };
 
-    // Update tournament status
-    tournament.status = TournamentStatus::Running;
-    tournament.matches_generated = true;
-    tournament.updated_at = Datetime::default();
+    if matches_created == 0 {
+        // Roll back claim if no matches were generated
+        let _ = db
+            .query("DELETE match WHERE tournament_id = $tournament_id")
+            .bind(("tournament_id", tournament_id_thing.clone()))
+            .await;
+        let _ = db
+            .query(
+                "UPDATE $tournament_id
+                 SET status = 'registration', updated_at = time::now()",
+            )
+            .bind(("tournament_id", tournament_id_thing.clone()))
+            .await;
+        return Err(ApiError::Internal(
+            "No matches were generated for this tournament".to_string(),
+        ));
+    }
 
-    let key = (
-        tournament_id_thing.tb.as_str(),
-        tournament_id_thing.id.to_string(),
-    );
-    let updated: Option<Tournament> = db.update(key).content(tournament).await?;
-
-    let updated_tournament =
-        updated.ok_or_else(|| ApiError::NotFound("Tournament not found".to_string()))?;
-
+    let mut updated = db
+        .query(
+            "UPDATE $tournament_id
+             SET status = 'running', updated_at = time::now()
+             WHERE status = 'generating'
+             RETURN AFTER",
+        )
+        .bind(("tournament_id", tournament_id_thing.clone()))
+        .await?;
+    let updated_rows: Vec<Tournament> = updated.take(0)?;
+    if let Some(tournament) = updated_rows.into_iter().next() {
+        return Ok(tournament);
+    }
+    let updated_tournament = get_tournament(db, tournament_id_thing.clone()).await?;
     Ok(updated_tournament)
 }
 

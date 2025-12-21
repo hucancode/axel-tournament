@@ -75,8 +75,12 @@ pub async fn list_matches(
     tournament_id: Option<Thing>,
     game_id: Option<Thing>,
     user_id: Option<Thing>, // Filter by user involved
+    limit: Option<u32>,
+    offset: Option<u32>,
 ) -> ApiResult<Vec<Match>> {
     let mut query = "SELECT * FROM match WHERE 1=1".to_string();
+    let limit = limit.unwrap_or(50).min(200);
+    let offset = offset.unwrap_or(0);
 
     let tournament_filter = tournament_id.clone();
     let game_filter = game_id.clone();
@@ -89,12 +93,18 @@ pub async fn list_matches(
     }
 
     query.push_str(" ORDER BY created_at DESC");
+    if user_id.is_none() {
+        query.push_str(" LIMIT $limit START $offset");
+    }
     let mut db_query = db.query(query);
     if let Some(tid) = tournament_id {
         db_query = db_query.bind(("tournament_id", tid));
     }
     if let Some(gid) = game_id {
         db_query = db_query.bind(("game_id", gid));
+    }
+    if user_id.is_none() {
+        db_query = db_query.bind(("limit", limit)).bind(("offset", offset));
     }
     let mut result = db_query.await?;
     let mut matches: Vec<Match> = result.take(0)?;
@@ -138,6 +148,15 @@ pub async fn list_matches(
                 .iter()
                 .any(|p| submission_ids.contains(&p.submission_id))
         });
+
+        if offset as usize >= matches.len() {
+            return Ok(Vec::new());
+        }
+        matches = matches
+            .into_iter()
+            .skip(offset as usize)
+            .take(limit as usize)
+            .collect();
     }
 
     Ok(matches)

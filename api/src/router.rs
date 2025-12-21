@@ -108,18 +108,13 @@ pub fn create_router(state: AppState) -> Router {
             "/api/game-setter/games",
             post(handlers::create_game_as_game_setter),
         )
-        .route("/api/game-setter/games/{id}", put(handlers::update_game))
+        .route(
+            "/api/game-setter/games/{id}",
+            put(handlers::update_game_as_game_setter),
+        )
         .route(
             "/api/game-setter/games/{id}",
             delete(handlers::delete_game_as_game_setter),
-        )
-        .route(
-            "/api/game-setter/games/{id}/dockerfile",
-            post(handlers::upload_dockerfile),
-        )
-        .route(
-            "/api/game-setter/games/{id}/game-code",
-            post(handlers::upload_game_code),
         )
         // Template management
         .route(
@@ -138,15 +133,15 @@ pub fn create_router(state: AppState) -> Router {
         // Tournament management (game setters can create tournaments for their games)
         .route(
             "/api/game-setter/tournaments",
-            post(handlers::create_tournament),
+            post(handlers::create_tournament_as_game_setter),
         )
         .route(
             "/api/game-setter/tournaments/{id}",
-            patch(handlers::update_tournament),
+            patch(handlers::update_tournament_as_game_setter),
         )
         .route(
             "/api/game-setter/tournaments/{id}/start",
-            post(handlers::start_tournament),
+            post(handlers::start_tournament_as_game_setter),
         )
         // Match policy
         .route(

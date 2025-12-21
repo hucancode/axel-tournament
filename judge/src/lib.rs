@@ -39,7 +39,7 @@ impl JudgeConfig {
         let db_name = std::env::var("DATABASE_DB").unwrap_or_else(|_| "axel".to_string());
         let sandbox_image = std::env::var("JUDGE_SANDBOX_IMAGE").unwrap_or_else(|_| "axel-sandbox".to_string());
         let workspace_root =
-            std::env::var("JUDGE_WORKSPACE_DIR").unwrap_or_else(|_| "/workspaces".to_string());
+            std::env::var("JUDGE_WORKSPACE_DIR").unwrap_or_else(|_| "/workspace".to_string());
 
         Self {
             db_url,

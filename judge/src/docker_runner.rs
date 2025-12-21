@@ -172,23 +172,37 @@ impl DockerRunner {
         memory_limit_mb: u64,
     ) -> Result<Vec<ParticipantResult>> {
         let memory_limit_bytes = (memory_limit_mb * 1024 * 1024) as i64;
-
         // Create container with resource limits
+        let mut tmpfs = HashMap::new();
+        tmpfs.insert("/tmp".to_string(), "rw,noexec,nosuid,size=64m".to_string());
+        tmpfs.insert(
+            "/run/game".to_string(),
+            "rw,exec,nosuid,size=256m".to_string(),
+        );
+        let container_work_dir = work_dir.to_string();
         let config = ContainerCreateBody {
             image: Some(image_tag.to_string()),
             env: Some(vec![
                 format!("MATCH_ROUNDS={}", rounds),
                 format!("TURN_TIMEOUT_MS={}", turn_timeout_ms),
                 format!("MEMORY_LIMIT_MB={}", memory_limit_mb),
+                format!("WORKSPACE_DIR={}", container_work_dir),
+                "OUTPUT_DIR=/run/game".to_string(),
             ]),
             host_config: Some(HostConfig {
-                binds: Some(vec![format!("{}:/workspace", work_dir)]), // Writable for compilation
+                binds: Some(vec![format!("{}:{}:rw", work_dir, container_work_dir)]), // Writable for compilation
                 memory: Some(memory_limit_bytes),                      // per-game cap
+                memory_swap: Some(memory_limit_bytes),                 // disable swap
                 nano_cpus: Some(1_000_000_000),                        // 1 CPU
                 network_mode: Some("none".to_string()),                // No network access
+                cap_drop: Some(vec!["ALL".to_string()]),
+                security_opt: Some(vec!["no-new-privileges".to_string()]),
+                readonly_rootfs: Some(true),
+                pids_limit: Some(256),
+                tmpfs: Some(tmpfs),
                 ..Default::default()
             }),
-            working_dir: Some("/workspace".to_string()),
+            working_dir: Some(container_work_dir),
             ..Default::default()
         };
 

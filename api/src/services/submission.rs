@@ -3,6 +3,7 @@ use crate::{
     error::{ApiError, ApiResult},
     models::{ProgrammingLanguage, Submission, SubmissionStatus},
 };
+use serde::Deserialize;
 use surrealdb::sql::{Datetime, Thing};
 
 pub async fn create_submission(
@@ -13,6 +14,21 @@ pub async fn create_submission(
     language: ProgrammingLanguage,
     code: String,
 ) -> ApiResult<Submission> {
+    let mut existing = db
+        .query(
+            "SELECT VALUE count() FROM tournament_participant
+             WHERE tournament_id = $tournament_id AND user_id = $user_id",
+        )
+        .bind(("tournament_id", tournament_id.clone()))
+        .bind(("user_id", user_id.clone()))
+        .await?;
+    let counts: Vec<i64> = existing.take(0)?;
+    if counts.first().copied().unwrap_or(0) == 0 {
+        return Err(ApiError::Forbidden(
+            "You must join the tournament before submitting code".to_string(),
+        ));
+    }
+
     // Create submission with code stored as string in database
     let submission = Submission {
         id: None,
@@ -29,11 +45,28 @@ pub async fn create_submission(
     let submission =
         created.ok_or_else(|| ApiError::Internal("Failed to create submission".to_string()))?;
     // Update tournament participant with latest submission
-    db.query("UPDATE tournament_participant SET submission_id = $submission_id WHERE tournament_id = $tournament_id AND user_id = $user_id")
+    let mut updated = db
+        .query(
+            "UPDATE tournament_participant
+             SET submission_id = $submission_id
+             WHERE tournament_id = $tournament_id AND user_id = $user_id
+             RETURN AFTER",
+        )
         .bind(("submission_id", submission.id.clone().unwrap()))
         .bind(("tournament_id", tournament_id))
         .bind(("user_id", user_id))
         .await?;
+    #[derive(Deserialize)]
+    struct ParticipantRow {
+        id: Thing,
+    }
+
+    let participants: Vec<ParticipantRow> = updated.take(0)?;
+    if participants.is_empty() {
+        return Err(ApiError::Internal(
+            "Failed to link submission to tournament participant".to_string(),
+        ));
+    }
     Ok(submission)
 }
 

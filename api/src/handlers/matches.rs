@@ -18,6 +18,8 @@ pub struct ListMatchesQuery {
     pub tournament_id: Option<String>,
     pub game_id: Option<String>,
     pub user_id: Option<String>,
+    pub limit: Option<u32>,
+    pub offset: Option<u32>,
 }
 
 pub async fn create_match(
@@ -97,7 +99,14 @@ pub async fn list_matches(
                 .map_err(|_| crate::error::ApiError::BadRequest("Invalid user id".to_string()))
         })
         .transpose()?;
-    let matches =
-        services::matches::list_matches(&state.db, tournament_id, game_id, user_id).await?;
+    let matches = services::matches::list_matches(
+        &state.db,
+        tournament_id,
+        game_id,
+        user_id,
+        query.limit,
+        query.offset,
+    )
+    .await?;
     Ok(Json(matches))
 }

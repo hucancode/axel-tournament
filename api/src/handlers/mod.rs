@@ -1,6 +1,5 @@
 pub mod admin;
 pub mod auth;
-pub mod dockerfile;
 pub mod game;
 pub mod game_code;
 pub mod game_template;
@@ -13,7 +12,6 @@ pub mod user;
 
 pub use admin::*;
 pub use auth::*;
-pub use dockerfile::*;
 pub use game::*;
 pub use game_code::*;
 pub use game_template::*;

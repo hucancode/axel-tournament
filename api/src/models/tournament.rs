@@ -16,7 +16,6 @@ pub struct Tournament {
     pub start_time: Option<Datetime>,
     pub end_time: Option<Datetime>,
     pub match_generation_type: MatchGenerationType,
-    pub matches_generated: bool, // Track if matches have been generated
     pub created_at: Datetime,
     pub updated_at: Datetime,
 }
@@ -47,6 +46,7 @@ impl Default for MatchGenerationType {
 pub enum TournamentStatus {
     Scheduled,
     Registration,
+    Generating,
     Running,
     Completed,
     Cancelled,

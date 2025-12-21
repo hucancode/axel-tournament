@@ -1,7 +1,9 @@
 #!/bin/bash
 set -e
 
-cd /workspace
+OUTPUT_DIR="${OUTPUT_DIR:-$PWD}"
+
+mkdir -p "${OUTPUT_DIR}"
 
 # Function to detect file language
 detect_language() {
@@ -66,21 +68,14 @@ if [ -z "$SERVER_FILE" ]; then
     exit 1
 fi
 
-# Compile server
+SERVER_BIN="${OUTPUT_DIR}/server"
+# Compile server (single-file source only; no Cargo dependencies)
 echo "Compiling server: $SERVER_FILE"
-# If a Cargo.toml already exists (user provided), use cargo build; otherwise compile directly
-if [ -f "Cargo.toml" ] && [[ "$SERVER_FILE" == *.rs ]]; then
-    echo "Using cargo build for server with dependencies (offline)"
-    if ! CARGO_NET_OFFLINE=1 cargo build --offline --release --bin game_server 2>&1; then
-        echo "RE RE"
-        exit 1
-    fi
-    cp target/release/game_server server
-elif ! compile_code "$SERVER_FILE" "server"; then
+if ! compile_code "$SERVER_FILE" "$SERVER_BIN"; then
     echo "RE RE"
     exit 1
 fi
-chmod +x server
+chmod +x "$SERVER_BIN"
 
 # Compile all player code files
 PLAYERS=()
@@ -91,11 +86,12 @@ for file in player_*.*; do
     if [ -f "$file" ] && [[ "$file" != *.toml ]]; then
         idx=$(echo "$file" | sed 's/player_//; s/\.[^.]*$//')
         binary="player_${idx}"
+        output="${OUTPUT_DIR}/${binary}"
 
         echo "Compiling player $idx: $file"
-        if compile_code "$file" "$binary"; then
-            chmod +x "$binary"
-            PLAYERS+=("/workspace/$binary")
+        if compile_code "$file" "$output"; then
+            chmod +x "$output"
+            PLAYERS+=("$output")
             PLAYER_COUNT=$((PLAYER_COUNT + 1))
         else
             # Player compilation failed
@@ -135,9 +131,4 @@ for player in "${PLAYERS[@]}"; do
     fi
 done
 
-# Detect if server is Python
-if [[ "$SERVER_FILE" == *.py ]]; then
-    python3 server "${VALID_PLAYERS[@]}" 2>&1
-else
-    ./server "${VALID_PLAYERS[@]}" 2>&1
-fi
+"$SERVER_BIN" "${VALID_PLAYERS[@]}" 2>&1

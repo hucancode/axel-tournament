@@ -46,7 +46,7 @@ spec:
           effect: "NoSchedule"
       containers:
         - name: surrealdb
-          image: surrealdb/surrealdb:latest
+          image: surrealdb/surrealdb:2.4
           args:
             - start
             - --log

@@ -98,14 +98,15 @@ impl DbClient {
         let mut response = self
             .db
             .query(
-                "UPDATE $match_id SET status = 'queued', updated_at = time::now()
-                 WHERE status = 'pending' RETURN AFTER",
+                "LET $updated = (UPDATE $match_id SET status = 'queued', updated_at = time::now()
+                 WHERE status = 'pending' RETURN id);
+                 RETURN array::len($updated);",
             )
             .bind(("match_id", match_thing))
             .await?;
 
-        let updated: Vec<Value> = response.take(0)?;
-        Ok(!updated.is_empty())
+        let counts: Vec<i64> = response.take(1)?;
+        Ok(counts.first().copied().unwrap_or(0) > 0)
     }
 
     pub async fn update_match_status(&self, match_id: &str, status: &str) -> Result<()> {
@@ -229,35 +230,26 @@ impl DbClient {
                 .parse()
                 .map_err(|_| anyhow!("Invalid submission id {}", result.submission_id))?;
 
-            #[derive(Deserialize)]
-            struct ScoreRow {
-                score: Option<f64>,
-            }
-
-            let mut current_score = self
+            let mut updated = self
                 .db
                 .query(
-                    "SELECT score FROM tournament_participant
-                     WHERE tournament_id = $tournament_id AND submission_id = $submission_id",
-                )
-                .bind(("tournament_id", tournament_thing.clone()))
-                .bind(("submission_id", submission_thing.clone()))
-                .await?;
-
-            let existing: Vec<ScoreRow> = current_score.take(0)?;
-            let base = existing.first().and_then(|row| row.score).unwrap_or(0.0);
-            let new_score = base + result.score;
-
-            self.db
-                .query(
-                    "UPDATE tournament_participant
-                     SET score = $score
-                     WHERE tournament_id = $tournament_id AND submission_id = $submission_id",
+                    "LET $updated = (UPDATE tournament_participant
+                     SET score += $delta
+                     WHERE tournament_id = $tournament_id AND submission_id = $submission_id
+                     RETURN id);
+                     RETURN array::len($updated);",
                 )
                 .bind(("tournament_id", tournament_thing.clone()))
                 .bind(("submission_id", submission_thing))
-                .bind(("score", new_score))
+                .bind(("delta", result.score))
                 .await?;
+            let counts: Vec<i64> = updated.take(1)?;
+            if counts.first().copied().unwrap_or(0) == 0 {
+                return Err(anyhow!(
+                    "Tournament participant not found for submission {}",
+                    result.submission_id
+                ));
+            }
         }
 
         Ok(())

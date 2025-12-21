@@ -21,6 +21,8 @@ const RPS_PLAYER_ALT: &str = include_str!("../../games/rock_paper_scissor/client
 #[tokio::test]
 async fn judge_executes_rock_paper_scissor_match() {
     // Start judge server against the test database
+    let workspace_root = std::env::temp_dir().join("axel_judge_workspaces");
+    let workspace_root = workspace_root.to_string_lossy().to_string();
     let judge_config = JudgeConfig {
         db_url: "ws://127.0.0.1:8000".to_string(),
         db_user: "root".to_string(),
@@ -28,7 +30,7 @@ async fn judge_executes_rock_paper_scissor_match() {
         db_ns: "tournament".to_string(),
         db_name: "axel".to_string(),
         sandbox_image: "axel-sandbox".to_string(),
-        workspace_root: "/workspaces".to_string(),
+        workspace_root,
     };
     tracing_subscriber::fmt::init();
     let judge_handle = spawn_judge_server(judge_config);
@@ -59,9 +61,10 @@ async fn judge_executes_rock_paper_scissor_match() {
 
     // Use raw SQL query to insert game record
     let mut result = db
-        .query("CREATE game SET name = $name, description = $description, game_code = $code, game_language = $lang RETURN id")
+        .query("CREATE game SET name = $name, description = $description, supported_languages = $supported_languages, game_code = $code, game_language = $lang, created_at = time::now(), updated_at = time::now() RETURN id")
         .bind(("name", "Rock Paper Scissor"))
         .bind(("description", "RPS game for judge e2e test"))
+        .bind(("supported_languages", json!(["rust"])))
         .bind(("code", game_code))
         .bind(("lang", "rust"))
         .await
@@ -80,7 +83,7 @@ async fn judge_executes_rock_paper_scissor_match() {
     let game_thing: Thing = game_id.parse().expect("Failed to parse game ID");
     let mut verify = db
         .query("SELECT * FROM $game_id")
-        .bind(("game_id", game_thing))
+        .bind(("game_id", game_thing.clone()))
         .await
         .expect("Failed to query game");
 
@@ -107,14 +110,66 @@ async fn judge_executes_rock_paper_scissor_match() {
         "Game should have game_language"
     );
 
-    // Step 2: Create two submissions with player code
+    // Step 2: Create a tournament for submissions
+    let mut result = db
+        .query(
+            "CREATE tournament SET
+                game_id = $game_id,
+                name = $name,
+                description = $description,
+                status = $status,
+                min_players = $min_players,
+                max_players = $max_players,
+                current_players = $current_players,
+                match_generation_type = $match_generation_type,
+                created_at = time::now(),
+                updated_at = time::now()
+             RETURN id",
+        )
+        .bind(("game_id", game_thing.clone()))
+        .bind(("name", "Judge E2E Tournament"))
+        .bind(("description", "Tournament for judge e2e test"))
+        .bind(("status", "scheduled"))
+        .bind(("min_players", 2))
+        .bind(("max_players", 2))
+        .bind(("current_players", 0))
+        .bind(("match_generation_type", "all_vs_all"))
+        .await
+        .expect("Failed to create tournament");
+
+    #[derive(Deserialize)]
+    struct TournamentId {
+        id: Thing,
+    }
+
+    let tournament: Vec<TournamentId> = result
+        .take(0)
+        .expect("Failed to get tournament from result");
+    let tournament_id = tournament
+        .first()
+        .expect("Tournament should be created")
+        .id
+        .to_string();
+    println!("Created tournament: {}", tournament_id);
+    let tournament_thing: Thing = tournament_id
+        .parse()
+        .expect("Failed to parse tournament ID");
+
+    // Step 3: Create two submissions with player code
     let player1_code = RPS_PLAYER_ROCK;
     let player2_code = RPS_PLAYER_ALT;
+    let user1_thing: Thing = "user:test_user1"
+        .parse()
+        .expect("Failed to parse user 1 ID");
+    let user2_thing: Thing = "user:test_user2"
+        .parse()
+        .expect("Failed to parse user 2 ID");
 
     let mut result = db
-        .query("CREATE submission SET game_id = $game_id, user_id = $user_id, code = $code, language = $lang, status = 'active' RETURN id")
-        .bind(("game_id", game_id.clone()))
-        .bind(("user_id", "user:test_user1"))
+        .query("CREATE submission SET game_id = $game_id, tournament_id = $tournament_id, user_id = $user_id, code = $code, language = $lang, status = 'active', created_at = time::now() RETURN id")
+        .bind(("game_id", game_thing.clone()))
+        .bind(("tournament_id", tournament_thing.clone()))
+        .bind(("user_id", user1_thing))
         .bind(("code", player1_code))
         .bind(("lang", "rust"))
         .await
@@ -134,11 +189,15 @@ async fn judge_executes_rock_paper_scissor_match() {
         .id
         .to_string();
     println!("Created submission 1: {}", submission1_id);
+    let submission1_thing: Thing = submission1_id
+        .parse()
+        .expect("Failed to parse submission 1 ID");
 
     let mut result = db
-        .query("CREATE submission SET game_id = $game_id, user_id = $user_id, code = $code, language = $lang, status = 'active' RETURN id")
-        .bind(("game_id", game_id.clone()))
-        .bind(("user_id", "user:test_user2"))
+        .query("CREATE submission SET game_id = $game_id, tournament_id = $tournament_id, user_id = $user_id, code = $code, language = $lang, status = 'active', created_at = time::now() RETURN id")
+        .bind(("game_id", game_thing.clone()))
+        .bind(("tournament_id", tournament_thing.clone()))
+        .bind(("user_id", user2_thing))
         .bind(("code", player2_code))
         .bind(("lang", "rust"))
         .await
@@ -153,17 +212,20 @@ async fn judge_executes_rock_paper_scissor_match() {
         .id
         .to_string();
     println!("Created submission 2: {}", submission2_id);
+    let submission2_thing: Thing = submission2_id
+        .parse()
+        .expect("Failed to parse submission 2 ID");
 
-    // Step 3: Create a match in "pending" status
+    // Step 4: Create a match in "pending" status
     let mut result = db
-        .query("CREATE match SET game_id = $game_id, status = 'pending', participants = $participants RETURN id")
-        .bind(("game_id", game_id.clone()))
+        .query("CREATE match SET game_id = $game_id, status = 'pending', participants = $participants, created_at = time::now(), updated_at = time::now() RETURN id")
+        .bind(("game_id", game_thing.clone()))
         .bind(("participants", json!([
             {
-                "submission_id": submission1_id
+                "submission_id": submission1_thing
             },
             {
-                "submission_id": submission2_id
+                "submission_id": submission2_thing
             }
         ])))
         .await

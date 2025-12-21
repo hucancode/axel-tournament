@@ -1,7 +1,7 @@
 use crate::{
     AppState,
     error::ApiResult,
-    models::{Claims, CreateGameRequest, GameResponse, UpdateGameRequest},
+    models::{Claims, CreateGameRequest, GameResponse, UpdateGameRequest, UserRole},
     services,
 };
 use axum::{
@@ -84,6 +84,45 @@ pub async fn update_game(
     let game_id: Thing = game_id
         .parse()
         .map_err(|_| crate::error::ApiError::BadRequest("Invalid game id".to_string()))?;
+    let game = services::game::update_game(
+        &state.db,
+        game_id,
+        payload.name,
+        payload.description,
+        payload.supported_languages,
+        payload.is_active,
+        payload.turn_timeout_ms,
+        payload.memory_limit_mb,
+    )
+    .await?;
+    Ok(Json(game.into()))
+}
+
+pub async fn update_game_as_game_setter(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Claims>,
+    Path(game_id): Path<String>,
+    Json(payload): Json<UpdateGameRequest>,
+) -> ApiResult<Json<GameResponse>> {
+    payload
+        .validate()
+        .map_err(|e| crate::error::ApiError::Validation(e.to_string()))?;
+    let game_id: Thing = game_id
+        .parse()
+        .map_err(|_| crate::error::ApiError::BadRequest("Invalid game id".to_string()))?;
+    let game = services::game::get_game(&state.db, game_id.clone()).await?;
+
+    let is_owner = game
+        .owner_id
+        .as_ref()
+        .map(|owner| owner.to_string() == claims.sub)
+        .unwrap_or(false);
+    if !is_owner && claims.role != UserRole::Admin {
+        return Err(crate::error::ApiError::Forbidden(
+            "You don't have permission to update this game".to_string(),
+        ));
+    }
+
     let game = services::game::update_game(
         &state.db,
         game_id,

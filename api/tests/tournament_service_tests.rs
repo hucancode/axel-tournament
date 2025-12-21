@@ -205,6 +205,7 @@ async fn test_tournament_status_serialization() {
     let statuses = vec![
         TournamentStatus::Scheduled,
         TournamentStatus::Registration,
+        TournamentStatus::Generating,
         TournamentStatus::Running,
         TournamentStatus::Completed,
         TournamentStatus::Cancelled,
@@ -294,7 +295,7 @@ async fn test_start_tournament_all_vs_all() {
 
     // Verify tournament status changed
     assert_eq!(started_tournament.status, TournamentStatus::Running);
-    assert!(started_tournament.matches_generated);
+    assert_eq!(started_tournament.status, TournamentStatus::Running);
 
     // Verify matches were created (3 players vs 3 players = 9 matches)
     let created_matches = matches::list_matches(&db, Some(tournament_id.clone()), None, None)
@@ -390,7 +391,7 @@ async fn test_start_tournament_round_robin() {
 
     // Verify tournament status changed
     assert_eq!(started_tournament.status, TournamentStatus::Running);
-    assert!(started_tournament.matches_generated);
+    assert_eq!(started_tournament.status, TournamentStatus::Running);
 
     // Verify matches were created (4 players, unique pairings = 6 matches)
     let created_matches = matches::list_matches(&db, Some(tournament_id.clone()), None, None)

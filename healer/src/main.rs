@@ -93,41 +93,61 @@ async fn run_healer(config: HealerConfig) -> Result<()> {
     info!("Healer connected to SurrealDB at {}", config.db_url);
 
     let mut tracked: HashMap<String, MatchState> = HashMap::new();
-    seed_matches(&db, &mut tracked).await?;
-
-    let mut response = db
-        .query("LIVE SELECT id, status, updated_at FROM match WHERE status IN ['pending','running']")
-        .await?;
-    let mut stream = response.stream::<surrealdb::Notification<MatchRow>>(0)?;
-
-    let mut interval =
-        tokio::time::interval(StdDuration::from_secs(config.sweep_interval_seconds));
-
     loop {
-        tokio::select! {
-            _ = interval.tick() => {
-                if let Err(err) = heal_stale(&db, &mut tracked, &config).await {
-                    error!("Healer sweep failed: {}", err);
-                }
+        tracked.clear();
+        if let Err(err) = seed_matches(&db, &mut tracked).await {
+            error!("Healer failed to seed matches: {}", err);
+        }
+
+        let response = db
+            .query("LIVE SELECT id, status, updated_at FROM match WHERE status IN ['pending','running']")
+            .await;
+        let mut response = match response {
+            Ok(response) => response,
+            Err(err) => {
+                error!("Healer live query setup failed: {}", err);
+                tokio::time::sleep(StdDuration::from_secs(5)).await;
+                continue;
             }
-            next = stream.next() => {
-                match next {
-                    Some(Ok(notification)) => {
-                        handle_notification(&mut tracked, notification);
+        };
+        let mut stream = match response.stream::<surrealdb::Notification<MatchRow>>(0) {
+            Ok(stream) => stream,
+            Err(err) => {
+                error!("Healer live query stream creation failed: {}", err);
+                tokio::time::sleep(StdDuration::from_secs(5)).await;
+                continue;
+            }
+        };
+
+        let mut interval =
+            tokio::time::interval(StdDuration::from_secs(config.sweep_interval_seconds));
+
+        loop {
+            tokio::select! {
+                _ = interval.tick() => {
+                    if let Err(err) = heal_stale(&db, &mut tracked, &config).await {
+                        error!("Healer sweep failed: {}", err);
                     }
-                    Some(Err(err)) => {
-                        error!("Healer live query error: {}", err);
-                    }
-                    None => {
-                        warn!("Healer live query stream ended");
-                        break;
+                }
+                next = stream.next() => {
+                    match next {
+                        Some(Ok(notification)) => {
+                            handle_notification(&mut tracked, notification);
+                        }
+                        Some(Err(err)) => {
+                            error!("Healer live query error: {}", err);
+                        }
+                        None => {
+                            warn!("Healer live query stream ended, resubscribing...");
+                            break;
+                        }
                     }
                 }
             }
         }
-    }
 
-    Ok(())
+        tokio::time::sleep(StdDuration::from_secs(2)).await;
+    }
 }
 
 async fn seed_matches(db: &Surreal<Client>, tracked: &mut HashMap<String, MatchState>) -> Result<()> {
