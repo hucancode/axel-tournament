@@ -22,7 +22,7 @@ const RPS_PLAYER_ALT: &str = include_str!("../../games/rock_paper_scissor/client
 async fn judge_executes_rock_paper_scissor_match() {
     // Start judge server against the test database
     let judge_config = JudgeConfig {
-        db_url: "ws://127.0.0.1:8001".to_string(),
+        db_url: "ws://127.0.0.1:8000".to_string(),
         db_user: "root".to_string(),
         db_pass: "root".to_string(),
         db_ns: "tournament".to_string(),
@@ -36,7 +36,7 @@ async fn judge_executes_rock_paper_scissor_match() {
     sleep(Duration::from_secs(1)).await;
 
     // Connect to test database
-    let db: Surreal<Client> = Surreal::new::<Ws>("localhost:8001")
+    let db: Surreal<Client> = Surreal::new::<Ws>("localhost:8000")
         .await
         .expect("Failed to connect to test database");
 

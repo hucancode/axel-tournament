@@ -10,7 +10,7 @@ use validator::Validate;
 
 async fn setup_test_db() -> axel_tournament::db::Database {
     let config = DatabaseConfig {
-        url: "ws://127.0.0.1:8001".to_string(),
+        url: "ws://127.0.0.1:8000".to_string(),
         user: "root".to_string(),
         pass: "root".to_string(),
         namespace: "test_game".to_string(),

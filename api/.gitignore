@@ -16,10 +16,6 @@ Cargo.lock
 *~
 .DS_Store
 
-# Database
-*.db
-data/
-
 # Logs
 *.log
 

@@ -58,7 +58,7 @@ fn test_config(namespace: &str) -> Config {
             port: 8080,
         },
         database: DatabaseConfig {
-            url: "ws://127.0.0.1:8001".to_string(),
+            url: "ws://127.0.0.1:8000".to_string(),
             user: "root".to_string(),
             pass: "root".to_string(),
             namespace: namespace.to_string(),

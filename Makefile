@@ -1,10 +1,9 @@
-.PHONY: test-db-up test-db-down sandbox-image
+.PHONY: test-db-up test-db-down
 
 # Container runtime (docker or podman)
 CONTAINER_RUNTIME := docker
-DATABASE_PORT ?= 8001
+DATABASE_PORT ?= 8000
 DATABASE_URL ?= ws://localhost:$(DATABASE_PORT)
-SANDBOX_IMAGE ?= axel-sandbox
 
 # Start test database (in-memory SurrealDB)
 test-db-up:
@@ -22,7 +21,3 @@ test-db-up:
 test-db-down:
 	@echo "Stopping test SurrealDB instance..."
 	@$(CONTAINER_RUNTIME) stop surrealdb-test
-
-# sandbox image used to run matches
-sandbox-image:
-	@$(CONTAINER_RUNTIME) build -f ../judge/src/sandbox.Dockerfile -t $(SANDBOX_IMAGE) ../judge/src
