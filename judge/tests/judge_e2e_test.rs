@@ -73,9 +73,9 @@ async fn judge_executes_rock_paper_scissor_match() {
         .bind(("owner_id", owner_thing))
         .bind(("code", game_code))
         .bind(("lang", "rust"))
-        .bind(("rounds_per_match", 3))
+        .bind(("rounds_per_match", 100))
         .bind(("repetitions", 1))
-        .bind(("timeout_seconds", 120))
+        .bind(("timeout_seconds", 2))
         .bind(("cpu_limit", "1.0"))
         .bind(("memory_limit", "512m"))
         .await
