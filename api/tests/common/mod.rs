@@ -69,11 +69,11 @@ pub fn game_payload(name: String, description: &str) -> Value {
 fn test_config(namespace: &str) -> Config {
     Config {
         server: ServerConfig {
-            host: "127.0.0.1".to_string(),
+            host: "localhost".to_string(),
             port: 8080,
         },
         database: DatabaseConfig {
-            url: "ws://127.0.0.1:8000".to_string(),
+            url: "ws://localhost:8000".to_string(),
             user: "root".to_string(),
             pass: "root".to_string(),
             namespace: namespace.to_string(),

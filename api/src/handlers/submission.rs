@@ -48,10 +48,12 @@ pub async fn create_submission(
     .await?;
     let game_id = tournament.game_id.clone();
     let game = services::game::get_game(&state.db, game_id.clone()).await?;
-    if !game.supported_languages.contains(&language) {
+    if !game.supported_languages.contains(&language) && game.game_language != language {
         return Err(crate::error::ApiError::Validation(format!(
-            "Language {:?} is not supported by this game",
-            language
+            "Language {:?} is not supported ({:?}, game_language: {:?}) by this game",
+            language,
+            game.supported_languages,
+            game.game_language,
         )));
     }
     // Create submission

@@ -12,7 +12,7 @@ use validator::Validate;
 async fn setup_test_db() -> axel_tournament::db::Database {
     let namespace = common::unique_name("test_tournament_");
     let config = DatabaseConfig {
-        url: "ws://127.0.0.1:8000".to_string(),
+        url: "ws://localhost:8000".to_string(),
         user: "root".to_string(),
         pass: "root".to_string(),
         namespace: namespace.clone(),
@@ -66,8 +66,6 @@ async fn test_create_and_get_tournament() {
         None,
         None,
         None,
-        None,
-        None,
     )
     .await
     .unwrap();
@@ -108,8 +106,6 @@ async fn test_update_tournament_status() {
         "Test tournament".to_string(),
         2,
         8,
-        None,
-        None,
         None,
         None,
         None,
@@ -162,8 +158,6 @@ async fn test_join_and_leave_tournament() {
         "Test tournament".to_string(),
         2,
         8,
-        None,
-        None,
         None,
         None,
         None,
@@ -343,7 +337,14 @@ async fn test_start_tournament_all_vs_all() {
     assert_eq!(started_tournament.status, TournamentStatus::Running);
 
     // Verify matches were created (3 players vs 3 players = 9 matches)
-    let created_matches = matches::list_matches(&db, Some(tournament_id.clone()), None, None)
+    let created_matches = matches::list_matches(
+        &db,
+        Some(tournament_id.clone()),
+        None,
+        None,
+        None,
+        None,
+    )
         .await
         .unwrap();
     assert_eq!(created_matches.len(), 9); // 3x3 = 9 matches
@@ -446,7 +447,14 @@ async fn test_start_tournament_round_robin() {
     assert_eq!(started_tournament.status, TournamentStatus::Running);
 
     // Verify matches were created (4 players, unique pairings = 6 matches)
-    let created_matches = matches::list_matches(&db, Some(tournament_id.clone()), None, None)
+    let created_matches = matches::list_matches(
+        &db,
+        Some(tournament_id.clone()),
+        None,
+        None,
+        None,
+        None,
+    )
         .await
         .unwrap();
     assert_eq!(created_matches.len(), 6); // 4 * (4-1) / 2 = 6 matches (no duplicates)
@@ -486,8 +494,6 @@ async fn test_start_tournament_without_submissions_fails() {
         "Test tournament".to_string(),
         2,
         10,
-        None,
-        None,
         None,
         None,
         None,
@@ -555,8 +561,6 @@ async fn test_start_tournament_not_enough_players_fails() {
         "Test tournament".to_string(),
         5,
         10,
-        None,
-        None,
         None,
         None,
         None,

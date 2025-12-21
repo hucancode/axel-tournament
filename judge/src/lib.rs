@@ -32,7 +32,7 @@ pub struct JudgeConfig {
 impl JudgeConfig {
     pub fn from_env() -> Self {
         let db_url =
-            std::env::var("DATABASE_URL").unwrap_or_else(|_| "ws://surrealdb:8000".to_string());
+            std::env::var("DATABASE_URL").unwrap_or_else(|_| "ws://localhost:8000".to_string());
         let db_user = std::env::var("DATABASE_USER").unwrap_or_else(|_| "root".to_string());
         let db_pass = std::env::var("DATABASE_PASS").unwrap_or_else(|_| "root".to_string());
         let db_ns = std::env::var("DATABASE_NS").unwrap_or_else(|_| "axel".to_string());

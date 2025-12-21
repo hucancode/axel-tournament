@@ -24,7 +24,7 @@ async fn judge_executes_rock_paper_scissor_match() {
     let workspace_root = std::env::temp_dir().join("axel_judge_workspaces");
     let workspace_root = workspace_root.to_string_lossy().to_string();
     let judge_config = JudgeConfig {
-        db_url: "ws://127.0.0.1:8000".to_string(),
+        db_url: "ws://localhost:8000".to_string(),
         db_user: "root".to_string(),
         db_pass: "root".to_string(),
         db_ns: "tournament".to_string(),

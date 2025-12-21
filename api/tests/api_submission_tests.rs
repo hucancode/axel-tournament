@@ -7,7 +7,7 @@ async fn create_and_list_submissions() {
     let app = common::setup_app(&common::unique_name("submission_api_")).await;
     let admin_token = common::admin_token(&app).await;
     // Game
-    let (_, game_body) = common::json_request(
+    let (game_status, game_body) = common::json_request(
         &app,
         http::Method::POST,
         "/api/admin/games",
@@ -18,9 +18,10 @@ async fn create_and_list_submissions() {
         Some(&admin_token),
     )
     .await;
+    assert!(game_status == StatusCode::CREATED);
     let game_id = common::extract_thing_id(&game_body["id"]);
     // Tournament
-    let (_, tournament_body) = common::json_request(
+    let (tournament_status, tournament_body) = common::json_request(
         &app,
         http::Method::POST,
         "/api/admin/tournaments",
@@ -34,9 +35,10 @@ async fn create_and_list_submissions() {
         Some(&admin_token),
     )
     .await;
+    assert!(tournament_status == StatusCode::CREATED);
     let tournament_id = common::extract_thing_id(&tournament_body["id"]);
     // Player
-    let (_, user_body) = common::json_request(
+    let (register_status, user_body) = common::json_request(
         &app,
         http::Method::POST,
         "/api/auth/register",
@@ -49,6 +51,7 @@ async fn create_and_list_submissions() {
         None,
     )
     .await;
+    assert!(register_status == StatusCode::CREATED);
     let player_token = user_body["token"].as_str().unwrap();
     // Join tournament
     let (join_status, _) = common::json_request(
@@ -73,10 +76,11 @@ async fn create_and_list_submissions() {
         Some(player_token),
     )
     .await;
-    if !(status == StatusCode::CREATED || status == StatusCode::OK) {
+    if status != StatusCode::CREATED {
         panic!(
-            "create submission failed: status {} body {:?}",
-            status, submission_body
+            "create submission failed: status {} body {:?}, game body {:?}",
+            status, submission_body,
+            game_body,
         );
     }
     let submission_id = submission_body["id"].as_str().unwrap();

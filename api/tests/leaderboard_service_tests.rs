@@ -10,7 +10,7 @@ use axel_tournament::{
 async fn setup_test_db() -> axel_tournament::db::Database {
     let namespace = common::unique_name("test_leaderboard_");
     let config = DatabaseConfig {
-        url: "ws://127.0.0.1:8000".to_string(),
+        url: "ws://localhost:8000".to_string(),
         user: "root".to_string(),
         pass: "root".to_string(),
         namespace: namespace.clone(),
@@ -62,8 +62,6 @@ async fn test_leaderboard_ordering_and_limit() {
         "Test tournament".to_string(),
         2,
         32,
-        None,
-        None,
         None,
         None,
         None,

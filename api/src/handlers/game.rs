@@ -24,18 +24,6 @@ fn validate_game_code_fields(
     Ok(())
 }
 
-fn ensure_language_supported(
-    supported_languages: &[ProgrammingLanguage],
-    game_language: &ProgrammingLanguage,
-) -> ApiResult<()> {
-    if !supported_languages.contains(game_language) {
-        return Err(ApiError::Validation(
-            "game_language must be included in supported_languages".to_string(),
-        ));
-    }
-    Ok(())
-}
-
 async fn ensure_game_owner(state: &AppState, game_id: Thing, claims: &Claims) -> ApiResult<()> {
     if claims.role == UserRole::Admin {
         return Ok(());
@@ -57,7 +45,6 @@ pub async fn create_game(
     payload
         .validate()
         .map_err(|e| crate::error::ApiError::Validation(e.to_string()))?;
-    ensure_language_supported(&payload.supported_languages, &payload.game_language)?;
     let game = services::game::create_game(
         &state.db,
         payload.name,
@@ -104,9 +91,6 @@ pub async fn update_game(
         .validate()
         .map_err(|e| crate::error::ApiError::Validation(e.to_string()))?;
     validate_game_code_fields(&payload.game_code, &payload.game_language)?;
-    if let (Some(langs), Some(lang)) = (&payload.supported_languages, &payload.game_language) {
-        ensure_language_supported(langs, lang)?;
-    }
     let game_id: Thing = game_id
         .parse()
         .map_err(|_| crate::error::ApiError::BadRequest("Invalid game id".to_string()))?;

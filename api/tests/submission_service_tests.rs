@@ -9,7 +9,7 @@ use validator::Validate;
 
 async fn setup_test_db() -> axel_tournament::db::Database {
     let config = DatabaseConfig {
-        url: "ws://127.0.0.1:8000".to_string(),
+        url: "ws://localhost:8000".to_string(),
         user: "root".to_string(),
         pass: "root".to_string(),
         namespace: "test_submission".to_string(),
@@ -89,8 +89,6 @@ async fn test_submission_create() {
         None,
         None,
         None,
-        None,
-        None,
     )
     .await
     .unwrap();
@@ -156,8 +154,6 @@ async fn test_submission_get() {
         "Test tournament".to_string(),
         2,
         100,
-        None,
-        None,
         None,
         None,
         None,
@@ -230,8 +226,6 @@ async fn test_submission_list_by_user() {
         "Test tournament".to_string(),
         2,
         100,
-        None,
-        None,
         None,
         None,
         None,
