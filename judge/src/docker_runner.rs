@@ -9,6 +9,7 @@ use bollard::Docker;
 use chrono::Utc;
 use futures_util::StreamExt;
 use std::collections::HashMap;
+use std::io::ErrorKind;
 use tokio::fs;
 use tracing::warn;
 
@@ -100,9 +101,28 @@ impl DockerRunner {
     }
 
     async fn prepare_workspace(&self, match_data: &Match, game: &Game) -> Result<String> {
+        let match_suffix = match_data.id.replace(':', "_");
         let root = self.workspace_root.trim_end_matches('/');
-        let workspace_dir = format!("{}/match_{}", root, match_data.id.replace(':', "_"));
-        fs::create_dir_all(&workspace_dir).await?;
+        let mut workspace_dir = format!("{}/match_{}", root, match_suffix);
+        if let Err(err) = fs::create_dir_all(&workspace_dir).await {
+            if err.kind() == ErrorKind::PermissionDenied {
+                let fallback_root = std::env::temp_dir().join("axel_judge_workspaces");
+                let fallback_root = fallback_root.to_string_lossy();
+                let fallback_dir = format!(
+                    "{}/match_{}",
+                    fallback_root.trim_end_matches('/'),
+                    match_suffix
+                );
+                fs::create_dir_all(&fallback_dir).await?;
+                warn!(
+                    "Workspace root {} not writable, using {}",
+                    root, fallback_root
+                );
+                workspace_dir = fallback_dir;
+            } else {
+                return Err(err.into());
+            }
+        }
 
         // Write game server code to workspace from database
         // Determine file extension based on game language
