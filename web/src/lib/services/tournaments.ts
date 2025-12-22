@@ -3,6 +3,7 @@ import type {
   Tournament,
   TournamentParticipant,
   CreateTournamentRequest,
+  UpdateTournamentRequest,
 } from "../types";
 
 export const tournamentService = {
@@ -34,8 +35,11 @@ export const tournamentService = {
   },
   async update(
     id: string,
-    data: Partial<CreateTournamentRequest>,
+    data: UpdateTournamentRequest,
   ): Promise<Tournament> {
     return api.patch<Tournament>(`/api/admin/tournaments/${id}`, data, true);
+  },
+  async start(id: string): Promise<Tournament> {
+    return api.post<Tournament>(`/api/admin/tournaments/${id}/start`, {}, true);
   },
 };

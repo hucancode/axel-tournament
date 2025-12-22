@@ -8,7 +8,9 @@
         Tournament,
         Game,
         CreateTournamentRequest,
+        UpdateTournamentRequest,
         TournamentStatus,
+        MatchGenerationType,
     } from "$lib/types";
     let tournaments = $state<Tournament[]>([]);
     let games = $state<Game[]>([]);
@@ -17,7 +19,11 @@
     // Create/Edit form state
     let showForm = $state(false);
     let editingTournament = $state<Tournament | null>(null);
-    let formData = $state<CreateTournamentRequest>({
+    type TournamentFormData = CreateTournamentRequest & {
+        status: TournamentStatus;
+        match_generation_type: MatchGenerationType;
+    };
+    let formData = $state<TournamentFormData>({
         game_id: "",
         name: "",
         description: "",
@@ -26,9 +32,13 @@
         max_players: 100,
         start_time: "",
         end_time: "",
+        match_generation_type: "all_vs_all",
     });
     let formLoading = $state(false);
     let formError = $state("");
+    let actionError = $state("");
+    let actionMessage = $state("");
+    let actionLoading = $state<Record<string, boolean>>({});
     const auth = $derived($authStore);
     const isEditing = $derived(editingTournament !== null);
     onMount(async () => {
@@ -70,6 +80,7 @@
             max_players: 100,
             start_time: "",
             end_time: "",
+            match_generation_type: "all_vs_all",
         };
         formError = "";
         showForm = true;
@@ -89,6 +100,7 @@
             end_time: tournament.end_time
                 ? formatDateForInput(tournament.end_time)
                 : "",
+            match_generation_type: tournament.match_generation_type,
         };
         formError = "";
         showForm = true;
@@ -107,8 +119,8 @@
         formLoading = true;
         formError = "";
         // Validation
-        if (formData.min_players < 1) {
-            formError = "Minimum players must be at least 1";
+        if (formData.min_players < 2) {
+            formError = "Minimum players must be at least 2";
             formLoading = false;
             return;
         }
@@ -119,8 +131,24 @@
             return;
         }
         // Prepare data with proper date formatting
-        const submitData: CreateTournamentRequest = {
-            ...formData,
+        const createPayload: CreateTournamentRequest = {
+            game_id: formData.game_id,
+            name: formData.name,
+            description: formData.description,
+            min_players: formData.min_players,
+            max_players: formData.max_players,
+            start_time: formData.start_time
+                ? new Date(formData.start_time).toISOString()
+                : undefined,
+            end_time: formData.end_time
+                ? new Date(formData.end_time).toISOString()
+                : undefined,
+            match_generation_type: formData.match_generation_type,
+        };
+        const updatePayload: UpdateTournamentRequest = {
+            name: formData.name,
+            description: formData.description,
+            status: formData.status,
             start_time: formData.start_time
                 ? new Date(formData.start_time).toISOString()
                 : undefined,
@@ -130,12 +158,14 @@
         };
         try {
             if (isEditing && editingTournament) {
-                await tournamentService.update(
-                    editingTournament.id,
-                    submitData,
-                );
+                await tournamentService.update(editingTournament.id, updatePayload);
             } else {
-                await tournamentService.create(submitData);
+                const created = await tournamentService.create(createPayload);
+                if (formData.status !== "scheduled") {
+                    await tournamentService.update(created.id, {
+                        status: formData.status,
+                    });
+                }
             }
             await loadData();
             closeForm();
@@ -146,6 +176,23 @@
                     : "Failed to save tournament";
         } finally {
             formLoading = false;
+        }
+    }
+    async function startTournament(tournamentId: string) {
+        actionLoading = { ...actionLoading, [tournamentId]: true };
+        actionError = "";
+        actionMessage = "";
+        try {
+            await tournamentService.start(tournamentId);
+            actionMessage = "Tournament started and matches were generated.";
+            await loadData();
+        } catch (err) {
+            actionError =
+                err instanceof Error
+                    ? err.message
+                    : "Failed to start tournament";
+        } finally {
+            actionLoading = { ...actionLoading, [tournamentId]: false };
         }
     }
     function formatDate(dateStr: string): string {
@@ -165,6 +212,7 @@
         const statusMap: Record<TournamentStatus, string> = {
             scheduled: "badge-scheduled",
             registration: "badge-registration",
+            generating: "badge-generating",
             running: "badge-running",
             completed: "badge-completed",
             cancelled: "badge-cancelled",
@@ -188,6 +236,16 @@
             </div>
         </div>
     </div>
+    {#if actionMessage}
+        <div class="card" style="background: #d1fae5; margin-bottom: 1rem;">
+            <p class="text-green-700">{actionMessage}</p>
+        </div>
+    {/if}
+    {#if actionError}
+        <div class="card" style="background: #fee2e2; margin-bottom: 1rem;">
+            <p class="text-red-600">{actionError}</p>
+        </div>
+    {/if}
     {#if error}
         <div
             class="card"
@@ -269,13 +327,36 @@
                                         : "Not set"}
                                 </td>
                                 <td>
-                                    <button
-                                        class="btn btn-secondary"
-                                        style="padding: 0.25rem 0.75rem; font-size: 0.875rem;"
-                                        onclick={() => openEditForm(tournament)}
+                                    <div
+                                        class="flex gap-2"
+                                        style="flex-wrap: wrap;"
                                     >
-                                        Edit
-                                    </button>
+                                        {#if tournament.status === "registration"}
+                                            <button
+                                                class="btn btn-success"
+                                                style="padding: 0.25rem 0.75rem; font-size: 0.875rem;"
+                                                onclick={() =>
+                                                    startTournament(
+                                                        tournament.id,
+                                                    )}
+                                                disabled={actionLoading[
+                                                    tournament.id
+                                                ]}
+                                            >
+                                                {actionLoading[tournament.id]
+                                                    ? "Starting..."
+                                                    : "Start"}
+                                            </button>
+                                        {/if}
+                                        <button
+                                            class="btn btn-secondary"
+                                            style="padding: 0.25rem 0.75rem; font-size: 0.875rem;"
+                                            onclick={() =>
+                                                openEditForm(tournament)}
+                                        >
+                                            Edit
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         {/each}
@@ -375,6 +456,36 @@
                     ></textarea>
                 </div>
                 <div class="form-group">
+                    <label for="match_generation_type"
+                        >Match Generation Type</label
+                    >
+                    <select
+                        id="match_generation_type"
+                        class="select"
+                        bind:value={formData.match_generation_type}
+                        disabled={formLoading || isEditing}
+                        required
+                    >
+                        <option value="all_vs_all">All vs All</option>
+                        <option value="round_robin">Round Robin</option>
+                        <option value="single_elimination">
+                            Single Elimination
+                        </option>
+                        <option value="double_elimination">
+                            Double Elimination
+                        </option>
+                    </select>
+                    {#if isEditing}
+                        <p
+                            class="text-sm text-gray-500"
+                            style="margin-top: 0.25rem;"
+                        >
+                            Match generation type cannot be changed after
+                            creation.
+                        </p>
+                    {/if}
+                </div>
+                <div class="form-group">
                     <label for="status">Status</label>
                     <select
                         id="status"
@@ -385,6 +496,7 @@
                     >
                         <option value="scheduled">Scheduled</option>
                         <option value="registration">Registration</option>
+                        <option value="generating">Generating</option>
                         <option value="running">Running</option>
                         <option value="completed">Completed</option>
                         <option value="cancelled">Cancelled</option>

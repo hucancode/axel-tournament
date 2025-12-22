@@ -106,6 +106,59 @@ variable "create_ecr_repos" {
   default     = true
 }
 
+variable "create_route53_zone" {
+  type        = bool
+  description = "Whether to create a Route53 hosted zone for the SES subdomain."
+  default     = true
+}
+
+variable "route53_zone_name" {
+  type        = string
+  description = "Route53 hosted zone name for SES verification."
+  default     = "axel.lamsaoquenem.day"
+}
+
+variable "route53_zone_id" {
+  type        = string
+  description = "Existing Route53 hosted zone ID to reuse (leave empty to use created zone)."
+  default     = ""
+}
+
+variable "ses_domain" {
+  type        = string
+  description = "Domain to verify in SES (leave empty to skip)."
+  default     = "axel.lamsaoquenem.day"
+}
+
+variable "ses_email_identity" {
+  type        = string
+  description = "Email address to verify in SES (leave empty to skip)."
+  default     = ""
+}
+
+variable "ses_mail_from_subdomain" {
+  type        = string
+  description = "MAIL FROM subdomain for SES (used with ses_domain). Leave empty to skip."
+  default     = ""
+}
+
+variable "create_ses_smtp_user" {
+  type        = bool
+  description = "Whether to create an IAM user for SES SMTP credentials."
+  default     = true
+
+  validation {
+    condition     = var.create_ses_smtp_user == false || trimspace(var.ses_domain) != "" || trimspace(var.ses_email_identity) != ""
+    error_message = "Set ses_domain or ses_email_identity when create_ses_smtp_user is true."
+  }
+}
+
+variable "ses_smtp_user_name" {
+  type        = string
+  description = "IAM user name for SES SMTP credentials."
+  default     = "axel-ses-smtp"
+}
+
 variable "tags" {
   type        = map(string)
   description = "Extra tags applied to all resources."

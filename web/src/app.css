@@ -333,6 +333,10 @@ th {
     background: var(--primary-100);
     color: var(--primary-700);
 }
+.badge-generating {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
 .badge-running {
     background: #fef3c7;
     color: #92400e;

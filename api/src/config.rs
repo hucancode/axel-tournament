@@ -55,6 +55,7 @@ pub struct EmailConfig {
     pub smtp_username: String,
     pub smtp_password: String,
     pub from_address: String,
+    pub frontend_url: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -114,6 +115,8 @@ impl Config {
                 smtp_password: env::var("SMTP_PASSWORD").unwrap_or_else(|_| "".to_string()),
                 from_address: env::var("EMAIL_FROM")
                     .unwrap_or_else(|_| "noreply@axel-tournament.com".to_string()),
+                frontend_url: env::var("FRONTEND_URL")
+                    .unwrap_or_else(|_| "http://localhost:3000".to_string()),
             },
             app: AppConfig {
                 max_code_size_mb: env::var("MAX_CODE_SIZE_MB")

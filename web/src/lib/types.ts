@@ -36,9 +36,16 @@ export interface LoginRequest {
 export type TournamentStatus =
   | "scheduled"
   | "registration"
+  | "generating"
   | "running"
   | "completed"
   | "cancelled";
+
+export type MatchGenerationType =
+  | "all_vs_all"
+  | "round_robin"
+  | "single_elimination"
+  | "double_elimination";
 
 export interface Tournament {
   id: string;
@@ -51,6 +58,7 @@ export interface Tournament {
   current_players: number;
   start_time?: string;
   end_time?: string;
+  match_generation_type: MatchGenerationType;
   created_at: string;
   updated_at: string;
 }
@@ -70,9 +78,17 @@ export interface CreateTournamentRequest {
   game_id: string;
   name: string;
   description: string;
-  status: TournamentStatus;
   min_players: number;
   max_players: number;
+  start_time?: string;
+  end_time?: string;
+  match_generation_type?: MatchGenerationType;
+}
+
+export interface UpdateTournamentRequest {
+  name?: string;
+  description?: string;
+  status?: TournamentStatus;
   start_time?: string;
   end_time?: string;
 }

@@ -10,18 +10,36 @@ ECR_SANDBOX_REPO ?= $(shell terraform output -raw ecr_sandbox_repository 2>/dev/
 ECR_HEALER_REPO ?= $(shell terraform output -raw ecr_healer_repository 2>/dev/null)
 ECR_REGISTRY ?= $(word 1, $(subst /, ,$(ECR_SANDBOX_REPO)))
 
+SES_SMTP_HOST ?= $(shell terraform output -raw ses_smtp_host 2>/dev/null)
+SES_SMTP_USERNAME ?= $(shell terraform output -raw ses_smtp_username 2>/dev/null)
+SES_SMTP_PASSWORD ?= $(shell terraform output -raw ses_smtp_password 2>/dev/null)
+SES_EMAIL_IDENTITY ?= $(shell terraform output -raw ses_email_identity 2>/dev/null)
+SES_DOMAIN ?= $(shell terraform output -raw ses_domain 2>/dev/null)
+DEFAULT_EMAIL_FROM ?= noreply@axel-tournament.com
+
+SMTP_HOST ?= $(SES_SMTP_HOST)
+SMTP_PORT ?= 587
+SMTP_USERNAME ?= $(SES_SMTP_USERNAME)
+SMTP_PASSWORD ?= $(SES_SMTP_PASSWORD)
+EMAIL_FROM ?= $(if $(SES_EMAIL_IDENTITY),$(SES_EMAIL_IDENTITY),$(if $(SES_DOMAIN),noreply@$(SES_DOMAIN),$(DEFAULT_EMAIL_FROM)))
+
 FRONTEND_IMAGE ?= $(if $(ECR_FRONTEND_REPO),$(ECR_FRONTEND_REPO):latest,)
 BACKEND_IMAGE ?= $(if $(ECR_BACKEND_REPO),$(ECR_BACKEND_REPO):latest,)
 JUDGE_IMAGE ?= $(if $(ECR_JUDGE_REPO),$(ECR_JUDGE_REPO):latest,)
 SANDBOX_IMAGE ?= $(if $(ECR_SANDBOX_REPO),$(ECR_SANDBOX_REPO):latest,)
 HEALER_IMAGE ?= $(if $(ECR_HEALER_REPO),$(ECR_HEALER_REPO):latest,)
-ENV_SUBST_VARS := '$${FRONTEND_IMAGE} $${BACKEND_IMAGE} $${JUDGE_IMAGE} $${SANDBOX_IMAGE} $${HEALER_IMAGE}'
+ENV_SUBST_VARS := '$${FRONTEND_IMAGE} $${BACKEND_IMAGE} $${JUDGE_IMAGE} $${SANDBOX_IMAGE} $${HEALER_IMAGE} $${SMTP_HOST} $${SMTP_PORT} $${SMTP_USERNAME} $${SMTP_PASSWORD} $${EMAIL_FROM}'
 
 export FRONTEND_IMAGE
 export BACKEND_IMAGE
 export JUDGE_IMAGE
 export SANDBOX_IMAGE
 export HEALER_IMAGE
+export SMTP_HOST
+export SMTP_PORT
+export SMTP_USERNAME
+export SMTP_PASSWORD
+export EMAIL_FROM
 
 aws-up:
 	@terraform init

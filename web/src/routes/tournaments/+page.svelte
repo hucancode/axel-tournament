@@ -10,8 +10,10 @@
         { value: "all", label: "All Tournaments" },
         { value: "scheduled", label: "Scheduled" },
         { value: "registration", label: "Registration Open" },
+        { value: "generating", label: "Generating Matches" },
         { value: "running", label: "Running" },
         { value: "completed", label: "Completed" },
+        { value: "cancelled", label: "Cancelled" },
     ];
     onMount(async () => {
         await loadTournaments();

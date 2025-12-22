@@ -8,6 +8,11 @@ stringData:
   admin_password: "change-me"
   db_user: "root"
   db_pass: "change-me"
+  smtp_host: "${SMTP_HOST}"
+  smtp_port: "${SMTP_PORT}"
+  smtp_username: "${SMTP_USERNAME}"
+  smtp_password: "${SMTP_PASSWORD}"
+  email_from: "${EMAIL_FROM}"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -64,6 +69,31 @@ spec:
               value: "true"
             - name: OAUTH_STATE_TTL_SECONDS
               value: "300"
+            - name: SMTP_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: smtp_host
+            - name: SMTP_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: smtp_port
+            - name: SMTP_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: smtp_username
+            - name: SMTP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: smtp_password
+            - name: EMAIL_FROM
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: email_from
           resources:
             requests:
               cpu: "200m"

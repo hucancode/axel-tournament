@@ -75,7 +75,7 @@
   }
 
   function canStart(status: TournamentStatus) {
-    return status === "registration" || status === "scheduled";
+    return status === "registration";
   }
 
   function canClose(status: TournamentStatus) {

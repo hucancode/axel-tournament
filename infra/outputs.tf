@@ -33,3 +33,52 @@ output "ecr_sandbox_repository" {
 output "ecr_healer_repository" {
   value = try(aws_ecr_repository.repos["healer"].repository_url, "")
 }
+
+output "ses_domain_identity_arn" {
+  value = try(aws_ses_domain_identity.this[0].arn, "")
+}
+
+output "ses_domain_verification_token" {
+  value = try(aws_ses_domain_identity.this[0].verification_token, "")
+}
+
+output "ses_domain_dkim_tokens" {
+  value = try(aws_ses_domain_dkim.this[0].dkim_tokens, [])
+}
+
+output "ses_mail_from_domain" {
+  value = try(aws_ses_domain_mail_from.this[0].mail_from_domain, "")
+}
+
+output "ses_email_identity_arn" {
+  value = try(aws_ses_email_identity.this[0].arn, "")
+}
+
+output "ses_email_identity" {
+  value = var.ses_email_identity
+}
+
+output "ses_domain" {
+  value = var.ses_domain
+}
+
+output "ses_smtp_host" {
+  value = "email-smtp.${data.aws_region.current.name}.amazonaws.com"
+}
+
+output "ses_smtp_username" {
+  value = try(aws_iam_access_key.ses_smtp[0].id, "")
+}
+
+output "ses_smtp_password" {
+  value     = try(aws_iam_access_key.ses_smtp[0].ses_smtp_password_v4, "")
+  sensitive = true
+}
+
+output "route53_zone_id" {
+  value = try(aws_route53_zone.ses_subdomain[0].zone_id, "")
+}
+
+output "route53_zone_name_servers" {
+  value = try(aws_route53_zone.ses_subdomain[0].name_servers, [])
+}

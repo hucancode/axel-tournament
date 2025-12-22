@@ -3,7 +3,13 @@
   import { goto } from "$app/navigation";
   import { onMount } from "svelte";
   import { gameSetterService } from "$lib/services/game-setter";
-  import type { Game, ProgrammingLanguage, TournamentStatus } from "$lib/types";
+  import type {
+    Game,
+    CreateTournamentRequest,
+    UpdateTournamentRequest,
+    TournamentStatus,
+    MatchGenerationType,
+  } from "$lib/types";
 
   let { user, isAuthenticated } = $derived($authStore);
   let myGames: Game[] = $state([]);
@@ -12,15 +18,20 @@
   let error = $state("");
 
   // Form data
-  let form = $state({
+  type TournamentFormData = CreateTournamentRequest & {
+    status: TournamentStatus;
+    match_generation_type: MatchGenerationType;
+  };
+  let form = $state<TournamentFormData>({
     game_id: "",
     name: "",
     description: "",
-    status: "scheduled" as TournamentStatus,
+    status: "scheduled",
     min_players: 2,
     max_players: 10,
     start_time: "",
-    end_time: ""
+    end_time: "",
+    match_generation_type: "all_vs_all",
   });
 
   // Redirect if not game setter or admin
@@ -71,7 +82,24 @@
       creating = true;
       error = "";
 
-      const tournament = await gameSetterService.createTournament(form);
+      const createPayload: CreateTournamentRequest = {
+        game_id: form.game_id,
+        name: form.name,
+        description: form.description,
+        min_players: form.min_players,
+        max_players: form.max_players,
+        start_time: form.start_time ? new Date(form.start_time).toISOString() : undefined,
+        end_time: form.end_time ? new Date(form.end_time).toISOString() : undefined,
+        match_generation_type: form.match_generation_type,
+      };
+      const tournament = await gameSetterService.createTournament(createPayload);
+
+      if (form.status !== "scheduled") {
+        const updatePayload: UpdateTournamentRequest = {
+          status: form.status,
+        };
+        await gameSetterService.updateTournament(tournament.id, updatePayload);
+      }
 
       goto(`/tournaments/${tournament.id}`);
     } catch (e: any) {
@@ -126,6 +154,21 @@
             placeholder="Describe your tournament..."
             required
           ></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="match-generation">Match Generation Type *</label>
+          <select
+            id="match-generation"
+            class="input"
+            bind:value={form.match_generation_type}
+            required
+          >
+            <option value="all_vs_all">All vs All</option>
+            <option value="round_robin">Round Robin</option>
+            <option value="single_elimination">Single Elimination</option>
+            <option value="double_elimination">Double Elimination</option>
+          </select>
         </div>
 
         <div class="grid grid-2">

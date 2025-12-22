@@ -7,6 +7,7 @@ import type {
   CreateGameTemplateRequest,
   Tournament,
   CreateTournamentRequest,
+  UpdateTournamentRequest,
 } from "../types";
 
 export const gameSetterService = {
@@ -53,7 +54,7 @@ export const gameSetterService = {
     return api.post<Tournament>("/api/game-setter/tournaments", data, true);
   },
 
-  async updateTournament(id: string, data: Partial<CreateTournamentRequest>): Promise<Tournament> {
+  async updateTournament(id: string, data: UpdateTournamentRequest): Promise<Tournament> {
     return api.patch<Tournament>(`/api/game-setter/tournaments/${id}`, data, true);
   },
 
