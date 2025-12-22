@@ -22,17 +22,16 @@ fn build_game_request(
         game_language,
         rounds_per_match: 3,
         repetitions: 1,
-        timeout_seconds: 120,
-        cpu_limit: "1.0".to_string(),
-        memory_limit: "512m".to_string(),
-        turn_timeout_ms: None,
-        memory_limit_mb: None,
+        timeout_ms: 5000,
+        cpu_limit: 1.0,
+        turn_timeout_ms: 200,
+        memory_limit_mb: 2,
     }
 }
 
 #[tokio::test]
 async fn test_game_setter_can_create_game() {
-    let app = setup_app("test_game_setter_create").await;
+    let app = setup_app().await;
     let token = game_setter_token(&app).await;
 
     let game_request = build_game_request(
@@ -58,7 +57,7 @@ async fn test_game_setter_can_create_game() {
 
 #[tokio::test]
 async fn test_player_cannot_create_game() {
-    let app = setup_app("test_player_no_game").await;
+    let app = setup_app().await;
 
     // Register a regular player
     let unique_email = format!("player{}@test.com", unique_name(""));
@@ -101,7 +100,7 @@ async fn test_player_cannot_create_game() {
 
 #[tokio::test]
 async fn test_create_game_template() {
-    let app = setup_app("test_game_template").await;
+    let app = setup_app().await;
     let token = game_setter_token(&app).await;
 
     // Create a game first
@@ -152,7 +151,7 @@ async fn test_create_game_template() {
 
 #[tokio::test]
 async fn test_list_game_templates() {
-    let app = setup_app("test_list_templates").await;
+    let app = setup_app().await;
     let token = game_setter_token(&app).await;
 
     // Create a game

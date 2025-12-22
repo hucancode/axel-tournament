@@ -82,7 +82,7 @@ impl Config {
                 database: env::var("DATABASE_DB").unwrap_or_else(|_| "axel".to_string()),
             },
             jwt: JwtConfig {
-                secret: env::var("JWT_SECRET").expect("JWT_SECRET must be set"),
+                secret: env::var("JWT_SECRET").unwrap_or_else(|_| "supersecret".to_string()),
                 expiration: env::var("JWT_EXPIRATION")
                     .unwrap_or_else(|_| "86400".to_string())
                     .parse()
@@ -125,7 +125,7 @@ impl Config {
             admin: AdminConfig {
                 email: env::var("ADMIN_EMAIL")
                     .unwrap_or_else(|_| "admin@axel-tournament.com".to_string()),
-                password: env::var("ADMIN_PASSWORD").expect("ADMIN_PASSWORD must be set"),
+                password: env::var("ADMIN_PASSWORD").unwrap_or_else(|_| "123456".to_string()),
             },
         })
     }

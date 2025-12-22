@@ -25,9 +25,10 @@
         game_language: "rust",
         rounds_per_match: 3,
         repetitions: 1,
-        timeout_seconds: 120,
-        cpu_limit: "1.0",
-        memory_limit: "512m",
+        timeout_ms: 5000,
+        cpu_limit: 1.0,
+        memory_limit_mb: 2,
+        turn_timeout_ms: 200,
         is_active: true,
     });
     let formLoading = $state(false);
@@ -67,9 +68,10 @@
             game_language: "rust",
             rounds_per_match: 3,
             repetitions: 1,
-            timeout_seconds: 120,
-            cpu_limit: "1.0",
-            memory_limit: "512m",
+            timeout_ms: 120,
+            cpu_limit: 1.0,
+            memory_limit_mb: 512,
+            turn_timeout_ms: 200,
             is_active: true,
         };
         formError = "";
@@ -85,9 +87,10 @@
             game_language: game.game_language,
             rounds_per_match: game.rounds_per_match,
             repetitions: game.repetitions,
-            timeout_seconds: game.timeout_seconds,
+            timeout_ms: game.timeout_ms,
             cpu_limit: game.cpu_limit,
-            memory_limit: game.memory_limit,
+            memory_limit_mb: game.memory_limit_mb,
+            turn_timeout_ms: game.turn_timeout_ms,
             is_active: game.is_active,
         };
         formError = "";
@@ -424,7 +427,7 @@
                         class="input"
                         min="1"
                         max="3600"
-                        bind:value={formData.timeout_seconds}
+                        bind:value={formData.timeout_ms}
                         disabled={formLoading}
                         required
                     />
@@ -446,7 +449,7 @@
                         id="memory-limit"
                         type="text"
                         class="input"
-                        bind:value={formData.memory_limit}
+                        bind:value={formData.memory_limit_mb}
                         disabled={formLoading}
                         required
                     />

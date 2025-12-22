@@ -1,6 +1,5 @@
 // Unit tests for game service logic
 use axel_tournament::{
-    config::DatabaseConfig,
     db,
     models::{CreateGameRequest, ProgrammingLanguage, UpdateGameRequest},
     services::game,
@@ -9,14 +8,9 @@ use surrealdb::sql::Thing;
 use validator::Validate;
 
 async fn setup_test_db() -> axel_tournament::db::Database {
-    let config = DatabaseConfig {
-        url: "ws://localhost:8000".to_string(),
-        user: "root".to_string(),
-        pass: "root".to_string(),
-        namespace: "test_game".to_string(),
-        database: "test_game".to_string(),
-    };
-    db::connect(&config)
+    let config = axel_tournament::config::Config::from_env()
+        .expect("Failed to load config from environment");
+    db::connect(&config.database)
         .await
         .expect("Failed to connect to test database")
 }
@@ -32,9 +26,10 @@ fn unique_name(prefix: &str) -> String {
 const DEFAULT_GAME_CODE: &str = "fn main() {}";
 const DEFAULT_ROUNDS_PER_MATCH: u32 = 3;
 const DEFAULT_REPETITIONS: u32 = 1;
-const DEFAULT_TIMEOUT_SECONDS: u32 = 120;
-const DEFAULT_CPU_LIMIT: &str = "1.0";
-const DEFAULT_MEMORY_LIMIT: &str = "512m";
+const DEFAULT_TIMEOUT_MS: u32 = 2000;
+const DEFAULT_CPU_LIMIT: f64 = 1.0;
+const DEFAULT_TURN_TIMEOUT_MS: u64 = 200;
+const DEFAULT_MEMORY_LIMIT_MB: u64 = 64;
 
 fn default_owner_id() -> String {
     "user:owner".to_string()
@@ -58,11 +53,10 @@ async fn test_game_create() {
         ProgrammingLanguage::Rust,
         DEFAULT_ROUNDS_PER_MATCH,
         DEFAULT_REPETITIONS,
-        DEFAULT_TIMEOUT_SECONDS,
-        DEFAULT_CPU_LIMIT.to_string(),
-        DEFAULT_MEMORY_LIMIT.to_string(),
-        None,
-        None,
+        DEFAULT_TIMEOUT_MS,
+        DEFAULT_CPU_LIMIT,
+        DEFAULT_TURN_TIMEOUT_MS,
+        DEFAULT_MEMORY_LIMIT_MB,
     )
     .await;
     assert!(game.is_ok());
@@ -88,11 +82,10 @@ async fn test_game_get() {
         ProgrammingLanguage::Rust,
         DEFAULT_ROUNDS_PER_MATCH,
         DEFAULT_REPETITIONS,
-        DEFAULT_TIMEOUT_SECONDS,
-        DEFAULT_CPU_LIMIT.to_string(),
-        DEFAULT_MEMORY_LIMIT.to_string(),
-        None,
-        None,
+        DEFAULT_TIMEOUT_MS,
+        DEFAULT_CPU_LIMIT,
+        DEFAULT_TURN_TIMEOUT_MS,
+        DEFAULT_MEMORY_LIMIT_MB,
     )
     .await
     .unwrap();
@@ -125,11 +118,10 @@ async fn test_game_list_all() {
         ProgrammingLanguage::Rust,
         DEFAULT_ROUNDS_PER_MATCH,
         DEFAULT_REPETITIONS,
-        DEFAULT_TIMEOUT_SECONDS,
-        DEFAULT_CPU_LIMIT.to_string(),
-        DEFAULT_MEMORY_LIMIT.to_string(),
-        None,
-        None,
+        DEFAULT_TIMEOUT_MS,
+        DEFAULT_CPU_LIMIT,
+        DEFAULT_TURN_TIMEOUT_MS,
+        DEFAULT_MEMORY_LIMIT_MB,
     )
     .await
     .unwrap();
@@ -143,11 +135,10 @@ async fn test_game_list_all() {
         ProgrammingLanguage::Go,
         DEFAULT_ROUNDS_PER_MATCH,
         DEFAULT_REPETITIONS,
-        DEFAULT_TIMEOUT_SECONDS,
-        DEFAULT_CPU_LIMIT.to_string(),
-        DEFAULT_MEMORY_LIMIT.to_string(),
-        None,
-        None,
+        DEFAULT_TIMEOUT_MS,
+        DEFAULT_CPU_LIMIT,
+        DEFAULT_TURN_TIMEOUT_MS,
+        DEFAULT_MEMORY_LIMIT_MB,
     )
     .await
     .unwrap();
@@ -171,11 +162,10 @@ async fn test_game_list_active_only() {
         ProgrammingLanguage::Rust,
         DEFAULT_ROUNDS_PER_MATCH,
         DEFAULT_REPETITIONS,
-        DEFAULT_TIMEOUT_SECONDS,
-        DEFAULT_CPU_LIMIT.to_string(),
-        DEFAULT_MEMORY_LIMIT.to_string(),
-        None,
-        None,
+        DEFAULT_TIMEOUT_MS,
+        DEFAULT_CPU_LIMIT,
+        DEFAULT_TURN_TIMEOUT_MS,
+        DEFAULT_MEMORY_LIMIT_MB,
     )
     .await
     .unwrap();
@@ -190,11 +180,10 @@ async fn test_game_list_active_only() {
         ProgrammingLanguage::C,
         DEFAULT_ROUNDS_PER_MATCH,
         DEFAULT_REPETITIONS,
-        DEFAULT_TIMEOUT_SECONDS,
-        DEFAULT_CPU_LIMIT.to_string(),
-        DEFAULT_MEMORY_LIMIT.to_string(),
-        None,
-        None,
+        DEFAULT_TIMEOUT_MS,
+        DEFAULT_CPU_LIMIT,
+        DEFAULT_TURN_TIMEOUT_MS,
+        DEFAULT_MEMORY_LIMIT_MB,
     )
     .await
     .unwrap();
@@ -206,7 +195,6 @@ async fn test_game_list_active_only() {
         None,
         Some(vec![]),
         Some(false),
-        None,
         None,
         None,
         None,
@@ -237,11 +225,10 @@ async fn test_game_update_name() {
         ProgrammingLanguage::Rust,
         DEFAULT_ROUNDS_PER_MATCH,
         DEFAULT_REPETITIONS,
-        DEFAULT_TIMEOUT_SECONDS,
-        DEFAULT_CPU_LIMIT.to_string(),
-        DEFAULT_MEMORY_LIMIT.to_string(),
-        None,
-        None,
+        DEFAULT_TIMEOUT_MS,
+        DEFAULT_CPU_LIMIT,
+        DEFAULT_TURN_TIMEOUT_MS,
+        DEFAULT_MEMORY_LIMIT_MB,
     )
     .await
     .unwrap();
@@ -252,7 +239,6 @@ async fn test_game_update_name() {
         &db,
         game_id.clone(),
         Some(new_name.clone()),
-        None,
         None,
         None,
         None,
@@ -285,11 +271,10 @@ async fn test_game_update_description() {
         ProgrammingLanguage::Rust,
         DEFAULT_ROUNDS_PER_MATCH,
         DEFAULT_REPETITIONS,
-        DEFAULT_TIMEOUT_SECONDS,
-        DEFAULT_CPU_LIMIT.to_string(),
-        DEFAULT_MEMORY_LIMIT.to_string(),
-        None,
-        None,
+        DEFAULT_TIMEOUT_MS,
+        DEFAULT_CPU_LIMIT,
+        DEFAULT_TURN_TIMEOUT_MS,
+        DEFAULT_MEMORY_LIMIT_MB,
     )
     .await
     .unwrap();
@@ -300,7 +285,6 @@ async fn test_game_update_description() {
         game_id,
         None,
         Some("New Description".to_string()),
-        None,
         None,
         None,
         None,
@@ -330,11 +314,10 @@ async fn test_game_update_deactivate() {
         ProgrammingLanguage::Rust,
         DEFAULT_ROUNDS_PER_MATCH,
         DEFAULT_REPETITIONS,
-        DEFAULT_TIMEOUT_SECONDS,
-        DEFAULT_CPU_LIMIT.to_string(),
-        DEFAULT_MEMORY_LIMIT.to_string(),
-        None,
-        None,
+        DEFAULT_TIMEOUT_MS,
+        DEFAULT_CPU_LIMIT,
+        DEFAULT_TURN_TIMEOUT_MS,
+        DEFAULT_MEMORY_LIMIT_MB,
     )
     .await
     .unwrap();
@@ -348,7 +331,6 @@ async fn test_game_update_deactivate() {
         None,
         None,
         Some(false),
-        None,
         None,
         None,
         None,
@@ -376,11 +358,10 @@ async fn test_game_delete() {
         ProgrammingLanguage::Rust,
         DEFAULT_ROUNDS_PER_MATCH,
         DEFAULT_REPETITIONS,
-        DEFAULT_TIMEOUT_SECONDS,
-        DEFAULT_CPU_LIMIT.to_string(),
-        DEFAULT_MEMORY_LIMIT.to_string(),
-        None,
-        None,
+        DEFAULT_TIMEOUT_MS,
+        DEFAULT_CPU_LIMIT,
+        DEFAULT_TURN_TIMEOUT_MS,
+        DEFAULT_MEMORY_LIMIT_MB,
     )
     .await
     .unwrap();
@@ -404,11 +385,10 @@ async fn test_game_request_validation() {
         game_language: ProgrammingLanguage::Rust,
         rounds_per_match: DEFAULT_ROUNDS_PER_MATCH,
         repetitions: DEFAULT_REPETITIONS,
-        timeout_seconds: DEFAULT_TIMEOUT_SECONDS,
-        cpu_limit: DEFAULT_CPU_LIMIT.to_string(),
-        memory_limit: DEFAULT_MEMORY_LIMIT.to_string(),
-        turn_timeout_ms: None,
-        memory_limit_mb: None,
+        timeout_ms: DEFAULT_TIMEOUT_MS,
+        cpu_limit: DEFAULT_CPU_LIMIT,
+        turn_timeout_ms: DEFAULT_TURN_TIMEOUT_MS,
+        memory_limit_mb: DEFAULT_MEMORY_LIMIT_MB,
     };
     assert!(valid.validate().is_ok());
     // Empty name - should fail
@@ -420,11 +400,10 @@ async fn test_game_request_validation() {
         game_language: ProgrammingLanguage::Rust,
         rounds_per_match: DEFAULT_ROUNDS_PER_MATCH,
         repetitions: DEFAULT_REPETITIONS,
-        timeout_seconds: DEFAULT_TIMEOUT_SECONDS,
-        cpu_limit: DEFAULT_CPU_LIMIT.to_string(),
-        memory_limit: DEFAULT_MEMORY_LIMIT.to_string(),
-        turn_timeout_ms: None,
-        memory_limit_mb: None,
+        timeout_ms: DEFAULT_TIMEOUT_MS,
+        cpu_limit: DEFAULT_CPU_LIMIT,
+        turn_timeout_ms: DEFAULT_TURN_TIMEOUT_MS,
+        memory_limit_mb: DEFAULT_MEMORY_LIMIT_MB,
     };
     assert!(empty_name.validate().is_err());
     // Name too long
@@ -436,11 +415,10 @@ async fn test_game_request_validation() {
         game_language: ProgrammingLanguage::Rust,
         rounds_per_match: DEFAULT_ROUNDS_PER_MATCH,
         repetitions: DEFAULT_REPETITIONS,
-        timeout_seconds: DEFAULT_TIMEOUT_SECONDS,
-        cpu_limit: DEFAULT_CPU_LIMIT.to_string(),
-        memory_limit: DEFAULT_MEMORY_LIMIT.to_string(),
-        turn_timeout_ms: None,
-        memory_limit_mb: None,
+        timeout_ms: DEFAULT_TIMEOUT_MS,
+        cpu_limit: DEFAULT_CPU_LIMIT,
+        turn_timeout_ms: DEFAULT_TURN_TIMEOUT_MS,
+        memory_limit_mb: DEFAULT_MEMORY_LIMIT_MB,
     };
     assert!(long_name.validate().is_err());
     // Empty description
@@ -452,11 +430,10 @@ async fn test_game_request_validation() {
         game_language: ProgrammingLanguage::Rust,
         rounds_per_match: DEFAULT_ROUNDS_PER_MATCH,
         repetitions: DEFAULT_REPETITIONS,
-        timeout_seconds: DEFAULT_TIMEOUT_SECONDS,
-        cpu_limit: DEFAULT_CPU_LIMIT.to_string(),
-        memory_limit: DEFAULT_MEMORY_LIMIT.to_string(),
-        turn_timeout_ms: None,
-        memory_limit_mb: None,
+        timeout_ms: DEFAULT_TIMEOUT_MS,
+        cpu_limit: DEFAULT_CPU_LIMIT,
+        turn_timeout_ms: DEFAULT_TURN_TIMEOUT_MS,
+        memory_limit_mb: DEFAULT_MEMORY_LIMIT_MB,
     };
     assert!(empty_desc.validate().is_err());
 }
@@ -473,9 +450,8 @@ async fn test_game_update_request_validation() {
         game_language: None,
         rounds_per_match: None,
         repetitions: None,
-        timeout_seconds: None,
+        timeout_ms: None,
         cpu_limit: None,
-        memory_limit: None,
         turn_timeout_ms: None,
         memory_limit_mb: None,
     };
@@ -490,9 +466,8 @@ async fn test_game_update_request_validation() {
         game_language: None,
         rounds_per_match: None,
         repetitions: None,
-        timeout_seconds: None,
+        timeout_ms: None,
         cpu_limit: None,
-        memory_limit: None,
         turn_timeout_ms: None,
         memory_limit_mb: None,
     };
@@ -507,9 +482,8 @@ async fn test_game_update_request_validation() {
         game_language: None,
         rounds_per_match: None,
         repetitions: None,
-        timeout_seconds: None,
+        timeout_ms: None,
         cpu_limit: None,
-        memory_limit: None,
         turn_timeout_ms: None,
         memory_limit_mb: None,
     };

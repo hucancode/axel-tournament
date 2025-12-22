@@ -4,7 +4,7 @@ use axum::http::{self, StatusCode};
 
 #[tokio::test]
 async fn list_games_public() {
-    let app = common::setup_app(&common::unique_name("game_api_")).await;
+    let app = common::setup_app().await;
     let (status, body) =
         common::json_request(&app, http::Method::GET, "/api/games", None, None).await;
     assert_eq!(status, StatusCode::OK);
@@ -13,7 +13,7 @@ async fn list_games_public() {
 
 #[tokio::test]
 async fn admin_can_crud_games() {
-    let app = common::setup_app(&common::unique_name("game_api_")).await;
+    let app = common::setup_app().await;
     let admin_token = common::admin_token(&app).await;
     let game_name = format!("Game {}", common::unique_name(""));
     let (create_status, create_body) = common::json_request(

@@ -13,9 +13,10 @@
   let gameLanguage: ProgrammingLanguage | "" = $state("");
   let roundsPerMatch = $state(3);
   let repetitions = $state(1);
-  let timeoutSeconds = $state(120);
-  let cpuLimit = $state("1.0");
-  let memoryLimit = $state("512m");
+  let timeoutMs = $state(2000);
+  let cpuLimit = $state(1.0);
+  let memoryLimit = $state(512);
+  let turnTimeoutMs = $state(200);
   let error = $state("");
   let loading = $state(false);
 
@@ -58,9 +59,10 @@
         game_language: gameLanguage as ProgrammingLanguage,
         rounds_per_match: roundsPerMatch,
         repetitions,
-        timeout_seconds: timeoutSeconds,
+        timeout_ms: timeoutMs,
         cpu_limit: cpuLimit,
-        memory_limit: memoryLimit,
+        memory_limit_mb: memoryLimit,
+        turn_timeout_ms: turnTimeoutMs,
       });
 
       goto(`/game-setter/games/${game.id}`);
@@ -198,7 +200,7 @@
           class="input"
           min="1"
           max="3600"
-          bind:value={timeoutSeconds}
+          bind:value={timeoutMs}
           required
         />
       </div>

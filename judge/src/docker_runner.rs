@@ -1,11 +1,11 @@
 use anyhow::{Context, Result};
+use bollard::Docker;
 use bollard::models::{ContainerCreateBody, HostConfig};
 use bollard::query_parameters::{
     CreateContainerOptions, CreateContainerOptionsBuilder, LogsOptionsBuilder,
     RemoveContainerOptionsBuilder, StartContainerOptions, StopContainerOptions,
     WaitContainerOptions,
 };
-use bollard::Docker;
 use chrono::Utc;
 use futures_util::StreamExt;
 use std::collections::HashMap;
@@ -47,9 +47,7 @@ impl DockerRunner {
             .await
             .context(format!("Failed to fetch game {}", match_data.game_id))?;
         let rounds: u32 = game.rounds_per_match;
-        let turn_timeout_ms = (game.timeout_seconds as u64)
-            .saturating_mul(1000)
-            .max(100);
+        let turn_timeout_ms = (game.timeout_ms as u64).max(100);
         let memory_limit_mb = game.memory_limit_mb.max(32);
 
         // 2. Prepare submission files
@@ -200,10 +198,10 @@ impl DockerRunner {
             ]),
             host_config: Some(HostConfig {
                 binds: Some(vec![format!("{}:{}:rw", work_dir, container_work_dir)]), // Writable for compilation
-                memory: Some(memory_limit_bytes),                      // per-game cap
-                memory_swap: Some(memory_limit_bytes),                 // disable swap
-                nano_cpus: Some(1_000_000_000),                        // 1 CPU
-                network_mode: Some("none".to_string()),                // No network access
+                memory: Some(memory_limit_bytes * 3), // per-game cap
+                memory_swap: Some(-1), // disable swap
+                nano_cpus: Some(1_000_000_000),       // 1 CPU
+                network_mode: Some("none".to_string()), // No network access
                 cap_drop: Some(vec!["ALL".to_string()]),
                 security_opt: Some(vec!["no-new-privileges".to_string()]),
                 readonly_rootfs: Some(true),
@@ -266,10 +264,7 @@ impl DockerRunner {
                     )
                     .await;
                 let timeout_secs = timeout.as_secs().max(1);
-                anyhow::bail!(
-                    "Match execution timed out after {} seconds",
-                    timeout_secs
-                );
+                anyhow::bail!("Match execution timed out after {} seconds", timeout_secs);
             }
         };
 

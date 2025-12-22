@@ -5,7 +5,7 @@ use axum::http::{self, StatusCode};
 
 #[tokio::test]
 async fn health_check_works() {
-    let app = common::setup_app(&common::unique_name("auth_api_")).await;
+    let app = common::setup_app().await;
     let (status, body) = common::json_request(&app, http::Method::GET, "/health", None, None).await;
     assert_eq!(status, StatusCode::OK);
     assert_eq!(body["raw"], "OK");
@@ -13,7 +13,7 @@ async fn health_check_works() {
 
 #[tokio::test]
 async fn register_and_login_flow() {
-    let app = common::setup_app(&common::unique_name("auth_api_")).await;
+    let app = common::setup_app().await;
     let email = format!("{}@test.com", common::unique_name("auth_user"));
     let username = common::unique_name("auth_user");
     let password = "password123";
@@ -49,7 +49,7 @@ async fn register_and_login_flow() {
 
 #[tokio::test]
 async fn password_reset_round_trip() {
-    let app = common::setup_app(&common::unique_name("auth_api_")).await;
+    let app = common::setup_app().await;
     let email = format!("{}@test.com", common::unique_name("reset_user"));
     let username = common::unique_name("reset_user");
     common::json_request(

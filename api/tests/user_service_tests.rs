@@ -1,21 +1,14 @@
 mod common;
 
 use axel_tournament::{
-    config::DatabaseConfig,
     db,
     services::{auth::AuthService, user},
 };
 
 async fn setup_test_db() -> axel_tournament::db::Database {
-    let namespace = common::unique_name("test_user_");
-    let config = DatabaseConfig {
-        url: "ws://localhost:8000".to_string(),
-        user: "root".to_string(),
-        pass: "root".to_string(),
-        namespace: namespace.clone(),
-        database: namespace,
-    };
-    db::connect(&config)
+    let config = axel_tournament::config::Config::from_env()
+        .expect("Failed to load config from environment");
+    db::connect(&config.database)
         .await
         .expect("Failed to connect to test database")
 }

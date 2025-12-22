@@ -26,11 +26,10 @@
     is_active: true,
     rounds_per_match: 3,
     repetitions: 1,
-    timeout_seconds: 120,
-    cpu_limit: "1.0",
-    memory_limit: "512m",
-    turn_timeout_ms: undefined as number | undefined,
-    memory_limit_mb: undefined as number | undefined
+    timeout_ms: 120,
+    cpu_limit: 1.0,
+    memory_limit_mb: 2,
+    turn_timeout_ms: 200,
   });
 
   // Game Code tab
@@ -133,11 +132,10 @@
       is_active: game.is_active,
       rounds_per_match: game.rounds_per_match,
       repetitions: game.repetitions,
-      timeout_seconds: game.timeout_seconds,
+      timeout_ms: game.timeout_ms,
       cpu_limit: game.cpu_limit,
-      memory_limit: game.memory_limit,
+      memory_limit_mb: game.memory_limit_mb,
       turn_timeout_ms: game.turn_timeout_ms,
-      memory_limit_mb: game.memory_limit_mb
     };
     editMode = true;
   }
@@ -307,7 +305,7 @@
                 class="input"
                 min="1"
                 max="3600"
-                bind:value={editForm.timeout_seconds}
+                bind:value={editForm.timeout_ms}
               />
             </div>
 
@@ -327,7 +325,7 @@
                 type="text"
                 id="edit-memory-limit"
                 class="input"
-                bind:value={editForm.memory_limit}
+                bind:value={editForm.memory_limit_mb}
               />
             </div>
 
@@ -365,13 +363,13 @@
               <dd>{game.repetitions}</dd>
 
               <dt><strong>Match Timeout:</strong></dt>
-              <dd>{game.timeout_seconds}s</dd>
+              <dd>{game.timeout_ms}s</dd>
 
               <dt><strong>CPU Limit:</strong></dt>
               <dd>{game.cpu_limit}</dd>
 
               <dt><strong>Memory Limit:</strong></dt>
-              <dd>{game.memory_limit}</dd>
+              <dd>{game.memory_limit_mb}</dd>
 
               <dt><strong>Game Code:</strong></dt>
               <dd>{game.game_code ? `✓ Uploaded (${game.game_language})` : "Not uploaded yet"}</dd>

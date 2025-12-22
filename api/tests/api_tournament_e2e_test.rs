@@ -17,10 +17,9 @@ const RPS_PLAYER_ALT: &str = include_str!("../../games/rock_paper_scissor/client
 /// 7. Verify actual scores from real gameplay and leaderboard
 #[tokio::test]
 async fn complete_tournament_flow_with_two_players() {
-    // Ensure we use the same DB namespace/database defaults as the running judge/database.
-    let db_namespace = std::env::var("DATABASE_NS").unwrap_or_else(|_| "axel".to_string());
-    // Setup test app with shared namespace so the judge process can see the same matches
-    let app = common::setup_app(&db_namespace).await;
+    // Setup test app - uses production config from environment
+    // Both test and judge will connect to the same database
+    let app = common::setup_app().await;
     // Get game setter token
     let game_setter_token = common::game_setter_token(&app).await;
     // Step 1: Game setter creates a rock_paper_scissor game
@@ -36,9 +35,10 @@ async fn complete_tournament_flow_with_two_players() {
             "game_language": "rust",
             "rounds_per_match": 100,
             "repetitions": 1,
-            "timeout_seconds": 2,
-            "cpu_limit": "1.0",
-            "memory_limit": "512m"
+            "timeout_ms": 2000,
+            "cpu_limit": 1.0,
+            "memory_limit_mb": 2,
+            "turn_timeout_ms": 200,
         })),
         Some(&game_setter_token),
     )

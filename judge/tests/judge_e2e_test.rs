@@ -20,37 +20,28 @@ const RPS_PLAYER_ALT: &str = include_str!("../../games/rock_paper_scissor/client
 /// 5. Verify match is completed with scores
 #[tokio::test]
 async fn judge_executes_rock_paper_scissor_match() {
-    // Start judge server against the test database
-    let workspace_root = std::env::temp_dir().join("axel_judge_workspaces");
-    let workspace_root = workspace_root.to_string_lossy().to_string();
-    let judge_config = JudgeConfig {
-        db_url: "ws://localhost:8000".to_string(),
-        db_user: "root".to_string(),
-        db_pass: "root".to_string(),
-        db_ns: "tournament".to_string(),
-        db_name: "axel".to_string(),
-        sandbox_image: "axel-sandbox".to_string(),
-        workspace_root,
-    };
+    // Use production config from environment
+    let judge_config = JudgeConfig::from_env();
     tracing_subscriber::fmt::init();
-    let judge_handle = spawn_judge_server(judge_config);
+    let judge_handle = spawn_judge_server(judge_config.clone());
     // Give the LIVE query a moment to subscribe
     sleep(Duration::from_secs(1)).await;
 
-    // Connect to test database
-    let db: Surreal<Client> = Surreal::new::<Ws>("localhost:8000")
+    // Connect to same database as judge
+    let db_url = judge_config.db_url.trim_start_matches("ws://");
+    let db: Surreal<Client> = Surreal::new::<Ws>(db_url)
         .await
-        .expect("Failed to connect to test database");
+        .expect("Failed to connect to database");
 
     db.signin(Root {
-        username: "root",
-        password: "root",
+        username: &judge_config.db_user,
+        password: &judge_config.db_pass,
     })
     .await
     .expect("Failed to sign in");
 
-    db.use_ns("tournament")
-        .use_db("axel")
+    db.use_ns(&judge_config.db_ns)
+        .use_db(&judge_config.db_name)
         .await
         .expect("Failed to use namespace/database");
 
@@ -65,7 +56,7 @@ async fn judge_executes_rock_paper_scissor_match() {
         .expect("Failed to parse owner id");
     let mut result = db
         .query(
-            "CREATE game SET name = $name, description = $description, supported_languages = $supported_languages, owner_id = $owner_id, game_code = $code, game_language = $lang, rounds_per_match = $rounds_per_match, repetitions = $repetitions, timeout_seconds = $timeout_seconds, cpu_limit = $cpu_limit, memory_limit = $memory_limit, created_at = time::now(), updated_at = time::now() RETURN id",
+            "CREATE game SET name = $name, description = $description, supported_languages = $supported_languages, owner_id = $owner_id, game_code = $code, game_language = $lang, rounds_per_match = $rounds_per_match, repetitions = $repetitions, timeout_ms = $timeout_ms, cpu_limit = $cpu_limit, turn_timeout_ms = $turn_timeout_ms, memory_limit_mb = $memory_limit_mb, created_at = time::now(), updated_at = time::now() RETURN id",
         )
         .bind(("name", "Rock Paper Scissor"))
         .bind(("description", "RPS game for judge e2e test"))
@@ -75,9 +66,10 @@ async fn judge_executes_rock_paper_scissor_match() {
         .bind(("lang", "rust"))
         .bind(("rounds_per_match", 100))
         .bind(("repetitions", 1))
-        .bind(("timeout_seconds", 2))
-        .bind(("cpu_limit", "1.0"))
-        .bind(("memory_limit", "512m"))
+        .bind(("timeout_ms", 2000))
+        .bind(("cpu_limit", 1.0))
+        .bind(("turn_timeout_ms", 2000))
+        .bind(("memory_limit_mb", 64))
         .await
         .expect("Failed to create game");
 

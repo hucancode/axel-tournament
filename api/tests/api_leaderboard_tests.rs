@@ -6,7 +6,7 @@ use surrealdb::sql::Thing;
 
 #[tokio::test]
 async fn leaderboard_returns_scored_players() {
-    let app = common::setup_app(&common::unique_name("leaderboard_api_")).await;
+    let app = common::setup_app().await;
     let admin_token = common::admin_token(&app).await;
     // Create game
     let (_, game_body) = common::json_request(

@@ -277,9 +277,8 @@ pub struct Game {
     pub game_language: String,
     pub rounds_per_match: u32,
     pub repetitions: u32,
-    pub timeout_seconds: u32,
-    pub cpu_limit: String,
-    pub memory_limit: String,
+    pub timeout_ms: u32,
+    pub cpu_limit: f64,
     pub turn_timeout_ms: u64,
     pub memory_limit_mb: u64,
 }

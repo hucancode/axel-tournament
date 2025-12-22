@@ -1,6 +1,5 @@
 // Unit tests for submission service logic
 use axel_tournament::{
-    config::DatabaseConfig,
     db,
     models::{CreateSubmissionRequest, ProgrammingLanguage},
     services::{auth::AuthService, game, submission, tournament},
@@ -8,14 +7,9 @@ use axel_tournament::{
 use validator::Validate;
 
 async fn setup_test_db() -> axel_tournament::db::Database {
-    let config = DatabaseConfig {
-        url: "ws://localhost:8000".to_string(),
-        user: "root".to_string(),
-        pass: "root".to_string(),
-        namespace: "test_submission".to_string(),
-        database: "test_submission".to_string(),
-    };
-    db::connect(&config)
+    let config = axel_tournament::config::Config::from_env()
+        .expect("Failed to load config from environment");
+    db::connect(&config.database)
         .await
         .expect("Failed to connect to test database")
 }
@@ -31,9 +25,10 @@ fn unique_name(prefix: &str) -> String {
 const DEFAULT_GAME_CODE: &str = "fn main() {}";
 const DEFAULT_ROUNDS_PER_MATCH: u32 = 3;
 const DEFAULT_REPETITIONS: u32 = 1;
-const DEFAULT_TIMEOUT_SECONDS: u32 = 120;
-const DEFAULT_CPU_LIMIT: &str = "1.0";
-const DEFAULT_MEMORY_LIMIT: &str = "512m";
+const DEFAULT_TIMEOUT_MS: u32 = 2000;
+const DEFAULT_CPU_LIMIT: f64 = 1.0;
+const DEFAULT_TURN_TIMEOUT_MS: u64 = 200;
+const DEFAULT_MEMORY_LIMIT_MB: u64 = 64;
 
 fn default_owner_id() -> String {
     "user:owner".to_string()
@@ -69,11 +64,10 @@ async fn test_submission_create() {
         ProgrammingLanguage::Rust,
         DEFAULT_ROUNDS_PER_MATCH,
         DEFAULT_REPETITIONS,
-        DEFAULT_TIMEOUT_SECONDS,
-        DEFAULT_CPU_LIMIT.to_string(),
-        DEFAULT_MEMORY_LIMIT.to_string(),
-        None,
-        None,
+        DEFAULT_TIMEOUT_MS,
+        DEFAULT_CPU_LIMIT,
+        DEFAULT_TURN_TIMEOUT_MS,
+        DEFAULT_MEMORY_LIMIT_MB,
     )
     .await
     .unwrap();
@@ -93,6 +87,10 @@ async fn test_submission_create() {
     .await
     .unwrap();
     let tournament_id = tournament_data.id.unwrap();
+    // Join tournament before submitting
+    tournament::join_tournament(&db, tournament_id.clone(), user_id.clone())
+        .await
+        .unwrap();
     // Create a submission
     let code = "fn main() { println!(\"Hello\"); }";
     let submission = submission::create_submission(
@@ -138,11 +136,10 @@ async fn test_submission_get() {
         ProgrammingLanguage::Rust,
         DEFAULT_ROUNDS_PER_MATCH,
         DEFAULT_REPETITIONS,
-        DEFAULT_TIMEOUT_SECONDS,
-        DEFAULT_CPU_LIMIT.to_string(),
-        DEFAULT_MEMORY_LIMIT.to_string(),
-        None,
-        None,
+        DEFAULT_TIMEOUT_MS,
+        DEFAULT_CPU_LIMIT,
+        DEFAULT_TURN_TIMEOUT_MS,
+        DEFAULT_MEMORY_LIMIT_MB,
     )
     .await
     .unwrap();
@@ -161,6 +158,10 @@ async fn test_submission_get() {
     .await
     .unwrap();
     let tournament_id = tournament_data.id.unwrap();
+    // Join tournament before submitting
+    tournament::join_tournament(&db, tournament_id.clone(), user_id.clone())
+        .await
+        .unwrap();
     // Create a submission
     let code = "fn main() {}";
     let created_submission = submission::create_submission(
@@ -210,11 +211,10 @@ async fn test_submission_list_by_user() {
         ProgrammingLanguage::Rust,
         DEFAULT_ROUNDS_PER_MATCH,
         DEFAULT_REPETITIONS,
-        DEFAULT_TIMEOUT_SECONDS,
-        DEFAULT_CPU_LIMIT.to_string(),
-        DEFAULT_MEMORY_LIMIT.to_string(),
-        None,
-        None,
+        DEFAULT_TIMEOUT_MS,
+        DEFAULT_CPU_LIMIT,
+        DEFAULT_TURN_TIMEOUT_MS,
+        DEFAULT_MEMORY_LIMIT_MB,
     )
     .await
     .unwrap();
@@ -233,6 +233,10 @@ async fn test_submission_list_by_user() {
     .await
     .unwrap();
     let tournament_id = tournament_data.id.unwrap();
+    // Join tournament before submitting
+    tournament::join_tournament(&db, tournament_id.clone(), user_id.clone())
+        .await
+        .unwrap();
     // Create multiple submissions
     submission::create_submission(
         &db,

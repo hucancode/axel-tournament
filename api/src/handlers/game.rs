@@ -55,9 +55,8 @@ pub async fn create_game(
         payload.game_language,
         payload.rounds_per_match,
         payload.repetitions,
-        payload.timeout_seconds,
+        payload.timeout_ms,
         payload.cpu_limit,
-        payload.memory_limit,
         payload.turn_timeout_ms,
         payload.memory_limit_mb,
     )
@@ -106,9 +105,8 @@ pub async fn update_game(
         payload.game_language,
         payload.rounds_per_match,
         payload.repetitions,
-        payload.timeout_seconds,
+        payload.timeout_ms,
         payload.cpu_limit,
-        payload.memory_limit,
         payload.turn_timeout_ms,
         payload.memory_limit_mb,
     )

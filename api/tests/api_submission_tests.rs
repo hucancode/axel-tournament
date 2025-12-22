@@ -4,7 +4,7 @@ use axum::http::{self, StatusCode};
 
 #[tokio::test]
 async fn create_and_list_submissions() {
-    let app = common::setup_app(&common::unique_name("submission_api_")).await;
+    let app = common::setup_app().await;
     let admin_token = common::admin_token(&app).await;
     // Game
     let (game_status, game_body) = common::json_request(

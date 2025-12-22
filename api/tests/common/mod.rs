@@ -1,13 +1,7 @@
 #![allow(dead_code)]
 
 use axel_tournament::{
-    AppState,
-    config::{
-        AdminConfig, AppConfig, Config, DatabaseConfig, EmailConfig, JwtConfig, OAuthConfig,
-        ServerConfig,
-    },
-    db, router,
-    services::{AuthService, EmailService},
+    AppState, config::Config, db, router, services::{AuthService, EmailService}
 };
 use axum::{
     Router,
@@ -17,7 +11,10 @@ use axum::{
 use http_body_util::BodyExt;
 use serde_json::{Value, json};
 use std::{
-    sync::Arc,
+    sync::{
+        Arc,
+        atomic::{AtomicU64, Ordering},
+    },
     time::{SystemTime, UNIX_EPOCH},
 };
 use tower::ServiceExt;
@@ -43,12 +40,15 @@ pub fn extract_thing_id(value: &Value) -> String {
     panic!("Invalid Thing ID format: {:?}", value);
 }
 
+static UNIQUE_COUNTER: AtomicU64 = AtomicU64::new(0);
+
 pub fn unique_name(prefix: &str) -> String {
     let timestamp = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_nanos();
-    format!("{}{}", prefix, timestamp)
+    let counter = UNIQUE_COUNTER.fetch_add(1, Ordering::Relaxed);
+    format!("{}{}_{}", prefix, timestamp, counter)
 }
 
 pub fn game_payload(name: String, description: &str) -> Value {
@@ -60,56 +60,15 @@ pub fn game_payload(name: String, description: &str) -> Value {
         "game_language": "rust",
         "rounds_per_match": 3,
         "repetitions": 1,
-        "timeout_seconds": 120,
-        "cpu_limit": "1.0",
-        "memory_limit": "512m"
+        "timeout_ms": 5000,
+        "cpu_limit": 1.0,
+        "turn_timeout_ms": 200,
+        "memory_limit_mb": 64
     })
 }
 
-fn test_config(namespace: &str) -> Config {
-    Config {
-        server: ServerConfig {
-            host: "localhost".to_string(),
-            port: 8080,
-        },
-        database: DatabaseConfig {
-            url: "ws://localhost:8000".to_string(),
-            user: "root".to_string(),
-            pass: "root".to_string(),
-            namespace: namespace.to_string(),
-            database: namespace.to_string(),
-        },
-        jwt: JwtConfig {
-            secret: "test-secret-key".to_string(),
-            expiration: 3600,
-        },
-        oauth: OAuthConfig {
-            google_client_id: "".to_string(),
-            google_client_secret: "".to_string(),
-            google_redirect_uri: "http://localhost:8080/callback".to_string(),
-            cookie_secure: false,
-            state_ttl_seconds: 300,
-        },
-        email: EmailConfig {
-            smtp_host: "smtp.test.com".to_string(),
-            smtp_port: 587,
-            smtp_username: "test@test.com".to_string(),
-            smtp_password: "password".to_string(),
-            from_address: "noreply@test.com".to_string(),
-        },
-        app: AppConfig {
-            max_code_size_mb: 10,
-            default_location: "US".to_string(),
-        },
-        admin: AdminConfig {
-            email: "admin@test.com".to_string(),
-            password: "admin123".to_string(),
-        },
-    }
-}
-
-pub async fn setup_app(namespace: &str) -> TestApp {
-    let config = test_config(namespace);
+pub async fn setup_app() -> TestApp {
+    let config = Config::from_env().expect("Failed to load config from environment");
     let db = db::connect(&config.database)
         .await
         .expect("Failed to connect to test database");

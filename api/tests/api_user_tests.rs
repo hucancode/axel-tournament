@@ -5,7 +5,7 @@ use axum::http::{self, StatusCode};
 
 #[tokio::test]
 async fn profile_update_and_admin_ban_flow() {
-    let app = common::setup_app(&common::unique_name("user_api_")).await;
+    let app = common::setup_app().await;
     let admin_token = common::admin_token(&app).await;
     // Register player
     let email = format!("{}@test.com", common::unique_name("user_api"));

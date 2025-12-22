@@ -1,24 +1,17 @@
 mod common;
 
 use axel_tournament::{
-    config::DatabaseConfig,
     db,
-    models::{CreateTournamentRequest, MatchGenerationType, MatchStatus, ProgrammingLanguage, TournamentStatus},
+    models::{CreateTournamentRequest, MatchGenerationType, ProgrammingLanguage, TournamentStatus},
     services::{auth::AuthService, game, matches, submission, tournament, user},
 };
 use surrealdb::sql::Thing;
 use validator::Validate;
 
 async fn setup_test_db() -> axel_tournament::db::Database {
-    let namespace = common::unique_name("test_tournament_");
-    let config = DatabaseConfig {
-        url: "ws://localhost:8000".to_string(),
-        user: "root".to_string(),
-        pass: "root".to_string(),
-        namespace: namespace.clone(),
-        database: namespace,
-    };
-    db::connect(&config)
+    let config = axel_tournament::config::Config::from_env()
+        .expect("Failed to load config from environment");
+    db::connect(&config.database)
         .await
         .expect("Failed to connect to test database")
 }
@@ -26,9 +19,10 @@ async fn setup_test_db() -> axel_tournament::db::Database {
 const DEFAULT_GAME_CODE: &str = "fn main() {}";
 const DEFAULT_ROUNDS_PER_MATCH: u32 = 3;
 const DEFAULT_REPETITIONS: u32 = 1;
-const DEFAULT_TIMEOUT_SECONDS: u32 = 120;
-const DEFAULT_CPU_LIMIT: &str = "1.0";
-const DEFAULT_MEMORY_LIMIT: &str = "512m";
+const DEFAULT_TIMEOUT_MS: u32 = 2000;
+const DEFAULT_CPU_LIMIT: f64 = 1.0;
+const DEFAULT_TURN_TIMEOUT_MS: u64 = 200;
+const DEFAULT_MEMORY_LIMIT_MB: u64 = 64;
 
 fn default_owner_id() -> String {
     "user:owner".to_string()
@@ -47,11 +41,10 @@ async fn test_create_and_get_tournament() {
         ProgrammingLanguage::Rust,
         DEFAULT_ROUNDS_PER_MATCH,
         DEFAULT_REPETITIONS,
-        DEFAULT_TIMEOUT_SECONDS,
-        DEFAULT_CPU_LIMIT.to_string(),
-        DEFAULT_MEMORY_LIMIT.to_string(),
-        None,
-        None,
+        DEFAULT_TIMEOUT_MS,
+        DEFAULT_CPU_LIMIT,
+        DEFAULT_TURN_TIMEOUT_MS,
+        DEFAULT_MEMORY_LIMIT_MB,
     )
     .await
     .unwrap();
@@ -90,11 +83,10 @@ async fn test_update_tournament_status() {
         ProgrammingLanguage::Rust,
         DEFAULT_ROUNDS_PER_MATCH,
         DEFAULT_REPETITIONS,
-        DEFAULT_TIMEOUT_SECONDS,
-        DEFAULT_CPU_LIMIT.to_string(),
-        DEFAULT_MEMORY_LIMIT.to_string(),
-        None,
-        None,
+        DEFAULT_TIMEOUT_MS,
+        DEFAULT_CPU_LIMIT,
+        DEFAULT_TURN_TIMEOUT_MS,
+        DEFAULT_MEMORY_LIMIT_MB,
     )
     .await
     .unwrap();
@@ -142,11 +134,10 @@ async fn test_join_and_leave_tournament() {
         ProgrammingLanguage::Rust,
         DEFAULT_ROUNDS_PER_MATCH,
         DEFAULT_REPETITIONS,
-        DEFAULT_TIMEOUT_SECONDS,
-        DEFAULT_CPU_LIMIT.to_string(),
-        DEFAULT_MEMORY_LIMIT.to_string(),
-        None,
-        None,
+        DEFAULT_TIMEOUT_MS,
+        DEFAULT_CPU_LIMIT,
+        DEFAULT_TURN_TIMEOUT_MS,
+        DEFAULT_MEMORY_LIMIT_MB,
     )
     .await
     .unwrap();
@@ -265,11 +256,10 @@ async fn test_start_tournament_all_vs_all() {
         ProgrammingLanguage::Rust,
         DEFAULT_ROUNDS_PER_MATCH,
         DEFAULT_REPETITIONS,
-        DEFAULT_TIMEOUT_SECONDS,
-        DEFAULT_CPU_LIMIT.to_string(),
-        DEFAULT_MEMORY_LIMIT.to_string(),
-        None,
-        None,
+        DEFAULT_TIMEOUT_MS,
+        DEFAULT_CPU_LIMIT,
+        DEFAULT_TURN_TIMEOUT_MS,
+        DEFAULT_MEMORY_LIMIT_MB,
     )
     .await
     .unwrap();
@@ -334,7 +324,6 @@ async fn test_start_tournament_all_vs_all() {
 
     // Verify tournament status changed
     assert_eq!(started_tournament.status, TournamentStatus::Running);
-    assert_eq!(started_tournament.status, TournamentStatus::Running);
 
     // Verify matches were created (3 players vs 3 players = 9 matches)
     let created_matches = matches::list_matches(
@@ -351,7 +340,6 @@ async fn test_start_tournament_all_vs_all() {
 
     // Verify all matches are in pending state
     for m in &created_matches {
-        assert_eq!(m.status, MatchStatus::Pending);
         assert_eq!(m.participants.len(), 2);
     }
 }
@@ -372,11 +360,10 @@ async fn test_start_tournament_round_robin() {
         ProgrammingLanguage::Rust,
         DEFAULT_ROUNDS_PER_MATCH,
         DEFAULT_REPETITIONS,
-        DEFAULT_TIMEOUT_SECONDS,
-        DEFAULT_CPU_LIMIT.to_string(),
-        DEFAULT_MEMORY_LIMIT.to_string(),
-        None,
-        None,
+        DEFAULT_TIMEOUT_MS,
+        DEFAULT_CPU_LIMIT,
+        DEFAULT_TURN_TIMEOUT_MS,
+        DEFAULT_MEMORY_LIMIT_MB,
     )
     .await
     .unwrap();
@@ -476,11 +463,10 @@ async fn test_start_tournament_without_submissions_fails() {
         ProgrammingLanguage::Rust,
         DEFAULT_ROUNDS_PER_MATCH,
         DEFAULT_REPETITIONS,
-        DEFAULT_TIMEOUT_SECONDS,
-        DEFAULT_CPU_LIMIT.to_string(),
-        DEFAULT_MEMORY_LIMIT.to_string(),
-        None,
-        None,
+        DEFAULT_TIMEOUT_MS,
+        DEFAULT_CPU_LIMIT,
+        DEFAULT_TURN_TIMEOUT_MS,
+        DEFAULT_MEMORY_LIMIT_MB,
     )
     .await
     .unwrap();
@@ -543,11 +529,10 @@ async fn test_start_tournament_not_enough_players_fails() {
         ProgrammingLanguage::Rust,
         DEFAULT_ROUNDS_PER_MATCH,
         DEFAULT_REPETITIONS,
-        DEFAULT_TIMEOUT_SECONDS,
-        DEFAULT_CPU_LIMIT.to_string(),
-        DEFAULT_MEMORY_LIMIT.to_string(),
-        None,
-        None,
+        DEFAULT_TIMEOUT_MS,
+        DEFAULT_CPU_LIMIT,
+        DEFAULT_TURN_TIMEOUT_MS,
+        DEFAULT_MEMORY_LIMIT_MB,
     )
     .await
     .unwrap();

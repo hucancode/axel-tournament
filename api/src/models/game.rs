@@ -14,11 +14,10 @@ pub struct Game {
     pub game_language: ProgrammingLanguage, // language of game code
     pub rounds_per_match: u32, // match policy
     pub repetitions: u32,
-    pub timeout_seconds: u32,
-    pub cpu_limit: String,
-    pub memory_limit: String,
-    pub turn_timeout_ms: Option<u64>, // per-turn timeout forwarded to game code
-    pub memory_limit_mb: Option<u64>, // container memory cap for player processes
+    pub timeout_ms: u32,
+    pub cpu_limit: f64,
+    pub turn_timeout_ms: u64, // per-turn timeout forwarded to game code
+    pub memory_limit_mb: u64, // container memory cap for player processes
     pub created_at: Datetime,
     pub updated_at: Datetime,
 }
@@ -63,18 +62,14 @@ pub struct CreateGameRequest {
     pub rounds_per_match: u32,
     #[validate(range(min = 1, max = 100, message = "Repetitions must be 1-100"))]
     pub repetitions: u32,
-    #[validate(range(min = 1, max = 3600, message = "Timeout must be 1-3600 seconds"))]
-    pub timeout_seconds: u32,
-    #[validate(length(min = 1, max = 64, message = "CPU limit must be 1-64 characters"))]
-    pub cpu_limit: String,
-    #[validate(length(min = 1, max = 64, message = "Memory limit must be 1-64 characters"))]
-    pub memory_limit: String,
-    #[serde(default)]
-    #[validate(range(min = 100, max = 300000, message = "Turn timeout must be 100-300000ms"))]
-    pub turn_timeout_ms: Option<u64>,
-    #[serde(default)]
-    #[validate(range(min = 32, max = 8192, message = "Memory limit must be 32-8192 MB"))]
-    pub memory_limit_mb: Option<u64>,
+    #[validate(range(min = 100, max = 5000, message = "Timeout must be 100-5000ms (0.1s-5s)"))]
+    pub timeout_ms: u32,
+    #[validate(range(min = 0.1, max = 64.0, message = "CPU limit must be 0.1-64.0 cores"))]
+    pub cpu_limit: f64,
+    #[validate(range(min = 1, max = 2000, message = "Turn timeout must be 1-2000ms"))]
+    pub turn_timeout_ms: u64,
+    #[validate(range(min = 1, max = 8192, message = "Memory limit must be 2-8192 MB"))]
+    pub memory_limit_mb: u64,
 }
 
 #[derive(Debug, Deserialize, Validate)]
@@ -93,17 +88,15 @@ pub struct UpdateGameRequest {
     pub rounds_per_match: Option<u32>,
     #[validate(range(min = 1, max = 100, message = "Repetitions must be 1-100"))]
     pub repetitions: Option<u32>,
-    #[validate(range(min = 1, max = 3600, message = "Timeout must be 1-3600 seconds"))]
-    pub timeout_seconds: Option<u32>,
-    #[validate(length(min = 1, max = 64, message = "CPU limit must be 1-64 characters"))]
-    pub cpu_limit: Option<String>,
-    #[validate(length(min = 1, max = 64, message = "Memory limit must be 1-64 characters"))]
-    pub memory_limit: Option<String>,
+    #[validate(range(min = 100, max = 5000, message = "Timeout must be 100-5000ms (0.1s-5s)"))]
+    pub timeout_ms: Option<u32>,
+    #[validate(range(min = 0.1, max = 64.0, message = "CPU limit must be 0.1-64.0 cores"))]
+    pub cpu_limit: Option<f64>,
     #[serde(default)]
-    #[validate(range(min = 100, max = 300000, message = "Turn timeout must be 100-300000ms"))]
+    #[validate(range(min = 1, max = 2000, message = "Turn timeout must be 1-2000ms"))]
     pub turn_timeout_ms: Option<u64>,
     #[serde(default)]
-    #[validate(range(min = 32, max = 8192, message = "Memory limit must be 32-8192 MB"))]
+    #[validate(range(min = 1, max = 8192, message = "Memory limit must be 1-8192 MB"))]
     pub memory_limit_mb: Option<u64>,
 }
 
@@ -119,11 +112,10 @@ pub struct GameResponse {
     pub game_language: ProgrammingLanguage,
     pub rounds_per_match: u32,
     pub repetitions: u32,
-    pub timeout_seconds: u32,
-    pub cpu_limit: String,
-    pub memory_limit: String,
-    pub turn_timeout_ms: Option<u64>,
-    pub memory_limit_mb: Option<u64>,
+    pub timeout_ms: u32,
+    pub cpu_limit: f64,
+    pub turn_timeout_ms: u64,
+    pub memory_limit_mb: u64,
     pub created_at: Datetime,
     pub updated_at: Datetime,
 }
@@ -141,9 +133,8 @@ impl From<Game> for GameResponse {
             game_language: game.game_language,
             rounds_per_match: game.rounds_per_match,
             repetitions: game.repetitions,
-            timeout_seconds: game.timeout_seconds,
+            timeout_ms: game.timeout_ms,
             cpu_limit: game.cpu_limit,
-            memory_limit: game.memory_limit,
             turn_timeout_ms: game.turn_timeout_ms,
             memory_limit_mb: game.memory_limit_mb,
             created_at: game.created_at,

@@ -15,14 +15,11 @@ pub async fn create_game(
     game_language: ProgrammingLanguage,
     rounds_per_match: u32,
     repetitions: u32,
-    timeout_seconds: u32,
-    cpu_limit: String,
-    memory_limit: String,
-    turn_timeout_ms: Option<u64>,
-    memory_limit_mb: Option<u64>,
+    timeout_ms: u32,
+    cpu_limit: f64,
+    turn_timeout_ms: u64,
+    memory_limit_mb: u64,
 ) -> ApiResult<Game> {
-    let resolved_turn_timeout_ms = turn_timeout_ms.unwrap_or(2000);
-    let resolved_memory_limit_mb = memory_limit_mb.unwrap_or(512);
     let owner_thing = owner_id
         .parse::<Thing>()
         .map_err(|_| ApiError::BadRequest("Invalid owner id".to_string()))?;
@@ -38,11 +35,10 @@ pub async fn create_game(
         game_language,
         rounds_per_match,
         repetitions,
-        timeout_seconds,
+        timeout_ms,
         cpu_limit,
-        memory_limit,
-        turn_timeout_ms: Some(resolved_turn_timeout_ms),
-        memory_limit_mb: Some(resolved_memory_limit_mb),
+        turn_timeout_ms,
+        memory_limit_mb,
         created_at: Datetime::default(),
         updated_at: Datetime::default(),
     };
@@ -78,9 +74,8 @@ pub async fn update_game(
     game_language: Option<ProgrammingLanguage>,
     rounds_per_match: Option<u32>,
     repetitions: Option<u32>,
-    timeout_seconds: Option<u32>,
-    cpu_limit: Option<String>,
-    memory_limit: Option<String>,
+    timeout_ms: Option<u32>,
+    cpu_limit: Option<f64>,
     turn_timeout_ms: Option<u64>,
     memory_limit_mb: Option<u64>,
 ) -> ApiResult<Game> {
@@ -109,20 +104,17 @@ pub async fn update_game(
     if let Some(rep) = repetitions {
         game.repetitions = rep;
     }
-    if let Some(ts) = timeout_seconds {
-        game.timeout_seconds = ts;
+    if let Some(ts) = timeout_ms {
+        game.timeout_ms = ts;
     }
     if let Some(cpu) = cpu_limit {
         game.cpu_limit = cpu;
     }
-    if let Some(mem) = memory_limit {
-        game.memory_limit = mem;
+    if let Some(ttm) = turn_timeout_ms {
+        game.turn_timeout_ms = ttm;
     }
-    if turn_timeout_ms.is_some() {
-        game.turn_timeout_ms = turn_timeout_ms;
-    }
-    if memory_limit_mb.is_some() {
-        game.memory_limit_mb = memory_limit_mb;
+    if let Some(mlm) = memory_limit_mb {
+        game.memory_limit_mb = mlm;
     }
     game.updated_at = Datetime::default();
     let key = (game_id.tb.as_str(), game_id.id.to_string());

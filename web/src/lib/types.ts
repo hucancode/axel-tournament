@@ -91,11 +91,10 @@ export interface Game {
   game_language: ProgrammingLanguage;
   rounds_per_match: number;
   repetitions: number;
-  timeout_seconds: number;
-  cpu_limit: string;
-  memory_limit: string;
-  turn_timeout_ms?: number;
-  memory_limit_mb?: number;
+  timeout_ms: number;
+  cpu_limit: number;
+  turn_timeout_ms: number;
+  memory_limit_mb: number;
   created_at: string;
   updated_at: string;
 }
