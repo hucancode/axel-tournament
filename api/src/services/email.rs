@@ -5,6 +5,7 @@ use crate::{
 use lettre::{
     Message, SmtpTransport, message::header::ContentType,
     transport::smtp::authentication::Credentials,
+    Transport,
 };
 
 pub struct EmailService {
