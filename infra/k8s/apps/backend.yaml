@@ -136,35 +136,6 @@ spec:
   selector:
     app: backend
 ---
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: backend
-  namespace: backend
-  annotations:
-    kubernetes.io/ingress.class: alb
-    alb.ingress.kubernetes.io/scheme: internet-facing
-    alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/healthcheck-path: /health
-    # Conditional HTTPS configuration (only when domain is set)
-    ${ACM_CERTIFICATE_ARN:+alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'}
-    ${ACM_CERTIFICATE_ARN:+alb.ingress.kubernetes.io/ssl-redirect: '443'}
-    ${ACM_CERTIFICATE_ARN:+alb.ingress.kubernetes.io/certificate-arn: ${ACM_CERTIFICATE_ARN}}
-    ${ACM_CERTIFICATE_ARN:-alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'}
-spec:
-  ingressClassName: alb
-  rules:
-    - ${DOMAIN_NAME:+host: api.${DOMAIN_NAME}}
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: backend
-                port:
-                  number: 8080
----
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:

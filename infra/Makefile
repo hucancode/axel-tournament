@@ -8,9 +8,6 @@ SMTP_PORT := 587
 DEFAULT_EMAIL_FROM := noreply@axel-tournament.com
 DEFAULT_PUBLIC_API_URL := http://backend.backend.svc.cluster.local:8080
 
-# Environment variable templates for envsubst
-ENV_SUBST_VARS := '$${FRONTEND_IMAGE} $${BACKEND_IMAGE} $${JUDGE_IMAGE} $${SANDBOX_IMAGE} $${HEALER_IMAGE} $${SMTP_HOST} $${SMTP_PORT} $${SMTP_USERNAME} $${SMTP_PASSWORD} $${EMAIL_FROM} $${PUBLIC_API_URL} $${LB_CONTROLLER_ROLE_ARN} $${GOOGLE_CLIENT_ID} $${GOOGLE_CLIENT_SECRET} $${GOOGLE_REDIRECT_URI} $${ACM_CERTIFICATE_ARN} $${DOMAIN_NAME}'
-
 aws-up:
 	@terraform init
 	@terraform apply -auto-approve
@@ -21,7 +18,7 @@ aws-up:
 	@LB_CONTROLLER_ROLE_ARN=$$(terraform output -raw load_balancer_controller_role_arn 2>/dev/null)
 	@test -n "$$LB_CONTROLLER_ROLE_ARN" || (echo "LB_CONTROLLER_ROLE_ARN is required" && exit 1)
 	@export LB_CONTROLLER_ROLE_ARN
-	@envsubst $(ENV_SUBST_VARS) < k8s/addons/aws-load-balancer-controller-service-account.yaml | kubectl apply -f -
+	@envsubst < k8s/addons/aws-load-balancer-controller-service-account.yaml | kubectl apply -f -
 	@AWS_REGION=$$(terraform output -raw aws_region 2>/dev/null)
 	@VPC_ID=$$(terraform output -raw vpc_id 2>/dev/null)
 	@test -n "$$VPC_ID" || (echo "VPC_ID is required" && exit 1)
@@ -42,6 +39,7 @@ aws-up:
 		--set args={--kubelet-insecure-tls}
 
 k8s-up: push-images
+	@set -a; [ -f .env ] && . ./.env; set +a
 	@ECR_WEB_REPO=$$(terraform output -raw ecr_web_repository 2>/dev/null)
 	@ECR_API_REPO=$$(terraform output -raw ecr_api_repository 2>/dev/null)
 	@ECR_JUDGE_REPO=$$(terraform output -raw ecr_judge_repository 2>/dev/null)
@@ -83,10 +81,29 @@ k8s-up: push-images
 	@echo "Deploying applications (initial pass with placeholder URLs)..."
 	@export GOOGLE_REDIRECT_URI="http://placeholder/api/auth/google/callback"
 	@export PUBLIC_API_URL="http://placeholder"
-	@envsubst $(ENV_SUBST_VARS) < k8s/apps/backend.yaml | kubectl apply -f -
-	@envsubst $(ENV_SUBST_VARS) < k8s/apps/judge.yaml | kubectl apply -f -
-	@envsubst $(ENV_SUBST_VARS) < k8s/apps/healer.yaml | kubectl apply -f -
-	@envsubst $(ENV_SUBST_VARS) < k8s/apps/frontend.yaml | kubectl apply -f -
+	@envsubst < k8s/apps/backend.yaml | kubectl apply -f -
+	@envsubst < k8s/apps/judge.yaml | kubectl apply -f -
+	@envsubst < k8s/apps/healer.yaml | kubectl apply -f -
+	@envsubst < k8s/apps/frontend.yaml | kubectl apply -f -
+	@if [ -n "$$DOMAIN_NAME" ]; then \
+		echo "Using domain-based ingress"; \
+		if [ -n "$$ACM_CERTIFICATE_ARN" ]; then \
+			envsubst < k8s/apps/ingress/backend-https-domain.yaml | kubectl apply -f -; \
+			envsubst < k8s/apps/ingress/frontend-https-domain.yaml | kubectl apply -f -; \
+		else \
+			envsubst < k8s/apps/ingress/backend-http-domain.yaml | kubectl apply -f -; \
+			envsubst < k8s/apps/ingress/frontend-http-domain.yaml | kubectl apply -f -; \
+		fi; \
+	else \
+		echo "Using ALB hostname ingress"; \
+		if [ -n "$$ACM_CERTIFICATE_ARN" ]; then \
+			envsubst < k8s/apps/ingress/backend-https.yaml | kubectl apply -f -; \
+			envsubst < k8s/apps/ingress/frontend-https.yaml | kubectl apply -f -; \
+		else \
+			envsubst < k8s/apps/ingress/backend-http.yaml | kubectl apply -f -; \
+			envsubst < k8s/apps/ingress/frontend-http.yaml | kubectl apply -f -; \
+		fi; \
+	fi
 	@echo "Waiting for ALB load balancers to be provisioned..."
 	@backend_alb=""; \
 	frontend_alb=""; \
@@ -141,10 +158,10 @@ k8s-up: push-images
 	echo "  Backend: $$backend_url"; \
 	echo "  OAuth Redirect: $$GOOGLE_REDIRECT_URI"; \
 	echo "Updating deployments with final URLs..."; \
-	envsubst $(ENV_SUBST_VARS) < k8s/apps/backend.yaml | kubectl apply -f -; \
-	envsubst $(ENV_SUBST_VARS) < k8s/apps/judge.yaml | kubectl apply -f -; \
-	envsubst $(ENV_SUBST_VARS) < k8s/apps/healer.yaml | kubectl apply -f -; \
-	envsubst $(ENV_SUBST_VARS) < k8s/apps/frontend.yaml | kubectl apply -f -
+	envsubst < k8s/apps/backend.yaml | kubectl apply -f -; \
+	envsubst < k8s/apps/judge.yaml | kubectl apply -f -; \
+	envsubst < k8s/apps/healer.yaml | kubectl apply -f -; \
+	envsubst < k8s/apps/frontend.yaml | kubectl apply -f -
 	@echo "Waiting for backend pods to be ready..."
 	@kubectl wait --namespace backend --for=condition=ready pod --selector=app=backend --timeout=120s || true
 	@echo ""
@@ -263,10 +280,18 @@ k8s-down:
 	@export GOOGLE_CLIENT_ID="$${GOOGLE_CLIENT_ID:-placeholder}"
 	@export GOOGLE_CLIENT_SECRET="$${GOOGLE_CLIENT_SECRET:-placeholder}"
 	@export GOOGLE_REDIRECT_URI="$${GOOGLE_REDIRECT_URI:-placeholder}"
-	@envsubst $(ENV_SUBST_VARS) < k8s/apps/frontend.yaml | kubectl delete -f - --ignore-not-found
-	@envsubst $(ENV_SUBST_VARS) < k8s/apps/judge.yaml | kubectl delete -f - --ignore-not-found
-	@envsubst $(ENV_SUBST_VARS) < k8s/apps/healer.yaml | kubectl delete -f - --ignore-not-found
-	@envsubst $(ENV_SUBST_VARS) < k8s/apps/backend.yaml | kubectl delete -f - --ignore-not-found
+	@envsubst < k8s/apps/frontend.yaml | kubectl delete -f - --ignore-not-found
+	@envsubst < k8s/apps/judge.yaml | kubectl delete -f - --ignore-not-found
+	@envsubst < k8s/apps/healer.yaml | kubectl delete -f - --ignore-not-found
+	@envsubst < k8s/apps/backend.yaml | kubectl delete -f - --ignore-not-found
+	@envsubst < k8s/apps/ingress/backend-https.yaml | kubectl delete -f - --ignore-not-found
+	@envsubst < k8s/apps/ingress/frontend-https.yaml | kubectl delete  -f - --ignore-not-found
+	@envsubst < k8s/apps/ingress/backend-http.yaml | kubectl apply -f - --ignore-not-found
+	@envsubst < k8s/apps/ingress/frontend-http.yaml | kubectl apply -f - --ignore-not-found
+	@envsubst < k8s/apps/ingress/backend-https-domain.yaml | kubectl delete -f - --ignore-not-found
+	@envsubst < k8s/apps/ingress/frontend-https-domain.yaml | kubectl delete  -f - --ignore-not-found
+	@envsubst < k8s/apps/ingress/backend-http-domain.yaml | kubectl apply -f - --ignore-not-found
+	@envsubst < k8s/apps/ingress/frontend-http-domain.yaml | kubectl apply -f - --ignore-not-found
 	@kubectl delete -f k8s/apps/surrealdb.yaml --ignore-not-found
 	@kubectl delete -f k8s/addons/gp3-storageclass.yaml --ignore-not-found
 	@kubectl delete -f k8s/namespaces.yaml --ignore-not-found
