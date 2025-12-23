@@ -9,8 +9,7 @@ DEFAULT_EMAIL_FROM := noreply@axel-tournament.com
 DEFAULT_PUBLIC_API_URL := http://backend.backend.svc.cluster.local:8080
 
 # Environment variable templates for envsubst
-ENV_SUBST_VARS := '$${FRONTEND_IMAGE} $${BACKEND_IMAGE} $${JUDGE_IMAGE} $${SANDBOX_IMAGE} $${HEALER_IMAGE} $${SMTP_HOST} $${SMTP_PORT} $${SMTP_USERNAME} $${SMTP_PASSWORD} $${EMAIL_FROM} $${PUBLIC_API_URL}'
-LB_CONTROLLER_ENV_VARS := '$${AWS_LB_CONTROLLER_ROLE_ARN}'
+ENV_SUBST_VARS := '$${FRONTEND_IMAGE} $${BACKEND_IMAGE} $${JUDGE_IMAGE} $${SANDBOX_IMAGE} $${HEALER_IMAGE} $${SMTP_HOST} $${SMTP_PORT} $${SMTP_USERNAME} $${SMTP_PASSWORD} $${EMAIL_FROM} $${PUBLIC_API_URL} $${LB_CONTROLLER_ROLE_ARN}'
 
 aws-up:
 	@terraform init
@@ -19,10 +18,10 @@ aws-up:
 	@helm repo add eks https://aws.github.io/eks-charts
 	@helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/
 	@helm repo update
-	@AWS_LB_CONTROLLER_ROLE_ARN=$$(terraform output -raw aws_load_balancer_controller_role_arn 2>/dev/null)
-	@test -n "$$AWS_LB_CONTROLLER_ROLE_ARN" || (echo "AWS_LB_CONTROLLER_ROLE_ARN is required" && exit 1)
-	@export AWS_LB_CONTROLLER_ROLE_ARN
-	@envsubst $(LB_CONTROLLER_ENV_VARS) < k8s/addons/aws-load-balancer-controller-service-account.yaml | kubectl apply -f -
+	@LB_CONTROLLER_ROLE_ARN=$$(terraform output -raw load_balancer_controller_role_arn 2>/dev/null)
+	@test -n "$$LB_CONTROLLER_ROLE_ARN" || (echo "LB_CONTROLLER_ROLE_ARN is required" && exit 1)
+	@export LB_CONTROLLER_ROLE_ARN
+	@envsubst $(ENV_SUBST_VARS) < k8s/addons/aws-load-balancer-controller-service-account.yaml | kubectl apply -f -
 	@AWS_REGION=$$(terraform output -raw aws_region 2>/dev/null)
 	@VPC_ID=$$(terraform output -raw vpc_id 2>/dev/null)
 	@test -n "$$VPC_ID" || (echo "VPC_ID is required" && exit 1)

@@ -79,8 +79,8 @@ output "route53_zone_id" {
   value = try(aws_route53_zone.ses_subdomain[0].zone_id, "")
 }
 
-output "aws_load_balancer_controller_role_arn" {
-  value = aws_iam_role.aws_load_balancer_controller.arn
+output "load_balancer_controller_role_arn" {
+  value = aws_iam_role.load_balancer_controller.arn
 }
 
 output "aws_region" {

@@ -1,4 +1,4 @@
-data "aws_iam_policy_document" "aws_load_balancer_controller_assume_role" {
+data "aws_iam_policy_document" "load_balancer_controller_assume_role" {
   statement {
     effect  = "Allow"
     actions = ["sts:AssumeRoleWithWebIdentity"]
@@ -22,13 +22,13 @@ data "aws_iam_policy_document" "aws_load_balancer_controller_assume_role" {
   }
 }
 
-resource "aws_iam_role" "aws_load_balancer_controller" {
+resource "aws_iam_role" "load_balancer_controller" {
   name               = "${local.name}-aws-load-balancer-controller"
-  assume_role_policy = data.aws_iam_policy_document.aws_load_balancer_controller_assume_role.json
+  assume_role_policy = data.aws_iam_policy_document.load_balancer_controller_assume_role.json
   tags               = local.tags
 }
 
-resource "aws_iam_policy" "aws_load_balancer_controller" {
+resource "aws_iam_policy" "load_balancer_controller" {
   name        = "${local.name}-aws-load-balancer-controller"
   description = "Permissions for the AWS Load Balancer Controller."
   policy = jsonencode({
@@ -241,7 +241,7 @@ resource "aws_iam_policy" "aws_load_balancer_controller" {
   })
 }
 
-resource "aws_iam_role_policy_attachment" "aws_load_balancer_controller" {
-  role       = aws_iam_role.aws_load_balancer_controller.name
-  policy_arn = aws_iam_policy.aws_load_balancer_controller.arn
+resource "aws_iam_role_policy_attachment" "load_balancer_controller" {
+  role       = aws_iam_role.load_balancer_controller.name
+  policy_arn = aws_iam_policy.load_balancer_controller.arn
 }
