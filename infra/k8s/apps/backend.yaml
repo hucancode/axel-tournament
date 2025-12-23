@@ -35,6 +35,8 @@ spec:
           ports:
             - containerPort: 8080
           env:
+            - name: RUST_LOG
+              value: "info,tower_http=debug"
             - name: SERVER_HOST
               value: "0.0.0.0"
             - name: SERVER_PORT
@@ -123,10 +125,10 @@ metadata:
   namespace: backend
   annotations:
     kubernetes.io/ingress.class: alb
-    alb.ingress.kubernetes.io/scheme: internal
+    alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
-    alb.ingress.kubernetes.io/healthcheck-path: /
+    alb.ingress.kubernetes.io/healthcheck-path: /health
 spec:
   ingressClassName: alb
   rules:
