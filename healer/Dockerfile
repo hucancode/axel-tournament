@@ -19,6 +19,6 @@ RUN apt-get update && \
     apt-get install -y ca-certificates libssl3 && \
     rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /app/target/release/axel-tournament-healer /app/healer
+COPY --from=builder /app/target/release/axel-healer /app/healer
 
 CMD ["/app/healer"]

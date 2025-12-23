@@ -1,4 +1,4 @@
-.PHONY: aws-up aws-down k8s-up k8s-down sandbox-image
+.PHONY: aws-up aws-down k8s-up k8s-down push-images
 .ONESHELL:
 
 # Independent variables
@@ -41,7 +41,7 @@ aws-up:
 		--namespace kube-system \
 		--set args={--kubelet-insecure-tls}
 
-k8s-up: sandbox-image
+k8s-up: push-images
 	@ECR_WEB_REPO=$$(terraform output -raw ecr_web_repository 2>/dev/null)
 	@ECR_API_REPO=$$(terraform output -raw ecr_api_repository 2>/dev/null)
 	@ECR_JUDGE_REPO=$$(terraform output -raw ecr_judge_repository 2>/dev/null)
@@ -89,15 +89,41 @@ k8s-up: sandbox-image
 	fi
 	@PUBLIC_API_URL="http://$$backend_host" envsubst $(ENV_SUBST_VARS) < k8s/apps/frontend.yaml | kubectl apply -f -
 
-sandbox-image:
+push-images:
+	@ECR_WEB_REPO=$$(terraform output -raw ecr_web_repository 2>/dev/null)
+	@ECR_API_REPO=$$(terraform output -raw ecr_api_repository 2>/dev/null)
+	@ECR_JUDGE_REPO=$$(terraform output -raw ecr_judge_repository 2>/dev/null)
 	@ECR_SANDBOX_REPO=$$(terraform output -raw ecr_sandbox_repository 2>/dev/null)
+	@ECR_HEALER_REPO=$$(terraform output -raw ecr_healer_repository 2>/dev/null)
+	@test -n "$$ECR_WEB_REPO" || (echo "ECR_WEB_REPO is required" && exit 1)
+	@test -n "$$ECR_API_REPO" || (echo "ECR_API_REPO is required" && exit 1)
+	@test -n "$$ECR_JUDGE_REPO" || (echo "ECR_JUDGE_REPO is required" && exit 1)
 	@test -n "$$ECR_SANDBOX_REPO" || (echo "ECR_SANDBOX_REPO is required" && exit 1)
+	@test -n "$$ECR_HEALER_REPO" || (echo "ECR_HEALER_REPO is required" && exit 1)
+	@FRONTEND_IMAGE="$$ECR_WEB_REPO:latest"
+	@BACKEND_IMAGE="$$ECR_API_REPO:latest"
+	@JUDGE_IMAGE="$$ECR_JUDGE_REPO:latest"
 	@SANDBOX_IMAGE="$$ECR_SANDBOX_REPO:latest"
-	@ECR_REGISTRY=$$(echo "$$ECR_SANDBOX_REPO" | cut -d/ -f1)
+	@HEALER_IMAGE="$$ECR_HEALER_REPO:latest"
+	@ECR_REGISTRY=$$(echo "$$ECR_WEB_REPO" | cut -d/ -f1)
 	@echo "Logging in to ECR $$ECR_REGISTRY..."
 	@aws ecr get-login-password | $(CONTAINER_RUNTIME) login --username AWS --password-stdin $$ECR_REGISTRY
+	@echo "Building and pushing frontend image..."
+	@$(CONTAINER_RUNTIME) build -t $$FRONTEND_IMAGE ../web
+	@$(CONTAINER_RUNTIME) push $$FRONTEND_IMAGE
+	@echo "Building and pushing backend image..."
+	@$(CONTAINER_RUNTIME) build -t $$BACKEND_IMAGE ../api
+	@$(CONTAINER_RUNTIME) push $$BACKEND_IMAGE
+	@echo "Building and pushing judge image..."
+	@$(CONTAINER_RUNTIME) build -t $$JUDGE_IMAGE ../judge
+	@$(CONTAINER_RUNTIME) push $$JUDGE_IMAGE
+	@echo "Building and pushing sandbox image..."
 	@$(CONTAINER_RUNTIME) build -f ../judge/src/sandbox.Dockerfile -t $$SANDBOX_IMAGE ../judge/src
 	@$(CONTAINER_RUNTIME) push $$SANDBOX_IMAGE
+	@echo "Building and pushing healer image..."
+	@$(CONTAINER_RUNTIME) build -t $$HEALER_IMAGE ../healer
+	@$(CONTAINER_RUNTIME) push $$HEALER_IMAGE
+	@echo "All images built and pushed successfully"
 
 k8s-down:
 	@ECR_WEB_REPO=$$(terraform output -raw ecr_web_repository 2>/dev/null)
