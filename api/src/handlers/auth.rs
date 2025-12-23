@@ -8,6 +8,7 @@ use axum::{
     Json,
     extract::State,
     http::{HeaderMap, StatusCode, header},
+    response::Redirect,
 };
 use chrono::{Duration, Utc};
 use oauth2::{
@@ -272,7 +273,7 @@ pub struct GoogleUserInfo {
 
 pub async fn google_login(
     State(state): State<AppState>,
-) -> ApiResult<(HeaderMap, Json<serde_json::Value>)> {
+) -> Result<(HeaderMap, Redirect), ApiError> {
     let client = build_google_client(&state.config)?;
     let (auth_url, csrf_token) = client
         .authorize_url(CsrfToken::new_random)
@@ -287,19 +288,14 @@ pub async fn google_login(
         state.config.oauth.cookie_secure,
     )?;
     headers.insert(header::SET_COOKIE, cookie);
-    Ok((
-        headers,
-        Json(serde_json::json!({
-            "auth_url": auth_url.to_string()
-        })),
-    ))
+    Ok((headers, Redirect::to(auth_url.as_str())))
 }
 
 pub async fn google_callback(
     State(state): State<AppState>,
     axum::extract::Query(query): axum::extract::Query<GoogleCallbackQuery>,
     headers: HeaderMap,
-) -> ApiResult<(HeaderMap, Json<AuthResponse>)> {
+) -> Result<(HeaderMap, Redirect), ApiError> {
     if let Some(error) = query.error.as_deref() {
         let detail = query
             .error_description
@@ -405,15 +401,21 @@ pub async fn google_callback(
     }
     // Generate token
     let token = state.auth_service.generate_token(&user)?;
-    let user_info = AuthService::user_to_info(&user)?;
+
+    // Get frontend URL from config
+    let frontend_url = std::env::var("FRONTEND_URL")
+        .unwrap_or_else(|_| "http://localhost:3000".to_string());
+
+    // Redirect to frontend with just the token
+    let redirect_url = format!(
+        "{}/auth/google/callback?token={}",
+        frontend_url,
+        token
+    );
+
     let mut response_headers = HeaderMap::new();
     let cookie = expire_state_cookie(state.config.oauth.cookie_secure)?;
     response_headers.insert(header::SET_COOKIE, cookie);
-    Ok((
-        response_headers,
-        Json(AuthResponse {
-            token,
-            user: user_info,
-        }),
-    ))
+
+    Ok((response_headers, Redirect::to(&redirect_url)))
 }

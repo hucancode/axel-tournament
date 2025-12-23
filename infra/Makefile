@@ -39,53 +39,66 @@ aws-up:
 		--set args={--kubelet-insecure-tls}
 
 k8s-up: push-images
-	@set -a; [ -f .env ] && . ./.env; set +a
-	@ECR_WEB_REPO=$$(terraform output -raw ecr_web_repository 2>/dev/null)
-	@ECR_API_REPO=$$(terraform output -raw ecr_api_repository 2>/dev/null)
-	@ECR_JUDGE_REPO=$$(terraform output -raw ecr_judge_repository 2>/dev/null)
-	@ECR_SANDBOX_REPO=$$(terraform output -raw ecr_sandbox_repository 2>/dev/null)
-	@ECR_HEALER_REPO=$$(terraform output -raw ecr_healer_repository 2>/dev/null)
-	@SES_SMTP_HOST=$$(terraform output -raw ses_smtp_host 2>/dev/null)
-	@SES_SMTP_USERNAME=$$(terraform output -raw ses_smtp_username 2>/dev/null)
-	@SES_SMTP_PASSWORD=$$(terraform output -raw ses_smtp_password 2>/dev/null)
-	@SES_EMAIL_IDENTITY=$$(terraform output -raw ses_email_identity 2>/dev/null)
-	@SES_DOMAIN=$$(terraform output -raw ses_domain 2>/dev/null)
-	@ACM_CERT_ARN=$$(terraform output -raw acm_certificate_arn 2>/dev/null)
-	@DOMAIN=$$(terraform output -raw domain_name 2>/dev/null)
-	@ROUTE53_ZONE_ID=$$(terraform output -raw route53_zone_id 2>/dev/null)
-	@export FRONTEND_IMAGE="$$ECR_WEB_REPO:latest"
-	@export BACKEND_IMAGE="$$ECR_API_REPO:latest"
-	@export JUDGE_IMAGE="$$ECR_JUDGE_REPO:latest"
-	@export SANDBOX_IMAGE="$$ECR_SANDBOX_REPO:latest"
-	@export HEALER_IMAGE="$$ECR_HEALER_REPO:latest"
-	@export SMTP_HOST="$$SES_SMTP_HOST"
-	@export SMTP_PORT=$(SMTP_PORT)
-	@export SMTP_USERNAME="$$SES_SMTP_USERNAME"
-	@export SMTP_PASSWORD="$$SES_SMTP_PASSWORD"
-	@export EMAIL_FROM=$$(if [ -n "$$SES_EMAIL_IDENTITY" ]; then echo "$$SES_EMAIL_IDENTITY"; elif [ -n "$$SES_DOMAIN" ]; then echo "noreply@$$SES_DOMAIN"; else echo "$(DEFAULT_EMAIL_FROM)"; fi)
-	@export PUBLIC_API_URL="$(DEFAULT_PUBLIC_API_URL)"
-	@export GOOGLE_CLIENT_ID="$${GOOGLE_CLIENT_ID}"
-	@export GOOGLE_CLIENT_SECRET="$${GOOGLE_CLIENT_SECRET}"
-	@export ACM_CERTIFICATE_ARN="$$ACM_CERT_ARN"
-	@export DOMAIN_NAME="$$DOMAIN"
-	@test -n "$$FRONTEND_IMAGE" || (echo "FRONTEND_IMAGE is required" && exit 1)
-	@test -n "$$BACKEND_IMAGE" || (echo "BACKEND_IMAGE is required" && exit 1)
-	@test -n "$$JUDGE_IMAGE" || (echo "JUDGE_IMAGE is required" && exit 1)
-	@test -n "$$SANDBOX_IMAGE" || (echo "SANDBOX_IMAGE is required" && exit 1)
-	@test -n "$$HEALER_IMAGE" || (echo "HEALER_IMAGE is required" && exit 1)
-	@test -n "$$GOOGLE_CLIENT_ID" || (echo "GOOGLE_CLIENT_ID is required" && exit 1)
-	@test -n "$$GOOGLE_CLIENT_SECRET" || (echo "GOOGLE_CLIENT_SECRET is required" && exit 1)
+	@set -a; \
+	[ -f .env ] && . ./.env; \
+	set +a; \
+	ECR_WEB_REPO=$$(terraform output -raw ecr_web_repository 2>/dev/null); \
+	ECR_API_REPO=$$(terraform output -raw ecr_api_repository 2>/dev/null); \
+	ECR_JUDGE_REPO=$$(terraform output -raw ecr_judge_repository 2>/dev/null); \
+	ECR_SANDBOX_REPO=$$(terraform output -raw ecr_sandbox_repository 2>/dev/null); \
+	ECR_HEALER_REPO=$$(terraform output -raw ecr_healer_repository 2>/dev/null); \
+	SES_SMTP_HOST=$$(terraform output -raw ses_smtp_host 2>/dev/null); \
+	SES_SMTP_USERNAME=$$(terraform output -raw ses_smtp_username 2>/dev/null); \
+	SES_SMTP_PASSWORD=$$(terraform output -raw ses_smtp_password 2>/dev/null); \
+	SES_EMAIL_IDENTITY=$$(terraform output -raw ses_email_identity 2>/dev/null); \
+	SES_DOMAIN=$$(terraform output -raw ses_domain 2>/dev/null); \
+	ACM_CERT_ARN=$$(terraform output -raw acm_certificate_arn 2>/dev/null); \
+	DOMAIN=$$(terraform output -raw domain_name 2>/dev/null); \
+	ROUTE53_ZONE_ID=$$(terraform output -raw route53_zone_id 2>/dev/null); \
+	export FRONTEND_IMAGE="$$ECR_WEB_REPO:latest"; \
+	export BACKEND_IMAGE="$$ECR_API_REPO:latest"; \
+	export JUDGE_IMAGE="$$ECR_JUDGE_REPO:latest"; \
+	export SANDBOX_IMAGE="$$ECR_SANDBOX_REPO:latest"; \
+	export HEALER_IMAGE="$$ECR_HEALER_REPO:latest"; \
+	export SMTP_HOST="$$SES_SMTP_HOST"; \
+	export SMTP_PORT=$(SMTP_PORT); \
+	export SMTP_USERNAME="$$SES_SMTP_USERNAME"; \
+	export SMTP_PASSWORD="$$SES_SMTP_PASSWORD"; \
+	export EMAIL_FROM=$$(if [ -n "$$SES_EMAIL_IDENTITY" ]; then echo "$$SES_EMAIL_IDENTITY"; elif [ -n "$$SES_DOMAIN" ]; then echo "noreply@$$SES_DOMAIN"; else echo "$(DEFAULT_EMAIL_FROM)"; fi); \
+	export PUBLIC_API_URL="$(DEFAULT_PUBLIC_API_URL)"; \
+	export GOOGLE_CLIENT_ID="$${GOOGLE_CLIENT_ID}"; \
+	export GOOGLE_CLIENT_SECRET="$${GOOGLE_CLIENT_SECRET}"; \
+	export ACM_CERTIFICATE_ARN="$$ACM_CERT_ARN"; \
+	export DOMAIN_NAME="$$DOMAIN"; \
+	test -n "$$FRONTEND_IMAGE" || (echo "FRONTEND_IMAGE is required" && exit 1); \
+	test -n "$$BACKEND_IMAGE" || (echo "BACKEND_IMAGE is required" && exit 1); \
+	test -n "$$JUDGE_IMAGE" || (echo "JUDGE_IMAGE is required" && exit 1); \
+	test -n "$$SANDBOX_IMAGE" || (echo "SANDBOX_IMAGE is required" && exit 1); \
+	test -n "$$HEALER_IMAGE" || (echo "HEALER_IMAGE is required" && exit 1); \
+	test -n "$$GOOGLE_CLIENT_ID" || (echo "GOOGLE_CLIENT_ID is required" && exit 1); \
+	test -n "$$GOOGLE_CLIENT_SECRET" || (echo "GOOGLE_CLIENT_SECRET is required" && exit 1)
 	@kubectl apply -f k8s/namespaces.yaml
 	@kubectl apply -f k8s/addons/gp3-storageclass.yaml
 	@kubectl apply -f k8s/apps/surrealdb.yaml
 	@echo "Deploying applications (initial pass with placeholder URLs)..."
-	@export GOOGLE_REDIRECT_URI="http://placeholder/api/auth/google/callback"
-	@export PUBLIC_API_URL="http://placeholder"
-	@envsubst < k8s/apps/backend.yaml | kubectl apply -f -
-	@envsubst < k8s/apps/judge.yaml | kubectl apply -f -
-	@envsubst < k8s/apps/healer.yaml | kubectl apply -f -
-	@envsubst < k8s/apps/frontend.yaml | kubectl apply -f -
-	@if [ -n "$$DOMAIN_NAME" ]; then \
+	@set -a; \
+	[ -f .env ] && . ./.env; \
+	set +a; \
+	export GOOGLE_REDIRECT_URI="http://placeholder/api/auth/google/callback"; \
+	export PUBLIC_API_URL="http://placeholder"; \
+	export FRONTEND_URL="http://placeholder"; \
+	envsubst < k8s/apps/backend.yaml | kubectl apply -f -; \
+	envsubst < k8s/apps/judge.yaml | kubectl apply -f -; \
+	envsubst < k8s/apps/healer.yaml | kubectl apply -f -; \
+	envsubst < k8s/apps/frontend.yaml | kubectl apply -f -
+	@set -a; \
+	[ -f .env ] && . ./.env; \
+	set +a; \
+	ACM_CERT_ARN=$$(terraform output -raw acm_certificate_arn 2>/dev/null); \
+	DOMAIN=$$(terraform output -raw domain_name 2>/dev/null); \
+	export ACM_CERTIFICATE_ARN="$$ACM_CERT_ARN"; \
+	export DOMAIN_NAME="$$DOMAIN"; \
+	if [ -n "$$DOMAIN_NAME" ]; then \
 		echo "Using domain-based ingress"; \
 		if [ -n "$$ACM_CERTIFICATE_ARN" ]; then \
 			envsubst < k8s/apps/ingress/backend-https-domain.yaml | kubectl apply -f -; \
@@ -105,7 +118,10 @@ k8s-up: push-images
 		fi; \
 	fi
 	@echo "Waiting for ALB load balancers to be provisioned..."
-	@backend_alb=""; \
+	@set -a; \
+	[ -f .env ] && . ./.env; \
+	set +a; \
+	backend_alb=""; \
 	frontend_alb=""; \
 	for i in $$(seq 1 30); do \
 		backend_alb=$$(kubectl -n backend get ingress backend -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null); \
@@ -153,6 +169,7 @@ k8s-up: push-images
 	frontend_url=$$($(MAKE) -s get-frontend-url); \
 	export GOOGLE_REDIRECT_URI="$$backend_url/api/auth/google/callback"; \
 	export PUBLIC_API_URL="$$backend_url"; \
+	export FRONTEND_URL="$$frontend_url"; \
 	echo "Final URLs:"; \
 	echo "  Frontend: $$frontend_url"; \
 	echo "  Backend: $$backend_url"; \
@@ -220,70 +237,74 @@ print-urls:
 	fi
 
 push-images:
-	@ECR_WEB_REPO=$$(terraform output -raw ecr_web_repository 2>/dev/null)
-	@ECR_API_REPO=$$(terraform output -raw ecr_api_repository 2>/dev/null)
-	@ECR_JUDGE_REPO=$$(terraform output -raw ecr_judge_repository 2>/dev/null)
-	@ECR_SANDBOX_REPO=$$(terraform output -raw ecr_sandbox_repository 2>/dev/null)
-	@ECR_HEALER_REPO=$$(terraform output -raw ecr_healer_repository 2>/dev/null)
-	@test -n "$$ECR_WEB_REPO" || (echo "ECR_WEB_REPO is required" && exit 1)
-	@test -n "$$ECR_API_REPO" || (echo "ECR_API_REPO is required" && exit 1)
-	@test -n "$$ECR_JUDGE_REPO" || (echo "ECR_JUDGE_REPO is required" && exit 1)
-	@test -n "$$ECR_SANDBOX_REPO" || (echo "ECR_SANDBOX_REPO is required" && exit 1)
-	@test -n "$$ECR_HEALER_REPO" || (echo "ECR_HEALER_REPO is required" && exit 1)
-	@FRONTEND_IMAGE="$$ECR_WEB_REPO:latest"
-	@BACKEND_IMAGE="$$ECR_API_REPO:latest"
-	@JUDGE_IMAGE="$$ECR_JUDGE_REPO:latest"
-	@SANDBOX_IMAGE="$$ECR_SANDBOX_REPO:latest"
-	@HEALER_IMAGE="$$ECR_HEALER_REPO:latest"
-	@ECR_REGISTRY=$$(echo "$$ECR_WEB_REPO" | cut -d/ -f1)
-	@echo "Logging in to ECR $$ECR_REGISTRY..."
-	@aws ecr get-login-password | $(CONTAINER_RUNTIME) login --username AWS --password-stdin $$ECR_REGISTRY
-	@echo "Building and pushing frontend image..."
-	@$(CONTAINER_RUNTIME) build -t $$FRONTEND_IMAGE ../web
-	@$(CONTAINER_RUNTIME) push $$FRONTEND_IMAGE
-	@echo "Building and pushing backend image..."
-	@$(CONTAINER_RUNTIME) build -t $$BACKEND_IMAGE ../api
-	@$(CONTAINER_RUNTIME) push $$BACKEND_IMAGE
-	@echo "Building and pushing judge image..."
-	@$(CONTAINER_RUNTIME) build -t $$JUDGE_IMAGE ../judge
-	@$(CONTAINER_RUNTIME) push $$JUDGE_IMAGE
-	@echo "Building and pushing sandbox image..."
-	@$(CONTAINER_RUNTIME) build -f ../judge/src/sandbox.Dockerfile -t $$SANDBOX_IMAGE ../judge/src
-	@$(CONTAINER_RUNTIME) push $$SANDBOX_IMAGE
-	@echo "Building and pushing healer image..."
-	@$(CONTAINER_RUNTIME) build -t $$HEALER_IMAGE ../healer
-	@$(CONTAINER_RUNTIME) push $$HEALER_IMAGE
-	@echo "All images built and pushed successfully"
+	@ECR_WEB_REPO=$$(terraform output -raw ecr_web_repository 2>/dev/null); \
+	ECR_API_REPO=$$(terraform output -raw ecr_api_repository 2>/dev/null); \
+	ECR_JUDGE_REPO=$$(terraform output -raw ecr_judge_repository 2>/dev/null); \
+	ECR_SANDBOX_REPO=$$(terraform output -raw ecr_sandbox_repository 2>/dev/null); \
+	ECR_HEALER_REPO=$$(terraform output -raw ecr_healer_repository 2>/dev/null); \
+	test -n "$$ECR_WEB_REPO" || (echo "ECR_WEB_REPO is required" && exit 1); \
+	test -n "$$ECR_API_REPO" || (echo "ECR_API_REPO is required" && exit 1); \
+	test -n "$$ECR_JUDGE_REPO" || (echo "ECR_JUDGE_REPO is required" && exit 1); \
+	test -n "$$ECR_SANDBOX_REPO" || (echo "ECR_SANDBOX_REPO is required" && exit 1); \
+	test -n "$$ECR_HEALER_REPO" || (echo "ECR_HEALER_REPO is required" && exit 1); \
+	FRONTEND_IMAGE="$$ECR_WEB_REPO:latest"; \
+	BACKEND_IMAGE="$$ECR_API_REPO:latest"; \
+	JUDGE_IMAGE="$$ECR_JUDGE_REPO:latest"; \
+	SANDBOX_IMAGE="$$ECR_SANDBOX_REPO:latest"; \
+	HEALER_IMAGE="$$ECR_HEALER_REPO:latest"; \
+	ECR_REGISTRY=$$(echo "$$ECR_WEB_REPO" | cut -d/ -f1); \
+	echo "Logging in to ECR $$ECR_REGISTRY..."; \
+	aws ecr get-login-password | $(CONTAINER_RUNTIME) login --username AWS --password-stdin $$ECR_REGISTRY; \
+	echo "Building and pushing frontend image..."; \
+	$(CONTAINER_RUNTIME) build -t $$FRONTEND_IMAGE ../web; \
+	$(CONTAINER_RUNTIME) push $$FRONTEND_IMAGE; \
+	echo "Building and pushing backend image..."; \
+	$(CONTAINER_RUNTIME) build -t $$BACKEND_IMAGE ../api; \
+	$(CONTAINER_RUNTIME) push $$BACKEND_IMAGE; \
+	echo "Building and pushing judge image..."; \
+	$(CONTAINER_RUNTIME) build -t $$JUDGE_IMAGE ../judge; \
+	$(CONTAINER_RUNTIME) push $$JUDGE_IMAGE; \
+	echo "Building and pushing sandbox image..."; \
+	$(CONTAINER_RUNTIME) build -f ../judge/src/sandbox.Dockerfile -t $$SANDBOX_IMAGE ../judge/src; \
+	$(CONTAINER_RUNTIME) push $$SANDBOX_IMAGE; \
+	echo "Building and pushing healer image..."; \
+	$(CONTAINER_RUNTIME) build -t $$HEALER_IMAGE ../healer; \
+	$(CONTAINER_RUNTIME) push $$HEALER_IMAGE; \
+	echo "All images built and pushed successfully"
 
 k8s-down:
-	@ECR_WEB_REPO=$$(terraform output -raw ecr_web_repository 2>/dev/null)
-	@ECR_API_REPO=$$(terraform output -raw ecr_api_repository 2>/dev/null)
-	@ECR_JUDGE_REPO=$$(terraform output -raw ecr_judge_repository 2>/dev/null)
-	@ECR_SANDBOX_REPO=$$(terraform output -raw ecr_sandbox_repository 2>/dev/null)
-	@ECR_HEALER_REPO=$$(terraform output -raw ecr_healer_repository 2>/dev/null)
-	@SES_SMTP_HOST=$$(terraform output -raw ses_smtp_host 2>/dev/null)
-	@SES_SMTP_USERNAME=$$(terraform output -raw ses_smtp_username 2>/dev/null)
-	@SES_SMTP_PASSWORD=$$(terraform output -raw ses_smtp_password 2>/dev/null)
-	@SES_EMAIL_IDENTITY=$$(terraform output -raw ses_email_identity 2>/dev/null)
-	@SES_DOMAIN=$$(terraform output -raw ses_domain 2>/dev/null)
-	@export FRONTEND_IMAGE="$$ECR_WEB_REPO:latest"
-	@export BACKEND_IMAGE="$$ECR_API_REPO:latest"
-	@export JUDGE_IMAGE="$$ECR_JUDGE_REPO:latest"
-	@export SANDBOX_IMAGE="$$ECR_SANDBOX_REPO:latest"
-	@export HEALER_IMAGE="$$ECR_HEALER_REPO:latest"
-	@export SMTP_HOST="$$SES_SMTP_HOST"
-	@export SMTP_PORT=$(SMTP_PORT)
-	@export SMTP_USERNAME="$$SES_SMTP_USERNAME"
-	@export SMTP_PASSWORD="$$SES_SMTP_PASSWORD"
-	@export EMAIL_FROM=$$(if [ -n "$$SES_EMAIL_IDENTITY" ]; then echo "$$SES_EMAIL_IDENTITY"; elif [ -n "$$SES_DOMAIN" ]; then echo "noreply@$$SES_DOMAIN"; else echo "$(DEFAULT_EMAIL_FROM)"; fi)
-	@export PUBLIC_API_URL="$(DEFAULT_PUBLIC_API_URL)"
-	@export GOOGLE_CLIENT_ID="$${GOOGLE_CLIENT_ID:-placeholder}"
-	@export GOOGLE_CLIENT_SECRET="$${GOOGLE_CLIENT_SECRET:-placeholder}"
-	@export GOOGLE_REDIRECT_URI="$${GOOGLE_REDIRECT_URI:-placeholder}"
-	@envsubst < k8s/apps/frontend.yaml | kubectl delete -f - --ignore-not-found
-	@envsubst < k8s/apps/judge.yaml | kubectl delete -f - --ignore-not-found
-	@envsubst < k8s/apps/healer.yaml | kubectl delete -f - --ignore-not-found
-	@envsubst < k8s/apps/backend.yaml | kubectl delete -f - --ignore-not-found
+	@set -a; \
+	[ -f .env ] && . ./.env; \
+	set +a; \
+	ECR_WEB_REPO=$$(terraform output -raw ecr_web_repository 2>/dev/null); \
+	ECR_API_REPO=$$(terraform output -raw ecr_api_repository 2>/dev/null); \
+	ECR_JUDGE_REPO=$$(terraform output -raw ecr_judge_repository 2>/dev/null); \
+	ECR_SANDBOX_REPO=$$(terraform output -raw ecr_sandbox_repository 2>/dev/null); \
+	ECR_HEALER_REPO=$$(terraform output -raw ecr_healer_repository 2>/dev/null); \
+	SES_SMTP_HOST=$$(terraform output -raw ses_smtp_host 2>/dev/null); \
+	SES_SMTP_USERNAME=$$(terraform output -raw ses_smtp_username 2>/dev/null); \
+	SES_SMTP_PASSWORD=$$(terraform output -raw ses_smtp_password 2>/dev/null); \
+	SES_EMAIL_IDENTITY=$$(terraform output -raw ses_email_identity 2>/dev/null); \
+	SES_DOMAIN=$$(terraform output -raw ses_domain 2>/dev/null); \
+	export FRONTEND_IMAGE="$$ECR_WEB_REPO:latest"; \
+	export BACKEND_IMAGE="$$ECR_API_REPO:latest"; \
+	export JUDGE_IMAGE="$$ECR_JUDGE_REPO:latest"; \
+	export SANDBOX_IMAGE="$$ECR_SANDBOX_REPO:latest"; \
+	export HEALER_IMAGE="$$ECR_HEALER_REPO:latest"; \
+	export SMTP_HOST="$$SES_SMTP_HOST"; \
+	export SMTP_PORT=$(SMTP_PORT); \
+	export SMTP_USERNAME="$$SES_SMTP_USERNAME"; \
+	export SMTP_PASSWORD="$$SES_SMTP_PASSWORD"; \
+	export EMAIL_FROM=$$(if [ -n "$$SES_EMAIL_IDENTITY" ]; then echo "$$SES_EMAIL_IDENTITY"; elif [ -n "$$SES_DOMAIN" ]; then echo "noreply@$$SES_DOMAIN"; else echo "$(DEFAULT_EMAIL_FROM)"; fi); \
+	export PUBLIC_API_URL="$(DEFAULT_PUBLIC_API_URL)"; \
+	export FRONTEND_URL="http://placeholder"; \
+	export GOOGLE_CLIENT_ID="$${GOOGLE_CLIENT_ID:-placeholder}"; \
+	export GOOGLE_CLIENT_SECRET="$${GOOGLE_CLIENT_SECRET:-placeholder}"; \
+	export GOOGLE_REDIRECT_URI="$${GOOGLE_REDIRECT_URI:-placeholder}"; \
+	envsubst < k8s/apps/frontend.yaml | kubectl delete -f - --ignore-not-found; \
+	envsubst < k8s/apps/judge.yaml | kubectl delete -f - --ignore-not-found; \
+	envsubst < k8s/apps/healer.yaml | kubectl delete -f - --ignore-not-found; \
+	envsubst < k8s/apps/backend.yaml | kubectl delete -f - --ignore-not-found
 	@envsubst < k8s/apps/ingress/backend-https.yaml | kubectl delete -f - --ignore-not-found
 	@envsubst < k8s/apps/ingress/frontend-https.yaml | kubectl delete  -f - --ignore-not-found
 	@envsubst < k8s/apps/ingress/backend-http.yaml | kubectl apply -f - --ignore-not-found

@@ -2,28 +2,27 @@
     import { onMount } from "svelte";
     import { goto } from "$app/navigation";
     import { page } from "$app/state";
-    import { authService } from "$lib/services/auth";
     import { authStore } from "$lib/stores/auth";
+    import { authService } from "$lib/services/auth";
     let error = $state("");
     let loading = $state(true);
     onMount(async () => {
-        const code = page.url.searchParams.get("code");
-        const state = page.url.searchParams.get("state");
-        if (!code || !state) {
-            error = "Invalid callback parameters";
+        const token = page.url.searchParams.get("token");
+        if (!token) {
+            error = "Missing authentication token";
             loading = false;
             return;
         }
         try {
-            const response = await authService.handleGoogleCallback(
-                code,
-                state,
-            );
-            authStore.setAuth(response.user, response.token);
+            // Store token temporarily
+            localStorage.setItem("auth_token", token);
+            // Fetch user profile
+            const user = await authService.getProfile();
+            authStore.setAuth(user, token);
             goto("/");
         } catch (err) {
             error =
-                err instanceof Error ? err.message : "Authentication failed";
+                err instanceof Error ? err.message : "Failed to fetch user profile";
             loading = false;
         }
     });

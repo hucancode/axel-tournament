@@ -3,6 +3,7 @@
     import { authStore } from "$lib/stores/auth";
     import { goto } from "$app/navigation";
     import { onMount } from "svelte";
+    import { env } from "$env/dynamic/public";
     let email = $state("");
     let password = $state("");
     let error = $state("");
@@ -26,16 +27,10 @@
             loading = false;
         }
     }
-    async function handleGoogleLogin() {
-        try {
-            const { url } = await authService.getGoogleAuthUrl();
-            window.location.href = url;
-        } catch (err) {
-            error =
-                err instanceof Error
-                    ? err.message
-                    : "Failed to initiate Google login";
-        }
+    function handleGoogleLogin() {
+        // Navigate directly to backend OAuth endpoint
+        const apiUrl = env.PUBLIC_API_URL || "http://localhost:8080";
+        window.location.href = `${apiUrl}/api/auth/google`;
     }
 </script>
 

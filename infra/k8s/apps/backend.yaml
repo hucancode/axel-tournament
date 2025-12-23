@@ -71,7 +71,7 @@ spec:
                   name: backend-secrets
                   key: admin_password
             - name: OAUTH_COOKIE_SECURE
-              value: "true"
+              value: "false"
             - name: OAUTH_STATE_TTL_SECONDS
               value: "300"
             - name: SMTP_HOST
@@ -114,6 +114,8 @@ spec:
                 secretKeyRef:
                   name: backend-secrets
                   key: google_redirect_uri
+            - name: FRONTEND_URL
+              value: "${FRONTEND_URL}"
           resources:
             requests:
               cpu: "200m"
