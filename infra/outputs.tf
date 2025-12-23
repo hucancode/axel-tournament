@@ -59,7 +59,8 @@ output "ses_email_identity" {
 }
 
 output "ses_domain" {
-  value = var.ses_domain
+  value       = local.ses_domain_enabled ? local.effective_ses_domain : ""
+  description = "The domain being used for SES (either ses_domain or route53_zone_name)"
 }
 
 output "ses_smtp_host" {
@@ -93,4 +94,14 @@ output "vpc_id" {
 
 output "route53_zone_name_servers" {
   value = try(aws_route53_zone.ses_subdomain[0].name_servers, [])
+}
+
+output "acm_certificate_arn" {
+  description = "ARN of the ACM certificate for the domain (empty if no domain configured)"
+  value       = try(aws_acm_certificate.main[0].arn, "")
+}
+
+output "domain_name" {
+  description = "Domain name configured for the application (empty if using ALB hostname)"
+  value       = var.route53_zone_name
 }

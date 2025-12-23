@@ -109,13 +109,13 @@ variable "create_ecr_repos" {
 variable "create_route53_zone" {
   type        = bool
   description = "Whether to create a Route53 hosted zone for the SES subdomain."
-  default     = true
+  default     = false
 }
 
 variable "route53_zone_name" {
   type        = string
-  description = "Route53 hosted zone name for SES verification."
-  default     = "axel.lamsaoquenem.day"
+  description = "Route53 hosted zone name for custom domain (leave empty to use ALB hostname)."
+  default     = ""
 }
 
 variable "route53_zone_id" {
@@ -126,8 +126,8 @@ variable "route53_zone_id" {
 
 variable "ses_domain" {
   type        = string
-  description = "Domain to verify in SES (leave empty to skip)."
-  default     = "axel.lamsaoquenem.day"
+  description = "Domain to verify in SES (leave empty to use route53_zone_name, or skip if that's also empty)."
+  default     = ""
 }
 
 variable "ses_email_identity" {
@@ -144,12 +144,12 @@ variable "ses_mail_from_subdomain" {
 
 variable "create_ses_smtp_user" {
   type        = bool
-  description = "Whether to create an IAM user for SES SMTP credentials."
-  default     = true
+  description = "Whether to create an IAM user for SES SMTP credentials. Defaults to false - set to true only when a domain is configured."
+  default     = false
 
   validation {
-    condition     = var.create_ses_smtp_user == false || trimspace(var.ses_domain) != "" || trimspace(var.ses_email_identity) != ""
-    error_message = "Set ses_domain or ses_email_identity when create_ses_smtp_user is true."
+    condition     = var.create_ses_smtp_user == false || trimspace(var.ses_domain) != "" || trimspace(var.ses_email_identity) != "" || trimspace(var.route53_zone_name) != ""
+    error_message = "Set ses_domain, ses_email_identity, or route53_zone_name when create_ses_smtp_user is true, or set create_ses_smtp_user to false to disable SES."
   }
 }
 

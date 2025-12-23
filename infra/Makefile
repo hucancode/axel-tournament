@@ -9,7 +9,7 @@ DEFAULT_EMAIL_FROM := noreply@axel-tournament.com
 DEFAULT_PUBLIC_API_URL := http://backend.backend.svc.cluster.local:8080
 
 # Environment variable templates for envsubst
-ENV_SUBST_VARS := '$${FRONTEND_IMAGE} $${BACKEND_IMAGE} $${JUDGE_IMAGE} $${SANDBOX_IMAGE} $${HEALER_IMAGE} $${SMTP_HOST} $${SMTP_PORT} $${SMTP_USERNAME} $${SMTP_PASSWORD} $${EMAIL_FROM} $${PUBLIC_API_URL} $${LB_CONTROLLER_ROLE_ARN}'
+ENV_SUBST_VARS := '$${FRONTEND_IMAGE} $${BACKEND_IMAGE} $${JUDGE_IMAGE} $${SANDBOX_IMAGE} $${HEALER_IMAGE} $${SMTP_HOST} $${SMTP_PORT} $${SMTP_USERNAME} $${SMTP_PASSWORD} $${EMAIL_FROM} $${PUBLIC_API_URL} $${LB_CONTROLLER_ROLE_ARN} $${GOOGLE_CLIENT_ID} $${GOOGLE_CLIENT_SECRET} $${GOOGLE_REDIRECT_URI} $${ACM_CERTIFICATE_ARN} $${DOMAIN_NAME}'
 
 aws-up:
 	@terraform init
@@ -52,6 +52,9 @@ k8s-up: push-images
 	@SES_SMTP_PASSWORD=$$(terraform output -raw ses_smtp_password 2>/dev/null)
 	@SES_EMAIL_IDENTITY=$$(terraform output -raw ses_email_identity 2>/dev/null)
 	@SES_DOMAIN=$$(terraform output -raw ses_domain 2>/dev/null)
+	@ACM_CERT_ARN=$$(terraform output -raw acm_certificate_arn 2>/dev/null)
+	@DOMAIN=$$(terraform output -raw domain_name 2>/dev/null)
+	@ROUTE53_ZONE_ID=$$(terraform output -raw route53_zone_id 2>/dev/null)
 	@export FRONTEND_IMAGE="$$ECR_WEB_REPO:latest"
 	@export BACKEND_IMAGE="$$ECR_API_REPO:latest"
 	@export JUDGE_IMAGE="$$ECR_JUDGE_REPO:latest"
@@ -63,31 +66,141 @@ k8s-up: push-images
 	@export SMTP_PASSWORD="$$SES_SMTP_PASSWORD"
 	@export EMAIL_FROM=$$(if [ -n "$$SES_EMAIL_IDENTITY" ]; then echo "$$SES_EMAIL_IDENTITY"; elif [ -n "$$SES_DOMAIN" ]; then echo "noreply@$$SES_DOMAIN"; else echo "$(DEFAULT_EMAIL_FROM)"; fi)
 	@export PUBLIC_API_URL="$(DEFAULT_PUBLIC_API_URL)"
+	@export GOOGLE_CLIENT_ID="$${GOOGLE_CLIENT_ID}"
+	@export GOOGLE_CLIENT_SECRET="$${GOOGLE_CLIENT_SECRET}"
+	@export ACM_CERTIFICATE_ARN="$$ACM_CERT_ARN"
+	@export DOMAIN_NAME="$$DOMAIN"
 	@test -n "$$FRONTEND_IMAGE" || (echo "FRONTEND_IMAGE is required" && exit 1)
 	@test -n "$$BACKEND_IMAGE" || (echo "BACKEND_IMAGE is required" && exit 1)
 	@test -n "$$JUDGE_IMAGE" || (echo "JUDGE_IMAGE is required" && exit 1)
 	@test -n "$$SANDBOX_IMAGE" || (echo "SANDBOX_IMAGE is required" && exit 1)
 	@test -n "$$HEALER_IMAGE" || (echo "HEALER_IMAGE is required" && exit 1)
+	@test -n "$$GOOGLE_CLIENT_ID" || (echo "GOOGLE_CLIENT_ID is required" && exit 1)
+	@test -n "$$GOOGLE_CLIENT_SECRET" || (echo "GOOGLE_CLIENT_SECRET is required" && exit 1)
 	@kubectl apply -f k8s/namespaces.yaml
 	@kubectl apply -f k8s/addons/gp3-storageclass.yaml
 	@kubectl apply -f k8s/apps/surrealdb.yaml
+	@echo "Deploying applications (initial pass with placeholder URLs)..."
+	@export GOOGLE_REDIRECT_URI="http://placeholder/api/auth/google/callback"
+	@export PUBLIC_API_URL="http://placeholder"
 	@envsubst $(ENV_SUBST_VARS) < k8s/apps/backend.yaml | kubectl apply -f -
 	@envsubst $(ENV_SUBST_VARS) < k8s/apps/judge.yaml | kubectl apply -f -
 	@envsubst $(ENV_SUBST_VARS) < k8s/apps/healer.yaml | kubectl apply -f -
-	@backend_host=""
-	@i=0
-	@while [ -z "$$backend_host" ] && [ $$i -lt 30 ]; do \
-		i=$$((i+1)); \
-		backend_host=$$(kubectl -n backend get ingress backend -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null); \
-		if [ -n "$$backend_host" ]; then break; fi; \
-		echo "Waiting for backend ingress hostname ($$i/30)..."; \
+	@envsubst $(ENV_SUBST_VARS) < k8s/apps/frontend.yaml | kubectl apply -f -
+	@echo "Waiting for ALB load balancers to be provisioned..."
+	@backend_alb=""; \
+	frontend_alb=""; \
+	for i in $$(seq 1 30); do \
+		backend_alb=$$(kubectl -n backend get ingress backend -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null); \
+		frontend_alb=$$(kubectl -n frontend get ingress frontend -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null); \
+		if [ -n "$$backend_alb" ] && [ -n "$$frontend_alb" ]; then \
+			echo "ALBs provisioned successfully"; \
+			break; \
+		fi; \
+		echo "Waiting for ALBs... ($$i/30)"; \
 		sleep 10; \
-	done
-	@if [ -z "$$backend_host" ]; then \
-		echo "Backend ingress hostname not available; set PUBLIC_API_URL and re-run k8s-up."; \
+	done; \
+	if [ -z "$$backend_alb" ] || [ -z "$$frontend_alb" ]; then \
+		echo "Error: ALB hostnames not available after 5 minutes"; \
 		exit 1; \
+	fi; \
+	echo "Backend ALB: $$backend_alb"; \
+	echo "Frontend ALB: $$frontend_alb"; \
+	if [ -n "$$DOMAIN_NAME" ] && [ -n "$$ROUTE53_ZONE_ID" ]; then \
+		echo "Custom domain detected: $$DOMAIN_NAME"; \
+		echo "Creating DNS records..."; \
+		aws route53 change-resource-record-sets --hosted-zone-id $$ROUTE53_ZONE_ID --change-batch '{ \
+			"Changes": [ \
+				{ \
+					"Action": "UPSERT", \
+					"ResourceRecordSet": { \
+						"Name": "api.'"$$DOMAIN_NAME"'", \
+						"Type": "CNAME", \
+						"TTL": 300, \
+						"ResourceRecords": [{"Value": "'"$$backend_alb"'"}] \
+					} \
+				}, \
+				{ \
+					"Action": "UPSERT", \
+					"ResourceRecordSet": { \
+						"Name": "'"$$DOMAIN_NAME"'", \
+						"Type": "CNAME", \
+						"TTL": 300, \
+						"ResourceRecords": [{"Value": "'"$$frontend_alb"'"}] \
+					} \
+				} \
+			] \
+		}'; \
+	fi; \
+	backend_url=$$($(MAKE) -s get-backend-url); \
+	frontend_url=$$($(MAKE) -s get-frontend-url); \
+	export GOOGLE_REDIRECT_URI="$$backend_url/api/auth/google/callback"; \
+	export PUBLIC_API_URL="$$backend_url"; \
+	echo "Final URLs:"; \
+	echo "  Frontend: $$frontend_url"; \
+	echo "  Backend: $$backend_url"; \
+	echo "  OAuth Redirect: $$GOOGLE_REDIRECT_URI"; \
+	echo "Updating deployments with final URLs..."; \
+	envsubst $(ENV_SUBST_VARS) < k8s/apps/backend.yaml | kubectl apply -f -; \
+	envsubst $(ENV_SUBST_VARS) < k8s/apps/judge.yaml | kubectl apply -f -; \
+	envsubst $(ENV_SUBST_VARS) < k8s/apps/healer.yaml | kubectl apply -f -; \
+	envsubst $(ENV_SUBST_VARS) < k8s/apps/frontend.yaml | kubectl apply -f -
+	@echo "Waiting for backend pods to be ready..."
+	@kubectl wait --namespace backend --for=condition=ready pod --selector=app=backend --timeout=120s || true
+	@echo ""
+	@echo "========================================="
+	@echo "Deployment complete!"
+	@echo "========================================="
+	@$(MAKE) -s print-urls
+	@echo ""
+	@echo "========================================="
+
+get-backend-url:
+	@backend_host=$$(kubectl -n backend get ingress backend -o jsonpath='{.spec.rules[0].host}' 2>/dev/null); \
+	backend_alb=$$(kubectl -n backend get ingress backend -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null); \
+	has_cert=$$(kubectl -n backend get ingress backend -o jsonpath='{.metadata.annotations.alb\.ingress\.kubernetes\.io/certificate-arn}' 2>/dev/null); \
+	if [ -n "$$backend_host" ]; then \
+		if [ -n "$$has_cert" ]; then \
+			echo "https://$$backend_host"; \
+		else \
+			echo "http://$$backend_host"; \
+		fi; \
+	else \
+		echo "http://$$backend_alb"; \
 	fi
-	@PUBLIC_API_URL="http://$$backend_host" envsubst $(ENV_SUBST_VARS) < k8s/apps/frontend.yaml | kubectl apply -f -
+
+get-frontend-url:
+	@frontend_host=$$(kubectl -n frontend get ingress frontend -o jsonpath='{.spec.rules[0].host}' 2>/dev/null); \
+	frontend_alb=$$(kubectl -n frontend get ingress frontend -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null); \
+	has_cert=$$(kubectl -n frontend get ingress frontend -o jsonpath='{.metadata.annotations.alb\.ingress\.kubernetes\.io/certificate-arn}' 2>/dev/null); \
+	if [ -n "$$frontend_host" ]; then \
+		if [ -n "$$has_cert" ]; then \
+			echo "https://$$frontend_host"; \
+		else \
+			echo "http://$$frontend_host"; \
+		fi; \
+	else \
+		echo "http://$$frontend_alb"; \
+	fi
+
+print-urls:
+	@backend_url=$$($(MAKE) -s get-backend-url); \
+	frontend_url=$$($(MAKE) -s get-frontend-url); \
+	echo "Frontend: $$frontend_url"; \
+	echo "Backend API: $$backend_url"; \
+	echo "Google OAuth Redirect URI: $$backend_url/api/auth/google/callback"; \
+	echo ""; \
+	echo "⚠️  IMPORTANT: Update your Google OAuth configuration:"; \
+	echo "1. Go to https://console.cloud.google.com/apis/credentials"; \
+	echo "2. Edit your OAuth 2.0 Client ID"; \
+	echo "3. Add this redirect URI: $$backend_url/api/auth/google/callback"; \
+	domain=$$(terraform output -raw domain_name 2>/dev/null); \
+	if [ -n "$$domain" ]; then \
+		echo ""; \
+		echo "📋 DNS Configuration:"; \
+		echo "Make sure your domain's nameservers point to:"; \
+		terraform output -raw route53_zone_name_servers; \
+	fi
 
 push-images:
 	@ECR_WEB_REPO=$$(terraform output -raw ecr_web_repository 2>/dev/null)
@@ -147,6 +260,9 @@ k8s-down:
 	@export SMTP_PASSWORD="$$SES_SMTP_PASSWORD"
 	@export EMAIL_FROM=$$(if [ -n "$$SES_EMAIL_IDENTITY" ]; then echo "$$SES_EMAIL_IDENTITY"; elif [ -n "$$SES_DOMAIN" ]; then echo "noreply@$$SES_DOMAIN"; else echo "$(DEFAULT_EMAIL_FROM)"; fi)
 	@export PUBLIC_API_URL="$(DEFAULT_PUBLIC_API_URL)"
+	@export GOOGLE_CLIENT_ID="$${GOOGLE_CLIENT_ID:-placeholder}"
+	@export GOOGLE_CLIENT_SECRET="$${GOOGLE_CLIENT_SECRET:-placeholder}"
+	@export GOOGLE_REDIRECT_URI="$${GOOGLE_REDIRECT_URI:-placeholder}"
 	@envsubst $(ENV_SUBST_VARS) < k8s/apps/frontend.yaml | kubectl delete -f - --ignore-not-found
 	@envsubst $(ENV_SUBST_VARS) < k8s/apps/judge.yaml | kubectl delete -f - --ignore-not-found
 	@envsubst $(ENV_SUBST_VARS) < k8s/apps/healer.yaml | kubectl delete -f - --ignore-not-found
@@ -155,7 +271,7 @@ k8s-down:
 	@kubectl delete -f k8s/addons/gp3-storageclass.yaml --ignore-not-found
 	@kubectl delete -f k8s/namespaces.yaml --ignore-not-found
 
-aws-down: k8s-down
+aws-down:
 	@helm uninstall aws-load-balancer-controller --namespace kube-system || true
 	@helm uninstall metrics-server --namespace kube-system || true
 	@terraform destroy -auto-approve

@@ -8,6 +8,9 @@ stringData:
   admin_password: "change-me"
   db_user: "root"
   db_pass: "change-me"
+  google_client_id: "${GOOGLE_CLIENT_ID}"
+  google_client_secret: "${GOOGLE_CLIENT_SECRET}"
+  google_redirect_uri: "${GOOGLE_REDIRECT_URI}"
   smtp_host: "${SMTP_HOST}"
   smtp_port: "${SMTP_PORT}"
   smtp_username: "${SMTP_USERNAME}"
@@ -96,6 +99,21 @@ spec:
                 secretKeyRef:
                   name: backend-secrets
                   key: email_from
+            - name: GOOGLE_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: google_client_id
+            - name: GOOGLE_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: google_client_secret
+            - name: GOOGLE_REDIRECT_URI
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: google_redirect_uri
           resources:
             requests:
               cpu: "200m"
@@ -127,12 +145,17 @@ metadata:
     kubernetes.io/ingress.class: alb
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
     alb.ingress.kubernetes.io/healthcheck-path: /health
+    # Conditional HTTPS configuration (only when domain is set)
+    ${ACM_CERTIFICATE_ARN:+alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'}
+    ${ACM_CERTIFICATE_ARN:+alb.ingress.kubernetes.io/ssl-redirect: '443'}
+    ${ACM_CERTIFICATE_ARN:+alb.ingress.kubernetes.io/certificate-arn: ${ACM_CERTIFICATE_ARN}}
+    ${ACM_CERTIFICATE_ARN:-alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'}
 spec:
   ingressClassName: alb
   rules:
-    - http:
+    - ${DOMAIN_NAME:+host: api.${DOMAIN_NAME}}
+      http:
         paths:
           - path: /
             pathType: Prefix

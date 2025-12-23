@@ -18,4 +18,3 @@ bun run dev
 
 ## Environment variables
 - `PUBLIC_API_URL`: backend API base URL
-- `PUBLIC_GOOGLE_CLIENT_ID`: Google OAuth client ID
