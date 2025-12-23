@@ -20,7 +20,7 @@ spec:
             - containerPort: 3000
           env:
             - name: PUBLIC_API_URL
-              value: "http://backend.backend.svc.cluster.local:8080"
+              value: "${PUBLIC_API_URL}"
           resources:
             requests:
               cpu: "100m"
@@ -48,8 +48,14 @@ kind: Ingress
 metadata:
   name: frontend
   namespace: frontend
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+    alb.ingress.kubernetes.io/healthcheck-path: /
 spec:
-  ingressClassName: nginx
+  ingressClassName: alb
   rules:
     - http:
         paths:

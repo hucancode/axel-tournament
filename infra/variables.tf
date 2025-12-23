@@ -13,7 +13,7 @@ variable "cluster_name" {
 variable "kubernetes_version" {
   type        = string
   description = "EKS Kubernetes version."
-  default     = "1.29"
+  default     = "1.34"
 }
 
 variable "vpc_cidr" {
@@ -31,7 +31,7 @@ variable "cluster_public_access_cidrs" {
 variable "cluster_public_access_enabled" {
   type        = bool
   description = "Whether the EKS public API endpoint is enabled."
-  default     = false
+  default     = true
 }
 
 variable "cluster_private_access_enabled" {

@@ -96,7 +96,7 @@ module "eks" {
   }
 
   eks_managed_node_group_defaults = {
-    ami_type       = "AL2_x86_64"
+    ami_type       = "AL2023_x86_64_STANDARD"
     capacity_type  = "ON_DEMAND"
     disk_size      = 20
     subnet_ids     = module.vpc.private_subnets

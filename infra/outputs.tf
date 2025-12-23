@@ -14,12 +14,12 @@ output "ecr_repositories" {
   value = { for name, repo in aws_ecr_repository.repos : name => repo.repository_url }
 }
 
-output "ecr_frontend_repository" {
-  value = try(aws_ecr_repository.repos["frontend"].repository_url, "")
+output "ecr_web_repository" {
+  value = try(aws_ecr_repository.repos["web"].repository_url, "")
 }
 
-output "ecr_backend_repository" {
-  value = try(aws_ecr_repository.repos["backend"].repository_url, "")
+output "ecr_api_repository" {
+  value = try(aws_ecr_repository.repos["api"].repository_url, "")
 }
 
 output "ecr_judge_repository" {
@@ -77,6 +77,18 @@ output "ses_smtp_password" {
 
 output "route53_zone_id" {
   value = try(aws_route53_zone.ses_subdomain[0].zone_id, "")
+}
+
+output "aws_load_balancer_controller_role_arn" {
+  value = aws_iam_role.aws_load_balancer_controller.arn
+}
+
+output "aws_region" {
+  value = data.aws_region.current.name
+}
+
+output "vpc_id" {
+  value = module.vpc.vpc_id
 }
 
 output "route53_zone_name_servers" {
