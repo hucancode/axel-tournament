@@ -307,12 +307,12 @@ k8s-down:
 	envsubst < k8s/apps/backend.yaml | kubectl delete -f - --ignore-not-found
 	@envsubst < k8s/apps/ingress/backend-https.yaml | kubectl delete -f - --ignore-not-found
 	@envsubst < k8s/apps/ingress/frontend-https.yaml | kubectl delete  -f - --ignore-not-found
-	@envsubst < k8s/apps/ingress/backend-http.yaml | kubectl apply -f - --ignore-not-found
-	@envsubst < k8s/apps/ingress/frontend-http.yaml | kubectl apply -f - --ignore-not-found
+	@envsubst < k8s/apps/ingress/backend-http.yaml | kubectl delete -f - --ignore-not-found
+	@envsubst < k8s/apps/ingress/frontend-http.yaml | kubectl delete -f - --ignore-not-found
 	@envsubst < k8s/apps/ingress/backend-https-domain.yaml | kubectl delete -f - --ignore-not-found
 	@envsubst < k8s/apps/ingress/frontend-https-domain.yaml | kubectl delete  -f - --ignore-not-found
-	@envsubst < k8s/apps/ingress/backend-http-domain.yaml | kubectl apply -f - --ignore-not-found
-	@envsubst < k8s/apps/ingress/frontend-http-domain.yaml | kubectl apply -f - --ignore-not-found
+	@envsubst < k8s/apps/ingress/backend-http-domain.yaml | kubectl delete -f - --ignore-not-found
+	@envsubst < k8s/apps/ingress/frontend-http-domain.yaml | kubectl delete -f - --ignore-not-found
 	@kubectl delete -f k8s/apps/surrealdb.yaml --ignore-not-found
 	@kubectl delete -f k8s/addons/gp3-storageclass.yaml --ignore-not-found
 	@kubectl delete -f k8s/namespaces.yaml --ignore-not-found
