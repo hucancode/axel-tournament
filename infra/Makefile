@@ -124,7 +124,7 @@ k8s-up: push-images
 	@echo "========================================="
 	@echo "Deployment complete!"
 	@echo "========================================="
-	@$(MAKE) -s print-urls
+	@$(MAKE) -s url
 
 get-backend-url:
 	@backend_host=$$(kubectl -n backend get ingress backend -o jsonpath='{.spec.rules[0].host}' 2>/dev/null)
@@ -136,7 +136,7 @@ get-frontend-url:
 	@test -n "$$frontend_host" || (echo "Frontend ingress not found" && exit 1)
 	@echo "https://$$frontend_host"
 
-print-urls:
+url:
 	@backend_url=$$($(MAKE) -s get-backend-url); \
 	frontend_url=$$($(MAKE) -s get-frontend-url); \
 	echo "Frontend: $$frontend_url"; \

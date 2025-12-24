@@ -11,7 +11,7 @@ make k8s-up
 ```
 After a successful deployment, you would be able to run
 ```bash
-make print-urls
+make url
 kubectl get nodes
 ```
 
