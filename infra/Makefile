@@ -127,17 +127,9 @@ k8s-up: push-images
 	@envsubst < k8s/apps/ingress/backend.yaml | kubectl apply -f -
 	@envsubst < k8s/apps/ingress/frontend.yaml | kubectl apply -f -
 	@echo "Waiting for TLS certificates to be issued..."
-	@echo "This may take 1-2 minutes..."
-	@for i in $$(seq 1 24); do \
-		backend_cert=$$(kubectl -n backend get certificate backend-tls-cert -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null); \
-		frontend_cert=$$(kubectl -n frontend get certificate frontend-tls-cert -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null); \
-		if [ "$$backend_cert" = "True" ] && [ "$$frontend_cert" = "True" ]; then \
-			echo "✓ TLS certificates issued successfully"; \
-			break; \
-		fi; \
-		echo "Waiting for certificates... ($$i/24)"; \
-		sleep 5; \
-	done
+	@kubectl -n backend wait --for=condition=Ready certificate/backend-tls-cert --timeout=300s
+	@kubectl -n frontend wait --for=condition=Ready certificate/frontend-tls-cert --timeout=300s
+	@echo "TLS certificates issued successfully"
 	@backend_url="https://api.$(DOMAIN_NAME)"; \
 	frontend_url="https://$(DOMAIN_NAME)"; \
 	export GOOGLE_REDIRECT_URI="$$backend_url/api/auth/google/callback"; \
