@@ -142,7 +142,7 @@ print-urls:
 	echo "Frontend: $$frontend_url"; \
 	echo "Backend API: $$backend_url"; \
 	echo ""; \
-	echo "⚠️  IMPORTANT: Update your Google OAuth configuration:"; \
+	echo "⚠️ Update your Google OAuth configuration if you haven't done so:"; \
 	echo "1. Go to https://console.cloud.google.com/apis/credentials"; \
 	echo "2. Edit your OAuth 2.0 Client ID"; \
 	echo "3. Add this redirect URI: $$backend_url/api/auth/google/callback"; \
@@ -150,7 +150,7 @@ print-urls:
 	if [ -n "$$domain" ]; then \
 		echo ""; \
 		echo "📋 DNS Configuration:"; \
-		echo "At your domain registrar, add these NS records:"; \
+		echo "At your domain registrar, add these NS records if you haven't done so:"; \
 		echo ""; \
 		terraform output -json route53_zone_name_servers 2>/dev/null | jq -r '.[] | "  - " + .' || true; \
 		echo ""; \
