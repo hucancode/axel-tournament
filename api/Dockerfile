@@ -1,27 +1,20 @@
-# Build stage
 FROM rust:1.92-slim AS builder
 
 WORKDIR /app
 
-# Install dependencies
 RUN apt-get update && \
     apt-get install -y pkg-config libssl-dev && \
     rm -rf /var/lib/apt/lists/*
 
-# Copy manifests
 COPY Cargo.toml Cargo.lock* ./
-
-# Copy source code
 COPY src ./src
 
-# Build for release
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/usr/local/cargo/git \
     --mount=type=cache,target=/app/target \
     cargo build --release && \
     cp /app/target/release/axel-tournament /app/axel-tournament
 
-# Runtime stage
 FROM debian:bookworm-slim
 
 WORKDIR /app

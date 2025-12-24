@@ -37,7 +37,7 @@ impl JudgeConfig {
         let db_pass = std::env::var("DATABASE_PASS").unwrap_or_else(|_| "root".to_string());
         let db_ns = std::env::var("DATABASE_NS").unwrap_or_else(|_| "axel".to_string());
         let db_name = std::env::var("DATABASE_DB").unwrap_or_else(|_| "axel".to_string());
-        let sandbox_image = std::env::var("JUDGE_SANDBOX_IMAGE").unwrap_or_else(|_| "axel-sandbox".to_string());
+        let sandbox_image = std::env::var("SANDBOX_IMAGE").unwrap_or_else(|_| "axel-sandbox".to_string());
         let workspace_root =
             std::env::var("JUDGE_WORKSPACE_DIR").unwrap_or_else(|_| "/workspace".to_string());
 

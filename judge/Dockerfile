@@ -2,25 +2,27 @@ FROM rust:1.92-slim AS builder
 
 WORKDIR /app
 
-# Install dependencies
-RUN apt-get update && \
-    apt-get install -y pkg-config libssl-dev && \
-    rm -rf /var/lib/apt/lists/*
-
 COPY Cargo.toml Cargo.lock* ./
 COPY src ./src
 
-RUN cargo build --release
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/usr/local/cargo/git \
+    --mount=type=cache,target=/app/target \
+    cargo build --release && \
+    cp /app/target/release/axel-judge /app/axel-judge
 
-# Runtime stage
 FROM debian:bookworm-slim
 
 WORKDIR /app
 
 RUN apt-get update && \
-    apt-get install -y ca-certificates libssl3 && \
+    apt-get install -y ca-certificates libssl3 docker.io && \
     rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /app/target/release/axel-judge /app/judge
+COPY --from=builder /app/axel-judge /app/judge
+COPY sandbox.tar /app/sandbox.tar
+COPY entrypoint.sh /app/entrypoint.sh
 
-CMD ["/app/judge"]
+RUN chmod +x /app/entrypoint.sh
+
+CMD ["/app/entrypoint.sh"]

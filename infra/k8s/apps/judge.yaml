@@ -49,7 +49,7 @@ spec:
               value: "axel"
             - name: DATABASE_DB
               value: "axel"
-            - name: JUDGE_SANDBOX_IMAGE
+            - name: SANDBOX_IMAGE
               value: "${SANDBOX_IMAGE}"
             - name: DOCKER_HOST
               value: "unix:///var/run/docker.sock"

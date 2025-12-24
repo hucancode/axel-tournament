@@ -15,7 +15,6 @@ DEFAULT_EMAIL_FROM := noreply@axel-tournament.com
 TF_ECR_WEB := $(shell terraform output -raw ecr_web_repository 2>/dev/null)
 TF_ECR_API := $(shell terraform output -raw ecr_api_repository 2>/dev/null)
 TF_ECR_JUDGE := $(shell terraform output -raw ecr_judge_repository 2>/dev/null)
-TF_ECR_SANDBOX := $(shell terraform output -raw ecr_sandbox_repository 2>/dev/null)
 TF_ECR_HEALER := $(shell terraform output -raw ecr_healer_repository 2>/dev/null)
 TF_SES_SMTP_HOST := $(shell terraform output -raw ses_smtp_host 2>/dev/null)
 TF_SES_SMTP_USERNAME := $(shell terraform output -raw ses_smtp_username 2>/dev/null)
@@ -29,7 +28,7 @@ TF_ROUTE53_ZONE_ID := $(shell terraform output -raw route53_zone_id 2>/dev/null)
 FRONTEND_IMAGE := $(TF_ECR_WEB):latest
 BACKEND_IMAGE := $(TF_ECR_API):latest
 JUDGE_IMAGE := $(TF_ECR_JUDGE):latest
-SANDBOX_IMAGE := $(TF_ECR_SANDBOX):latest
+SANDBOX_IMAGE := axel-sandbox
 HEALER_IMAGE := $(TF_ECR_HEALER):latest
 SMTP_HOST := $(TF_SES_SMTP_HOST)
 SMTP_USERNAME := $(TF_SES_SMTP_USERNAME)
@@ -80,7 +79,6 @@ k8s-up: push-images
 	@test -n "$(FRONTEND_IMAGE)" || (echo "FRONTEND_IMAGE is required" && exit 1)
 	@test -n "$(BACKEND_IMAGE)" || (echo "BACKEND_IMAGE is required" && exit 1)
 	@test -n "$(JUDGE_IMAGE)" || (echo "JUDGE_IMAGE is required" && exit 1)
-	@test -n "$(SANDBOX_IMAGE)" || (echo "SANDBOX_IMAGE is required" && exit 1)
 	@test -n "$(HEALER_IMAGE)" || (echo "HEALER_IMAGE is required" && exit 1)
 	@test -n "$(GOOGLE_CLIENT_ID)" || (echo "GOOGLE_CLIENT_ID is required in .env" && exit 1)
 	@test -n "$(GOOGLE_CLIENT_SECRET)" || (echo "GOOGLE_CLIENT_SECRET is required in .env" && exit 1)
@@ -104,9 +102,9 @@ k8s-up: push-images
 	@echo "DNS records created. Waiting 30s for propagation..."
 	@sleep 30
 	@echo "Deploying applications..."
-	@PUBLIC_API_URL="https://api.$(DOMAIN_NAME)"
-	@FRONTEND_URL="https://$(DOMAIN_NAME)"
-	@GOOGLE_REDIRECT_URI="$$PUBLIC_API_URL/api/auth/google/callback"
+	@export PUBLIC_API_URL="https://api.$(DOMAIN_NAME)"; \
+	export FRONTEND_URL="https://$(DOMAIN_NAME)"; \
+	export GOOGLE_REDIRECT_URI="https://api.$(DOMAIN_NAME)/api/auth/google/callback";
 	@envsubst < k8s/apps/backend.yaml | kubectl apply -f -
 	@envsubst < k8s/apps/judge.yaml | kubectl apply -f -
 	@envsubst < k8s/apps/healer.yaml | kubectl apply -f -
@@ -157,11 +155,10 @@ url:
 		echo "For your domain/subdomain $$domain"; \
 	fi
 
-push-images:
+push-images: sandbox
 	@test -n "$(TF_ECR_WEB)" || (echo "ECR_WEB_REPO not found. Run 'make aws-up' first." && exit 1)
 	@test -n "$(TF_ECR_API)" || (echo "ECR_API_REPO not found. Run 'make aws-up' first." && exit 1)
 	@test -n "$(TF_ECR_JUDGE)" || (echo "ECR_JUDGE_REPO not found. Run 'make aws-up' first." && exit 1)
-	@test -n "$(TF_ECR_SANDBOX)" || (echo "ECR_SANDBOX_REPO not found. Run 'make aws-up' first." && exit 1)
 	@test -n "$(TF_ECR_HEALER)" || (echo "ECR_HEALER_REPO not found. Run 'make aws-up' first." && exit 1)
 	@ECR_REGISTRY=$$(echo "$(TF_ECR_WEB)" | cut -d/ -f1); \
 	echo "Logging in to ECR $$ECR_REGISTRY..."; \
@@ -175,13 +172,16 @@ push-images:
 	echo "Building and pushing judge image..."; \
 	$(CONTAINER_RUNTIME) build -t $(JUDGE_IMAGE) ../judge; \
 	$(CONTAINER_RUNTIME) push $(JUDGE_IMAGE); \
-	echo "Building and pushing sandbox image..."; \
-	$(CONTAINER_RUNTIME) build -f ../judge/src/sandbox.Dockerfile -t $(SANDBOX_IMAGE) ../judge/src; \
-	$(CONTAINER_RUNTIME) push $(SANDBOX_IMAGE); \
 	echo "Building and pushing healer image..."; \
 	$(CONTAINER_RUNTIME) build -t $(HEALER_IMAGE) ../healer; \
 	$(CONTAINER_RUNTIME) push $(HEALER_IMAGE); \
 	echo "All images built and pushed successfully"
+
+sandbox:
+	@echo "Building sandbox image and creating tar..."
+	@cd ../judge && $(CONTAINER_RUNTIME) build -f src/sandbox.Dockerfile -t axel-sandbox src/
+	@$(CONTAINER_RUNTIME) save axel-sandbox -o ../judge/sandbox.tar
+	@echo "Sandbox tar created at ../judge/sandbox.tar"
 
 k8s-down:
 	@export GOOGLE_CLIENT_ID="$${GOOGLE_CLIENT_ID:-placeholder}"; \

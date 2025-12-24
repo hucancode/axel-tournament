@@ -20,5 +20,5 @@ cargo test
 
 ## Environment variables
 - `DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASS`, `DATABASE_NS`, `DATABASE_DB`: SurrealDB connection
-- `JUDGE_SANDBOX_IMAGE`: sandbox image name/tag
+- `SANDBOX_IMAGE`: sandbox image name/tag
 - `JUDGE_WORKSPACE_DIR`: workspace root for match runs
