@@ -43,19 +43,19 @@ variable "cluster_private_access_enabled" {
 variable "app_instance_type" {
   type        = string
   description = "Instance type for the shared app node group."
-  default     = "t3.medium"
+  default     = "t3.small"
 }
 
 variable "judge_instance_type" {
   type        = string
   description = "Instance type for the judge node group."
-  default     = "t3.medium"
+  default     = "t3.small"
 }
 
 variable "db_instance_type" {
   type        = string
   description = "Instance type for the database node group."
-  default     = "t3.medium"
+  default     = "t3.small"
 }
 
 variable "app_desired_size" {
@@ -73,13 +73,13 @@ variable "app_min_size" {
 variable "app_max_size" {
   type        = number
   description = "Maximum size for the app node group."
-  default     = 3
+  default     = 2
 }
 
 variable "judge_desired_size" {
   type        = number
   description = "Desired size for the judge node group."
-  default     = 2
+  default     = 1
 }
 
 variable "judge_min_size" {
@@ -91,7 +91,7 @@ variable "judge_min_size" {
 variable "judge_max_size" {
   type        = number
   description = "Maximum size for the judge node group."
-  default     = 4
+  default     = 8
 }
 
 variable "db_desired_size" {
