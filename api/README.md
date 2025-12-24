@@ -1,4 +1,4 @@
-# Axel Tournament API
+# Axel Tournament
 
 Backend API for the tournament platform.
 

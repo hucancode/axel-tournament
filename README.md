@@ -5,32 +5,35 @@ A tournament system where users submit code to play a multiplayer game to compet
 Tech stack:
 - SurrealDB
 - Rust, Axum, Docker
-- TypeScript, Svelte
+- TypeScript, Svelte, Storybook
 - Terraform, Kubernetes, AWS
 
 ## Services
 
+*Use the following script to quickly spin up test DB on your local machine*
+- `make test-db-up`: Start a local in-memory SurrealDB container for testing
+- `make test-db-down`: Stop the local test database container
+
+*You also need to run `make sandbox-image` to build sandbox image on your local machine before running `judge` server*
+
 ### api
 Backend service that powers the platform.
 - Authentication with JWT + Google OAuth, password reset, and role-based access
-- User profiles and location metadata
 - Game, tournament, match, and leaderboard management
-- Code submission handling for multiple languages
-- Admin endpoints for moderation and scheduling
+- Code submission handling
+- Admin endpoints for moderation
 
 ### web
-SvelteKit frontend for the player and admin experience.
+Web frontend for the players
 - Sign in, registration, and profile management
 - Tournament browsing, registration, and submissions
-- Leaderboards and match visibility
-- Admin dashboard for users, games, and tournaments
+- Leaderboards
+- Admin dashboard
 
 ### healer
-Background service that keeps matches healthy in the database.
-- Watches pending/running matches via LIVE queries
+Background service to trigger match runner.
 - Refreshes stale pending matches
 - Re-queues stale running matches back to pending
-- Configurable intervals and staleness thresholds via environment variables
 
 ### judge
 Match runner and results reporter.
@@ -38,21 +41,3 @@ Match runner and results reporter.
 - Builds a workspace with game server code + player submissions
 - Executes matches inside a sandboxed Docker container (CPU/memory/network limits)
 - Parses results, reports scores/errors, and updates tournament totals
-
-## Makefile
-
-The repository includes a Makefile with helper targets.
-
-### Targets
-- `make test-db-up`: Start a local in-memory SurrealDB container for testing
-- `make test-db-down`: Stop the local test database container
-
-### Configuration
-Override defaults via environment variables when needed:
-- `CONTAINER_RUNTIME` (default: `docker`)
-- `DATABASE_PORT` (default: `8000`)
-
-Example:
-```bash
-CONTAINER_RUNTIME=podman DATABASE_PORT=9000 make test-db-up
-```

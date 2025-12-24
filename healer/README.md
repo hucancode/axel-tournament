@@ -1,12 +1,11 @@
 # Axel Tournament Healer
 
-Service that keeps match records healthy.
+Background service to trigger match runner and recover from errors.
 
 ## Features
 - Monitors pending and running matches
 - Refreshes stale pending matches
 - Re-queues stale running matches for retry
-- Runs continuously with configurable intervals
 
 ## Get started
 ```bash
