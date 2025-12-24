@@ -77,11 +77,16 @@ output "ses_smtp_password" {
 }
 
 output "route53_zone_id" {
-  value = try(aws_route53_zone.ses_subdomain[0].zone_id, "")
+  value = aws_route53_zone.main.zone_id
 }
 
-output "load_balancer_controller_role_arn" {
-  value = aws_iam_role.load_balancer_controller.arn
+output "route53_zone_name_servers" {
+  value = aws_route53_zone.main.name_servers
+}
+
+output "domain_name" {
+  description = "Domain name configured for the application"
+  value       = var.route53_zone_name
 }
 
 output "aws_region" {
@@ -90,18 +95,4 @@ output "aws_region" {
 
 output "vpc_id" {
   value = module.vpc.vpc_id
-}
-
-output "route53_zone_name_servers" {
-  value = try(aws_route53_zone.ses_subdomain[0].name_servers, [])
-}
-
-output "acm_certificate_arn" {
-  description = "ARN of the ACM certificate for the domain (empty if no domain configured)"
-  value       = try(aws_acm_certificate.main[0].arn, "")
-}
-
-output "domain_name" {
-  description = "Domain name configured for the application (empty if using ALB hostname)"
-  value       = var.route53_zone_name
 }

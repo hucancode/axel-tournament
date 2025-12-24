@@ -7,8 +7,7 @@ locals {
   effective_ses_domain = trimspace(var.ses_domain) != "" ? var.ses_domain : var.route53_zone_name
   ses_domain_enabled   = trimspace(local.effective_ses_domain) != ""
   ses_email_enabled    = trimspace(var.ses_email_identity) != ""
-  route53_zone_id      = var.create_route53_zone ? aws_route53_zone.ses_subdomain[0].zone_id : var.route53_zone_id
-  route53_enabled      = var.create_route53_zone || trimspace(var.route53_zone_id) != ""
+  route53_zone_id      = aws_route53_zone.main.zone_id
   ses_identity_arns = compact([
     local.ses_domain_enabled
     ? "arn:aws:ses:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:identity/${local.effective_ses_domain}"
@@ -45,7 +44,7 @@ resource "aws_ses_email_identity" "this" {
 }
 
 resource "aws_route53_record" "ses_domain_verification" {
-  count = local.route53_enabled && local.ses_domain_enabled ? 1 : 0
+  count = local.ses_domain_enabled ? 1 : 0
 
   zone_id = local.route53_zone_id
   name    = "_amazonses.${local.effective_ses_domain}"
@@ -55,7 +54,7 @@ resource "aws_route53_record" "ses_domain_verification" {
 }
 
 resource "aws_route53_record" "ses_dkim" {
-  count = local.route53_enabled && local.ses_domain_enabled ? 3 : 0
+  count = local.ses_domain_enabled ? 3 : 0
 
   zone_id = local.route53_zone_id
   name    = "${aws_ses_domain_dkim.this[0].dkim_tokens[count.index]}._domainkey.${local.effective_ses_domain}"
@@ -65,7 +64,7 @@ resource "aws_route53_record" "ses_dkim" {
 }
 
 resource "aws_route53_record" "ses_mail_from_mx" {
-  count = local.route53_enabled && local.ses_mail_from_domain != "" ? 1 : 0
+  count = local.ses_mail_from_domain != "" ? 1 : 0
 
   zone_id = local.route53_zone_id
   name    = local.ses_mail_from_domain
@@ -75,7 +74,7 @@ resource "aws_route53_record" "ses_mail_from_mx" {
 }
 
 resource "aws_route53_record" "ses_mail_from_txt" {
-  count = local.route53_enabled && local.ses_mail_from_domain != "" ? 1 : 0
+  count = local.ses_mail_from_domain != "" ? 1 : 0
 
   zone_id = local.route53_zone_id
   name    = local.ses_mail_from_domain

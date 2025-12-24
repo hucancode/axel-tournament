@@ -1,0 +1,34 @@
+# Backend Ingress - HTTPS with automatic TLS certificates
+# Requires: A domain name pointing to the NGINX Ingress LoadBalancer
+# Access: https://api.${DOMAIN_NAME}
+#
+# Deploy with:
+#   export DOMAIN_NAME="yourdomain.com"
+#   envsubst < backend.yaml | kubectl apply -f -
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: backend
+  namespace: backend
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - api.${DOMAIN_NAME}
+      secretName: backend-tls-cert
+  rules:
+    - host: api.${DOMAIN_NAME}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 8080

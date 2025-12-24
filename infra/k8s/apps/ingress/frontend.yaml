@@ -1,0 +1,34 @@
+# Frontend Ingress - HTTPS with automatic TLS certificates
+# Requires: A domain name pointing to the NGINX Ingress LoadBalancer
+# Access: https://${DOMAIN_NAME}
+#
+# Deploy with:
+#   export DOMAIN_NAME="yourdomain.com"
+#   envsubst < frontend.yaml | kubectl apply -f -
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: frontend
+  namespace: frontend
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - ${DOMAIN_NAME}
+      secretName: frontend-tls-cert
+  rules:
+    - host: ${DOMAIN_NAME}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
