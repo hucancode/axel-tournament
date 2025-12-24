@@ -4,8 +4,7 @@
     import { goto } from "$app/navigation";
     import { onMount } from "svelte";
     import { env } from "$env/dynamic/public";
-    let email = $state("");
-    let password = $state("");
+    import { AuthCard } from "$lib";
     let error = $state("");
     let loading = $state(false);
     onMount(() => {
@@ -13,8 +12,7 @@
             goto("/");
         }
     });
-    async function handleSubmit(e: SubmitEvent) {
-        e.preventDefault();
+    async function handleLogin({ email, password }: { email: string; password: string }) {
         error = "";
         loading = true;
         try {
@@ -34,74 +32,36 @@
     }
 </script>
 
-<div class="page">
-    <div class="container" style="max-width: 400px;">
-        <div class="card">
-            <h1 class="page-title text-center">Login</h1>
-            {#if error}
-                <div
-                    class="card"
-                    style="background: #fee2e2; margin-bottom: 1rem;"
-                >
-                    <p class="text-red-600">{error}</p>
-                </div>
-            {/if}
-            <form onsubmit={handleSubmit}>
-                <div class="form-group">
-                    <label for="email">Email</label>
-                    <input
-                        type="email"
-                        id="email"
-                        class="input"
-                        bind:value={email}
-                        required
-                        disabled={loading}
-                    />
-                </div>
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input
-                        type="password"
-                        id="password"
-                        class="input"
-                        bind:value={password}
-                        required
-                        disabled={loading}
-                    />
-                </div>
-                <button
-                    type="submit"
-                    class="btn btn-primary"
-                    style="width: 100%;"
-                    disabled={loading}
-                >
-                    {loading ? "Logging in..." : "Login"}
-                </button>
-            </form>
-            <div
-                style="margin: 1.5rem 0; text-align: center; color: var(--gray-500);"
-            >
-                or
-            </div>
-            <button
-                onclick={handleGoogleLogin}
-                class="btn btn-secondary"
-                style="width: 100%;"
-            >
-                Continue with Google
-            </button>
-            <div style="margin-top: 1.5rem; text-align: center;">
-                <a href="/register" style="color: var(--primary-600);"
-                    >Don't have an account? Sign up</a
-                >
-            </div>
-            <div style="margin-top: 0.5rem; text-align: center;">
-                <a
-                    href="/reset-password"
-                    style="color: var(--primary-600); font-size: 0.875rem;"
-                    >Forgot password?</a
-                >
-            </div>
-        </div>
+<AuthCard 
+    title="Login" 
+    {error} 
+    {loading} 
+    showEmailPassword={true}
+    submitText="Login"
+    onsubmit={handleLogin}
+>
+    <div
+        style="margin: 1.5rem 0; text-align: center; color: var(--gray-500);"
+    >
+        or
     </div>
-</div>
+    <button
+        onclick={handleGoogleLogin}
+        class="btn btn-secondary"
+        style="width: 100%;"
+    >
+        Continue with Google
+    </button>
+    <div style="margin-top: 1.5rem; text-align: center;">
+        <a href="/register" style="color: var(--primary-600);"
+            >Don't have an account? Sign up</a
+        >
+    </div>
+    <div style="margin-top: 0.5rem; text-align: center;">
+        <a
+            href="/reset-password"
+            style="color: var(--primary-600); font-size: 0.875rem;"
+            >Forgot password?</a
+        >
+    </div>
+</AuthCard>
