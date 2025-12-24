@@ -2,6 +2,7 @@
     import { tournamentService } from "$lib/services/tournaments";
     import { onMount } from "svelte";
     import type { Tournament } from "$lib/types";
+    import StatusBadge from "$lib/components/StatusBadge.svelte";
     let tournaments = $state<Tournament[]>([]);
     let loading = $state(true);
     let error = $state("");
@@ -37,9 +38,6 @@
     }
     async function handleStatusChange() {
         await loadTournaments();
-    }
-    function getStatusBadgeClass(status: string): string {
-        return `badge badge-${status}`;
     }
     function formatDate(dateStr?: string): string {
         if (!dateStr) return "Not set";
@@ -99,11 +97,10 @@
                             <h2 class="text-xl font-semibold">
                                 {tournament.name}
                             </h2>
-                            <span
-                                class={getStatusBadgeClass(tournament.status)}
-                            >
-                                {tournament.status}
-                            </span>
+                            <StatusBadge
+                                status={tournament.status}
+                                label={tournament.status}
+                            />
                         </div>
                         <p class="text-gray-700 mb-4">
                             {tournament.description}
