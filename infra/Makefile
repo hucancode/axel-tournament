@@ -92,37 +92,25 @@ k8s-up: push-images
 	@kubectl apply -f k8s/addons/gp3-storageclass.yaml
 	@kubectl apply -f k8s/apps/surrealdb.yaml
 	@echo "Getting NGINX LoadBalancer address..."
-	@nginx_lb=$$(kubectl -n ingress-nginx get svc ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null); \
-	if [ -z "$$nginx_lb" ]; then \
-		echo "Error: NGINX LoadBalancer not found. Make sure 'make aws-up' completed successfully."; \
-		exit 1; \
-	fi; \
+	@nginx_lb=$$(kubectl -n ingress-nginx get svc ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null)
+	@test -n "$$nginx_lb" || (echo "Error: NGINX LoadBalancer not found. Make sure 'make aws-up' completed successfully." && exit 1)
 	echo "NGINX LoadBalancer: $$nginx_lb"
-	@nginx_lb=$$(kubectl -n ingress-nginx get svc ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null); \
-	if [ -n "$(ROUTE53_ZONE_ID)" ]; then \
-		echo "Creating DNS records for $(DOMAIN_NAME)..."; \
-		nlb_zone_id=$$(aws elbv2 describe-load-balancers --query "LoadBalancers[?DNSName=='$$nginx_lb'].CanonicalHostedZoneId" --output text); \
-		aws route53 change-resource-record-sets \
-			--hosted-zone-id $(ROUTE53_ZONE_ID) \
-			--change-batch '{"Changes":[{"Action":"UPSERT","ResourceRecordSet":{"Name":"api.$(DOMAIN_NAME)","Type":"CNAME","TTL":300,"ResourceRecords":[{"Value":"'$$nginx_lb'"}]}},{"Action":"UPSERT","ResourceRecordSet":{"Name":"$(DOMAIN_NAME)","Type":"A","AliasTarget":{"HostedZoneId":"'$$nlb_zone_id'","DNSName":"'$$nginx_lb'","EvaluateTargetHealth":false}}}]}'; \
-		echo "DNS records created. Waiting 30s for propagation..."; \
-		sleep 30; \
-	else \
-		echo ""; \
-		echo "⚠️  IMPORTANT: Point your DNS to the NGINX LoadBalancer:"; \
-		echo "  api.$(DOMAIN_NAME) → $$nginx_lb (CNAME)"; \
-		echo "  $(DOMAIN_NAME) → $$nginx_lb (A/ALIAS)"; \
-		echo ""; \
-		read -p "Press Enter once DNS is configured..."; \
-	fi
-	@echo "Deploying applications (initial pass with placeholder URLs)..."
-	@export GOOGLE_REDIRECT_URI="http://placeholder/api/auth/google/callback"; \
-	export PUBLIC_API_URL="http://placeholder"; \
-	export FRONTEND_URL="http://placeholder"; \
-	envsubst < k8s/apps/backend.yaml | kubectl apply -f -; \
-	envsubst < k8s/apps/judge.yaml | kubectl apply -f -; \
-	envsubst < k8s/apps/healer.yaml | kubectl apply -f -; \
-	envsubst < k8s/apps/frontend.yaml | kubectl apply -f -
+	@test -n "$(ROUTE53_ZONE_ID)" || (echo "ROUTE53_ZONE_ID is not set. Make sure 'make aws-up' completed successfully." && exit 1)
+	@echo "Creating DNS records for $(DOMAIN_NAME)..."
+	@nlb_zone_id=$$(aws elbv2 describe-load-balancers --query "LoadBalancers[?DNSName=='$$nginx_lb'].CanonicalHostedZoneId" --output text)
+	aws route53 change-resource-record-sets \
+		--hosted-zone-id $(ROUTE53_ZONE_ID) \
+		--change-batch '{"Changes":[{"Action":"UPSERT","ResourceRecordSet":{"Name":"api.$(DOMAIN_NAME)","Type":"CNAME","TTL":300,"ResourceRecords":[{"Value":"'$$nginx_lb'"}]}},{"Action":"UPSERT","ResourceRecordSet":{"Name":"$(DOMAIN_NAME)","Type":"A","AliasTarget":{"HostedZoneId":"'$$nlb_zone_id'","DNSName":"'$$nginx_lb'","EvaluateTargetHealth":false}}}]}'
+	@echo "DNS records created. Waiting 30s for propagation..."
+	@sleep 30
+	@echo "Deploying applications..."
+	@PUBLIC_API_URL="https://api.$(DOMAIN_NAME)"
+	@FRONTEND_URL="https://$(DOMAIN_NAME)"
+	@GOOGLE_REDIRECT_URI="$$PUBLIC_API_URL/api/auth/google/callback"
+	@envsubst < k8s/apps/backend.yaml | kubectl apply -f -
+	@envsubst < k8s/apps/judge.yaml | kubectl apply -f -
+	@envsubst < k8s/apps/healer.yaml | kubectl apply -f -
+	@envsubst < k8s/apps/frontend.yaml | kubectl apply -f -
 	@echo "Deploying ingress resources..."
 	@envsubst < k8s/apps/ingress/backend.yaml | kubectl apply -f -
 	@envsubst < k8s/apps/ingress/frontend.yaml | kubectl apply -f -
@@ -130,22 +118,8 @@ k8s-up: push-images
 	@kubectl -n backend wait --for=condition=Ready certificate/backend-tls-cert --timeout=300s
 	@kubectl -n frontend wait --for=condition=Ready certificate/frontend-tls-cert --timeout=300s
 	@echo "TLS certificates issued successfully"
-	@backend_url="https://api.$(DOMAIN_NAME)"; \
-	frontend_url="https://$(DOMAIN_NAME)"; \
-	export GOOGLE_REDIRECT_URI="$$backend_url/api/auth/google/callback"; \
-	export PUBLIC_API_URL="$$backend_url"; \
-	export FRONTEND_URL="$$frontend_url"; \
-	echo "Final URLs:"; \
-	echo "  Frontend: $$frontend_url"; \
-	echo "  Backend: $$backend_url"; \
-	echo "  OAuth Redirect: $$GOOGLE_REDIRECT_URI"; \
-	echo "Updating deployments with final URLs..."; \
-	envsubst < k8s/apps/backend.yaml | kubectl apply -f -; \
-	envsubst < k8s/apps/judge.yaml | kubectl apply -f -; \
-	envsubst < k8s/apps/healer.yaml | kubectl apply -f -; \
-	envsubst < k8s/apps/frontend.yaml | kubectl apply -f -
 	@echo "Waiting for backend pods to be ready..."
-	@kubectl wait --namespace backend --for=condition=ready pod --selector=app=backend --timeout=120s || true
+	@kubectl wait --namespace backend --for=condition=ready pod --selector=app=backend --timeout=120s
 	@echo ""
 	@echo "========================================="
 	@echo "Deployment complete!"
@@ -153,29 +127,20 @@ k8s-up: push-images
 	@$(MAKE) -s print-urls
 
 get-backend-url:
-	@backend_host=$$(kubectl -n backend get ingress backend -o jsonpath='{.spec.rules[0].host}' 2>/dev/null); \
-	if [ -n "$$backend_host" ]; then \
-		echo "https://$$backend_host"; \
-	else \
-		echo "Backend ingress not found"; \
-		exit 1; \
-	fi
+	@backend_host=$$(kubectl -n backend get ingress backend -o jsonpath='{.spec.rules[0].host}' 2>/dev/null)
+	@test -n "$$backend_host" || (echo "Backend ingress not found" && exit 1)
+	@echo "https://$$backend_host"
 
 get-frontend-url:
-	@frontend_host=$$(kubectl -n frontend get ingress frontend -o jsonpath='{.spec.rules[0].host}' 2>/dev/null); \
-	if [ -n "$$frontend_host" ]; then \
-		echo "https://$$frontend_host"; \
-	else \
-		echo "Frontend ingress not found"; \
-		exit 1; \
-	fi
+	@frontend_host=$$(kubectl -n frontend get ingress frontend -o jsonpath='{.spec.rules[0].host}' 2>/dev/null)
+	@test -n "$$frontend_host" || (echo "Frontend ingress not found" && exit 1)
+	@echo "https://$$frontend_host"
 
 print-urls:
 	@backend_url=$$($(MAKE) -s get-backend-url); \
 	frontend_url=$$($(MAKE) -s get-frontend-url); \
 	echo "Frontend: $$frontend_url"; \
 	echo "Backend API: $$backend_url"; \
-	echo "Google OAuth Redirect URI: $$backend_url/api/auth/google/callback"; \
 	echo ""; \
 	echo "⚠️  IMPORTANT: Update your Google OAuth configuration:"; \
 	echo "1. Go to https://console.cloud.google.com/apis/credentials"; \
@@ -185,11 +150,11 @@ print-urls:
 	if [ -n "$$domain" ]; then \
 		echo ""; \
 		echo "📋 DNS Configuration:"; \
-		echo "At your domain registrar for the parent domain, add these NS records:"; \
+		echo "At your domain registrar, add these NS records:"; \
 		echo ""; \
 		terraform output -json route53_zone_name_servers 2>/dev/null | jq -r '.[] | "  - " + .' || true; \
 		echo ""; \
-		echo "For subdomain 'axel' under your parent domain"; \
+		echo "For your domain/subdomain $$domain"; \
 	fi
 
 push-images:
