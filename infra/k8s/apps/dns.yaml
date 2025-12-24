@@ -1,3 +1,0 @@
-# This file will be populated by Makefile with DNS records
-# pointing api.axel.lamsaoquenem.day and axel.lamsaoquenem.day to the ALB
-# These are created via Terraform outputs and kubectl after ALB is provisioned

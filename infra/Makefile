@@ -71,14 +71,10 @@ aws-up:
 	@echo "========================================="
 	@echo "Infrastructure ready!"
 	@echo "========================================="
-	@echo "NGINX LoadBalancer address:"
-	@kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
 	@echo ""
-	@echo ""
-	@echo "Next steps:"
-	@echo "1. Point your domain DNS to the LoadBalancer address above"
-	@echo "2. Set LETSENCRYPT_EMAIL in your .env file"
-	@echo "3. Run 'make k8s-up' to deploy applications"
+	@echo "Next:"
+	@echo "1. Set LETSENCRYPT_EMAIL, DOMAIN and other required values in your .env file"
+	@echo "2. Run 'make k8s-up' to deploy applications"
 
 k8s-up: push-images
 	@test -n "$(FRONTEND_IMAGE)" || (echo "FRONTEND_IMAGE is required" && exit 1)
@@ -163,8 +159,6 @@ k8s-up: push-images
 	@echo "Deployment complete!"
 	@echo "========================================="
 	@$(MAKE) -s print-urls
-	@echo ""
-	@echo "========================================="
 
 get-backend-url:
 	@backend_host=$$(kubectl -n backend get ingress backend -o jsonpath='{.spec.rules[0].host}' 2>/dev/null); \
