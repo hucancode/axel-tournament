@@ -70,6 +70,14 @@ pub fn create_router(state: AppState) -> Router {
         .route("/api/submissions", post(handlers::create_submission))
         .route("/api/submissions", get(handlers::list_submissions))
         .route("/api/submissions/{id}", get(handlers::get_submission))
+        .route("/api/rooms", get(handlers::list_rooms))
+        .route("/api/rooms", post(handlers::create_room))
+        .route("/api/rooms/{id}", get(handlers::get_room))
+        .route("/api/rooms/{id}/join", post(handlers::join_room))
+        .route("/api/rooms/{id}/leave", delete(handlers::leave_room))
+        .route("/api/rooms/{id}/start", post(handlers::start_game))
+        .route("/api/rooms/{id}/messages", get(handlers::get_room_messages))
+        .route("/api/rooms/{id}/messages", post(handlers::create_room_message))
         .route_layer(axum_middleware::from_fn_with_state(
             state.clone(),
             middleware::auth_middleware,

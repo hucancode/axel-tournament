@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: interactive-judge
+  namespace: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: interactive-judge
+  template:
+    metadata:
+      labels:
+        app: interactive-judge
+    spec:
+      containers:
+        - name: interactive-judge
+          image: ${INTERACTIVE_JUDGE_IMAGE}
+          ports:
+            - containerPort: 8081
+          env:
+            - name: RUST_LOG
+              value: "info"
+            - name: DATABASE_URL
+              value: "ws://surrealdb.db.svc.cluster.local:8000"
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: interactive-judge
+  namespace: backend
+spec:
+  type: ClusterIP
+  ports:
+    - name: ws
+      port: 8081
+      targetPort: 8081
+  selector:
+    app: interactive-judge
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: interactive-judge
+  namespace: backend
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: interactive-judge
+  minReplicas: 1
+  maxReplicas: 3
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70

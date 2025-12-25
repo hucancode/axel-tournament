@@ -7,11 +7,13 @@ pub struct Game {
     pub id: Option<Thing>,
     pub name: String,
     pub description: String,
+    pub game_type: GameType,
     pub supported_languages: Vec<ProgrammingLanguage>,
     pub is_active: bool,
     pub owner_id: Thing, // reference to user who created the game
     pub game_code: String, // game orchestration code content
     pub game_language: ProgrammingLanguage, // language of game code
+    pub frontend_code: Option<String>, // HTML/CSS/JS for interactive games
     pub rounds_per_match: u32, // match policy
     pub repetitions: u32,
     pub timeout_ms: u32,
@@ -20,6 +22,19 @@ pub struct Game {
     pub memory_limit_mb: u64, // container memory cap for player processes
     pub created_at: Datetime,
     pub updated_at: Datetime,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum GameType {
+    Automated,
+    Interactive,
+}
+
+impl Default for GameType {
+    fn default() -> Self {
+        GameType::Automated
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -54,10 +69,13 @@ pub struct CreateGameRequest {
     pub name: String,
     #[validate(length(min = 1, max = 1000, message = "Description must be 1-1000 characters"))]
     pub description: String,
+    pub game_type: GameType,
     pub supported_languages: Vec<ProgrammingLanguage>,
     #[validate(length(min = 1, max = 1048576, message = "Game code must be 1 byte to 1MB"))]
     pub game_code: String,
     pub game_language: ProgrammingLanguage,
+    #[validate(length(max = 2097152, message = "Frontend code must be less than 2MB"))]
+    pub frontend_code: Option<String>,
     #[validate(range(min = 1, max = 100, message = "Rounds per match must be 1-100"))]
     pub rounds_per_match: u32,
     #[validate(range(min = 1, max = 100, message = "Repetitions must be 1-100"))]
@@ -78,12 +96,16 @@ pub struct UpdateGameRequest {
     pub name: Option<String>,
     #[validate(length(min = 1, max = 1000, message = "Description must be 1-1000 characters"))]
     pub description: Option<String>,
+    pub game_type: Option<GameType>,
     pub supported_languages: Option<Vec<ProgrammingLanguage>>,
     pub is_active: Option<bool>,
     #[serde(default)]
     #[validate(length(min = 1, max = 1048576, message = "Game code must be 1 byte to 1MB"))]
     pub game_code: Option<String>,
     pub game_language: Option<ProgrammingLanguage>,
+    #[serde(default)]
+    #[validate(length(max = 2097152, message = "Frontend code must be less than 2MB"))]
+    pub frontend_code: Option<String>,
     #[validate(range(min = 1, max = 100, message = "Rounds per match must be 1-100"))]
     pub rounds_per_match: Option<u32>,
     #[validate(range(min = 1, max = 100, message = "Repetitions must be 1-100"))]
@@ -105,11 +127,13 @@ pub struct GameResponse {
     pub id: String,
     pub name: String,
     pub description: String,
+    pub game_type: GameType,
     pub supported_languages: Vec<ProgrammingLanguage>,
     pub is_active: bool,
     pub owner_id: String,
     pub game_code: String,
     pub game_language: ProgrammingLanguage,
+    pub frontend_code: Option<String>,
     pub rounds_per_match: u32,
     pub repetitions: u32,
     pub timeout_ms: u32,
@@ -126,11 +150,13 @@ impl From<Game> for GameResponse {
             id: game.id.map(|t| t.to_string()).unwrap_or_default(),
             name: game.name,
             description: game.description,
+            game_type: game.game_type,
             supported_languages: game.supported_languages,
             is_active: game.is_active,
             owner_id: game.owner_id.to_string(),
             game_code: game.game_code,
             game_language: game.game_language,
+            frontend_code: game.frontend_code,
             rounds_per_match: game.rounds_per_match,
             repetitions: game.repetitions,
             timeout_ms: game.timeout_ms,

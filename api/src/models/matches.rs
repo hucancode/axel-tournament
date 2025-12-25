@@ -5,11 +5,12 @@ use validator::Validate;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Match {
     pub id: Option<Thing>,
-    pub tournament_id: Thing,
+    pub tournament_id: Option<Thing>, // Optional for standalone interactive matches
     pub game_id: Thing,
     pub status: MatchStatus,
     pub participants: Vec<MatchParticipant>,
     pub metadata: Option<serde_json::Value>, // For game-specific replay data or logs
+    pub room_id: Option<Thing>, // For interactive matches
     pub created_at: Datetime,
     pub updated_at: Datetime,
     pub started_at: Option<Datetime>,
@@ -29,7 +30,8 @@ pub enum MatchStatus {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MatchParticipant {
-    pub submission_id: Thing,
+    pub user_id: Option<Thing>, // For interactive matches
+    pub submission_id: Option<Thing>, // For automated matches
     pub score: Option<f64>,
     pub metadata: Option<serde_json::Value>, // Player specific stats
 }

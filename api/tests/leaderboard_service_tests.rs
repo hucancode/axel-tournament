@@ -2,7 +2,7 @@ mod common;
 
 use axel_tournament::{
     db,
-    models::ProgrammingLanguage,
+    models::{ProgrammingLanguage, GameType},
     services::{auth::AuthService, game, leaderboard, tournament, user},
 };
 
@@ -34,10 +34,12 @@ async fn test_leaderboard_ordering_and_limit() {
         &db,
         common::unique_name("Leaderboard Game "),
         "Desc".to_string(),
+        GameType::Automated,
         vec![ProgrammingLanguage::Rust],
         default_owner_id(),
         DEFAULT_GAME_CODE.to_string(),
         ProgrammingLanguage::Rust,
+        None,
         DEFAULT_ROUNDS_PER_MATCH,
         DEFAULT_REPETITIONS,
         DEFAULT_TIMEOUT_MS,

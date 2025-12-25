@@ -55,9 +55,11 @@ pub fn game_payload(name: String, description: &str) -> Value {
     json!({
         "name": name,
         "description": description,
+        "game_type": "automated",
         "supported_languages": ["rust"],
         "game_code": "fn main() {}",
         "game_language": "rust",
+        "frontend_code": null,
         "rounds_per_match": 3,
         "repetitions": 1,
         "timeout_ms": 5000,

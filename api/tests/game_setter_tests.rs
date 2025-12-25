@@ -1,6 +1,6 @@
 mod common;
 
-use axel_tournament::models::{CreateGameRequest, CreateGameTemplateRequest, ProgrammingLanguage};
+use axel_tournament::models::{CreateGameRequest, CreateGameTemplateRequest, ProgrammingLanguage, GameType};
 use axum::http::{Method, StatusCode};
 use common::{extract_thing_id, game_setter_token, json_request, setup_app, unique_name};
 use serde_json::json;
@@ -17,9 +17,11 @@ fn build_game_request(
     CreateGameRequest {
         name,
         description: description.to_string(),
+        game_type: GameType::Automated,
         supported_languages,
         game_code: "fn main() {}".to_string(),
         game_language,
+        frontend_code: None,
         rounds_per_match: 3,
         repetitions: 1,
         timeout_ms: 5000,

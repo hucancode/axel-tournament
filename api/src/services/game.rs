@@ -1,7 +1,7 @@
 use crate::{
     db::Database,
     error::{ApiError, ApiResult},
-    models::{Game, ProgrammingLanguage},
+    models::{Game, ProgrammingLanguage, GameType},
 };
 use surrealdb::sql::{Datetime, Thing};
 
@@ -9,10 +9,12 @@ pub async fn create_game(
     db: &Database,
     name: String,
     description: String,
+    game_type: GameType,
     supported_languages: Vec<ProgrammingLanguage>,
     owner_id: String,
     game_code: String,
     game_language: ProgrammingLanguage,
+    frontend_code: Option<String>,
     rounds_per_match: u32,
     repetitions: u32,
     timeout_ms: u32,
@@ -28,11 +30,13 @@ pub async fn create_game(
         id: None,
         name,
         description,
+        game_type,
         supported_languages,
         is_active: true,
         owner_id: owner_thing,
         game_code,
         game_language,
+        frontend_code,
         rounds_per_match,
         repetitions,
         timeout_ms,

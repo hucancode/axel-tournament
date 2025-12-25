@@ -40,7 +40,8 @@ pub async fn create_match(
             )));
         }
         participants.push(MatchParticipant {
-            submission_id: submission.id.unwrap(),
+            user_id: None,
+            submission_id: Some(submission.id.unwrap()),
             score: None,
             metadata: None,
         });
@@ -49,11 +50,12 @@ pub async fn create_match(
     // 3. Create Match
     let new_match = Match {
         id: None,
-        tournament_id,
+        tournament_id: Some(tournament_id),
         game_id: game.id.unwrap(),
         status: MatchStatus::Pending,
         participants,
         metadata: None,
+        room_id: None,
         created_at: Datetime::default(),
         updated_at: Datetime::default(),
         started_at: None,
@@ -146,7 +148,7 @@ pub async fn list_matches(
         matches.retain(|m| {
             m.participants
                 .iter()
-                .any(|p| submission_ids.contains(&p.submission_id))
+                .any(|p| p.submission_id.as_ref().map_or(false, |id| submission_ids.contains(id)))
         });
 
         if offset as usize >= matches.len() {

@@ -33,6 +33,7 @@ async fn complete_tournament_flow_with_two_players() {
             "supported_languages": ["rust", "go", "c"],
             "game_code": RPS_SERVER_CODE,
             "game_language": "rust",
+            "game_type": "automated",
             "rounds_per_match": 100,
             "repetitions": 1,
             "timeout_ms": 2000,

@@ -381,22 +381,25 @@ async fn create_match_for_participants(
         .ok_or_else(|| ApiError::Internal("Tournament missing id".to_string()))?;
     let match_data = Match {
         id: None,
-        tournament_id,
+        tournament_id: Some(tournament_id),
         game_id: tournament.game_id.clone(),
         status: MatchStatus::Pending,
         participants: vec![
             MatchParticipant {
-                submission_id: submission_id_1,
+                user_id: None,
+                submission_id: Some(submission_id_1),
                 score: None,
                 metadata: None,
             },
             MatchParticipant {
-                submission_id: submission_id_2,
+                user_id: None,
+                submission_id: Some(submission_id_2),
                 score: None,
                 metadata: None,
             },
         ],
         metadata: None,
+        room_id: None,
         created_at: Datetime::default(),
         updated_at: Datetime::default(),
         started_at: None,

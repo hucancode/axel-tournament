@@ -95,16 +95,19 @@ export interface UpdateTournamentRequest {
 
 // Game types
 export type ProgrammingLanguage = "rust" | "go" | "c";
+export type GameType = "automated" | "interactive";
 
 export interface Game {
   id: string;
   name: string;
   description: string;
+  game_type: GameType;
   supported_languages: ProgrammingLanguage[];
   is_active: boolean;
   owner_id: string;
   game_code: string;
   game_language: ProgrammingLanguage;
+  frontend_code?: string;
   rounds_per_match: number;
   repetitions: number;
   timeout_ms: number;
@@ -218,6 +221,46 @@ export interface LeaderboardEntry {
   score: number;
   tournament_name: string;
   tournament_id: string;
+}
+
+// Room types
+export type RoomStatus = "waiting" | "playing" | "finished";
+
+export interface Room {
+  id: string;
+  game_id: string;
+  host_id: string;
+  name: string;
+  max_players: number;
+  current_players: number;
+  status: RoomStatus;
+  players: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateRoomRequest {
+  game_id: string;
+  name: string;
+  max_players: number;
+}
+
+export interface UpdateRoomRequest {
+  name?: string;
+  max_players?: number;
+  status?: RoomStatus;
+}
+
+export interface RoomMessage {
+  id: string;
+  room_id: string;
+  user_id: string;
+  message: string;
+  created_at: string;
+}
+
+export interface CreateRoomMessageRequest {
+  message: string;
 }
 
 // API Error type

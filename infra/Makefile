@@ -16,6 +16,7 @@ TF_ECR_WEB := $(shell terraform output -raw ecr_web_repository 2>/dev/null)
 TF_ECR_API := $(shell terraform output -raw ecr_api_repository 2>/dev/null)
 TF_ECR_JUDGE := $(shell terraform output -raw ecr_judge_repository 2>/dev/null)
 TF_ECR_HEALER := $(shell terraform output -raw ecr_healer_repository 2>/dev/null)
+TF_ECR_INTERACTIVE_JUDGE := $(shell terraform output -raw ecr_interactive_judge_repository 2>/dev/null)
 TF_SES_SMTP_HOST := $(shell terraform output -raw ses_smtp_host 2>/dev/null)
 TF_SES_SMTP_USERNAME := $(shell terraform output -raw ses_smtp_username 2>/dev/null)
 TF_SES_SMTP_PASSWORD := $(shell terraform output -raw ses_smtp_password 2>/dev/null)
@@ -28,6 +29,7 @@ TF_ROUTE53_ZONE_ID := $(shell terraform output -raw route53_zone_id 2>/dev/null)
 FRONTEND_IMAGE := $(TF_ECR_WEB):latest
 BACKEND_IMAGE := $(TF_ECR_API):latest
 JUDGE_IMAGE := $(TF_ECR_JUDGE):latest
+INTERACTIVE_JUDGE_IMAGE := $(TF_ECR_INTERACTIVE_JUDGE):latest
 SANDBOX_IMAGE := axel-sandbox
 HEALER_IMAGE := $(TF_ECR_HEALER):latest
 SMTP_HOST := $(TF_SES_SMTP_HOST)
@@ -79,6 +81,7 @@ k8s-up: push-images
 	@test -n "$(FRONTEND_IMAGE)" || (echo "FRONTEND_IMAGE is required" && exit 1)
 	@test -n "$(BACKEND_IMAGE)" || (echo "BACKEND_IMAGE is required" && exit 1)
 	@test -n "$(JUDGE_IMAGE)" || (echo "JUDGE_IMAGE is required" && exit 1)
+	@test -n "$(INTERACTIVE_JUDGE_IMAGE)" || (echo "INTERACTIVE_JUDGE_IMAGE is required" && exit 1)
 	@test -n "$(HEALER_IMAGE)" || (echo "HEALER_IMAGE is required" && exit 1)
 	@test -n "$(GOOGLE_CLIENT_ID)" || (echo "GOOGLE_CLIENT_ID is required in .env" && exit 1)
 	@test -n "$(GOOGLE_CLIENT_SECRET)" || (echo "GOOGLE_CLIENT_SECRET is required in .env" && exit 1)
@@ -107,10 +110,12 @@ k8s-up: push-images
 	export GOOGLE_REDIRECT_URI="https://api.$(DOMAIN_NAME)/api/auth/google/callback";
 	@envsubst < k8s/apps/backend.yaml | kubectl apply -f -
 	@envsubst < k8s/apps/judge.yaml | kubectl apply -f -
+	@envsubst < k8s/apps/interactive-judge.yaml | kubectl apply -f -
 	@envsubst < k8s/apps/healer.yaml | kubectl apply -f -
 	@envsubst < k8s/apps/frontend.yaml | kubectl apply -f -
 	@echo "Deploying ingress resources..."
 	@envsubst < k8s/apps/ingress/backend.yaml | kubectl apply -f -
+	@envsubst < k8s/apps/ingress/interactive-judge.yaml | kubectl apply -f -
 	@envsubst < k8s/apps/ingress/frontend.yaml | kubectl apply -f -
 	@echo "Waiting for TLS certificates to be issued..."
 	@kubectl -n backend wait --for=condition=Ready certificate/backend-tls-cert --timeout=300s
@@ -159,6 +164,7 @@ push-images: sandbox
 	@test -n "$(TF_ECR_WEB)" || (echo "ECR_WEB_REPO not found. Run 'make aws-up' first." && exit 1)
 	@test -n "$(TF_ECR_API)" || (echo "ECR_API_REPO not found. Run 'make aws-up' first." && exit 1)
 	@test -n "$(TF_ECR_JUDGE)" || (echo "ECR_JUDGE_REPO not found. Run 'make aws-up' first." && exit 1)
+	@test -n "$(TF_ECR_INTERACTIVE_JUDGE)" || (echo "ECR_INTERACTIVE_JUDGE_REPO not found. Run 'make aws-up' first." && exit 1)
 	@test -n "$(TF_ECR_HEALER)" || (echo "ECR_HEALER_REPO not found. Run 'make aws-up' first." && exit 1)
 	@ECR_REGISTRY=$$(echo "$(TF_ECR_WEB)" | cut -d/ -f1); \
 	echo "Logging in to ECR $$ECR_REGISTRY..."; \
@@ -172,6 +178,9 @@ push-images: sandbox
 	echo "Building and pushing judge image..."; \
 	$(CONTAINER_RUNTIME) build -t $(JUDGE_IMAGE) ../judge; \
 	$(CONTAINER_RUNTIME) push $(JUDGE_IMAGE); \
+	echo "Building and pushing interactive judge image..."; \
+	$(CONTAINER_RUNTIME) build -t $(INTERACTIVE_JUDGE_IMAGE) ../interactive-judge; \
+	$(CONTAINER_RUNTIME) push $(INTERACTIVE_JUDGE_IMAGE); \
 	echo "Building and pushing healer image..."; \
 	$(CONTAINER_RUNTIME) build -t $(HEALER_IMAGE) ../healer; \
 	$(CONTAINER_RUNTIME) push $(HEALER_IMAGE); \
