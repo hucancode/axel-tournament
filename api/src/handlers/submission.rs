@@ -2,7 +2,7 @@ use crate::{
     AppState,
     error::ApiResult,
     models::{
-        Claims, CreateSubmissionRequest, ProgrammingLanguage, Submission, SubmissionResponse,
+        Claims, CreateSubmissionRequest, ProgrammingLanguage, SubmissionResponse,
     },
     services,
 };
@@ -86,7 +86,7 @@ pub async fn get_submission(
     State(state): State<AppState>,
     Extension(claims): Extension<Claims>,
     Path(submission_id): Path<String>,
-) -> ApiResult<Json<Submission>> {
+) -> ApiResult<Json<SubmissionResponse>> {
     let submission = services::submission::get_submission(
         &state.db,
         submission_id
@@ -100,7 +100,7 @@ pub async fn get_submission(
             "You don't have access to this submission".to_string(),
         ));
     }
-    Ok(Json(submission))
+    Ok(Json(submission.into()))
 }
 
 #[derive(Deserialize)]
@@ -112,7 +112,7 @@ pub async fn list_submissions(
     State(state): State<AppState>,
     Extension(claims): Extension<Claims>,
     Query(query): Query<ListSubmissionsQuery>,
-) -> ApiResult<Json<Vec<Submission>>> {
+) -> ApiResult<Json<Vec<SubmissionResponse>>> {
     let submissions = services::submission::list_user_submissions(
         &state.db,
         claims
@@ -130,5 +130,5 @@ pub async fn list_submissions(
             .transpose()?,
     )
     .await?;
-    Ok(Json(submissions))
+    Ok(Json(submissions.into_iter().map(Into::into).collect()))
 }

@@ -23,97 +23,25 @@
   
   const languages: ProgrammingLanguage[] = ['rust', 'go', 'c'];
   
-  const defaultInteractiveFrontend = `<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>My Interactive Game</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        .game-board {
-            display: grid;
-            grid-template-columns: repeat(3, 100px);
-            gap: 2px;
-            margin: 20px auto;
-            width: 306px;
-        }
-        .cell {
-            width: 100px;
-            height: 100px;
-            background: #f0f0f0;
-            border: 1px solid #ccc;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            cursor: pointer;
-        }
-        .cell:hover { background: #e0e0e0; }
-        #status { text-align: center; margin: 20px; }
-    </style>
-</head>
-<body>
-    <div id="status">Waiting for game to start...</div>
-    <div class="game-board" id="board"></div>
-
-    <script>
-        // Game API provided by the platform
-        const gameAPI = window.gameAPI;
-        
-        let gameState = {};
-        let myPlayer = '';
-        
-        // Initialize your game UI here
-        function initGame() {
-            const board = document.getElementById('board');
-            board.innerHTML = '';
-            for (let i = 0; i < 9; i++) {
-                const cell = document.createElement('div');
-                cell.className = 'cell';
-                cell.dataset.index = i;
-                cell.onclick = () => makeMove(i);
-                board.appendChild(cell);
-            }
-        }
-        
-        // Handle player move
-        function makeMove(index) {
-            // Send move to backend
-            gameAPI.sendMove(\`MOVE \${index} \${myPlayer}\`);
-        }
-        
-        // Handle messages from backend
-        gameAPI.onMessage((message) => {
-            const parts = message.split(' ');
-            const command = parts[0];
-            
-            switch (command) {
-                case 'START':
-                    myPlayer = parts[1];
-                    document.getElementById('status').textContent = 
-                        \`Game started! You are \${myPlayer}\`;
-                    break;
-                case 'MOVE':
-                    // Update game state based on move
-                    console.log('Move made:', message);
-                    break;
-                case 'END':
-                    document.getElementById('status').textContent = 
-                        \`Game ended! Winner: \${parts[1]}\`;
-                    break;
-            }
-        });
-        
-        // Initialize when page loads
-        initGame();
-    </script>
-</body>
-</html>`;
+  const lt = String.fromCharCode(60); // <
+  const gt = String.fromCharCode(62); // >
+  const slash = String.fromCharCode(47); // /
+  
+  const defaultInteractiveFrontend = [
+    lt + '!DOCTYPE html' + gt,
+    lt + 'html' + gt,
+    lt + 'head' + gt,
+    lt + 'meta charset="utf-8"' + gt,
+    lt + 'title' + gt + 'My Interactive Game' + lt + slash + 'title' + gt,
+    lt + 'style' + gt + 'body{font-family:Arial,sans-serif;max-width:800px;margin:0 auto;padding:20px}.game-board{display:grid;grid-template-columns:repeat(3,100px);gap:2px;margin:20px auto;width:306px}.cell{width:100px;height:100px;background:#f0f0f0;border:1px solid #ccc;display:flex;align-items:center;justify-content:center;font-size:24px;cursor:pointer}.cell:hover{background:#e0e0e0}#status{text-align:center;margin:20px}' + lt + slash + 'style' + gt,
+    lt + slash + 'head' + gt,
+    lt + 'body' + gt,
+    lt + 'div id="status"' + gt + 'Waiting for game to start...' + lt + slash + 'div' + gt,
+    lt + 'div class="game-board" id="board"' + gt + lt + slash + 'div' + gt,
+    lt + 'script' + gt + 'const gameAPI=window.gameAPI;let gameState={};let myPlayer="";function initGame(){const board=document.getElementById("board");board.innerHTML="";for(let i=0;i' + lt + '9;i++){const cell=document.createElement("div");cell.className="cell";cell.dataset.index=i;cell.onclick=()=>makeMove(i);board.appendChild(cell)}}function makeMove(index){gameAPI.sendMove("MOVE "+index+" "+myPlayer)}gameAPI.onMessage((message)=>{const parts=message.split(" ");const command=parts[0];switch(command){case "START":myPlayer=parts[1];document.getElementById("status").textContent="Game started! You are "+myPlayer;break;case "MOVE":console.log("Move made:",message);break;case "END":document.getElementById("status").textContent="Game ended! Winner: "+parts[1];break}});initGame();' + lt + slash + 'script' + gt,
+    lt + slash + 'body' + gt,
+    lt + slash + 'html' + gt
+  ].join('');
 
   const defaultBackendCode = `use std::io::{self, BufRead, Write};
 
@@ -178,7 +106,8 @@ fn main() {
     }
   }
   
-  async function createGame() {
+  async function createGame(event: Event) {
+    event.preventDefault();
     if (!name.trim() || !description.trim() || !gameCode.trim()) {
       error = 'Please fill in all required fields';
       return;
@@ -236,7 +165,7 @@ fn main() {
     <div class="error-message">{error}</div>
   {/if}
   
-  <form onsubmit|preventDefault={createGame}>
+  <form onsubmit={createGame}>
     <div class="form-section">
       <h2>Basic Information</h2>
       

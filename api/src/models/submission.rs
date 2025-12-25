@@ -41,3 +41,15 @@ pub struct SubmissionResponse {
     pub status: SubmissionStatus,
     pub created_at: Datetime,
 }
+
+impl From<Submission> for SubmissionResponse {
+    fn from(submission: Submission) -> Self {
+        Self {
+            id: submission.id.map(|t| t.to_string()).unwrap_or_default(),
+            tournament_id: submission.tournament_id.to_string(),
+            language: submission.language,
+            status: submission.status,
+            created_at: submission.created_at,
+        }
+    }
+}

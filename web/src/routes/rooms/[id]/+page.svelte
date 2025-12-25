@@ -13,8 +13,8 @@
   let loading = $state(true);
   let ws: WebSocket | null = null;
   
-  onMount(async () => {
-    await loadRoomData();
+  onMount(() => {
+    loadRoomData();
     setupWebSocket();
     
     return () => {
@@ -58,7 +58,7 @@
         // Add to local messages (in real app, also save to DB)
         messages = [...messages, {
           id: Date.now().toString(),
-          room_id: roomId,
+          room_id: roomId!,
           user_id: message.user_id,
           message: message.message,
           created_at: new Date().toISOString()
@@ -148,8 +148,8 @@
       <div class="game-area">
         {#if room.status === 'playing' && game.frontend_code}
           <GameIframe 
-            gameCode={game.frontend_code}
-            roomId={roomId}
+            gameCode={game.frontend_code || ''}
+            roomId={roomId!}
             wsUrl={`${window.location.protocol === 'https:' ? 'https:' : 'http:'}//${window.location.hostname.replace(/^[^.]+\./, 'api.')}`}
           />
         {:else if room.status === 'waiting'}

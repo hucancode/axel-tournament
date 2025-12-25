@@ -24,6 +24,53 @@ pub struct Game {
     pub updated_at: Datetime,
 }
 
+#[derive(Debug, Clone, Serialize)]
+pub struct GameResponse {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub game_type: GameType,
+    pub supported_languages: Vec<ProgrammingLanguage>,
+    pub is_active: bool,
+    pub owner_id: String,
+    pub game_code: String,
+    pub game_language: ProgrammingLanguage,
+    pub frontend_code: Option<String>,
+    pub rounds_per_match: u32,
+    pub repetitions: u32,
+    pub timeout_ms: u32,
+    pub cpu_limit: f64,
+    pub turn_timeout_ms: u64,
+    pub memory_limit_mb: u64,
+    pub created_at: Datetime,
+    pub updated_at: Datetime,
+}
+
+impl From<Game> for GameResponse {
+    fn from(game: Game) -> Self {
+        Self {
+            id: game.id.map(|t| t.to_string()).unwrap_or_default(),
+            name: game.name,
+            description: game.description,
+            game_type: game.game_type,
+            supported_languages: game.supported_languages,
+            is_active: game.is_active,
+            owner_id: game.owner_id.to_string(),
+            game_code: game.game_code,
+            game_language: game.game_language,
+            frontend_code: game.frontend_code,
+            rounds_per_match: game.rounds_per_match,
+            repetitions: game.repetitions,
+            timeout_ms: game.timeout_ms,
+            cpu_limit: game.cpu_limit,
+            turn_timeout_ms: game.turn_timeout_ms,
+            memory_limit_mb: game.memory_limit_mb,
+            created_at: game.created_at,
+            updated_at: game.updated_at,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum GameType {
@@ -120,51 +167,4 @@ pub struct UpdateGameRequest {
     #[serde(default)]
     #[validate(range(min = 1, max = 8192, message = "Memory limit must be 1-8192 MB"))]
     pub memory_limit_mb: Option<u64>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct GameResponse {
-    pub id: String,
-    pub name: String,
-    pub description: String,
-    pub game_type: GameType,
-    pub supported_languages: Vec<ProgrammingLanguage>,
-    pub is_active: bool,
-    pub owner_id: String,
-    pub game_code: String,
-    pub game_language: ProgrammingLanguage,
-    pub frontend_code: Option<String>,
-    pub rounds_per_match: u32,
-    pub repetitions: u32,
-    pub timeout_ms: u32,
-    pub cpu_limit: f64,
-    pub turn_timeout_ms: u64,
-    pub memory_limit_mb: u64,
-    pub created_at: Datetime,
-    pub updated_at: Datetime,
-}
-
-impl From<Game> for GameResponse {
-    fn from(game: Game) -> Self {
-        Self {
-            id: game.id.map(|t| t.to_string()).unwrap_or_default(),
-            name: game.name,
-            description: game.description,
-            game_type: game.game_type,
-            supported_languages: game.supported_languages,
-            is_active: game.is_active,
-            owner_id: game.owner_id.to_string(),
-            game_code: game.game_code,
-            game_language: game.game_language,
-            frontend_code: game.frontend_code,
-            rounds_per_match: game.rounds_per_match,
-            repetitions: game.repetitions,
-            timeout_ms: game.timeout_ms,
-            cpu_limit: game.cpu_limit,
-            turn_timeout_ms: game.turn_timeout_ms,
-            memory_limit_mb: game.memory_limit_mb,
-            created_at: game.created_at,
-            updated_at: game.updated_at,
-        }
-    }
 }

@@ -1,7 +1,7 @@
 use crate::{
     AppState,
     error::ApiResult,
-    models::matches::{CreateMatchRequest, Match},
+    models::matches::{CreateMatchRequest, MatchResponse},
     services,
 };
 use axum::{
@@ -25,7 +25,7 @@ pub struct ListMatchesQuery {
 pub async fn create_match(
     State(state): State<AppState>,
     Json(payload): Json<CreateMatchRequest>,
-) -> ApiResult<(StatusCode, Json<Match>)> {
+) -> ApiResult<(StatusCode, Json<MatchResponse>)> {
     payload
         .validate()
         .map_err(|e| crate::error::ApiError::Validation(e.to_string()))?;
@@ -48,13 +48,13 @@ pub async fn create_match(
         .collect::<Result<Vec<_>, _>>()?;
     let match_data =
         services::matches::create_match(&state.db, tournament_id, game_id, submission_ids).await?;
-    Ok((StatusCode::CREATED, Json(match_data)))
+    Ok((StatusCode::CREATED, Json(match_data.into())))
 }
 
 pub async fn get_match(
     State(state): State<AppState>,
     Path(match_id): Path<String>,
-) -> ApiResult<Json<Match>> {
+) -> ApiResult<Json<MatchResponse>> {
     let match_data = services::matches::get_match(
         &state.db,
         match_id
@@ -62,13 +62,13 @@ pub async fn get_match(
             .map_err(|_| crate::error::ApiError::BadRequest("Invalid match id".to_string()))?,
     )
     .await?;
-    Ok(Json(match_data))
+    Ok(Json(match_data.into()))
 }
 
 pub async fn list_matches(
     State(state): State<AppState>,
     Query(query): Query<ListMatchesQuery>,
-) -> ApiResult<Json<Vec<Match>>> {
+) -> ApiResult<Json<Vec<MatchResponse>>> {
     let tournament_id = query
         .tournament_id
         .as_deref()
@@ -103,5 +103,5 @@ pub async fn list_matches(
         query.offset,
     )
     .await?;
-    Ok(Json(matches))
+    Ok(Json(matches.into_iter().map(Into::into).collect()))
 }

@@ -20,6 +20,7 @@
     let formData = $state<GameFormData>({
         name: "",
         description: "",
+        game_type: "automated",
         supported_languages: [],
         game_code: "",
         game_language: "rust",
@@ -63,6 +64,7 @@
         formData = {
             name: "",
             description: "",
+            game_type: "automated",
             supported_languages: [],
             game_code: "",
             game_language: "rust",
@@ -82,6 +84,7 @@
         formData = {
             name: game.name,
             description: game.description,
+            game_type: game.game_type,
             supported_languages: [...game.supported_languages],
             game_code: game.game_code,
             game_language: game.game_language,

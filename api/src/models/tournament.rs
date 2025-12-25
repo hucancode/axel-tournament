@@ -19,6 +19,41 @@ pub struct Tournament {
     pub updated_at: Datetime,
 }
 
+#[derive(Debug, Clone, Serialize)]
+pub struct TournamentResponse {
+    pub id: String,
+    pub game_id: String,
+    pub name: String,
+    pub description: String,
+    pub status: TournamentStatus,
+    pub min_players: u32,
+    pub max_players: u32,
+    pub start_time: Option<Datetime>,
+    pub end_time: Option<Datetime>,
+    pub match_generation_type: MatchGenerationType,
+    pub created_at: Datetime,
+    pub updated_at: Datetime,
+}
+
+impl From<Tournament> for TournamentResponse {
+    fn from(tournament: Tournament) -> Self {
+        Self {
+            id: tournament.id.map(|t| t.to_string()).unwrap_or_default(),
+            game_id: tournament.game_id.to_string(),
+            name: tournament.name,
+            description: tournament.description,
+            status: tournament.status,
+            min_players: tournament.min_players,
+            max_players: tournament.max_players,
+            start_time: tournament.start_time,
+            end_time: tournament.end_time,
+            match_generation_type: tournament.match_generation_type,
+            created_at: tournament.created_at,
+            updated_at: tournament.updated_at,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum MatchGenerationType {

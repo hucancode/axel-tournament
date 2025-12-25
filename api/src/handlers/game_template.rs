@@ -2,7 +2,7 @@ use crate::{
     AppState,
     error::ApiResult,
     models::{
-        Claims, CreateGameTemplateRequest, GameTemplate, UpdateGameTemplateRequest, UserRole,
+        Claims, CreateGameTemplateRequest, GameTemplateResponse, UpdateGameTemplateRequest, UserRole,
     },
     services,
 };
@@ -24,7 +24,7 @@ pub async fn create_template(
     State(state): State<AppState>,
     Extension(claims): Extension<Claims>,
     Json(payload): Json<CreateGameTemplateRequest>,
-) -> ApiResult<(StatusCode, Json<GameTemplate>)> {
+) -> ApiResult<(StatusCode, Json<GameTemplateResponse>)> {
     payload
         .validate()
         .map_err(|e| crate::error::ApiError::Validation(e.to_string()))?;
@@ -54,24 +54,24 @@ pub async fn create_template(
     )
     .await?;
 
-    Ok((StatusCode::CREATED, Json(template)))
+    Ok((StatusCode::CREATED, Json(template.into())))
 }
 
 pub async fn get_template(
     State(state): State<AppState>,
     Path((game_id, language)): Path<(String, String)>,
-) -> ApiResult<Json<GameTemplate>> {
+) -> ApiResult<Json<GameTemplateResponse>> {
     let game_id: Thing = game_id
         .parse()
         .map_err(|_| crate::error::ApiError::BadRequest("Invalid game id".to_string()))?;
     let template = services::game_template::get_template(&state.db, game_id, &language).await?;
-    Ok(Json(template))
+    Ok(Json(template.into()))
 }
 
 pub async fn list_templates(
     State(state): State<AppState>,
     Query(query): Query<ListTemplatesQuery>,
-) -> ApiResult<Json<Vec<GameTemplate>>> {
+) -> ApiResult<Json<Vec<GameTemplateResponse>>> {
     let templates = services::game_template::list_templates(
         &state.db,
         query
@@ -80,7 +80,7 @@ pub async fn list_templates(
             .map_err(|_| crate::error::ApiError::BadRequest("Invalid game id".to_string()))?,
     )
     .await?;
-    Ok(Json(templates))
+    Ok(Json(templates.into_iter().map(Into::into).collect()))
 }
 
 pub async fn update_template(
@@ -88,7 +88,7 @@ pub async fn update_template(
     Extension(claims): Extension<Claims>,
     Path((game_id, language)): Path<(String, String)>,
     Json(payload): Json<UpdateGameTemplateRequest>,
-) -> ApiResult<Json<GameTemplate>> {
+) -> ApiResult<Json<GameTemplateResponse>> {
     payload
         .validate()
         .map_err(|e| crate::error::ApiError::Validation(e.to_string()))?;
@@ -114,5 +114,5 @@ pub async fn update_template(
     )
     .await?;
 
-    Ok(Json(template))
+    Ok(Json(template.into()))
 }

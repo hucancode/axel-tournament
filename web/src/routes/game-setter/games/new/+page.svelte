@@ -54,6 +54,7 @@
       const game = await gameSetterService.createGame({
         name,
         description,
+        game_type: "automated",
         supported_languages: selectedLanguages,
         game_code: gameCodeContent,
         game_language: gameLanguage as ProgrammingLanguage,

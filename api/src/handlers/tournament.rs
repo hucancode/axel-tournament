@@ -2,7 +2,7 @@ use crate::{
     AppState,
     error::ApiResult,
     models::{
-        Claims, CreateTournamentRequest, Tournament, TournamentParticipant, TournamentStatus,
+        Claims, CreateTournamentRequest, TournamentParticipant, TournamentResponse, TournamentStatus,
         UpdateTournamentRequest, UserRole,
     },
     services,
@@ -50,7 +50,7 @@ pub async fn create_tournament(
     State(state): State<AppState>,
     Extension(claims): Extension<Claims>,
     Json(payload): Json<CreateTournamentRequest>,
-) -> ApiResult<(StatusCode, Json<Tournament>)> {
+) -> ApiResult<(StatusCode, Json<TournamentResponse>)> {
     payload
         .validate()
         .map_err(|e| crate::error::ApiError::Validation(e.to_string()))?;
@@ -78,13 +78,13 @@ pub async fn create_tournament(
         payload.match_generation_type,
     )
     .await?;
-    Ok((StatusCode::CREATED, Json(tournament)))
+    Ok((StatusCode::CREATED, Json(tournament.into())))
 }
 
 pub async fn get_tournament(
     State(state): State<AppState>,
     Path(tournament_id): Path<String>,
-) -> ApiResult<Json<Tournament>> {
+) -> ApiResult<Json<TournamentResponse>> {
     let tournament = services::tournament::get_tournament(
         &state.db,
         tournament_id
@@ -92,7 +92,7 @@ pub async fn get_tournament(
             .map_err(|_| crate::error::ApiError::BadRequest("Invalid tournament id".to_string()))?,
     )
     .await?;
-    Ok(Json(tournament))
+    Ok(Json(tournament.into()))
 }
 
 #[derive(Deserialize)]
@@ -105,7 +105,7 @@ pub struct ListTournamentsQuery {
 pub async fn list_tournaments(
     State(state): State<AppState>,
     Query(query): Query<ListTournamentsQuery>,
-) -> ApiResult<Json<Vec<Tournament>>> {
+) -> ApiResult<Json<Vec<TournamentResponse>>> {
     let status = if let Some(status_str) = query.status {
         Some(
             serde_json::from_str::<TournamentStatus>(&format!("\"{}\"", status_str))
@@ -117,7 +117,8 @@ pub async fn list_tournaments(
     let tournaments =
         services::tournament::list_tournaments(&state.db, status, query.limit, query.offset)
             .await?;
-    Ok(Json(tournaments))
+    let response: Vec<TournamentResponse> = tournaments.into_iter().map(Into::into).collect();
+    Ok(Json(response))
 }
 
 pub async fn update_tournament(
@@ -125,7 +126,7 @@ pub async fn update_tournament(
     Extension(claims): Extension<Claims>,
     Path(tournament_id): Path<String>,
     Json(payload): Json<UpdateTournamentRequest>,
-) -> ApiResult<Json<Tournament>> {
+) -> ApiResult<Json<TournamentResponse>> {
     payload
         .validate()
         .map_err(|e| crate::error::ApiError::Validation(e.to_string()))?;
@@ -145,7 +146,7 @@ pub async fn update_tournament(
         payload.end_time,
     )
     .await?;
-    Ok(Json(tournament))
+    Ok(Json(tournament.into()))
 }
 
 pub async fn join_tournament(
@@ -205,7 +206,7 @@ pub async fn start_tournament(
     State(state): State<AppState>,
     Extension(claims): Extension<Claims>,
     Path(tournament_id): Path<String>,
-) -> ApiResult<Json<Tournament>> {
+) -> ApiResult<Json<TournamentResponse>> {
     let tournament_id: Thing = tournament_id
         .parse()
         .map_err(|_| crate::error::ApiError::BadRequest("Invalid tournament id".to_string()))?;
@@ -217,5 +218,5 @@ pub async fn start_tournament(
         tournament_id,
     )
     .await?;
-    Ok(Json(tournament))
+    Ok(Json(tournament.into()))
 }

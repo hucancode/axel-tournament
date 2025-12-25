@@ -17,6 +17,39 @@ pub struct Match {
     pub completed_at: Option<Datetime>,
 }
 
+#[derive(Debug, Clone, Serialize)]
+pub struct MatchResponse {
+    pub id: String,
+    pub tournament_id: Option<String>,
+    pub game_id: String,
+    pub status: MatchStatus,
+    pub participants: Vec<MatchParticipantResponse>,
+    pub metadata: Option<serde_json::Value>,
+    pub room_id: Option<String>,
+    pub created_at: Datetime,
+    pub updated_at: Datetime,
+    pub started_at: Option<Datetime>,
+    pub completed_at: Option<Datetime>,
+}
+
+impl From<Match> for MatchResponse {
+    fn from(match_data: Match) -> Self {
+        Self {
+            id: match_data.id.map(|t| t.to_string()).unwrap_or_default(),
+            tournament_id: match_data.tournament_id.map(|t| t.to_string()),
+            game_id: match_data.game_id.to_string(),
+            status: match_data.status,
+            participants: match_data.participants.into_iter().map(Into::into).collect(),
+            metadata: match_data.metadata,
+            room_id: match_data.room_id.map(|t| t.to_string()),
+            created_at: match_data.created_at,
+            updated_at: match_data.updated_at,
+            started_at: match_data.started_at,
+            completed_at: match_data.completed_at,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum MatchStatus {
@@ -34,6 +67,25 @@ pub struct MatchParticipant {
     pub submission_id: Option<Thing>, // For automated matches
     pub score: Option<f64>,
     pub metadata: Option<serde_json::Value>, // Player specific stats
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct MatchParticipantResponse {
+    pub user_id: Option<String>,
+    pub submission_id: Option<String>,
+    pub score: Option<f64>,
+    pub metadata: Option<serde_json::Value>,
+}
+
+impl From<MatchParticipant> for MatchParticipantResponse {
+    fn from(participant: MatchParticipant) -> Self {
+        Self {
+            user_id: participant.user_id.map(|t| t.to_string()),
+            submission_id: participant.submission_id.map(|t| t.to_string()),
+            score: participant.score,
+            metadata: participant.metadata,
+        }
+    }
 }
 
 #[derive(Debug, Deserialize, Validate)]
