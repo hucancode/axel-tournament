@@ -34,7 +34,6 @@ pub async fn create_room(
         host_id: host_thing.clone(),
         name,
         max_players,
-        current_players: 1,
         status: RoomStatus::Waiting,
         players: vec![host_thing],
         created_at: Datetime::default(),
@@ -76,12 +75,11 @@ pub async fn join_room(db: &Database, room_id: Thing, user_id: String) -> ApiRes
         return Err(ApiError::BadRequest("User already in room".to_string()));
     }
     
-    if room.current_players >= room.max_players {
+    if room.players.len() as u32 >= room.max_players {
         return Err(ApiError::BadRequest("Room is full".to_string()));
     }
 
     room.players.push(user_thing);
-    room.current_players += 1;
     room.updated_at = Datetime::default();
 
     let updated: Option<Room> = db.update(("room", room_id.id.to_string())).content(room).await?;
@@ -100,7 +98,6 @@ pub async fn leave_room(db: &Database, room_id: Thing, user_id: String) -> ApiRe
     }
 
     room.players.retain(|p| p != &user_thing);
-    room.current_players -= 1;
     room.updated_at = Datetime::default();
 
     // If host leaves, transfer to another player or delete room
@@ -133,7 +130,7 @@ pub async fn start_game(db: &Database, room_id: Thing, host_id: String) -> ApiRe
         return Err(ApiError::BadRequest("Game already started".to_string()));
     }
     
-    if room.current_players < 2 {
+    if room.players.len() < 2 {
         return Err(ApiError::BadRequest("Need at least 2 players to start".to_string()));
     }
 

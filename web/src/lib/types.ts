@@ -55,7 +55,6 @@ export interface Tournament {
   status: TournamentStatus;
   min_players: number;
   max_players: number;
-  current_players: number;
   start_time?: string;
   end_time?: string;
   match_generation_type: MatchGenerationType;
@@ -232,7 +231,6 @@ export interface Room {
   host_id: string;
   name: string;
   max_players: number;
-  current_players: number;
   status: RoomStatus;
   players: string[];
   created_at: string;

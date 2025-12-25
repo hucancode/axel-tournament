@@ -115,7 +115,6 @@ async fn judge_executes_rock_paper_scissor_match() {
                 status = $status,
                 min_players = $min_players,
                 max_players = $max_players,
-                current_players = $current_players,
                 match_generation_type = $match_generation_type,
                 created_at = time::now(),
                 updated_at = time::now()
@@ -127,7 +126,6 @@ async fn judge_executes_rock_paper_scissor_match() {
         .bind(("status", "scheduled"))
         .bind(("min_players", 2))
         .bind(("max_players", 2))
-        .bind(("current_players", 0))
         .bind(("match_generation_type", "all_vs_all"))
         .await
         .expect("Failed to create tournament");

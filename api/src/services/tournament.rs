@@ -28,7 +28,6 @@ pub async fn create_tournament(
         status: TournamentStatus::Registration,
         min_players,
         max_players,
-        current_players: 0,
         start_time: start_time.map(|dt| dt.into()),
         end_time: end_time.map(|dt| dt.into()),
         match_generation_type: match_generation_type.unwrap_or_default(),
@@ -125,22 +124,26 @@ pub async fn join_tournament(
             "Tournament is not accepting registrations".to_string(),
         ));
     }
+
+    // Get current participants count
+    let mut participants_result = db
+        .query("SELECT * FROM tournament_participant WHERE tournament_id = $tournament_id")
+        .bind(("tournament_id", tournament_id.clone()))
+        .await?;
+    let participants: Vec<TournamentParticipant> = participants_result.take(0)?;
+
     // Check if tournament is full
-    if tournament.current_players >= tournament.max_players {
+    if participants.len() as u32 >= tournament.max_players {
         return Err(ApiError::BadRequest("Tournament is full".to_string()));
     }
+
     // Check if user already joined
-    let mut existing = db
-        .query("SELECT * FROM tournament_participant WHERE tournament_id = $tournament_id AND user_id = $user_id")
-        .bind(("tournament_id", tournament_id.clone()))
-        .bind(("user_id", user_id.clone()))
-        .await?;
-    let existing_participants: Vec<TournamentParticipant> = existing.take(0)?;
-    if !existing_participants.is_empty() {
+    if participants.iter().any(|p| p.user_id == user_id) {
         return Err(ApiError::Conflict(
             "User already joined this tournament".to_string(),
         ));
     }
+
     let participant = TournamentParticipant {
         id: None,
         tournament_id: tournament_id.clone(),
@@ -154,29 +157,7 @@ pub async fn join_tournament(
         .create("tournament_participant")
         .content(participant)
         .await?;
-    let created =
-        created.ok_or_else(|| ApiError::Internal("Failed to join tournament".to_string()))?;
-    // Increment current_players with a capacity check for concurrent joins
-    let mut updated = db
-        .query(
-            "UPDATE $tournament_id
-             SET current_players += 1
-             WHERE status = 'registration' AND current_players < max_players
-             RETURN AFTER",
-        )
-        .bind(("tournament_id", tournament_id.clone()))
-        .await?;
-    let updated_rows: Vec<Tournament> = updated.take(0)?;
-    if updated_rows.is_empty() {
-        if let Some(pid) = created.id.clone() {
-            let delete_key = (pid.tb.as_str(), pid.id.to_string());
-            let _: Option<TournamentParticipant> = db.delete(delete_key).await?;
-        }
-        return Err(ApiError::BadRequest(
-            "Tournament is full or not accepting registrations".to_string(),
-        ));
-    }
-    Ok(created)
+    created.ok_or_else(|| ApiError::Internal("Failed to join tournament".to_string()))
 }
 
 pub async fn get_tournament_participants(
@@ -219,22 +200,6 @@ pub async fn leave_tournament(
         let delete_key = (pid.tb.as_str(), pid.id.to_string());
         let _: Option<TournamentParticipant> = db.delete(delete_key).await?;
     }
-    // Decrement current_players with a floor at zero
-    let mut updated = db
-        .query(
-            "UPDATE $tournament_id
-             SET current_players -= 1
-             WHERE current_players > 0
-             RETURN AFTER",
-        )
-        .bind(("tournament_id", tournament_id))
-        .await?;
-    let updated_rows: Vec<Tournament> = updated.take(0)?;
-    if updated_rows.is_empty() {
-        return Err(ApiError::Internal(
-            "Failed to update tournament participant count".to_string(),
-        ));
-    }
     Ok(())
 }
 
@@ -250,16 +215,16 @@ pub async fn start_tournament(db: &Database, tournament_id: Thing) -> ApiResult<
         ));
     }
 
-    // Check if minimum players requirement is met
-    if tournament.current_players < tournament.min_players {
-        return Err(ApiError::BadRequest(format!(
-            "Not enough players. Need at least {} players, currently have {}",
-            tournament.min_players, tournament.current_players
-        )));
-    }
-
     // Get all participants with their submissions
     let participants = get_tournament_participants(db, tournament_id_thing.clone()).await?;
+
+    // Check if minimum players requirement is met
+    if tournament.min_players > participants.len() as u32 {
+        return Err(ApiError::BadRequest(format!(
+            "Not enough players. Need at least {} players, currently have {}",
+            tournament.min_players, participants.len()
+        )));
+    }
 
     // Filter participants who have submitted code
     let participants_with_submissions: Vec<TournamentParticipant> = participants

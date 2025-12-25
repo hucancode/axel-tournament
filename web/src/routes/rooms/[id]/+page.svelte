@@ -133,7 +133,7 @@
         <p class="game-name">{game.name}</p>
         <div class="room-status">
           <span class="status status-{room.status}">{room.status}</span>
-          <span class="players">{room.current_players}/{room.max_players} players</span>
+          <span class="players">{room.players.length}/{room.max_players} players</span>
         </div>
       </div>
       <div class="room-actions">

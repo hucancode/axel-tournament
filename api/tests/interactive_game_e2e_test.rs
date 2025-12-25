@@ -98,7 +98,7 @@ async fn test_interactive_game_flow() {
 
     // Player 2 joins room
     let room = room::join_room(&db, room_id.clone(), user2_id.clone()).await.unwrap();
-    assert_eq!(room.current_players, 2);
+    assert_eq!(room.players.len(), 2);
 
     // Start game
     let room = room::start_game(&db, room_id.clone(), user1_id.clone()).await.unwrap();

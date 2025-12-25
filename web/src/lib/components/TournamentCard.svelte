@@ -4,10 +4,12 @@
 
   let {
     tournament,
+    participants = [],
     href,
     class: className = "",
   } = $props<{
     tournament: Tournament;
+    participants?: { id: string }[];
     href?: string;
     class?: string;
   }>();
@@ -27,7 +29,7 @@
   <div class="flex items-center justify-between">
     <StatusBadge status={tournament.status} label={tournament.status} />
     <span class="text-sm text-gray-500">
-      {tournament.current_players}/{tournament.max_players} players
+      {participants.length}/{tournament.max_players} players
     </span>
   </div>
 </a>

@@ -11,7 +11,6 @@ const baseTournament: Tournament = {
   status: "registration",
   min_players: 4,
   max_players: 32,
-  current_players: 12,
   start_time: "2025-06-01T12:00:00Z",
   end_time: "2025-06-01T18:00:00Z",
   match_generation_type: "round_robin",
@@ -19,11 +18,14 @@ const baseTournament: Tournament = {
   updated_at: "2025-05-10T10:00:00Z",
 };
 
+const baseParticipants = Array.from({ length: 12 }, (_, i) => ({ id: `p-${i}` }));
+
 const meta = {
   title: "Components/TournamentCard",
   component: TournamentCard,
   args: {
     tournament: baseTournament,
+    participants: baseParticipants,
   },
 } satisfies Meta<typeof TournamentCard>;
 
@@ -45,7 +47,7 @@ export const NearCapacity: Story = {
       ...baseTournament,
       name: "Final Sprint",
       status: "running",
-      current_players: 30,
     },
+    participants: Array.from({ length: 30 }, (_, i) => ({ id: `p-${i}` })),
   },
 };

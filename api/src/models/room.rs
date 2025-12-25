@@ -9,7 +9,6 @@ pub struct Room {
     pub host_id: Thing,
     pub name: String,
     pub max_players: u32,
-    pub current_players: u32,
     pub status: RoomStatus,
     pub players: Vec<Thing>, // user IDs
     pub created_at: Datetime,
@@ -55,7 +54,6 @@ pub struct RoomResponse {
     pub host_id: String,
     pub name: String,
     pub max_players: u32,
-    pub current_players: u32,
     pub status: RoomStatus,
     pub players: Vec<String>,
     pub created_at: Datetime,
@@ -70,7 +68,6 @@ impl From<Room> for RoomResponse {
             host_id: room.host_id.to_string(),
             name: room.name,
             max_players: room.max_players,
-            current_players: room.current_players,
             status: room.status,
             players: room.players.into_iter().map(|p| p.to_string()).collect(),
             created_at: room.created_at,

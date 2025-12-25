@@ -12,7 +12,6 @@ pub struct Tournament {
     pub status: TournamentStatus,
     pub min_players: u32,
     pub max_players: u32,
-    pub current_players: u32,
     pub start_time: Option<Datetime>,
     pub end_time: Option<Datetime>,
     pub match_generation_type: MatchGenerationType,

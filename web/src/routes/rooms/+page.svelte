@@ -98,12 +98,12 @@
           </div>
           <div class="room-info">
             <span class="players">
-              {room.current_players}/{room.max_players} players
+              {room.players.length}/{room.max_players} players
             </span>
             <span class="status status-{room.status}">{room.status}</span>
           </div>
           <div class="room-actions">
-            {#if room.status === 'waiting' && room.current_players < room.max_players}
+            {#if room.status === 'waiting' && room.players.length < room.max_players}
               <button class="btn-secondary" onclick={() => joinRoom(room.id)}>
                 Join Room
               </button>

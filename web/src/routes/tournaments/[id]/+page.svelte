@@ -132,7 +132,7 @@
     function canJoin(): boolean {
         if (!tournament || !$authStore.isAuthenticated) return false;
         if (isParticipant) return false;
-        if (tournament.current_players >= tournament.max_players) return false;
+        if (participants.length >= tournament.max_players) return false;
         if (tournament.status !== "registration") return false;
         return true;
     }
@@ -220,7 +220,7 @@
                                 Players:
                             </div>
                             <div>
-                                {tournament.current_players} / {tournament.max_players}
+                                {participants.length} / {tournament.max_players}
                                 (min: {tournament.min_players})
                             </div>
                             {#if tournament.start_time}

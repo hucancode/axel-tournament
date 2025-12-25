@@ -6,6 +6,7 @@
     import { gameService } from "$lib/services/games";
     import type {
         Tournament,
+        TournamentParticipant,
         Game,
         CreateTournamentRequest,
         UpdateTournamentRequest,
@@ -14,6 +15,7 @@
     } from "$lib/types";
     let tournaments = $state<Tournament[]>([]);
     let games = $state<Game[]>([]);
+    let participantCounts = $state<Record<string, TournamentParticipant[]>>({});
     let loading = $state(true);
     let error = $state("");
     // Create/Edit form state
@@ -63,6 +65,23 @@
             ]);
             tournaments = tournamentsData;
             games = gamesData;
+            
+            // Load participants for each tournament
+            const participantPromises = tournaments.map(async (tournament) => {
+                try {
+                    const participants = await tournamentService.getParticipants(tournament.id);
+                    return { tournamentId: tournament.id, participants };
+                } catch (err) {
+                    console.error(`Failed to load participants for tournament ${tournament.id}:`, err);
+                    return { tournamentId: tournament.id, participants: [] };
+                }
+            });
+            
+            const participantResults = await Promise.all(participantPromises);
+            participantCounts = participantResults.reduce((acc, { tournamentId, participants }) => {
+                acc[tournamentId] = participants;
+                return acc;
+            }, {} as Record<string, TournamentParticipant[]>);
         } catch (err) {
             error = err instanceof Error ? err.message : "Failed to load data";
         } finally {
@@ -311,7 +330,7 @@
                                     </span>
                                 </td>
                                 <td>
-                                    {tournament.current_players} / {tournament.max_players}
+                                    {(participantCounts[tournament.id] || []).length} / {tournament.max_players}
                                     <span class="text-sm text-gray-500"
                                         >(min: {tournament.min_players})</span
                                     >

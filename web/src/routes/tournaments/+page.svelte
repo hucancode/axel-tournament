@@ -1,9 +1,10 @@
 <script lang="ts">
     import { tournamentService } from "$lib/services/tournaments";
     import { onMount } from "svelte";
-    import type { Tournament } from "$lib/types";
-    import StatusBadge from "$lib/components/StatusBadge.svelte";
+    import type { Tournament, TournamentParticipant } from "$lib/types";
+    import TournamentCard from "$lib/components/TournamentCard.svelte";
     let tournaments = $state<Tournament[]>([]);
+    let participantCounts = $state<Record<string, TournamentParticipant[]>>({});
     let loading = $state(true);
     let error = $state("");
     let selectedStatus = $state<string>("all");
@@ -26,6 +27,23 @@
             const status =
                 selectedStatus === "all" ? undefined : selectedStatus;
             tournaments = await tournamentService.list(status);
+            
+            // Load participants for each tournament
+            const participantPromises = tournaments.map(async (tournament) => {
+                try {
+                    const participants = await tournamentService.getParticipants(tournament.id);
+                    return { tournamentId: tournament.id, participants };
+                } catch (err) {
+                    console.error(`Failed to load participants for tournament ${tournament.id}:`, err);
+                    return { tournamentId: tournament.id, participants: [] };
+                }
+            });
+            
+            const participantResults = await Promise.all(participantPromises);
+            participantCounts = participantResults.reduce((acc, { tournamentId, participants }) => {
+                acc[tournamentId] = participants;
+                return acc;
+            }, {} as Record<string, TournamentParticipant[]>);
         } catch (err) {
             error =
                 err instanceof Error
@@ -38,16 +56,6 @@
     }
     async function handleStatusChange() {
         await loadTournaments();
-    }
-    function formatDate(dateStr?: string): string {
-        if (!dateStr) return "Not set";
-        return new Date(dateStr).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-        });
     }
 </script>
 
@@ -92,78 +100,10 @@
         {:else}
             <div class="grid grid-2">
                 {#each tournaments as tournament}
-                    <div class="card">
-                        <div class="flex justify-between items-center mb-2">
-                            <h2 class="text-xl font-semibold">
-                                {tournament.name}
-                            </h2>
-                            <StatusBadge
-                                status={tournament.status}
-                                label={tournament.status}
-                            />
-                        </div>
-                        <p class="text-gray-700 mb-4">
-                            {tournament.description}
-                        </p>
-                        <div
-                            class="grid gap-2 mb-4"
-                            style="grid-template-columns: auto 1fr;"
-                        >
-                            <div class="text-sm text-gray-500 font-semibold">
-                                Players:
-                            </div>
-                            <div class="text-sm">
-                                {tournament.current_players} / {tournament.max_players}
-                                {#if tournament.current_players >= tournament.max_players}
-                                    <span
-                                        class="badge badge-failed"
-                                        style="margin-left: 0.5rem;">Full</span
-                                    >
-                                {:else if tournament.current_players >= tournament.min_players}
-                                    <span
-                                        class="badge badge-accepted"
-                                        style="margin-left: 0.5rem;"
-                                        >Active</span
-                                    >
-                                {:else}
-                                    <span
-                                        class="badge badge-pending"
-                                        style="margin-left: 0.5rem;"
-                                    >
-                                        Need {tournament.min_players -
-                                            tournament.current_players} more
-                                    </span>
-                                {/if}
-                            </div>
-                            {#if tournament.start_time}
-                                <div
-                                    class="text-sm text-gray-500 font-semibold"
-                                >
-                                    Start:
-                                </div>
-                                <div class="text-sm">
-                                    {formatDate(tournament.start_time)}
-                                </div>
-                            {/if}
-                            {#if tournament.end_time}
-                                <div
-                                    class="text-sm text-gray-500 font-semibold"
-                                >
-                                    End:
-                                </div>
-                                <div class="text-sm">
-                                    {formatDate(tournament.end_time)}
-                                </div>
-                            {/if}
-                        </div>
-                        <a
-                            href="/tournaments/{tournament.id}"
-                            class="btn btn-primary"
-                            style="width: 100%;"
-                        >
-                            View Details
-                        </a>
-                    </div>
+                    <TournamentCard 
+                        {tournament} 
+                        participants={participantCounts[tournament.id] || []}
+                    />
                 {/each}
             </div>
         {/if}

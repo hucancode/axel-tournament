@@ -4,11 +4,13 @@
   import { onMount } from "svelte";
   import { api } from "$lib/api";
   import { gameSetterService } from "$lib/services/game-setter";
-  import type { Game, Tournament, TournamentStatus } from "$lib/types";
+  import { tournamentService } from "$lib/services/tournaments";
+  import type { Game, Tournament, TournamentParticipant, TournamentStatus } from "$lib/types";
 
   let { user, isAuthenticated } = $derived($authStore);
   let myGames: Game[] = $state([]);
   let allTournaments: Tournament[] = $state([]);
+  let participantCounts = $state<Record<string, TournamentParticipant[]>>({});
   let loading = $state(true);
   let error = $state("");
   let actionError = $state("");
@@ -40,6 +42,26 @@
 
       // Load all tournaments, will be filtered by myGameIds
       allTournaments = await api.get<Tournament[]>("/api/tournaments", true);
+      
+      // Load participants for tournaments related to user's games
+      const myGameIds = myGames.map(g => g.id);
+      const relevantTournaments = allTournaments.filter(t => myGameIds.includes(t.game_id));
+      
+      const participantPromises = relevantTournaments.map(async (tournament) => {
+        try {
+          const participants = await tournamentService.getParticipants(tournament.id);
+          return { tournamentId: tournament.id, participants };
+        } catch (err) {
+          console.error(`Failed to load participants for tournament ${tournament.id}:`, err);
+          return { tournamentId: tournament.id, participants: [] };
+        }
+      });
+      
+      const participantResults = await Promise.all(participantPromises);
+      participantCounts = participantResults.reduce((acc, { tournamentId, participants }) => {
+        acc[tournamentId] = participants;
+        return acc;
+      }, {} as Record<string, TournamentParticipant[]>);
     } catch (e: any) {
       error = e.message || "Failed to load data";
     } finally {
@@ -206,7 +228,7 @@
                     <span class={getStatusBadge(tournament.status)}>{tournament.status}</span>
                   </div>
                   <div class="text-sm text-gray-600" style="margin: 0.35rem 0 0.75rem;">
-                    {tournament.current_players}/{tournament.max_players} players
+                    {(participantCounts[tournament.id] || []).length}/{tournament.max_players} players
                   </div>
                   <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
                     <a
