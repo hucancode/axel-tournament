@@ -20,7 +20,7 @@ async fn main() -> anyhow::Result<()> {
     let email_service = Arc::new(EmailService::new(config.email.clone()));
     // Create seed admin user if user table is empty
     let admin_password_hash = auth_service.hash_password(&config.admin.password)?;
-    db::create_admin_user(&db, &config.admin.email, admin_password_hash).await?;
+    db::seed_admin_user(&db, &config.admin.email, admin_password_hash).await?;
     let state = AppState {
         db,
         auth_service,

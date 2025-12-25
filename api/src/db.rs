@@ -3,7 +3,7 @@ use crate::models::{User, UserRole};
 use surrealdb::Surreal;
 use surrealdb::engine::remote::ws::{Client, Ws};
 use surrealdb::opt::auth::Root;
-use surrealdb::sql::Datetime;
+use surrealdb::sql::{Datetime, Thing};
 
 // Type alias for database connection
 pub type Database = Surreal<Client>;
@@ -188,7 +188,7 @@ pub async fn init_schema(db: &Database) -> Result<(), surrealdb::Error> {
 }
 
 /// Create admin user if user table is empty (seed user)
-pub async fn create_admin_user(
+pub async fn seed_admin_user(
     db: &Database,
     email: &str,
     password_hash: String,
@@ -213,7 +213,60 @@ pub async fn create_admin_user(
             password_reset_token: None,
             password_reset_expires: None,
         };
-        let _: Option<User> = db.create("user").content(admin).await?;
+        let admin_user: Option<User> = db.create("user").content(admin).await?;
+
+        // Create initial games if admin user was created
+        if let Some(admin) = admin_user {
+            if let Err(e) = seed_initial_games(db, &admin.id.unwrap()).await {
+                eprintln!("Failed to create initial games: {:?}", e);
+            }
+        }
     }
+    Ok(())
+}
+
+/// Create initial games for the admin user
+async fn seed_initial_games(db: &Database, admin_id: &Thing) -> Result<(), Box<dyn std::error::Error>> {
+    use crate::models::game::ProgrammingLanguage;
+    use crate::services::game;
+
+    // Rock Paper Scissors game
+    let rps_code = include_str!("../../games/rock_paper_scissor/server.rs");
+
+    let _ = game::create_game(
+        db,
+        "Rock Paper Scissors".to_string(),
+        "Classic rock-paper-scissors game. Return 'rock', 'paper', or 'scissors'.".to_string(),
+        vec![ProgrammingLanguage::Rust, ProgrammingLanguage::Go, ProgrammingLanguage::C],
+        admin_id.to_string(),
+        rps_code.to_string(),
+        ProgrammingLanguage::Rust,
+        10,
+        1,
+        1000,
+        0.5,
+        100,
+        64,
+    ).await;
+
+    // Prisoner's Dilemma game
+    let pd_code = include_str!("../../games/prisoner_dilema/server.rs");
+
+    let _ = game::create_game(
+        db,
+        "Prisoner's Dilemma".to_string(),
+        "Classic prisoner's dilemma. Return 'cooperate' or 'defect'.".to_string(),
+        vec![ProgrammingLanguage::Rust, ProgrammingLanguage::Go, ProgrammingLanguage::C],
+        admin_id.to_string(),
+        pd_code.to_string(),
+        ProgrammingLanguage::Rust,
+        20,
+        1,
+        1000,
+        0.5,
+        100,
+        64,
+    ).await;
+
     Ok(())
 }

@@ -81,7 +81,7 @@ pub async fn setup_app() -> TestApp {
     let admin_password_hash = auth_service
         .hash_password(&config.admin.password)
         .expect("Failed to hash admin password");
-    db::create_admin_user(&db, &config.admin.email, admin_password_hash)
+    db::seed_admin_user(&db, &config.admin.email, admin_password_hash)
         .await
         .expect("Failed to seed admin user");
     let state = AppState {
