@@ -404,7 +404,7 @@ pub async fn google_callback(
 
     // Get frontend URL from config
     let frontend_url = std::env::var("FRONTEND_URL")
-        .unwrap_or_else(|_| "http://localhost:3000".to_string());
+        .unwrap_or_else(|_| "http://localhost:5173".to_string());
 
     // Redirect to frontend with just the token
     let redirect_url = format!(

@@ -116,7 +116,7 @@ impl Config {
                 from_address: env::var("EMAIL_FROM")
                     .unwrap_or_else(|_| "noreply@axel-tournament.com".to_string()),
                 frontend_url: env::var("FRONTEND_URL")
-                    .unwrap_or_else(|_| "http://localhost:3000".to_string()),
+                    .unwrap_or_else(|_| "http://localhost:5173".to_string()),
             },
             app: AppConfig {
                 max_code_size_mb: env::var("MAX_CODE_SIZE_MB")

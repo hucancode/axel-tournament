@@ -9,11 +9,11 @@ use tower_http::cors::CorsLayer;
 
 pub fn create_router(state: AppState) -> Router {
     // Build CORS layer - restrict to specific origins in production
-    // For development, you can use "http://localhost:3000" or configure via environment
+    // For development, you can use "http://localhost:5173" or configure via environment
     let cors = CorsLayer::new()
         .allow_origin(
             std::env::var("FRONTEND_URL")
-                .unwrap_or_else(|_| "http://localhost:3000".to_string())
+                .unwrap_or_else(|_| "http://localhost:5173".to_string())
                 .parse::<axum::http::HeaderValue>()
                 .expect("Invalid FRONTEND_URL"),
         )
