@@ -11,4 +11,4 @@ echo "Loading sandbox image..."
 docker load < /app/sandbox.tar
 
 # Start judge
-exec /app/judge
+exec judge
