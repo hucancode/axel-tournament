@@ -19,10 +19,10 @@ RUN apt-get update && \
     apt-get install -y ca-certificates libssl3 docker.io && \
     rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /app/axel-judge /app/judge
-COPY sandbox.tar /app/sandbox.tar
-COPY entrypoint.sh /app/entrypoint.sh
+COPY --from=builder /app/axel-judge judge
+COPY sandbox.tar sandbox.tar
+COPY entrypoint.sh entrypoint.sh
 
-RUN chmod +x /app/entrypoint.sh
+RUN chmod +x entrypoint.sh
 
-CMD ["/app/entrypoint.sh"]
+CMD ["entrypoint.sh"]
