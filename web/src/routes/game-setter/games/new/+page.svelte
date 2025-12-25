@@ -45,11 +45,7 @@
         loading = false;
         return;
       }
-      if (!selectedLanguages.includes(gameLanguage)) {
-        error = "Game code language must be one of the supported languages";
-        loading = false;
-        return;
-      }
+
 
       const game = await gameSetterService.createGame({
         name,
@@ -144,13 +140,12 @@
           id="game-lang"
           class="input"
           bind:value={gameLanguage}
-          disabled={selectedLanguages.length === 0}
           required
         >
           <option value="">Select language...</option>
-          {#each selectedLanguages as lang}
-            <option value={lang}>{lang}</option>
-          {/each}
+          <option value="rust">Rust</option>
+          <option value="go">Go</option>
+          <option value="c">C</option>
         </select>
       </div>
 
@@ -194,9 +189,9 @@
       </div>
 
       <div class="form-group">
-        <label for="timeout-seconds">Match Timeout (seconds) *</label>
+        <label for="timeout-ms">Match Timeout (miliseconds) *</label>
         <input
-          id="timeout-seconds"
+          id="timeout-ms"
           type="number"
           class="input"
           min="1"
