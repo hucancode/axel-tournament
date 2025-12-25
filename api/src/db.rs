@@ -148,8 +148,9 @@ pub async fn init_schema(db: &Database) -> Result<(), surrealdb::Error> {
     // Matches table
     db.query(
         "DEFINE TABLE IF NOT EXISTS match SCHEMAFULL;
-         DEFINE FIELD IF NOT EXISTS tournament_id ON match TYPE record<tournament>;
+         DEFINE FIELD IF NOT EXISTS tournament_id ON match TYPE option<record<tournament>>;
          DEFINE FIELD IF NOT EXISTS game_id ON match TYPE record<game>;
+         DEFINE FIELD IF NOT EXISTS room_id ON match TYPE option<record<room>>;
          DEFINE FIELD IF NOT EXISTS status ON match TYPE string;
          DEFINE FIELD IF NOT EXISTS participants ON match TYPE array;
          DEFINE FIELD IF NOT EXISTS metadata ON match TYPE option<object>;
@@ -158,6 +159,7 @@ pub async fn init_schema(db: &Database) -> Result<(), surrealdb::Error> {
          DEFINE FIELD IF NOT EXISTS started_at ON match TYPE option<datetime>;
          DEFINE FIELD IF NOT EXISTS completed_at ON match TYPE option<datetime>;
          DEFINE INDEX IF NOT EXISTS idx_match_tournament ON match COLUMNS tournament_id;
+         DEFINE INDEX IF NOT EXISTS idx_match_room ON match COLUMNS room_id;
          DEFINE INDEX IF NOT EXISTS idx_match_status ON match COLUMNS status;
          DEFINE INDEX IF NOT EXISTS idx_match_created ON match COLUMNS created_at;",
     )
@@ -219,10 +221,9 @@ pub async fn seed_admin_user(
 
         // Create initial games if admin user was created
         if let Some(admin) = admin_user {
-            // Temporarily disabled to fix tests
-            // if let Err(e) = seed_initial_games(db, &admin.id.unwrap()).await {
-            //     eprintln!("Failed to create initial games: {:?}", e);
-            // }
+            if let Err(e) = seed_initial_games(db, &admin.id.unwrap()).await {
+                eprintln!("Failed to create initial games: {:?}", e);
+            }
         }
     }
     Ok(())

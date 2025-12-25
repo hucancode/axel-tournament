@@ -5,6 +5,8 @@ use axel_tournament::{
 };
 use std::sync::Arc;
 
+mod common;
+
 const INTERACTIVE_GAME_CODE: &str = include_str!("../../games/tic_tac_toe/server.rs");
 const INTERACTIVE_FRONTEND_CODE: &str = include_str!("../../games/tic_tac_toe/client.html");
 
@@ -14,13 +16,18 @@ async fn test_interactive_game_flow() {
     let config = axel_tournament::config::Config::from_env().unwrap();
     let db = db::connect(&config.database).await.unwrap();
 
-    // Create test users
+    // Create test users with unique names
     let auth_service = Arc::new(AuthService::new("test_secret".to_string(), 3600));
+
+    let user1_email = format!("{}@test.com", common::unique_name("player1"));
+    let user1_username = common::unique_name("player1");
+    let user2_email = format!("{}@test.com", common::unique_name("player2"));
+    let user2_username = common::unique_name("player2");
 
     let user1 = User {
         id: None,
-        email: "player1@test.com".to_string(),
-        username: "player1".to_string(),
+        email: user1_email,
+        username: user1_username,
         password_hash: Some(auth_service.hash_password("password").unwrap()),
         role: UserRole::Player,
         location: "US".to_string(),
@@ -36,8 +43,8 @@ async fn test_interactive_game_flow() {
 
     let user2 = User {
         id: None,
-        email: "player2@test.com".to_string(),
-        username: "player2".to_string(),
+        email: user2_email,
+        username: user2_username,
         password_hash: Some(auth_service.hash_password("password").unwrap()),
         role: UserRole::Player,
         location: "US".to_string(),
@@ -58,9 +65,10 @@ async fn test_interactive_game_flow() {
     let user2_id = created_user2.unwrap().id.unwrap().to_string();
 
     // Create interactive game
+    let game_name = common::unique_name("Test Interactive Game");
     let game = game::create_game(
         &db,
-        "Test Interactive Game".to_string(),
+        game_name,
         "Test interactive tic-tac-toe game".to_string(),
         GameType::Interactive,
         vec![ProgrammingLanguage::Rust],
@@ -77,11 +85,12 @@ async fn test_interactive_game_flow() {
     ).await.unwrap();
 
     // Create room
+    let room_name = common::unique_name("Test Room");
     let room = room::create_room(
         &db,
         game.id.unwrap().to_string(),
         user1_id.clone(),
-        "Test Room".to_string(),
+        room_name,
         2,
     ).await.unwrap();
 
