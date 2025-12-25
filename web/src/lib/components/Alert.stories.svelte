@@ -8,7 +8,7 @@
   });
 </script>
 
-<Story name="Default (Error)" />
+<Story name="Default" args={{ message: 'Operation failed successfully' }}/>
 
 <Story name="Success" args={{ message: 'Operation completed successfully', type: 'success' }} />
 
