@@ -1,10 +1,10 @@
 <script module lang="ts">
   import { defineMeta } from '@storybook/addon-svelte-csf';
-  import FormInputDemo from './FormInputDemo.svelte';
+  import FormInput from './FormInput.svelte';
 
   const { Story } = defineMeta({
-    title: 'Styles/Form Inputs',
-    component: FormInputDemo,
+    title: 'Styles/Form Input',
+    component: FormInput,
   });
 </script>
 
@@ -20,10 +20,10 @@
 
 <Story name="All Form Elements">
   <div class="max-w-lg">
-    <FormInputDemo type="email" label="Email Address" placeholder="your@email.com" />
-    <FormInputDemo type="select" label="Tournament Type" options={['Single Elimination', 'Double Elimination', 'Round Robin']} />
-    <FormInputDemo type="textarea" label="Game Rules" placeholder="Describe the rules..." />
-    <FormInputDemo type="text" label="Error Example" value="Invalid input" error="This field is required" />
+    <FormInput type="email" label="Email Address" placeholder="your@email.com" />
+    <FormInput type="select" label="Tournament Type" options={['Single Elimination', 'Double Elimination', 'Round Robin']} />
+    <FormInput type="textarea" label="Game Rules" placeholder="Describe the rules..." />
+    <FormInput type="text" label="Error Example" value="Invalid input" error="This field is required" />
     <button class="btn btn-primary">Submit</button>
   </div>
 </Story>

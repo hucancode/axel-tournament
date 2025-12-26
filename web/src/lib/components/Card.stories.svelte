@@ -1,11 +1,11 @@
 <script module lang="ts">
   import { defineMeta } from '@storybook/addon-svelte-csf';
-  import CardDemo from './CardDemo.svelte';
-  import ButtonDemo from './ButtonDemo.svelte';
+  import Card from './Card.svelte';
+  import Button from './Button.svelte';
 
   const { Story } = defineMeta({
     title: 'Styles/Cards',
-    component: CardDemo,
+    component: Card,
   });
 </script>
 
@@ -13,7 +13,7 @@
 
 <Story name="Card with Content">
   <div class="max-w-md">
-    <CardDemo>
+    <Card>
       <h3 class="mb-4 text-2xl">Tournament Details</h3>
       <div class="mb-3">
         <strong>Name:</strong> Spring Championship 2024
@@ -24,15 +24,15 @@
       <div class="mb-4">
         <strong>Players:</strong> 16/32
       </div>
-      <ButtonDemo variant="primary" label="Register Now" />
-    </CardDemo>
+      <Button variant="primary" label="Register Now" />
+    </Card>
   </div>
 </Story>
 
 <Story name="Multiple Cards">
   <div class="grid grid-2">
-    <CardDemo title="Card 1" content="First card in a grid layout" />
-    <CardDemo title="Card 2" content="Second card in a grid layout" />
-    <CardDemo title="Card 3" content="Third card in a grid layout" />
+    <Card title="Card 1" content="First card in a grid layout" />
+    <Card title="Card 2" content="Second card in a grid layout" />
+    <Card title="Card 3" content="Third card in a grid layout" />
   </div>
 </Story>
