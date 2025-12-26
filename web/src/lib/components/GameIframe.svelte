@@ -102,9 +102,11 @@
   .game-container {
     width: 100%;
     height: 600px;
-    border: 1px solid #ccc;
-    border-radius: 8px;
+    border: 4px solid #000;
+    border-radius: 4px;
     overflow: hidden;
+    box-shadow: 6px 6px 0 0 #000;
+    background: #fff;
   }
 
   .game-iframe {

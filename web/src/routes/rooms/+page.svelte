@@ -1,16 +1,21 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { api } from '$lib/api';
+  import { goto } from '$app/navigation';
+  import { roomService } from '$lib/services/rooms';
+  import { gameService } from '$lib/services/games';
   import type { Room, Game, CreateRoomRequest } from '$lib/types';
   import Dialog from '$lib/components/Dialog.svelte';
+  import Alert from '$lib/components/Alert.svelte';
 
   let rooms = $state<Room[]>([]);
   let games = $state<Game[]>([]);
   let loading = $state(true);
+  let error = $state<string | null>(null);
   let createDialog = $state<HTMLDialogElement | null>(null);
   let selectedGameId = $state('');
   let roomName = $state('');
   let maxPlayers = $state(4);
+  let filterGameId = $state<string>('');
 
   onMount(async () => {
     await loadData();
@@ -18,14 +23,17 @@
 
   async function loadData() {
     try {
+      loading = true;
+      error = null;
       const [roomsData, gamesData] = await Promise.all([
-        api.get<Room[]>('/api/rooms'),
-        api.get<Game[]>('/api/games')
+        roomService.list(filterGameId || undefined),
+        gameService.list()
       ]);
       rooms = roomsData;
       games = gamesData.filter(g => g.game_type === 'interactive');
-    } catch (error) {
-      console.error('Failed to load data:', error);
+    } catch (err) {
+      error = err instanceof Error ? err.message : 'Failed to load data';
+      console.error('Failed to load data:', err);
     } finally {
       loading = false;
     }
@@ -35,26 +43,31 @@
     if (!selectedGameId || !roomName.trim()) return;
 
     try {
+      error = null;
       const request: CreateRoomRequest = {
         game_id: selectedGameId,
         name: roomName.trim(),
         max_players: maxPlayers
       };
 
-      await api.post<Room>('/api/rooms', request, true);
+      const newRoom = await roomService.create(request);
       await loadData();
-    } catch (error) {
-      console.error('Failed to create room:', error);
+      closeCreateModal();
+      goto(`/rooms/${newRoom.id}`);
+    } catch (err) {
+      error = err instanceof Error ? err.message : 'Failed to create room';
+      console.error('Failed to create room:', err);
     }
   }
 
   async function joinRoom(roomId: string) {
     try {
-      await api.post(`/api/rooms/${roomId}/join`, {}, true);
-      // Navigate to room page
-      window.location.href = `/rooms/${roomId}`;
-    } catch (error) {
-      console.error('Failed to join room:', error);
+      error = null;
+      await roomService.join(roomId);
+      goto(`/rooms/${roomId}`);
+    } catch (err) {
+      error = err instanceof Error ? err.message : 'Failed to join room';
+      console.error('Failed to join room:', err);
     }
   }
 
@@ -86,8 +99,28 @@
   <div class="header">
     <h1>Game Rooms</h1>
     <button class="btn-primary" onclick={openCreateModal}>
-      Create Room
+      + Create Room
     </button>
+  </div>
+
+  {#if error}
+    <Alert type="error" message={error} onclose={() => error = null} />
+  {/if}
+
+  <div class="filter-bar">
+    <label for="game-filter">Filter by game:</label>
+    <select
+      id="game-filter"
+      bind:value={filterGameId}
+      onchange={loadData}
+      class="filter-select"
+    >
+      <option value="">All Games</option>
+      {#each games as game}
+        <option value={game.id}>{game.name}</option>
+      {/each}
+    </select>
+    <button class="btn-secondary" onclick={loadData}>Refresh</button>
   </div>
 
   {#if loading}
@@ -106,18 +139,20 @@
           </div>
           <div class="room-info">
             <span class="players">
-              {room.players.length}/{room.max_players} players
+              👥 {room.players.length}/{room.max_players}
             </span>
             <span class="status status-{room.status}">{room.status}</span>
           </div>
           <div class="room-actions">
             {#if room.status === 'waiting' && room.players.length < room.max_players}
-              <button class="btn-secondary" onclick={() => joinRoom(room.id)}>
+              <button class="btn-join" onclick={() => joinRoom(room.id)}>
                 Join Room
               </button>
+            {:else if room.status === 'waiting'}
+              <button class="btn-disabled" disabled>Full</button>
             {:else}
               <button class="btn-disabled" disabled>
-                {room.status === 'playing' ? 'In Progress' : 'Full'}
+                {room.status === 'playing' ? 'In Progress' : 'Finished'}
               </button>
             {/if}
           </div>
@@ -217,12 +252,35 @@
   .status-playing { background: #fff3e0; color: #f57c00; }
   .status-finished { background: #e8f5e8; color: #388e3c; }
 
-  .btn-primary, .btn-secondary, .btn-disabled {
+  .filter-bar {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding: 1rem;
+    background: #f9f9f9;
+    border-radius: 8px;
+  }
+
+  .filter-bar label {
+    font-weight: 500;
+  }
+
+  .filter-select {
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    min-width: 200px;
+  }
+
+  .btn-primary, .btn-secondary, .btn-join, .btn-disabled {
     padding: 0.5rem 1rem;
     border: none;
     border-radius: 4px;
     cursor: pointer;
     font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.2s;
   }
 
   .btn-primary {
@@ -230,10 +288,27 @@
     color: white;
   }
 
+  .btn-primary:hover {
+    background: #1565c0;
+  }
+
   .btn-secondary {
     background: #f5f5f5;
     color: #333;
     border: 1px solid #ddd;
+  }
+
+  .btn-secondary:hover {
+    background: #e0e0e0;
+  }
+
+  .btn-join {
+    background: #4caf50;
+    color: white;
+  }
+
+  .btn-join:hover {
+    background: #45a049;
   }
 
   .btn-disabled {

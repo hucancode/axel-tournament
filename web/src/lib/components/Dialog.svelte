@@ -22,15 +22,17 @@
 
 <style>
   dialog {
-    border: none;
-    border-radius: 8px;
+    border: 4px solid #000;
+    border-radius: 4px;
     padding: 0;
     max-width: 500px;
     width: 90%;
+    box-shadow: 8px 8px 0 0 #000;
+    background: #fff;
   }
 
   dialog::backdrop {
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.8);
   }
 
   .modal-header {
@@ -38,7 +40,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 1.5rem;
-    border-bottom: 1px solid #e0e0e0;
+    border-bottom: 2px solid #000;
   }
 
   .close-btn {
@@ -46,6 +48,7 @@
     border: none;
     font-size: 1.5rem;
     cursor: pointer;
+    font-weight: bold;
   }
 
   .modal-body {
@@ -57,6 +60,6 @@
     justify-content: flex-end;
     gap: 1rem;
     padding: 1.5rem;
-    border-top: 1px solid #e0e0e0;
+    border-top: 2px solid #000;
   }
 </style>
