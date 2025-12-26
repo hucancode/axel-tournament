@@ -204,7 +204,7 @@
 
 <div class="page">
   <div class="container">
-    <button class="btn btn-secondary" onclick={() => goto("/game-setter")} style="margin-bottom: 1rem;">
+    <button class="btn btn-secondary mb-4" onclick={() => goto("/game-setter")}>
       ← Back to Dashboard
     </button>
 
@@ -222,7 +222,7 @@
       <p>Loading game...</p>
     {:else if game}
       <!-- Tabs -->
-      <div style="display: flex; gap: 1rem; border-bottom: 2px solid #ddd; margin-bottom: 2rem;">
+      <div class="flex gap-4 border-b-2 border-gray-300 mb-8">
         <button
           class="tab-button {activeTab === 'info' ? 'active' : ''}"
           onclick={() => (activeTab = "info")}
@@ -246,9 +246,9 @@
       <!-- Tab Content -->
       {#if activeTab === "info"}
         <div class="card">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+          <div class="flex justify-between items-center mb-6">
             <h2>Basic Information</h2>
-            <div style="display: flex; gap: 0.5rem;">
+            <div class="flex gap-2">
               {#if !editMode}
                 <button class="btn btn-secondary" onclick={enableEditMode}>Edit</button>
                 <button class="btn btn-danger" onclick={deleteGame}>Delete</button>
@@ -336,13 +336,13 @@
               </label>
             </div>
 
-            <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+            <div class="flex gap-2 mt-4">
               <button class="btn btn-primary" onclick={saveGameEdits}>Save Changes</button>
               <button class="btn btn-secondary" onclick={cancelEdit}>Cancel</button>
             </div>
           {:else}
             <!-- View Mode -->
-            <dl style="display: grid; grid-template-columns: 150px 1fr; gap: 1rem;">
+            <dl class="grid grid-cols-[150px_1fr] gap-4">
               <dt><strong>Description:</strong></dt>
               <dd>{game.description}</dd>
 
@@ -384,7 +384,7 @@
           <h2>Upload Game Code</h2>
           <div class="text-sm">
             This is your main game orchestration code that will:
-            <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
+            <ul class="my-2 pl-6">
               <li>Invoke player binaries via stdin/stdout</li>
               <li>Implement game logic and rules</li>
               <li>Handle player timeouts/crashes/invalid responses</li>
@@ -404,7 +404,7 @@
             </p>
           {/if}
 
-          <div class="form-group" style="margin-top: 1rem;">
+          <div class="form-group mt-4">
             <label for="game-lang">Programming Language</label>
             <select id="game-lang" class="input" bind:value={selectedGameLang}>
               <option value="">Select language...</option>
@@ -418,11 +418,10 @@
             <label for="game-code">Game Code</label>
             <textarea
               id="game-code"
-              class="textarea"
+              class="textarea font-mono text-sm"
               bind:value={gameCodeContent}
               rows="20"
               placeholder="Your game orchestration code..."
-              style="font-family: monospace; font-size: 0.9em;"
             ></textarea>
           </div>
 
@@ -435,22 +434,20 @@
           <h2>Code Templates</h2>
           <p class="text-sm">Provide starter code templates for each supported language.</p>
 
-          <div style="margin-top: 2rem; display: flex; flex-direction: column; gap: 2rem;">
+          <div class="mt-8 flex flex-col gap-8">
             {#each game.supported_languages as lang}
               <div>
-                <h3 style="text-transform: capitalize;">{lang} Template</h3>
+                <h3 class="capitalize">{lang} Template</h3>
                 <textarea
-                  class="textarea"
+                  class="textarea font-mono text-sm"
                   bind:value={templatesByLang[lang]}
                   rows="12"
                   placeholder={"fn main() {}"}
-                  style="font-family: monospace; font-size: 0.9em;"
                 ></textarea>
                 <button
-                  class="btn btn-primary"
+                  class="btn btn-primary mt-2"
                   onclick={() => saveTemplate(lang)}
                   disabled={savingTemplate[lang]}
-                  style="margin-top: 0.5rem;"
                 >
                   {savingTemplate[lang] ? "Saving..." : `Save ${lang} Template`}
                 </button>

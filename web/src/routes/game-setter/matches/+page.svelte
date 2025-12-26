@@ -132,7 +132,7 @@
 
 <div class="page">
   <div class="container">
-    <div class="page-header" style="align-items: center;">
+    <div class="page-header items-center">
       <div>
         <h1 class="page-title">Match Console</h1>
         <p class="text-gray-500">Monitor matches for your games and tournaments</p>
@@ -143,9 +143,9 @@
       </div>
     </div>
 
-    <div class="card" style="margin-bottom: 1rem;">
-      <div class="grid grid-2" style="gap: 1rem;">
-        <div class="form-group" style="margin-bottom: 0;">
+    <div class="card mb-4">
+      <div class="grid grid-2 gap-4">
+        <div class="form-group mb-0">
           <label for="game">Game</label>
           <select
             id="game"
@@ -160,7 +160,7 @@
             {/each}
           </select>
         </div>
-        <div class="form-group" style="margin-bottom: 0;">
+        <div class="form-group mb-0">
           <label for="status">Status</label>
           <select
             id="status"
@@ -181,7 +181,7 @@
     </div>
 
     {#if error}
-      <div class="card" style="background: #fee2e2; margin-bottom: 1rem;">
+      <div class="card bg-red-100 mb-4">
         <p class="text-red-600">{error}</p>
       </div>
     {/if}
@@ -201,7 +201,7 @@
         <p class="text-gray-500">No matches found for the current filters.</p>
       </div>
     {:else}
-      <div class="card" style="padding: 0; overflow-x: auto;">
+      <div class="card p-0 overflow-x-auto">
         <table>
           <thead>
             <tr>
@@ -237,7 +237,7 @@
                   <div class="text-xs text-gray-500">Updated {formatDate(match.updated_at)}</div>
                 </td>
                 <td>
-                  <div class="text-xs text-gray-700" style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
+                  <div class="text-xs text-gray-700 flex gap-1.5 flex-wrap">
                     {#each match.participants as participant}
                       <span class="badge badge-scheduled">
                         {participant.score ?? 0}

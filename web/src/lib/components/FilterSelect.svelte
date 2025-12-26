@@ -19,8 +19,7 @@
     <label for="filter-select" class="font-semibold">{label}</label>
     <select
         id="filter-select"
-        class="select"
-        style="width: auto;"
+        class="select w-auto"
         bind:value
         {onchange}
         {disabled}

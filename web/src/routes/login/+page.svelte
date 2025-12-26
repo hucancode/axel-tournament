@@ -41,26 +41,25 @@
     onsubmit={handleLogin}
 >
     <div
-        style="margin: 1.5rem 0; text-align: center; color: var(--gray-500);"
+        class="my-6 text-center text-gray-500"
     >
         or
     </div>
     <button
         onclick={handleGoogleLogin}
-        class="btn btn-secondary"
-        style="width: 100%;"
+        class="btn btn-secondary w-full"
     >
         Continue with Google
     </button>
-    <div style="margin-top: 1.5rem; text-align: center;">
-        <a href="/register" style="color: var(--primary-600);"
+    <div class="mt-6 text-center">
+        <a href="/register" class="text-primary-600"
             >Don't have an account? Sign up</a
         >
     </div>
-    <div style="margin-top: 0.5rem; text-align: center;">
+    <div class="mt-2 text-center">
         <a
             href="/reset-password"
-            style="color: var(--primary-600); font-size: 0.875rem;"
+            class="text-primary-600 text-sm"
             >Forgot password?</a
         >
     </div>

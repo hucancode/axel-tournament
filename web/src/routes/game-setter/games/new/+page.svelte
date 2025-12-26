@@ -104,10 +104,10 @@
         ></textarea>
       </div>
 
-      <fieldset class="form-group" style="border: none; padding: 0;">
-        <legend style="font-weight: 600; margin-bottom: 0.25rem;">Supported Languages *</legend>
-        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-          <label style="display: flex; align-items: center; gap: 0.5rem;">
+      <fieldset class="form-group border-none p-0">
+        <legend class="font-semibold mb-1">Supported Languages *</legend>
+        <div class="flex gap-4 flex-wrap">
+          <label class="flex items-center gap-2">
             <input
               type="checkbox"
               checked={selectedLanguages.includes("rust")}
@@ -115,7 +115,7 @@
             />
             Rust
           </label>
-          <label style="display: flex; align-items: center; gap: 0.5rem;">
+          <label class="flex items-center gap-2">
             <input
               type="checkbox"
               checked={selectedLanguages.includes("go")}
@@ -123,7 +123,7 @@
             />
             Go
           </label>
-          <label style="display: flex; align-items: center; gap: 0.5rem;">
+          <label class="flex items-center gap-2">
             <input
               type="checkbox"
               checked={selectedLanguages.includes("c")}
@@ -153,11 +153,10 @@
         <label for="game-code">Game Code *</label>
         <textarea
           id="game-code"
-          class="textarea"
+          class="textarea font-mono text-sm"
           bind:value={gameCodeContent}
           rows="10"
           placeholder="Your game orchestration code..."
-          style="font-family: monospace; font-size: 0.9em;"
           required
         ></textarea>
       </div>
@@ -223,7 +222,7 @@
         />
       </div>
 
-      <div style="display: flex; gap: 1rem;">
+      <div class="flex gap-4">
         <button type="submit" class="btn btn-primary" disabled={loading || selectedLanguages.length === 0}>
           {loading ? "Creating..." : "Create Game"}
         </button>

@@ -17,7 +17,7 @@
     <title>Axel Tournament Platform</title>
 </svelte:head>
 
-<div style="min-height: 100vh; display: flex; flex-direction: column;">
+<div class="min-h-screen flex flex-col">
     <nav>
         <div class="nav-content">
             <div class="nav-links">
@@ -60,7 +60,7 @@
             </div>
         </div>
     </nav>
-    <main style="flex: 1;">
+    <main class="flex-1">
         {@render children()}
     </main>
     <footer>

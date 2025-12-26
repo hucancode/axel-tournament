@@ -85,7 +85,7 @@
         <div class="card mb-4">
             <h2 class="text-lg font-semibold mb-4">Filters</h2>
             <div class="filter-section">
-                <div class="form-group" style="margin-bottom: 0;">
+                <div class="form-group mb-0">
                     <label for="tournament-filter">Tournament</label>
                     <select
                         id="tournament-filter"
@@ -102,7 +102,7 @@
                         {/each}
                     </select>
                 </div>
-                <div class="form-group" style="margin-bottom: 0;">
+                <div class="form-group mb-0">
                     <label for="game-filter">Game</label>
                     <select
                         id="game-filter"
@@ -117,7 +117,7 @@
                         {/each}
                     </select>
                 </div>
-                <div class="form-group" style="margin-bottom: 0;">
+                <div class="form-group mb-0">
                     <label for="limit-filter">Limit</label>
                     <select
                         id="limit-filter"
@@ -135,7 +135,7 @@
             </div>
         </div>
         {#if error}
-            <div class="card" style="background: #fee2e2; margin-bottom: 1rem;">
+            <div class="card bg-red-100 mb-4">
                 <p class="text-red-600">{error}</p>
             </div>
         {/if}
@@ -151,7 +151,7 @@
                 </p>
             </div>
         {:else}
-            <div class="card" style="padding: 0; overflow-x: auto;">
+            <div class="card p-0 overflow-x-auto">
                 <table class="leaderboard-table">
                     <thead>
                         <tr>
@@ -169,10 +169,10 @@
                                     class="rank-cell {getRankClass(entry.rank)}"
                                 >
                                     <span
-                                        style="display: inline-flex; align-items: center; gap: 0.5rem;"
+                                        class="inline-flex items-center gap-2"
                                     >
                                         <span>{entry.rank}</span>
-                                        <span style="font-size: 1.25rem;"
+                                        <span class="text-xl"
                                             >{getMedalEmoji(entry.rank)}</span
                                         >
                                     </span>
@@ -193,8 +193,7 @@
                                 <td>
                                     <a
                                         href="/tournaments/{entry.tournament_id}"
-                                        class="text-sm"
-                                        style="color: var(--primary-600); text-decoration: none;"
+                                        class="text-sm text-primary-600 no-underline"
                                     >
                                         {entry.tournament_name}
                                     </a>

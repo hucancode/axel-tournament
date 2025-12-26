@@ -165,7 +165,7 @@
                 <p class="text-gray-500">Loading tournament...</p>
             </div>
         {:else if error}
-            <div class="card" style="background: #fee2e2;">
+            <div class="card bg-red-100">
                 <p class="text-red-600">{error}</p>
             </div>
         {:else if tournament}
@@ -183,15 +183,14 @@
                 </div>
             </div>
             {#if actionError}
-                <div class="card mb-4" style="background: #fee2e2;">
+                <div class="card mb-4 bg-red-100">
                     <p class="text-red-600">{actionError}</p>
                 </div>
             {/if}
             <div
-                class="grid"
-                style="grid-template-columns: 2fr 1fr; gap: 1.5rem;"
+                class="grid grid-cols-[2fr_1fr] gap-6"
             >
-                <div class="flex-col gap-4" style="display: flex;">
+                <div class="flex flex-col gap-4">
                     <!-- Tournament Details -->
                     <div class="card">
                         <h2 class="text-xl font-semibold mb-4">
@@ -201,8 +200,7 @@
                             {tournament.description}
                         </p>
                         <div
-                            class="grid gap-2"
-                            style="grid-template-columns: auto 1fr;"
+                            class="grid gap-2 grid-cols-[auto_1fr]"
                         >
                             <div class="font-semibold text-gray-700">
                                 Status:
@@ -300,8 +298,7 @@
                                                     "Unknown"}
                                                 {#if $authStore.user && participant.user_id === $authStore.user.id}
                                                     <span
-                                                        class="badge badge-registration"
-                                                        style="margin-left: 0.5rem;"
+                                                        class="badge badge-registration ml-2"
                                                         >You</span
                                                     >
                                                 {/if}
@@ -327,8 +324,7 @@
                             {#if canSubmit()}
                                 <a
                                     href="/tournaments/{tournamentId}/submit"
-                                    class="btn btn-primary"
-                                    style="padding: 0.35rem 0.75rem; font-size: 0.9rem;"
+                                    class="btn btn-primary py-[0.35rem] px-3 text-sm"
                                 >
                                     New Submission
                                 </a>
@@ -392,7 +388,7 @@
                     </div>
                 </div>
                 <!-- Actions Sidebar -->
-                <div class="flex-col gap-4" style="display: flex;">
+                <div class="flex flex-col gap-4">
                     <div class="card">
                         <h3 class="font-semibold mb-4">Actions</h3>
                         {#if !$authStore.isAuthenticated}
@@ -401,8 +397,7 @@
                             </p>
                             <a
                                 href="/login"
-                                class="btn btn-primary"
-                                style="width: 100%;"
+                                class="btn btn-primary w-full"
                             >
                                 Login
                             </a>
@@ -410,8 +405,7 @@
                             {#if canJoin()}
                                 <button
                                     onclick={joinTournament}
-                                    class="btn btn-success mb-2"
-                                    style="width: 100%;"
+                                    class="btn btn-success mb-2 w-full"
                                     disabled={actionLoading}
                                 >
                                     {actionLoading
@@ -422,8 +416,7 @@
                             {#if canLeave()}
                                 <button
                                     onclick={leaveTournament}
-                                    class="btn btn-danger mb-2"
-                                    style="width: 100%;"
+                                    class="btn btn-danger mb-2 w-full"
                                     disabled={actionLoading}
                                 >
                                     {actionLoading
@@ -434,20 +427,17 @@
                             {#if canSubmit()}
                                 <a
                                     href="/tournaments/{tournamentId}/submit"
-                                    class="btn btn-primary"
-                                    style="width: 100%;"
+                                    class="btn btn-primary w-full"
                                 >
                                     Submit Code
                                 </a>
                             {/if}
                             {#if isParticipant}
                                 <div
-                                    class="mt-4"
-                                    style="padding: 1rem; background: var(--primary-50); border-radius: 0.5rem;"
+                                    class="mt-4 p-4 bg-primary-50 rounded-lg"
                                 >
                                     <p
-                                        class="text-sm text-center font-semibold"
-                                        style="color: var(--primary-700);"
+                                        class="text-sm text-center font-semibold text-primary-700"
                                     >
                                         You are participating in this tournament
                                     </p>
@@ -457,44 +447,39 @@
                     </div>
                     {#if tournament.status === "registration"}
                         <div
-                            class="card"
-                            style="background: var(--primary-50);"
+                            class="card bg-primary-50"
                         >
                             <h3
-                                class="font-semibold mb-2"
-                                style="color: var(--primary-700);"
+                                class="font-semibold mb-2 text-primary-700"
                             >
                                 Registration Open
                             </h3>
                             <p
-                                class="text-sm"
-                                style="color: var(--primary-700);"
+                                class="text-sm text-primary-700"
                             >
                                 Join now to participate in this tournament!
                             </p>
                         </div>
                     {:else if tournament.status === "running"}
-                        <div class="card" style="background: #fef3c7;">
+                        <div class="card bg-amber-100">
                             <h3
-                                class="font-semibold mb-2"
-                                style="color: #92400e;"
+                                class="font-semibold mb-2 text-amber-900"
                             >
                                 Tournament In Progress
                             </h3>
-                            <p class="text-sm" style="color: #92400e;">
+                            <p class="text-sm text-amber-900">
                                 This tournament is currently running. New
                                 participants cannot join.
                             </p>
                         </div>
                     {:else if tournament.status === "completed"}
-                        <div class="card" style="background: #d1fae5;">
+                        <div class="card bg-emerald-100">
                             <h3
-                                class="font-semibold mb-2"
-                                style="color: #065f46;"
+                                class="font-semibold mb-2 text-emerald-800"
                             >
                                 Tournament Completed
                             </h3>
-                            <p class="text-sm" style="color: #065f46;">
+                            <p class="text-sm text-emerald-800">
                                 Check the participants list for final rankings.
                             </p>
                         </div>

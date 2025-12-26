@@ -32,11 +32,11 @@
 </script>
 
 <div class="page">
-    <div class="container" style="max-width: 400px;">
+    <div class="container max-w-md">
         <div class="card">
             <h1 class="page-title text-center">{title}</h1>
             {#if error}
-                <div class="card" style="background: #fee2e2; margin-bottom: 1rem;">
+                <div class="card bg-red-100 mb-4">
                     <p class="text-red-600">{error}</p>
                 </div>
             {/if}
@@ -67,8 +67,7 @@
                     </div>
                     <button
                         type="submit"
-                        class="btn btn-primary"
-                        style="width: 100%;"
+                        class="btn btn-primary w-full"
                         disabled={loading}
                     >
                         {loading ? "Loading..." : submitText}

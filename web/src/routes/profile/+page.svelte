@@ -42,15 +42,14 @@
 </script>
 
 <div class="page">
-    <div class="container" style="max-width: 800px;">
+    <div class="container max-w-3xl">
         <div class="page-header">
             <h1 class="page-title">My Profile</h1>
         </div>
         <div class="card mb-4">
             <h2 class="text-xl font-semibold mb-4">User Information</h2>
             <div
-                class="grid"
-                style="grid-template-columns: 1fr 2fr; gap: 1rem;"
+                class="grid grid-cols-[1fr_2fr] gap-4"
             >
                 <div class="font-semibold">Username:</div>
                 <div>{user?.username}</div>
@@ -78,16 +77,14 @@
             <h2 class="text-xl font-semibold mb-4">Update Location</h2>
             {#if error}
                 <div
-                    class="card"
-                    style="background: #fee2e2; margin-bottom: 1rem;"
+                    class="card bg-red-100 mb-4"
                 >
                     <p class="text-red-600">{error}</p>
                 </div>
             {/if}
             {#if success}
                 <div
-                    class="card"
-                    style="background: #d1fae5; margin-bottom: 1rem;"
+                    class="card bg-green-100 mb-4"
                 >
                     <p class="text-green-600">{success}</p>
                 </div>
@@ -103,7 +100,7 @@
                     maxlength="2"
                     disabled={loading}
                 />
-                <p class="text-sm text-gray-500" style="margin-top: 0.25rem;">
+                <p class="text-sm text-gray-500 mt-1">
                     2-letter ISO country code
                 </p>
             </div>

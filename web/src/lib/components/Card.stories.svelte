@@ -12,16 +12,16 @@
 <Story name="Basic Card" args={{ title: 'Card Title', content: 'This is a basic card with neubrutalism styling featuring thick borders and hard shadows.' }} />
 
 <Story name="Card with Content">
-  <div style="max-width: 400px;">
+  <div class="max-w-md">
     <CardDemo>
-      <h3 style="margin-bottom: 1rem; font-size: 1.5rem;">Tournament Details</h3>
-      <div style="margin-bottom: 0.75rem;">
+      <h3 class="mb-4 text-2xl">Tournament Details</h3>
+      <div class="mb-3">
         <strong>Name:</strong> Spring Championship 2024
       </div>
-      <div style="margin-bottom: 0.75rem;">
+      <div class="mb-3">
         <strong>Date:</strong> March 15, 2024
       </div>
-      <div style="margin-bottom: 1rem;">
+      <div class="mb-4">
         <strong>Players:</strong> 16/32
       </div>
       <ButtonDemo variant="primary" label="Register Now" />

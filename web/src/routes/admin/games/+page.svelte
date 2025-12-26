@@ -196,8 +196,7 @@
     </div>
     {#if error}
         <div
-            class="card"
-            style="background-color: #fee2e2; border-left: 4px solid var(--red-600); margin-bottom: 1rem;"
+            class="card bg-red-100 border-l-4 border-red-600 mb-4"
         >
             <p class="text-red-600">{error}</p>
         </div>
@@ -241,15 +240,13 @@
                     </p>
                     <div class="flex gap-2">
                         <button
-                            class="btn btn-secondary"
-                            style="padding: 0.375rem 0.75rem; font-size: 0.875rem;"
+                            class="btn btn-secondary py-1.5 px-3 text-sm"
                             onclick={() => openEditForm(game)}
                         >
                             Edit
                         </button>
                         <button
-                            class="btn btn-danger"
-                            style="padding: 0.375rem 0.75rem; font-size: 0.875rem;"
+                            class="btn btn-danger py-1.5 px-3 text-sm"
                             onclick={() => handleDelete(game)}
                         >
                             Delete
@@ -264,19 +261,7 @@
 <!-- Create/Edit Form Modal -->
 {#if showForm}
     <div
-        style="
-			position: fixed;
-			top: 0;
-			left: 0;
-			right: 0;
-			bottom: 0;
-			background: rgba(0, 0, 0, 0.5);
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			z-index: 1000;
-			padding: 1rem;
-		"
+        class="fixed inset-0 bg-black/50 flex items-center justify-center z-[1000] p-4"
         role="button"
         tabindex="0"
         aria-label="Close game form"
@@ -294,20 +279,14 @@
         }}
     >
         <div
-            class="card"
-            style="
-				max-width: 700px;
-				width: 100%;
-				max-height: 90vh;
-				overflow-y: auto;
-			"
+            class="card max-w-[700px] w-full max-h-[90vh] overflow-y-auto"
         >
             <h2 class="font-bold text-xl mb-4">
                 {isEditing ? "Edit Game" : "Create New Game"}
             </h2>
             {#if formError}
                 <div
-                    style="background-color: #fee2e2; border-left: 4px solid var(--red-600); padding: 1rem; margin-bottom: 1rem;"
+                    class="bg-red-100 border-l-4 border-red-600 p-4 mb-4"
                 >
                     <p class="text-red-600">{formError}</p>
                 </div>
@@ -336,20 +315,17 @@
                     ></textarea>
                 </div>
                 <fieldset
-                    class="form-group"
-                    style="border: none; padding: 0; margin: 0;"
+                    class="form-group border-none p-0 m-0"
                 >
                     <legend
-                        class="text-sm font-semibold"
-                        style="margin-bottom: 0.25rem;"
+                        class="text-sm font-semibold mb-1"
                     >
                         Supported Languages
                     </legend>
                     <div class="flex gap-4" aria-label="Supported languages">
                         {#each ["rust", "go", "c"] as lang}
                             <label
-                                class="flex items-center gap-2"
-                                style="cursor: pointer;"
+                                class="flex items-center gap-2 cursor-pointer"
                             >
                                 <input
                                     type="checkbox"
@@ -388,12 +364,11 @@
                     <label for="game-code">Game Code</label>
                     <textarea
                         id="game-code"
-                        class="textarea"
+                        class="textarea font-mono text-sm"
                         bind:value={formData.game_code}
                         disabled={formLoading}
                         rows="6"
                         required
-                        style="font-family: monospace; font-size: 0.9em;"
                     ></textarea>
                 </div>
                 <div class="form-group">
@@ -459,8 +434,7 @@
                 </div>
                 <div class="form-group">
                     <label
-                        class="flex items-center gap-2"
-                        style="cursor: pointer;"
+                        class="flex items-center gap-2 cursor-pointer"
                     >
                         <input
                             type="checkbox"

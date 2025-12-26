@@ -22,7 +22,7 @@
 
 <div class="text-sm">
     {current} / {max}
-    <span class="badge {badgeInfo.class}" style="margin-left: 0.5rem;">
+    <span class="badge {badgeInfo.class} ml-2">
         {badgeInfo.text}
     </span>
 </div>

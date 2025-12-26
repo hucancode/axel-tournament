@@ -72,8 +72,7 @@
                 >
                 <select
                     id="status-filter"
-                    class="select"
-                    style="width: auto;"
+                    class="select w-auto"
                     bind:value={selectedStatus}
                     onchange={handleStatusChange}
                     disabled={loading}
@@ -85,7 +84,7 @@
             </div>
         </div>
         {#if error}
-            <div class="card" style="background: #fee2e2; margin-bottom: 1rem;">
+            <div class="card bg-red-100 mb-4">
                 <p class="text-red-600">{error}</p>
             </div>
         {/if}

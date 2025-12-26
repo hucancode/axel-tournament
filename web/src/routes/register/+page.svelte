@@ -85,8 +85,7 @@
                 disabled={loading}
             />
             <p
-                class="text-sm text-gray-500"
-                style="margin-top: 0.25rem;"
+                class="text-sm text-gray-500 mt-1"
             >
                 Minimum 8 characters
             </p>
@@ -114,23 +113,21 @@
                 disabled={loading}
             />
             <p
-                class="text-sm text-gray-500"
-                style="margin-top: 0.25rem;"
+                class="text-sm text-gray-500 mt-1"
             >
                 2-letter ISO country code
             </p>
         </div>
         <button
             type="submit"
-            class="btn btn-primary"
-            style="width: 100%;"
+            class="btn btn-primary w-full"
             disabled={loading}
         >
             {loading ? "Creating account..." : "Create Account"}
         </button>
     </form>
-    <div style="margin-top: 1.5rem; text-align: center;">
-        <a href="/login" style="color: var(--primary-600);"
+    <div class="mt-6 text-center">
+        <a href="/login" class="text-primary-600"
             >Already have an account? Login</a
         >
     </div>

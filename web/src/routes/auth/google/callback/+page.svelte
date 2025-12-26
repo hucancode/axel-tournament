@@ -33,7 +33,7 @@
         {#if loading}
             <h1>Authenticating with Google...</h1>
         {:else if error}
-            <div class="card" style="max-width: 500px; margin: 0 auto;">
+            <div class="card max-w-lg mx-auto">
                 <h1 class="text-2xl font-bold mb-4">Authentication Failed</h1>
                 <p class="text-red-600 mb-4">{error}</p>
                 <a href="/login" class="btn btn-primary">Back to Login</a>

@@ -21,8 +21,7 @@
 <a href={link} class={cardClass}>
   <h3 class="text-lg font-semibold mb-2">{tournament.name}</h3>
   <p
-    class="text-sm text-gray-700 mb-4"
-    style="overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;"
+    class="text-sm text-gray-700 mb-4 line-clamp-2"
   >
     {tournament.description}
   </p>

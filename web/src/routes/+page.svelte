@@ -29,25 +29,24 @@
         </div>
         {#if !$authStore.isAuthenticated}
             <div
-                class="card text-center"
-                style="max-width: 600px; margin: 2rem auto;"
+                class="card text-center max-w-2xl mx-auto my-8"
             >
                 <h2 class="text-xl font-semibold mb-4">Get Started</h2>
                 <p class="mb-4">
                     Create an account to participate in tournaments and submit
                     your code
                 </p>
-                <div class="flex gap-4" style="justify-content: center;">
+                <div class="flex gap-4 justify-center">
                     <a href="/register" class="btn btn-primary">Sign Up</a>
                     <a href="/login" class="btn btn-secondary">Login</a>
                 </div>
             </div>
         {:else}
-            <div class="card" style="margin-bottom: 2rem;">
+            <div class="card mb-8">
                 <h2 class="text-xl font-semibold mb-2">
                     Welcome back, {user?.username}!
                 </h2>
-                <div class="flex gap-4" style="margin-top: 1rem;">
+                <div class="flex gap-4 mt-4">
                     <a href="/tournaments" class="btn btn-primary"
                         >Browse Tournaments</a
                     >

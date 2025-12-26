@@ -112,7 +112,7 @@
 
 <div class="page">
   <div class="container">
-    <button class="btn btn-secondary" onclick={() => goto("/game-setter")} style="margin-bottom: 1rem;">
+    <button class="btn btn-secondary mb-4" onclick={() => goto("/game-setter")}>
       ← Back to Dashboard
     </button>
 
@@ -203,7 +203,7 @@
           </div>
         </div>
 
-        <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem;">
+        <div class="flex gap-2 mt-6">
           <button class="btn btn-primary" onclick={createTournament} disabled={creating}>
             {creating ? "Creating..." : "Create Tournament"}
           </button>

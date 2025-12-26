@@ -19,7 +19,7 @@
 <Story name="Disabled" args={{ variant: 'primary', label: 'Disabled Button', disabled: true }} />
 
 <Story name="All Variants">
-  <div style="display: flex; flex-direction: column; gap: 1rem; align-items: flex-start;">
+  <div class="flex flex-col gap-4 items-start">
     <Button variant="primary" label="Primary Button" />
     <Button variant="secondary" label="Secondary Button" />
     <Button variant="danger" label="Danger Button" />

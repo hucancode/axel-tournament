@@ -58,8 +58,7 @@
     </div>
     {#if error}
         <div
-            class="card"
-            style="background-color: #fee2e2; border-left: 4px solid var(--red-600); margin-bottom: 1rem;"
+            class="card bg-red-100 border-l-4 border-red-600 mb-4"
         >
             <p class="text-red-600">{error}</p>
         </div>
@@ -96,36 +95,21 @@
         <div class="grid grid-2">
             <a
                 href="/admin/users"
-                class="card"
-                style="text-decoration: none; color: inherit; transition: transform 0.2s;"
-                onmouseenter={(e) =>
-                    (e.currentTarget.style.transform = "translateY(-4px)")}
-                onmouseleave={(e) =>
-                    (e.currentTarget.style.transform = "translateY(0)")}
+                class="card no-underline text-inherit transition-transform duration-200 hover:-translate-y-1"
             >
                 <h2 class="font-semibold text-lg mb-2">User Management</h2>
                 <p class="text-gray-500">View, ban, and manage user accounts</p>
             </a>
             <a
                 href="/admin/games"
-                class="card"
-                style="text-decoration: none; color: inherit; transition: transform 0.2s;"
-                onmouseenter={(e) =>
-                    (e.currentTarget.style.transform = "translateY(-4px)")}
-                onmouseleave={(e) =>
-                    (e.currentTarget.style.transform = "translateY(0)")}
+                class="card no-underline text-inherit transition-transform duration-200 hover:-translate-y-1"
             >
                 <h2 class="font-semibold text-lg mb-2">Game Management</h2>
                 <p class="text-gray-500">Create, edit, and delete games</p>
             </a>
             <a
                 href="/admin/tournaments"
-                class="card"
-                style="text-decoration: none; color: inherit; transition: transform 0.2s;"
-                onmouseenter={(e) =>
-                    (e.currentTarget.style.transform = "translateY(-4px)")}
-                onmouseleave={(e) =>
-                    (e.currentTarget.style.transform = "translateY(0)")}
+                class="card no-underline text-inherit transition-transform duration-200 hover:-translate-y-1"
             >
                 <h2 class="font-semibold text-lg mb-2">
                     Tournament Management
@@ -134,12 +118,7 @@
             </a>
             <a
                 href="/admin/matches"
-                class="card"
-                style="text-decoration: none; color: inherit; transition: transform 0.2s;"
-                onmouseenter={(e) =>
-                    (e.currentTarget.style.transform = "translateY(-4px)")}
-                onmouseleave={(e) =>
-                    (e.currentTarget.style.transform = "translateY(0)")}
+                class="card no-underline text-inherit transition-transform duration-200 hover:-translate-y-1"
             >
                 <h2 class="font-semibold text-lg mb-2">Match Management</h2>
                 <p class="text-gray-500">View and manage match results</p>

@@ -143,7 +143,7 @@
   <div class="container">
     <h1>Game Setter Dashboard</h1>
 
-    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 0.5rem 0 1rem;">
+    <div class="flex gap-2 flex-wrap my-2 mb-4">
       <button class="btn btn-secondary" onclick={() => goto("/game-setter/matches")}>
         Match Console
       </button>
@@ -153,13 +153,13 @@
     </div>
 
     {#if actionMessage}
-      <div class="card" style="background: #d1fae5; margin-bottom: 0.75rem;">
+      <div class="card bg-emerald-100 mb-3">
         <p class="text-green-700">{actionMessage}</p>
       </div>
     {/if}
 
     {#if actionError}
-      <div class="card" style="background: #fee2e2; margin-bottom: 0.75rem;">
+      <div class="card bg-red-100 mb-3">
         <p class="text-red-600">{actionError}</p>
       </div>
     {/if}
@@ -176,7 +176,7 @@
       <div class="grid grid-2">
         <!-- My Games -->
         <div class="card">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <div class="flex justify-between items-center mb-4">
             <h2>My Games</h2>
             <button class="btn btn-primary" onclick={createGame}>Create Game</button>
           </div>
@@ -184,11 +184,10 @@
           {#if myGames.length === 0}
             <p class="text-sm">No games yet. Create your first game to get started!</p>
           {:else}
-            <div style="display: flex; flex-direction: column; gap: 1rem;">
+            <div class="flex flex-col gap-4">
               {#each myGames as game}
                 <div
-                  class="card"
-                  style="cursor: pointer;"
+                  class="card cursor-pointer"
                   role="button"
                   tabindex="0"
                   onclick={() => manageGame(game.id)}
@@ -196,7 +195,7 @@
                 >
                   <h3>{game.name}</h3>
                   <p class="text-sm">{game.description}</p>
-                  <div style="margin-top: 0.5rem;">
+                  <div class="mt-2">
                     <span class="badge {game.is_active ? 'badge-running' : 'badge-cancelled'}">
                       {game.is_active ? 'Active' : 'Inactive'}
                     </span>
@@ -209,7 +208,7 @@
 
         <!-- My Tournaments -->
         <div class="card">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <div class="flex justify-between items-center mb-4">
             <h2>My Tournaments</h2>
             <button class="btn btn-primary" onclick={createTournament}>Create Tournament</button>
           </div>
@@ -217,31 +216,29 @@
           {#if filteredTournaments.length === 0}
             <p class="text-sm">No tournaments yet for your games.</p>
           {:else}
-            <div style="display: flex; flex-direction: column; gap: 1rem;">
+            <div class="flex flex-col gap-4">
               {#each filteredTournaments as tournament}
                 <div class="card">
-                  <div style="display: flex; justify-content: space-between; gap: 0.75rem;">
+                  <div class="flex justify-between gap-3">
                     <div>
-                      <h3 style="margin-bottom: 0.35rem;">{tournament.name}</h3>
+                      <h3 class="mb-1.5">{tournament.name}</h3>
                       <p class="text-sm">{tournament.description}</p>
                     </div>
                     <span class={getStatusBadge(tournament.status)}>{tournament.status}</span>
                   </div>
-                  <div class="text-sm text-gray-600" style="margin: 0.35rem 0 0.75rem;">
+                  <div class="text-sm text-gray-600 my-1.5 mb-3">
                     {(participantCounts[tournament.id] || []).length}/{tournament.max_players} players
                   </div>
-                  <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                  <div class="flex gap-2 flex-wrap">
                     <a
-                      class="btn btn-secondary"
-                      style="padding: 0.4rem 0.9rem;"
+                      class="btn btn-secondary py-1.5 px-3.5"
                       href="/tournaments/{tournament.id}"
                     >
                       View
                     </a>
                     {#if canOpenRegistration(tournament.status)}
                       <button
-                        class="btn btn-primary"
-                        style="padding: 0.4rem 0.9rem;"
+                        class="btn btn-primary py-1.5 px-3.5"
                         onclick={() => updateTournamentStatus(tournament.id, "registration")}
                         disabled={!!tournamentAction[tournament.id]}
                       >
@@ -250,8 +247,7 @@
                     {/if}
                     {#if canStart(tournament.status)}
                       <button
-                        class="btn btn-success"
-                        style="padding: 0.4rem 0.9rem;"
+                        class="btn btn-success py-1.5 px-3.5"
                         onclick={() => startTournament(tournament.id)}
                         disabled={!!tournamentAction[tournament.id]}
                       >
@@ -260,8 +256,7 @@
                     {/if}
                     {#if canClose(tournament.status)}
                       <button
-                        class="btn btn-secondary"
-                        style="padding: 0.4rem 0.9rem;"
+                        class="btn btn-secondary py-1.5 px-3.5"
                         onclick={() => updateTournamentStatus(tournament.id, "completed")}
                         disabled={!!tournamentAction[tournament.id]}
                       >
@@ -270,8 +265,7 @@
                     {/if}
                     {#if canCancel(tournament.status)}
                       <button
-                        class="btn btn-danger"
-                        style="padding: 0.4rem 0.9rem;"
+                        class="btn btn-danger py-1.5 px-3.5"
                         onclick={() => updateTournamentStatus(tournament.id, "cancelled")}
                         disabled={!!tournamentAction[tournament.id]}
                       >

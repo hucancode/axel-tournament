@@ -111,8 +111,7 @@
     </div>
     {#if error}
         <div
-            class="card"
-            style="background-color: #fee2e2; border-left: 4px solid var(--red-600); margin-bottom: 1rem;"
+            class="card bg-red-100 border-l-4 border-red-600 mb-4"
         >
             <p class="text-red-600">{error}</p>
         </div>
@@ -127,7 +126,7 @@
         </div>
     {:else}
         <div class="card">
-            <div style="overflow-x: auto;">
+            <div class="overflow-x-auto">
                 <table>
                     <thead>
                         <tr>
@@ -176,24 +175,21 @@
                                 <td>
                                     {#if user.is_banned}
                                         <button
-                                            class="btn btn-success btn-sm"
-                                            style="padding: 0.25rem 0.75rem; font-size: 0.875rem;"
+                                            class="btn btn-success btn-sm py-1 px-3 text-sm"
                                             onclick={() => handleUnban(user)}
                                         >
                                             Unban
                                         </button>
                                         {#if user.ban_reason}
                                             <p
-                                                class="text-sm text-gray-500"
-                                                style="margin-top: 0.25rem;"
+                                                class="text-sm text-gray-500 mt-1"
                                             >
                                                 Reason: {user.ban_reason}
                                             </p>
                                         {/if}
                                     {:else if user.role !== "admin"}
                                         <button
-                                            class="btn btn-danger btn-sm"
-                                            style="padding: 0.25rem 0.75rem; font-size: 0.875rem;"
+                                            class="btn btn-danger btn-sm py-1 px-3 text-sm"
                                             onclick={() => openBanDialog(user)}
                                         >
                                             Ban
@@ -244,18 +240,7 @@
 <!-- Ban Dialog Modal -->
 {#if showBanDialog && selectedUser}
     <div
-        style="
-			position: fixed;
-			top: 0;
-			left: 0;
-			right: 0;
-			bottom: 0;
-			background: rgba(0, 0, 0, 0.5);
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			z-index: 1000;
-		"
+        class="fixed inset-0 bg-black/50 flex items-center justify-center z-[1000]"
         role="button"
         tabindex="0"
         aria-label="Close ban dialog"
@@ -273,20 +258,14 @@
         }}
     >
         <div
-            class="card"
-            style="
-				max-width: 500px;
-				width: 90%;
-				max-height: 90vh;
-				overflow-y: auto;
-			"
+            class="card max-w-[500px] w-[90%] max-h-[90vh] overflow-y-auto"
         >
             <h2 class="font-bold text-xl mb-4">
                 Ban User: {selectedUser.username}
             </h2>
             {#if banError}
                 <div
-                    style="background-color: #fee2e2; border-left: 4px solid var(--red-600); padding: 1rem; margin-bottom: 1rem;"
+                    class="bg-red-100 border-l-4 border-red-600 p-4 mb-4"
                 >
                     <p class="text-red-600">{banError}</p>
                 </div>

@@ -45,19 +45,17 @@
 </script>
 
 <div class="page">
-    <div class="container" style="max-width: 420px;">
+    <div class="container max-w-md">
         <div class="card">
             <h1 class="page-title text-center">Set New Password</h1>
             <p
-                class="text-sm text-gray-500"
-                style="margin-bottom: 1.5rem; text-align: center;"
+                class="text-sm text-gray-500 mb-6 text-center"
             >
                 Choose a new password for your account.
             </p>
             {#if !token}
                 <div
-                    class="card"
-                    style="background: #fee2e2; margin-bottom: 1rem;"
+                    class="card bg-red-100 mb-4"
                 >
                     <p class="text-red-600">
                         Reset token is missing or invalid.
@@ -66,16 +64,14 @@
             {/if}
             {#if error}
                 <div
-                    class="card"
-                    style="background: #fee2e2; margin-bottom: 1rem;"
+                    class="card bg-red-100 mb-4"
                 >
                     <p class="text-red-600">{error}</p>
                 </div>
             {/if}
             {#if message}
                 <div
-                    class="card"
-                    style="background: #d1fae5; margin-bottom: 1rem;"
+                    class="card bg-green-100 mb-4"
                 >
                     <p class="text-green-700">{message}</p>
                 </div>
@@ -93,8 +89,7 @@
                         disabled={loading || !token}
                     />
                     <p
-                        class="text-sm text-gray-500"
-                        style="margin-top: 0.25rem;"
+                        class="text-sm text-gray-500 mt-1"
                     >
                         Minimum 8 characters
                     </p>
@@ -112,15 +107,14 @@
                 </div>
                 <button
                     type="submit"
-                    class="btn btn-primary"
-                    style="width: 100%;"
+                    class="btn btn-primary w-full"
                     disabled={loading || !token}
                 >
                     {loading ? "Saving..." : "Reset Password"}
                 </button>
             </form>
-            <div style="margin-top: 1.5rem; text-align: center;">
-                <a href="/login" style="color: var(--primary-600);"
+            <div class="mt-6 text-center">
+                <a href="/login" class="text-primary-600"
                     >Back to Login</a
                 >
             </div>

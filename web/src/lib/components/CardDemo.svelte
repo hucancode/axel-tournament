@@ -15,10 +15,10 @@
     {@render children()}
   {:else}
     {#if title}
-      <h3 style="margin-bottom: 0.5rem;">{title}</h3>
+      <h3 class="mb-2">{title}</h3>
     {/if}
     {#if content}
-      <p style="margin: 0; color: #666;">{content}</p>
+      <p class="m-0 text-gray-600">{content}</p>
     {/if}
   {/if}
 </div>

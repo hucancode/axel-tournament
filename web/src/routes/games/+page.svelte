@@ -52,7 +52,7 @@
             <p class="text-gray-500">Available programming challenge games</p>
         </div>
         {#if error}
-            <div class="card" style="background: #fee2e2; margin-bottom: 1rem;">
+            <div class="card bg-red-100 mb-4">
                 <p class="text-red-600">{error}</p>
             </div>
         {/if}
@@ -97,8 +97,7 @@
                                     Tournament Statistics:
                                 </div>
                                 <div
-                                    class="grid gap-2"
-                                    style="grid-template-columns: auto 1fr;"
+                                    class="grid gap-2 grid-cols-[auto_1fr]"
                                 >
                                     <div class="text-sm text-gray-500">
                                         Active Tournaments:
@@ -118,15 +117,13 @@
                                 {#if tournamentsByGame.get(game.id)?.length}
                                     <a
                                         href="/tournaments?game={game.id}"
-                                        class="btn btn-primary"
-                                        style="flex: 1;"
+                                        class="btn btn-primary flex-1"
                                     >
                                         View Tournaments
                                     </a>
                                 {:else}
                                     <button
-                                        class="btn btn-secondary"
-                                        style="flex: 1;"
+                                        class="btn btn-secondary flex-1"
                                         disabled
                                     >
                                         No Tournaments Yet
@@ -149,7 +146,7 @@
                     <div class="grid grid-3">
                         {#each games as game}
                             {#if !game.is_active}
-                                <div class="card" style="opacity: 0.7;">
+                                <div class="card opacity-70">
                                     <div
                                         class="flex justify-between items-center mb-2"
                                     >

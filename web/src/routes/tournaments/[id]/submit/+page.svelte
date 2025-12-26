@@ -111,8 +111,7 @@
     {:else}
         {#if error}
             <div
-                class="card"
-                style="background-color: #fee2e2; border-left: 4px solid var(--red-600); margin-bottom: 1rem;"
+                class="card bg-red-100 border-l-4 border-red-600 mb-4"
             >
                 <p class="text-red-600">{error}</p>
             </div>
@@ -120,13 +119,12 @@
         <div class="card">
             {#if !isParticipant}
                 <div
-                    class="text-sm text-red-600"
-                    style="margin-bottom: 1rem;"
+                    class="text-sm text-red-600 mb-4"
                 >
                     You must join this tournament before submitting code.
                     <a
                         href="/tournaments/{tournamentId}"
-                        style="margin-left: 0.35rem; color: var(--primary-600);"
+                        class="ml-1 text-primary-600"
                     >
                         Go back
                     </a>
@@ -153,19 +151,17 @@
                     <label for="code">Code</label>
                     <textarea
                         id="code"
-                        class="textarea"
+                        class="textarea font-mono text-sm"
                         bind:value={code}
                         disabled={loading || !isParticipant}
                         rows="25"
                         placeholder="Paste your code here..."
-                        style="font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace; font-size: 0.875rem;"
                     ></textarea>
                     {#if validationErrors.code}
                         <p class="form-error">{validationErrors.code}</p>
                     {/if}
                     <p
-                        class="text-sm text-gray-500"
-                        style="margin-top: 0.5rem;"
+                        class="text-sm text-gray-500 mt-2"
                     >
                         {code.length.toLocaleString()} characters
                     </p>
