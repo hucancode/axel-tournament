@@ -4,6 +4,7 @@
     import { page } from "$app/state";
     import { authStore } from "$lib/stores/auth";
     import { authService } from "$lib/services/auth";
+    import { LinkButton } from "$lib/components";
     let error = $state("");
     let loading = $state(true);
     onMount(async () => {
@@ -36,7 +37,7 @@
             <div class="card max-w-lg mx-auto">
                 <h1 class="text-2xl font-bold mb-4">Authentication Failed</h1>
                 <p class="text-red-600 mb-4">{error}</p>
-                <a href="/login" class="btn btn-primary">Back to Login</a>
+                <LinkButton href="/login" variant="primary" label="Back to Login" />
             </div>
         {/if}
     </div>

@@ -4,6 +4,7 @@
     import type { Tournament } from "$lib/types";
     import { tournamentService } from "$lib/services/tournaments";
     import TournamentCard from "$lib/components/TournamentCard.svelte";
+    import { LinkButton } from "$lib/components";
     let tournaments = $state<Tournament[]>([]);
     let loading = $state(true);
     onMount(async () => {
@@ -37,8 +38,8 @@
                     your code
                 </p>
                 <div class="flex gap-4 justify-center">
-                    <a href="/register" class="btn btn-primary">Sign Up</a>
-                    <a href="/login" class="btn btn-secondary">Login</a>
+                    <LinkButton href="/register" variant="primary" label="Sign Up" />
+                    <LinkButton href="/login" variant="secondary" label="Login" />
                 </div>
             </div>
         {:else}
@@ -47,10 +48,8 @@
                     Welcome back, {user?.username}!
                 </h2>
                 <div class="flex gap-4 mt-4">
-                    <a href="/tournaments" class="btn btn-primary"
-                        >Browse Tournaments</a
-                    >
-                    <a href="/profile" class="btn btn-secondary">View Profile</a>
+                    <LinkButton href="/tournaments" variant="primary" label="Browse Tournaments" />
+                    <LinkButton href="/profile" variant="secondary" label="View Profile" />
                 </div>
             </div>
         {/if}
@@ -71,9 +70,7 @@
             </div>
             {#if tournaments.length > 6}
                 <div class="text-center mt-4">
-                    <a href="/tournaments" class="btn btn-primary"
-                        >View All Tournaments</a
-                    >
+                    <LinkButton href="/tournaments" variant="primary" label="View All Tournaments" />
                 </div>
             {/if}
         {/if}

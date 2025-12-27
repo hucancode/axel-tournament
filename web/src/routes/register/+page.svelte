@@ -3,7 +3,7 @@
     import { authStore } from "$lib/stores/auth";
     import { goto } from "$app/navigation";
     import { onMount } from "svelte";
-    import { AuthCard } from "$lib";
+    import { AuthCard, Button } from "$lib/components";
     let email = $state("");
     let username = $state("");
     let password = $state("");
@@ -118,13 +118,11 @@
                 2-letter ISO country code
             </p>
         </div>
-        <button
-            type="submit"
-            class="btn btn-primary w-full"
+        <Button
+            variant="primary"
+            label={loading ? "Creating account..." : "Create Account"}
             disabled={loading}
-        >
-            {loading ? "Creating account..." : "Create Account"}
-        </button>
+        />
     </form>
     <div class="mt-6 text-center">
         <a href="/login" class="text-primary-600"

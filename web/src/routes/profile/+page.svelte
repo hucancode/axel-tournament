@@ -5,6 +5,7 @@
     import { goto } from "$app/navigation";
     import { onMount } from "svelte";
     import type { Submission } from "$lib/types";
+    import { Button } from "$lib/components";
     let user = $state($authStore.user);
     let submissions = $state<Submission[]>([]);
     let location = $state(user?.location || "");
@@ -104,13 +105,12 @@
                     2-letter ISO country code
                 </p>
             </div>
-            <button
+            <Button
                 onclick={updateLocation}
-                class="btn btn-primary"
+                variant="primary"
+                label={loading ? "Updating..." : "Update Location"}
                 disabled={loading}
-            >
-                {loading ? "Updating..." : "Update Location"}
-            </button>
+            />
         </div>
         <div class="card">
             <h2 class="text-xl font-semibold mb-4">My Submissions</h2>

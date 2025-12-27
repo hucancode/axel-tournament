@@ -3,6 +3,7 @@
     import { onMount } from "svelte";
     import { authStore } from "$lib/stores/auth";
     import { adminService } from "$lib/services/admin";
+    import { Button, LinkButton } from "$lib/components";
     import type { User } from "$lib/types";
     let users = $state<User[]>([]);
     let loading = $state(true);
@@ -106,7 +107,7 @@
                     Manage user accounts and permissions
                 </p>
             </div>
-            <a href="/admin" class="btn btn-secondary">Back to Dashboard</a>
+            <LinkButton variant="secondary" href="/admin" label="Back to Dashboard" />
         </div>
     </div>
     {#if error}
@@ -174,12 +175,11 @@
                                 </td>
                                 <td>
                                     {#if user.is_banned}
-                                        <button
-                                            class="btn btn-success btn-sm py-1 px-3 text-sm"
+                                        <Button
+                                            variant="success"
+                                            label="Unban"
                                             onclick={() => handleUnban(user)}
-                                        >
-                                            Unban
-                                        </button>
+                                        />
                                         {#if user.ban_reason}
                                             <p
                                                 class="text-sm text-gray-500 mt-1"
@@ -188,12 +188,11 @@
                                             </p>
                                         {/if}
                                     {:else if user.role !== "admin"}
-                                        <button
-                                            class="btn btn-danger btn-sm py-1 px-3 text-sm"
+                                        <Button
+                                            variant="danger"
+                                            label="Ban"
                                             onclick={() => openBanDialog(user)}
-                                        >
-                                            Ban
-                                        </button>
+                                        />
                                     {:else}
                                         <span class="text-sm text-gray-500"
                                             >Admin</span
@@ -208,29 +207,27 @@
             <!-- Pagination (for future implementation) -->
             {#if totalPages > 1}
                 <div class="flex justify-between items-center mt-4">
-                    <button
-                        class="btn btn-secondary"
+                    <Button
+                        variant="secondary"
+                        label="Previous"
                         disabled={currentPage === 1}
                         onclick={() => {
                             currentPage--;
                             loadUsers();
                         }}
-                    >
-                        Previous
-                    </button>
+                    />
                     <span class="text-gray-700">
                         Page {currentPage} of {totalPages}
                     </span>
-                    <button
-                        class="btn btn-secondary"
+                    <Button
+                        variant="secondary"
+                        label="Next"
                         disabled={currentPage === totalPages}
                         onclick={() => {
                             currentPage++;
                             loadUsers();
                         }}
-                    >
-                        Next
-                    </button>
+                    />
                 </div>
             {/if}
         </div>
@@ -289,21 +286,19 @@
                     ></textarea>
                 </div>
                 <div class="flex gap-2">
-                    <button
+                    <Button
                         type="submit"
-                        class="btn btn-danger"
+                        variant="danger"
                         disabled={banLoading || !banReason.trim()}
-                    >
-                        {banLoading ? "Banning..." : "Ban User"}
-                    </button>
-                    <button
+                        label={banLoading ? "Banning..." : "Ban User"}
+                    />
+                    <Button
                         type="button"
-                        class="btn btn-secondary"
+                        variant="secondary"
                         disabled={banLoading}
+                        label="Cancel"
                         onclick={closeBanDialog}
-                    >
-                        Cancel
-                    </button>
+                    />
                 </div>
             </form>
         </div>

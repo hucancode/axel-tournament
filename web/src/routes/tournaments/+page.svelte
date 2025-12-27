@@ -2,7 +2,7 @@
     import { tournamentService } from "$lib/services/tournaments";
     import { onMount } from "svelte";
     import type { Tournament, TournamentParticipant } from "$lib/types";
-    import TournamentCard from "$lib/components/TournamentCard.svelte";
+    import { TournamentCard } from "$lib/components";
     let tournaments = $state<Tournament[]>([]);
     let participantCounts = $state<Record<string, TournamentParticipant[]>>({});
     let loading = $state(true);
@@ -27,7 +27,7 @@
             const status =
                 selectedStatus === "all" ? undefined : selectedStatus;
             tournaments = await tournamentService.list(status);
-            
+
             // Load participants for each tournament
             const participantPromises = tournaments.map(async (tournament) => {
                 try {
@@ -38,7 +38,7 @@
                     return { tournamentId: tournament.id, participants: [] };
                 }
             });
-            
+
             const participantResults = await Promise.all(participantPromises);
             participantCounts = participantResults.reduce((acc, { tournamentId, participants }) => {
                 acc[tournamentId] = participants;
@@ -99,8 +99,8 @@
         {:else}
             <div class="grid grid-2">
                 {#each tournaments as tournament}
-                    <TournamentCard 
-                        {tournament} 
+                    <TournamentCard
+                        {tournament}
                         participants={participantCounts[tournament.id] || []}
                     />
                 {/each}

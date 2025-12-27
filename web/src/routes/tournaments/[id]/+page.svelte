@@ -6,6 +6,7 @@
     import { page } from "$app/state";
     import { onMount } from "svelte";
     import { goto } from "$app/navigation";
+    import { Button, LinkButton } from "$lib/components";
     import type {
         Tournament,
         TournamentParticipant,
@@ -177,9 +178,7 @@
                             {tournament.status}
                         </span>
                     </div>
-                    <a href="/tournaments" class="btn btn-secondary"
-                        >Back to Tournaments</a
-                    >
+                    <LinkButton href="/tournaments" variant="secondary" label="Back to Tournaments" />
                 </div>
             </div>
             {#if actionError}
@@ -322,12 +321,11 @@
                                 Your Submissions
                             </h2>
                             {#if canSubmit()}
-                                <a
+                                <LinkButton
                                     href="/tournaments/{tournamentId}/submit"
-                                    class="btn btn-primary py-[0.35rem] px-3 text-sm"
-                                >
-                                    New Submission
-                                </a>
+                                    variant="primary"
+                                    label="New Submission"
+                                />
                             {/if}
                         </div>
                         {#if !$authStore.isAuthenticated}
@@ -395,42 +393,38 @@
                             <p class="text-sm text-gray-500 mb-4">
                                 You must be logged in to participate
                             </p>
-                            <a
+                            <LinkButton
                                 href="/login"
-                                class="btn btn-primary w-full"
-                            >
-                                Login
-                            </a>
+                                variant="primary"
+                                label="Login"
+                            />
                         {:else}
                             {#if canJoin()}
-                                <button
+                                <Button
                                     onclick={joinTournament}
-                                    class="btn btn-success mb-2 w-full"
-                                    disabled={actionLoading}
-                                >
-                                    {actionLoading
+                                    variant="success"
+                                    label={actionLoading
                                         ? "Joining..."
                                         : "Join Tournament"}
-                                </button>
+                                    disabled={actionLoading}
+                                />
                             {/if}
                             {#if canLeave()}
-                                <button
+                                <Button
                                     onclick={leaveTournament}
-                                    class="btn btn-danger mb-2 w-full"
-                                    disabled={actionLoading}
-                                >
-                                    {actionLoading
+                                    variant="danger"
+                                    label={actionLoading
                                         ? "Leaving..."
                                         : "Leave Tournament"}
-                                </button>
+                                    disabled={actionLoading}
+                                />
                             {/if}
                             {#if canSubmit()}
-                                <a
+                                <LinkButton
                                     href="/tournaments/{tournamentId}/submit"
-                                    class="btn btn-primary w-full"
-                                >
-                                    Submit Code
-                                </a>
+                                    variant="primary"
+                                    label="Submit Code"
+                                />
                             {/if}
                             {#if isParticipant}
                                 <div

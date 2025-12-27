@@ -1,17 +1,19 @@
 <script lang="ts">
+    import { Button } from "$lib/components";
+
     interface LoginData {
         email: string;
         password: string;
     }
 
-    let { 
-        title, 
-        error = "", 
-        loading = false, 
+    let {
+        title,
+        error = "",
+        loading = false,
         showEmailPassword = false,
         submitText = "Submit",
         onsubmit,
-        children 
+        children
     }: {
         title: string;
         error?: string;
@@ -40,7 +42,7 @@
                     <p class="text-red-600">{error}</p>
                 </div>
             {/if}
-            
+
             {#if showEmailPassword}
                 <form onsubmit={handleSubmit}>
                     <div class="form-group">
@@ -65,16 +67,14 @@
                             disabled={loading}
                         />
                     </div>
-                    <button
-                        type="submit"
-                        class="btn btn-primary w-full"
+                    <Button
+                        variant="primary"
+                        label={loading ? "Loading..." : submitText}
                         disabled={loading}
-                    >
-                        {loading ? "Loading..." : submitText}
-                    </button>
+                    />
                 </form>
             {/if}
-            
+
             {@render children?.()}
         </div>
     </div>

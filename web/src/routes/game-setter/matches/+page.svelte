@@ -6,6 +6,7 @@
   import { matchService } from "$lib/services/matches";
   import { tournamentService } from "$lib/services/tournaments";
   import type { Game, Match, MatchStatus, Tournament } from "$lib/types";
+  import { Button } from "$lib/components";
 
   let { user, isAuthenticated } = $derived($authStore);
   let matches: Match[] = $state([]);
@@ -138,8 +139,8 @@
         <p class="text-gray-500">Monitor matches for your games and tournaments</p>
       </div>
       <div class="flex gap-2">
-        <button class="btn btn-secondary" onclick={() => goto("/game-setter")}>Back</button>
-        <button class="btn btn-primary" onclick={loadData}>Refresh</button>
+        <Button variant="secondary" label="Back" onclick={() => goto("/game-setter")} />
+        <Button variant="primary" label="Refresh" onclick={loadData} />
       </div>
     </div>
 

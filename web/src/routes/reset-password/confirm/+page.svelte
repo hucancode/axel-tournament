@@ -1,6 +1,7 @@
 <script lang="ts">
     import { authService } from "$lib/services/auth";
     import { page } from "$app/state";
+    import { Button } from "$lib/components";
 
     let token = $derived(page.url.searchParams.get("token") ?? "");
     let password = $state("");
@@ -105,13 +106,11 @@
                         disabled={loading || !token}
                     />
                 </div>
-                <button
-                    type="submit"
-                    class="btn btn-primary w-full"
+                <Button
+                    variant="primary"
+                    label={loading ? "Saving..." : "Reset Password"}
                     disabled={loading || !token}
-                >
-                    {loading ? "Saving..." : "Reset Password"}
-                </button>
+                />
             </form>
             <div class="mt-6 text-center">
                 <a href="/login" class="text-primary-600"

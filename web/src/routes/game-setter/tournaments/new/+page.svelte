@@ -10,6 +10,7 @@
     TournamentStatus,
     MatchGenerationType,
   } from "$lib/types";
+  import { Button } from "$lib/components";
 
   let { user, isAuthenticated } = $derived($authStore);
   let myGames: Game[] = $state([]);
@@ -112,9 +113,8 @@
 
 <div class="page">
   <div class="container">
-    <button class="btn btn-secondary mb-4" onclick={() => goto("/game-setter")}>
-      ← Back to Dashboard
-    </button>
+    <Button variant="secondary" label="← Back to Dashboard" onclick={() => goto("/game-setter")} />
+    <div class="mb-4"></div>
 
     <h1>Create Tournament</h1>
 
@@ -204,10 +204,8 @@
         </div>
 
         <div class="flex gap-2 mt-6">
-          <button class="btn btn-primary" onclick={createTournament} disabled={creating}>
-            {creating ? "Creating..." : "Create Tournament"}
-          </button>
-          <button class="btn btn-secondary" onclick={() => goto("/game-setter")}>Cancel</button>
+          <Button variant="primary" label={creating ? "Creating..." : "Create Tournament"} onclick={createTournament} disabled={creating} />
+          <Button variant="secondary" label="Cancel" onclick={() => goto("/game-setter")} />
         </div>
       </div>
     {/if}

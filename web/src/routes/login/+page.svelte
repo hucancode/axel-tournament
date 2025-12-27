@@ -4,7 +4,7 @@
     import { goto } from "$app/navigation";
     import { onMount } from "svelte";
     import { env } from "$env/dynamic/public";
-    import { AuthCard } from "$lib";
+    import { AuthCard, Button } from "$lib/components";
     let error = $state("");
     let loading = $state(false);
     onMount(() => {
@@ -32,10 +32,10 @@
     }
 </script>
 
-<AuthCard 
-    title="Login" 
-    {error} 
-    {loading} 
+<AuthCard
+    title="Login"
+    {error}
+    {loading}
     showEmailPassword={true}
     submitText="Login"
     onsubmit={handleLogin}
@@ -45,12 +45,11 @@
     >
         or
     </div>
-    <button
+    <Button
         onclick={handleGoogleLogin}
-        class="btn btn-secondary w-full"
-    >
-        Continue with Google
-    </button>
+        variant="secondary"
+        label="Continue with Google"
+    />
     <div class="mt-6 text-center">
         <a href="/register" class="text-primary-600"
             >Don't have an account? Sign up</a

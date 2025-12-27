@@ -4,6 +4,7 @@
     import { authStore } from "$lib/stores/auth";
     import { tournamentService } from "$lib/services/tournaments";
     import { gameService } from "$lib/services/games";
+    import { Button, LinkButton } from "$lib/components";
     import type {
         Tournament,
         TournamentParticipant,
@@ -248,10 +249,8 @@
                 <p class="text-gray-500">Create and manage tournaments</p>
             </div>
             <div class="flex gap-2">
-                <button class="btn btn-primary" onclick={openCreateForm}>
-                    Create New Tournament
-                </button>
-                <a href="/admin" class="btn btn-secondary">Back to Dashboard</a>
+                <Button variant="primary" label="Create New Tournament" onclick={openCreateForm} />
+                <LinkButton variant="secondary" href="/admin" label="Back to Dashboard" />
             </div>
         </div>
     </div>
@@ -281,9 +280,7 @@
             <p class="text-gray-500">
                 Please create a game first before creating tournaments.
             </p>
-            <a href="/admin/games" class="btn btn-primary mt-4">
-                Go to Game Management
-            </a>
+            <LinkButton variant="primary" href="/admin/games" label="Go to Game Management" />
         </div>
     {:else if tournaments.length === 0}
         <div class="card text-center">
@@ -348,8 +345,11 @@
                                         class="flex gap-2 flex-wrap"
                                     >
                                         {#if tournament.status === "registration"}
-                                            <button
-                                                class="btn btn-success py-1 px-3 text-sm"
+                                            <Button
+                                                variant="success"
+                                                label={actionLoading[tournament.id]
+                                                    ? "Starting..."
+                                                    : "Start"}
                                                 onclick={() =>
                                                     startTournament(
                                                         tournament.id,
@@ -357,19 +357,14 @@
                                                 disabled={actionLoading[
                                                     tournament.id
                                                 ]}
-                                            >
-                                                {actionLoading[tournament.id]
-                                                    ? "Starting..."
-                                                    : "Start"}
-                                            </button>
+                                            />
                                         {/if}
-                                        <button
-                                            class="btn btn-secondary py-1 px-3 text-sm"
+                                        <Button
+                                            variant="secondary"
+                                            label="Edit"
                                             onclick={() =>
                                                 openEditForm(tournament)}
-                                        >
-                                            Edit
-                                        </button>
+                                        />
                                     </div>
                                 </td>
                             </tr>
@@ -546,25 +541,23 @@
                     </div>
                 </div>
                 <div class="flex gap-2">
-                    <button
+                    <Button
                         type="submit"
-                        class="btn btn-primary"
+                        variant="primary"
                         disabled={formLoading}
-                    >
-                        {formLoading
+                        label={formLoading
                             ? "Saving..."
                             : isEditing
                               ? "Update Tournament"
                               : "Create Tournament"}
-                    </button>
-                    <button
+                    />
+                    <Button
                         type="button"
-                        class="btn btn-secondary"
+                        variant="secondary"
                         disabled={formLoading}
+                        label="Cancel"
                         onclick={closeForm}
-                    >
-                        Cancel
-                    </button>
+                    />
                 </div>
             </form>
         </div>

@@ -3,6 +3,7 @@
     import { page } from "$app/state";
     import { authStore } from "$lib/stores/auth";
     import { goto } from "$app/navigation";
+    import { Button, LinkButton } from "$lib/components";
     let { children } = $props();
     function logout() {
         authStore.logout();
@@ -50,12 +51,11 @@
                         <a href="/game-setter">Game Setter</a>
                     {/if}
                     <a href="/profile">{user?.username}</a>
-                    <button onclick={logout} class="btn btn-secondary text-sm"
-                        >Logout</button
+                    <Button onclick={logout} label="Logout" />
                     >
                 {:else}
                     <a href="/login">Login</a>
-                    <a href="/register" class="btn btn-primary text-sm">Sign Up</a>
+                    <LinkButton href="/register" variant="primary" label="Sign Up" />
                 {/if}
             </div>
         </div>

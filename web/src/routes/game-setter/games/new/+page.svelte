@@ -3,6 +3,7 @@
   import { goto } from "$app/navigation";
   import { gameSetterService } from "$lib/services/game-setter";
   import type { ProgrammingLanguage } from "$lib/types";
+  import { Button } from "$lib/components";
 
   let { user, isAuthenticated } = $derived($authStore);
 
@@ -223,12 +224,8 @@
       </div>
 
       <div class="flex gap-4">
-        <button type="submit" class="btn btn-primary" disabled={loading || selectedLanguages.length === 0}>
-          {loading ? "Creating..." : "Create Game"}
-        </button>
-        <button type="button" class="btn btn-secondary" onclick={() => goto("/game-setter")}>
-          Cancel
-        </button>
+        <Button type="submit" variant="primary" label={loading ? "Creating..." : "Create Game"} disabled={loading || selectedLanguages.length === 0} />
+        <Button variant="secondary" label="Cancel" onclick={() => goto("/game-setter")} />
       </div>
     </form>
   </div>

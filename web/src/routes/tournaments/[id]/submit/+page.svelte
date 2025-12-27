@@ -5,6 +5,7 @@
     import { authStore } from "$lib/stores/auth";
     import { submissionService } from "$lib/services/submissions";
     import { tournamentService } from "$lib/services/tournaments";
+    import { Button, LinkButton } from "$lib/components";
     import type {
         Tournament,
         TournamentParticipant,
@@ -167,19 +168,16 @@
                     </p>
                 </div>
                 <div class="flex gap-2">
-                    <button
-                        type="submit"
-                        class="btn btn-primary"
+                    <Button
+                        variant="primary"
+                        label={loading ? "Submitting..." : "Submit Code"}
                         disabled={loading || !isParticipant}
-                    >
-                        {loading ? "Submitting..." : "Submit Code"}
-                    </button>
-                    <a
+                    />
+                    <LinkButton
                         href="/tournaments/{tournamentId}"
-                        class="btn btn-secondary"
-                    >
-                        Cancel
-                    </a>
+                        variant="secondary"
+                        label="Cancel"
+                    />
                 </div>
             </form>
         </div>

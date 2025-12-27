@@ -3,6 +3,7 @@
     import { tournamentService } from "$lib/services/tournaments";
     import { onMount } from "svelte";
     import type { Game, Tournament } from "$lib/types";
+    import { LinkButton, Button } from "$lib/components";
     let games = $state<Game[]>([]);
     let tournamentsByGame = $state<Map<string, Tournament[]>>(new Map());
     let loading = $state(true);
@@ -115,19 +116,17 @@
                             </div>
                             <div class="flex gap-2">
                                 {#if tournamentsByGame.get(game.id)?.length}
-                                    <a
+                                    <LinkButton
                                         href="/tournaments?game={game.id}"
-                                        class="btn btn-primary flex-1"
-                                    >
-                                        View Tournaments
-                                    </a>
+                                        variant="primary"
+                                        label="View Tournaments"
+                                    />
                                 {:else}
-                                    <button
-                                        class="btn btn-secondary flex-1"
-                                        disabled
-                                    >
-                                        No Tournaments Yet
-                                    </button>
+                                    <Button
+                                        variant="secondary"
+                                        label="No Tournaments Yet"
+                                        disabled={true}
+                                    />
                                 {/if}
                             </div>
                             <div class="text-xs text-gray-500 mt-4">

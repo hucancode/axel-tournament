@@ -3,6 +3,7 @@
     import { onMount } from "svelte";
     import { authStore } from "$lib/stores/auth";
     import { gameService } from "$lib/services/games";
+    import { Button, LinkButton } from "$lib/components";
     import type {
         Game,
         ProgrammingLanguage,
@@ -187,10 +188,8 @@
                 <p class="text-gray-500">Create and manage games</p>
             </div>
             <div class="flex gap-2">
-                <button class="btn btn-primary" onclick={openCreateForm}>
-                    Create New Game
-                </button>
-                <a href="/admin" class="btn btn-secondary">Back to Dashboard</a>
+                <Button variant="primary" label="Create New Game" onclick={openCreateForm} />
+                <LinkButton variant="secondary" href="/admin" label="Back to Dashboard" />
             </div>
         </div>
     </div>
@@ -239,18 +238,16 @@
                         Created: {formatDate(game.created_at)}
                     </p>
                     <div class="flex gap-2">
-                        <button
-                            class="btn btn-secondary py-1.5 px-3 text-sm"
+                        <Button
+                            variant="secondary"
+                            label="Edit"
                             onclick={() => openEditForm(game)}
-                        >
-                            Edit
-                        </button>
-                        <button
-                            class="btn btn-danger py-1.5 px-3 text-sm"
+                        />
+                        <Button
+                            variant="danger"
+                            label="Delete"
                             onclick={() => handleDelete(game)}
-                        >
-                            Delete
-                        </button>
+                        />
                     </div>
                 </div>
             {/each}
@@ -445,25 +442,23 @@
                     </label>
                 </div>
                 <div class="flex gap-2">
-                    <button
+                    <Button
                         type="submit"
-                        class="btn btn-primary"
+                        variant="primary"
                         disabled={formLoading}
-                    >
-                        {formLoading
+                        label={formLoading
                             ? "Saving..."
                             : isEditing
                               ? "Update Game"
                               : "Create Game"}
-                    </button>
-                    <button
+                    />
+                    <Button
                         type="button"
-                        class="btn btn-secondary"
+                        variant="secondary"
                         disabled={formLoading}
+                        label="Cancel"
                         onclick={closeForm}
-                    >
-                        Cancel
-                    </button>
+                    />
                 </div>
             </form>
         </div>

@@ -6,6 +6,7 @@
   import { api } from "$lib/api";
   import { gameSetterService } from "$lib/services/game-setter";
   import type { Game, GameTemplate, ProgrammingLanguage } from "$lib/types";
+  import { Button } from "$lib/components";
 
   let { user, isAuthenticated } = $derived($authStore);
   const gameId = $derived(page.params.id!);
@@ -204,9 +205,8 @@
 
 <div class="page">
   <div class="container">
-    <button class="btn btn-secondary mb-4" onclick={() => goto("/game-setter")}>
-      ← Back to Dashboard
-    </button>
+    <Button variant="secondary" label="← Back to Dashboard" onclick={() => goto("/game-setter")} />
+    <div class="mb-4"></div>
 
     <h1>{game?.name || "Loading..."}</h1>
 
@@ -224,18 +224,21 @@
       <!-- Tabs -->
       <div class="flex gap-4 border-b-2 border-gray-300 mb-8">
         <button
+          type="button"
           class="tab-button {activeTab === 'info' ? 'active' : ''}"
           onclick={() => (activeTab = "info")}
         >
           Game Info
         </button>
         <button
+          type="button"
           class="tab-button {activeTab === 'gamecode' ? 'active' : ''}"
           onclick={() => (activeTab = "gamecode")}
         >
           Game Code
         </button>
         <button
+          type="button"
           class="tab-button {activeTab === 'templates' ? 'active' : ''}"
           onclick={() => (activeTab = "templates")}
         >
@@ -250,8 +253,8 @@
             <h2>Basic Information</h2>
             <div class="flex gap-2">
               {#if !editMode}
-                <button class="btn btn-secondary" onclick={enableEditMode}>Edit</button>
-                <button class="btn btn-danger" onclick={deleteGame}>Delete</button>
+                <Button variant="secondary" label="Edit" onclick={enableEditMode} />
+                <Button variant="danger" label="Delete" onclick={deleteGame} />
               {/if}
             </div>
           </div>
@@ -337,8 +340,8 @@
             </div>
 
             <div class="flex gap-2 mt-4">
-              <button class="btn btn-primary" onclick={saveGameEdits}>Save Changes</button>
-              <button class="btn btn-secondary" onclick={cancelEdit}>Cancel</button>
+              <Button variant="primary" label="Save Changes" onclick={saveGameEdits} />
+              <Button variant="secondary" label="Cancel" onclick={cancelEdit} />
             </div>
           {:else}
             <!-- View Mode -->
@@ -425,9 +428,7 @@
             ></textarea>
           </div>
 
-          <button class="btn btn-primary" onclick={uploadGameCode} disabled={uploadingGameCode}>
-            {uploadingGameCode ? "Uploading..." : "Upload Game Code"}
-          </button>
+          <Button variant="primary" label={uploadingGameCode ? "Uploading..." : "Upload Game Code"} onclick={uploadGameCode} disabled={uploadingGameCode} />
         </div>
       {:else if activeTab === "templates"}
         <div class="card">
@@ -444,13 +445,12 @@
                   rows="12"
                   placeholder={"fn main() {}"}
                 ></textarea>
-                <button
-                  class="btn btn-primary mt-2"
+                <Button
+                  variant="primary"
+                  label={savingTemplate[lang] ? "Saving..." : `Save ${lang} Template`}
                   onclick={() => saveTemplate(lang)}
                   disabled={savingTemplate[lang]}
-                >
-                  {savingTemplate[lang] ? "Saving..." : `Save ${lang} Template`}
-                </button>
+                />
               </div>
             {/each}
           </div>

@@ -6,6 +6,7 @@
   import { gameSetterService } from "$lib/services/game-setter";
   import { tournamentService } from "$lib/services/tournaments";
   import type { Game, Tournament, TournamentParticipant, TournamentStatus } from "$lib/types";
+  import { Button, LinkButton } from "$lib/components";
 
   let { user, isAuthenticated } = $derived($authStore);
   let myGames: Game[] = $state([]);
@@ -144,12 +145,8 @@
     <h1>Game Setter Dashboard</h1>
 
     <div class="flex gap-2 flex-wrap my-2 mb-4">
-      <button class="btn btn-secondary" onclick={() => goto("/game-setter/matches")}>
-        Match Console
-      </button>
-      <button class="btn btn-secondary" onclick={loadData}>
-        Refresh Data
-      </button>
+      <Button variant="secondary" label="Match Console" onclick={() => goto("/game-setter/matches")} />
+      <Button variant="secondary" label="Refresh Data" onclick={loadData} />
     </div>
 
     {#if actionMessage}
@@ -178,7 +175,7 @@
         <div class="card">
           <div class="flex justify-between items-center mb-4">
             <h2>My Games</h2>
-            <button class="btn btn-primary" onclick={createGame}>Create Game</button>
+            <Button variant="primary" label="Create Game" onclick={createGame} />
           </div>
 
           {#if myGames.length === 0}
@@ -210,7 +207,7 @@
         <div class="card">
           <div class="flex justify-between items-center mb-4">
             <h2>My Tournaments</h2>
-            <button class="btn btn-primary" onclick={createTournament}>Create Tournament</button>
+            <Button variant="primary" label="Create Tournament" onclick={createTournament} />
           </div>
 
           {#if filteredTournaments.length === 0}
@@ -230,47 +227,42 @@
                     {(participantCounts[tournament.id] || []).length}/{tournament.max_players} players
                   </div>
                   <div class="flex gap-2 flex-wrap">
-                    <a
-                      class="btn btn-secondary py-1.5 px-3.5"
+                    <LinkButton
+                      variant="secondary"
                       href="/tournaments/{tournament.id}"
-                    >
-                      View
-                    </a>
+                      label="View"
+                    />
                     {#if canOpenRegistration(tournament.status)}
-                      <button
-                        class="btn btn-primary py-1.5 px-3.5"
+                      <Button
+                        variant="primary"
+                        label={tournamentAction[tournament.id] ? "Updating..." : "Open Registration"}
                         onclick={() => updateTournamentStatus(tournament.id, "registration")}
                         disabled={!!tournamentAction[tournament.id]}
-                      >
-                        {tournamentAction[tournament.id] ? "Updating..." : "Open Registration"}
-                      </button>
+                      />
                     {/if}
                     {#if canStart(tournament.status)}
-                      <button
-                        class="btn btn-success py-1.5 px-3.5"
+                      <Button
+                        variant="success"
+                        label={tournamentAction[tournament.id] ? "Starting..." : "Start"}
                         onclick={() => startTournament(tournament.id)}
                         disabled={!!tournamentAction[tournament.id]}
-                      >
-                        {tournamentAction[tournament.id] ? "Starting..." : "Start"}
-                      </button>
+                      />
                     {/if}
                     {#if canClose(tournament.status)}
-                      <button
-                        class="btn btn-secondary py-1.5 px-3.5"
+                      <Button
+                        variant="secondary"
+                        label={tournamentAction[tournament.id] ? "Updating..." : "Close"}
                         onclick={() => updateTournamentStatus(tournament.id, "completed")}
                         disabled={!!tournamentAction[tournament.id]}
-                      >
-                        {tournamentAction[tournament.id] ? "Updating..." : "Close"}
-                      </button>
+                      />
                     {/if}
                     {#if canCancel(tournament.status)}
-                      <button
-                        class="btn btn-danger py-1.5 px-3.5"
+                      <Button
+                        variant="danger"
+                        label={tournamentAction[tournament.id] ? "Updating..." : "Cancel"}
                         onclick={() => updateTournamentStatus(tournament.id, "cancelled")}
                         disabled={!!tournamentAction[tournament.id]}
-                      >
-                        {tournamentAction[tournament.id] ? "Updating..." : "Cancel"}
-                      </button>
+                      />
                     {/if}
                   </div>
                 </div>

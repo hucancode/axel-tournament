@@ -1,5 +1,6 @@
 <script lang="ts">
     import { authService } from "$lib/services/auth";
+    import { Button } from "$lib/components";
 
     let email = $state("");
     let loading = $state(false);
@@ -62,13 +63,11 @@
                         disabled={loading}
                     />
                 </div>
-                <button
-                    type="submit"
-                    class="btn btn-primary w-full"
+                <Button
+                    variant="primary"
+                    label={loading ? "Sending..." : "Send Reset Link"}
                     disabled={loading}
-                >
-                    {loading ? "Sending..." : "Send Reset Link"}
-                </button>
+                />
             </form>
             <div class="mt-6 text-center">
                 <a href="/login" class="text-primary-600"
