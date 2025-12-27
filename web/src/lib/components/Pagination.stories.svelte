@@ -8,6 +8,15 @@
   });
 </script>
 
+<script lang="ts">
+  let currentPage = $state(1);
+
+  function handlePageChange(page: number) {
+    currentPage = page;
+    console.log('Page changed to:', page);
+  }
+</script>
+
 <Story name="Default" args={{ currentPage: 1, totalPages: 10 }} />
 
 <Story name="Middle Page" args={{ currentPage: 5, totalPages: 10 }} />
@@ -19,27 +28,16 @@
 <Story name="Many Pages" args={{ currentPage: 15, totalPages: 50 }} />
 
 <Story name="Interactive">
-  {#snippet template(args)}
-    <script lang="ts">
-      let currentPage = $state(args.currentPage ?? 1);
-
-      function handlePageChange(page: number) {
-        currentPage = page;
-        console.log('Page changed to:', page);
-      }
-    </script>
-
-    <div class="flex flex-col gap-4">
-      <div class="text-center">
-        <p class="mb-2">Current Page: <strong>{currentPage}</strong></p>
-      </div>
-      <Pagination
-        currentPage={currentPage}
-        totalPages={20}
-        onPageChange={handlePageChange}
-      />
+  <div class="flex flex-col gap-4">
+    <div class="text-center">
+      <p class="mb-2">Current Page: <strong>{currentPage}</strong></p>
     </div>
-  {/snippet}
+    <Pagination
+      currentPage={currentPage}
+      totalPages={20}
+      onPageChange={handlePageChange}
+    />
+  </div>
 </Story>
 
 <Story name="All Variants">

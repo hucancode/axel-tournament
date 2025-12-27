@@ -10,8 +10,8 @@
   let { languages, selected, onToggle }: Props = $props();
 </script>
 
-<div class="form-group">
-  <label>Supported Languages</label>
+<fieldset class="form-group">
+  <legend>Supported Languages</legend>
   <div class="checkbox-group">
     {#each languages as lang}
       <label class="checkbox-label">
@@ -24,24 +24,27 @@
       </label>
     {/each}
   </div>
-</div>
+</fieldset>
 
 <style>
   .form-group {
     margin-bottom: 1rem;
+    border: none;
+    padding: 0;
   }
-  
-  .form-group label {
+
+  .form-group legend {
     display: block;
     margin-bottom: 0.5rem;
     font-weight: 500;
+    padding: 0;
   }
-  
+
   .checkbox-group {
     display: flex;
     gap: 1rem;
   }
-  
+
   .checkbox-label {
     display: flex;
     align-items: center;

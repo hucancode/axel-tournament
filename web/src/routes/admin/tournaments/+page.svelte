@@ -65,7 +65,7 @@
             ]);
             tournaments = tournamentsData;
             games = gamesData;
-            
+
             // Load participants for each tournament
             const participantPromises = tournaments.map(async (tournament) => {
                 try {
@@ -76,7 +76,7 @@
                     return { tournamentId: tournament.id, participants: [] };
                 }
             });
-            
+
             const participantResults = await Promise.all(participantPromises);
             participantCounts = participantResults.reduce((acc, { tournamentId, participants }) => {
                 acc[tournamentId] = participants;
@@ -384,7 +384,7 @@
 <!-- Create/Edit Form Modal -->
 {#if showForm}
     <div
-        class="fixed inset-0 bg-black/50 flex items-center justify-center z-[1000] p-4"
+        class="fixed inset-0 bg-black/50 flex items-center justify-center z-1000 p-4"
         role="button"
         tabindex="0"
         aria-label="Close tournament form"
@@ -402,7 +402,7 @@
         }}
     >
         <div
-            class="card max-w-[700px] w-full max-h-[90vh] overflow-y-auto"
+            class="card max-w-175 w-full max-h-[90vh] overflow-y-auto"
         >
             <h2 class="font-bold text-xl mb-4">
                 {isEditing ? "Edit Tournament" : "Create New Tournament"}

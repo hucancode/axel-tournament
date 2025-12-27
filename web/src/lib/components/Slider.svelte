@@ -21,6 +21,7 @@
     onValueChange = () => {}
   }: Props = $props();
 
+  const sliderId = `slider-${Math.random().toString(36).slice(2)}`;
   let percentage = $derived(((value - min) / (max - min)) * 100);
 
   function handleInput(event: Event) {
@@ -32,7 +33,7 @@
 
 <div class="slider-container">
   {#if label}
-    <label class="slider-label">
+    <label for={sliderId} class="slider-label">
       {label}
       {#if showValue}
         <span class="slider-value">{value}</span>
@@ -40,6 +41,7 @@
     </label>
   {/if}
   <input
+    id={sliderId}
     type="range"
     class="slider"
     style="--percentage: {percentage}%"

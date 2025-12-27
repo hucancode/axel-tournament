@@ -1,6 +1,6 @@
 <script module lang="ts">
   import { defineMeta } from '@storybook/addon-svelte-csf';
-  import FilterSelect from './FilterSelect.svelte';
+  import Select from './Select.svelte';
 
   const statusOptions = [
     { value: "all", label: "All Tournaments" },
@@ -11,10 +11,10 @@
   ];
 
   const { Story } = defineMeta({
-    title: 'Components/FilterSelect',
-    component: FilterSelect,
+    title: 'Components/Select',
+    component: Select,
     args: {
-      label: 'Filter by Status:',
+      label: 'Status:',
       options: statusOptions,
       value: 'all',
       disabled: false,

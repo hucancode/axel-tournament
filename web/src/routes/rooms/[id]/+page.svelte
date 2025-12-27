@@ -1,14 +1,14 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import { roomService } from '$lib/services/rooms';
   import { gameService } from '$lib/services/games';
   import GameIframe from '$lib/components/GameIframe.svelte';
   import Alert from '$lib/components/Alert.svelte';
   import type { Room, Game, RoomMessage, CreateRoomMessageRequest } from '$lib/types';
 
-  let roomId = $page.params.id;
+  const roomId = page.params.id!;
   let room = $state<Room | null>(null);
   let game = $state<Game | null>(null);
   let messages = $state<RoomMessage[]>([]);
@@ -17,9 +17,13 @@
   let error = $state<string | null>(null);
   let ws: WebSocket | null = null;
   let wsConnected = $state(false);
-  let chatContainer: HTMLDivElement | null = null;
+  let chatContainer = $state<HTMLDivElement | null>(null);
 
   onMount(() => {
+    if (!roomId) {
+      goto('/rooms');
+      return;
+    }
     loadRoomData();
     setupWebSocket();
 
@@ -215,7 +219,7 @@
         {#if room.status === 'playing' && game.frontend_code}
           <GameIframe
             gameCode={game.frontend_code || ''}
-            roomId={roomId!}
+            roomId={roomId}
             wsUrl={`${window.location.protocol === 'https:' ? 'https:' : 'http:'}//${window.location.hostname.replace(/^[^.]+\./, 'api.')}`}
           />
         {:else if room.status === 'waiting'}
@@ -284,7 +288,7 @@
     display: flex;
     flex-direction: column;
   }
-  
+
   .room-header {
     display: flex;
     justify-content: space-between;
@@ -293,29 +297,29 @@
     border-bottom: 1px solid #e0e0e0;
     margin-bottom: 1rem;
   }
-  
+
   .room-info h1 {
     margin: 0 0 0.5rem 0;
   }
-  
+
   .game-name {
     color: #666;
     margin: 0 0 0.5rem 0;
   }
-  
+
   .room-status {
     display: flex;
     gap: 1rem;
     align-items: center;
   }
-  
+
   .status {
     padding: 0.25rem 0.5rem;
     border-radius: 4px;
     font-size: 0.8rem;
     text-transform: capitalize;
   }
-  
+
   .status-waiting { background: #e3f2fd; color: #1976d2; }
   .status-playing { background: #fff3e0; color: #f57c00; }
   .status-finished { background: #e8f5e8; color: #388e3c; }
@@ -343,19 +347,19 @@
     display: flex;
     gap: 1rem;
   }
-  
+
   .room-content {
     display: flex;
     flex: 1;
     gap: 1rem;
     min-height: 0;
   }
-  
+
   .game-area {
     flex: 2;
     min-height: 0;
   }
-  
+
   .waiting-area, .game-finished {
     display: flex;
     flex-direction: column;
@@ -366,19 +370,19 @@
     border-radius: 8px;
     padding: 2rem;
   }
-  
+
   .player-list {
     list-style: none;
     padding: 0;
   }
-  
+
   .player-list li {
     padding: 0.5rem;
     background: white;
     margin: 0.25rem 0;
     border-radius: 4px;
   }
-  
+
   .chat-area {
     flex: 1;
     display: flex;
@@ -387,7 +391,7 @@
     border-radius: 8px;
     min-width: 300px;
   }
-  
+
   .chat-header {
     padding: 1rem;
     border-bottom: 1px solid #e0e0e0;
@@ -455,20 +459,20 @@
     line-height: 1.4;
     word-wrap: break-word;
   }
-  
+
   .chat-input {
     display: flex;
     padding: 1rem;
     border-top: 1px solid #e0e0e0;
   }
-  
+
   .chat-input input {
     flex: 1;
     padding: 0.5rem;
     border: 1px solid #ddd;
     border-radius: 4px 0 0 4px;
   }
-  
+
   .chat-input button {
     padding: 0.5rem 1rem;
     background: #1976d2;
@@ -487,25 +491,25 @@
     background: #ccc;
     cursor: not-allowed;
   }
-  
+
   .btn-primary, .btn-secondary {
     padding: 0.5rem 1rem;
     border: none;
     border-radius: 4px;
     cursor: pointer;
   }
-  
+
   .btn-primary {
     background: #1976d2;
     color: white;
   }
-  
+
   .btn-secondary {
     background: #f5f5f5;
     color: #333;
     border: 1px solid #ddd;
   }
-  
+
   .loading, .error {
     display: flex;
     align-items: center;

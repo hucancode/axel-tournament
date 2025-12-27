@@ -3,7 +3,7 @@
         value: string;
         label: string;
     }
-    
+
     interface Props {
         label: string;
         options: Option[];
@@ -11,7 +11,7 @@
         disabled?: boolean;
         onchange?: () => void;
     }
-    
+
     let { label, options, value = $bindable(""), disabled = false, onchange }: Props = $props();
 </script>
 

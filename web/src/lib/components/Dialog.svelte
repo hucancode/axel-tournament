@@ -29,6 +29,11 @@
     width: 90%;
     box-shadow: 8px 8px 0 0 #000;
     background: #fff;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    margin: 0;
   }
 
   dialog::backdrop {
