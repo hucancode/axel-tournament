@@ -1,5 +1,5 @@
-<h3 style="margin-bottom: 1rem; font-size: 1.25rem; font-weight: 700;">Tournament Rules</h3>
-<ul style="list-style: disc; padding-left: 1.5rem; display: flex; flex-direction: column; gap: 0.5rem;">
+<h3 class="mb-4 text-xl font-bold">Tournament Rules</h3>
+<ul class="list-disc pl-6 flex flex-col gap-2">
   <li>Each match is best of 3 games</li>
   <li>Players must arrive 15 minutes before their match</li>
   <li>No coaching during matches</li>

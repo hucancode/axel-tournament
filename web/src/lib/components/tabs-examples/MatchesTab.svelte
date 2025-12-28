@@ -1,12 +1,12 @@
-<h3 style="margin-bottom: 1rem; font-size: 1.25rem; font-weight: 700;">Match Schedule</h3>
-<div style="display: flex; flex-direction: column; gap: 0.75rem;">
-  <div style="padding: 1rem; background-color: var(--gray-light); border: 2px solid var(--black); border-radius: 4px;">
+<h3 class="mb-4 text-xl font-bold">Match Schedule</h3>
+<div class="flex flex-col gap-3">
+  <div class="p-4 bg-[var(--gray-light)] border-2 border-black rounded">
     <strong>Round 1:</strong> Player A vs Player B - 3:00 PM
   </div>
-  <div style="padding: 1rem; background-color: var(--gray-light); border: 2px solid var(--black); border-radius: 4px;">
+  <div class="p-4 bg-[var(--gray-light)] border-2 border-black rounded">
     <strong>Round 2:</strong> Player C vs Player D - 4:00 PM
   </div>
-  <div style="padding: 1rem; background-color: var(--gray-light); border: 2px solid var(--black); border-radius: 4px;">
+  <div class="p-4 bg-[var(--gray-light)] border-2 border-black rounded">
     <strong>Round 3:</strong> Player E vs Player F - 5:00 PM
   </div>
 </div>
