@@ -11,18 +11,18 @@
   let { title, open = false, disabled = false, children }: Props = $props();
 </script>
 
-<details class="accordion" class:disabled {open}>
-  <summary class="accordion-summary">
-    <span class="accordion-icon">▸</span>
-    <span class="accordion-title">{title}</span>
+<details class:disabled {open}>
+  <summary>
+    <span class="icon">▸</span>
+    <span class="title">{title}</span>
   </summary>
-  <div class="accordion-content">
+  <div>
     {@render children()}
   </div>
 </details>
 
 <style>
-  .accordion {
+  details {
     border: 3px solid var(--black);
     border-radius: 4px;
     background-color: var(--white);
@@ -30,12 +30,12 @@
     overflow: hidden;
   }
 
-  .accordion.disabled {
+  details.disabled {
     opacity: 0.6;
     pointer-events: none;
   }
 
-  .accordion-summary {
+  details > summary {
     display: flex;
     align-items: center;
     gap: 0.75rem;
@@ -50,39 +50,39 @@
     transition: all 0.1s;
   }
 
-  .accordion-summary::-webkit-details-marker {
+  details > summary::-webkit-details-marker {
     display: none;
   }
 
-  .accordion-summary:hover {
+  details > summary:hover {
     background-color: var(--primary);
     color: var(--white);
   }
 
-  .accordion-summary:active {
+  details > summary:active {
     transform: translate(1px, 1px);
   }
 
-  .accordion-icon {
+  details > summary > .icon {
     display: inline-block;
     font-size: 1rem;
     font-weight: bold;
     transition: transform 0.2s;
   }
 
-  .accordion[open] .accordion-icon {
+  details[open] > summary > .icon {
     transform: rotate(90deg);
   }
 
-  .accordion[open] .accordion-summary {
+  details[open] > summary {
     border-bottom-color: var(--black);
   }
 
-  .accordion-title {
+  details > summary > .title {
     flex: 1;
   }
 
-  .accordion-content {
+  details > div {
     padding: 1rem;
     background-color: var(--white);
   }

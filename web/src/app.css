@@ -275,3 +275,7 @@ th {
     font-weight: bold;
     margin-bottom: 0.5rem;
 }
+
+details + details {
+    margin-top: -3px;
+}
