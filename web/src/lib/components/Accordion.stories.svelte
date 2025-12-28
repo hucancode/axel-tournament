@@ -31,21 +31,21 @@
 
 <Story name="Multiple Accordions">
     {#snippet template(args)}
-        <Accordion {...args}>
+        <Accordion title="Introduction">
             This is the first section with some introductory content. You can
             put any content here including text, images, or other components.
         </Accordion>
-        <Accordion open {...args}>
+        <Accordion title="Details" open>
             This section is open by default and contains more detailed
             information. Notice how each accordion is independent and maintains
             its own state.
         </Accordion>
-        <Accordion {...args}>
+        <Accordion title="Advanced">
             The third section contains advanced information. The brutalist
             styling with thick borders and box shadows makes each section
             clearly defined.
         </Accordion>
-        <Accordion {...args}>
+        <Accordion title="Disabled Section" disabled>
             This section is disabled and cannot be opened.
         </Accordion>
     {/snippet}

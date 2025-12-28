@@ -1,10 +1,10 @@
 <script lang="ts">
-  import type { ComponentType } from 'svelte';
+  import type { Component } from 'svelte';
 
   interface TabItem {
     label: string;
     value: number | string;
-    component: ComponentType;
+    component: Component;
   }
 
   interface Props {
@@ -14,7 +14,13 @@
 
   let { items, class: className = '' }: Props = $props();
 
-  let activeTab = $state(items[0]?.value);
+  let activeTab = $state<number | string | undefined>(undefined);
+
+  $effect(() => {
+    if (activeTab === undefined && items.length > 0) {
+      activeTab = items[0].value;
+    }
+  });
 
   function setActiveTab(value: number | string) {
     activeTab = value;
@@ -40,8 +46,9 @@
   </div>
 
   {#if activeComponent}
+    {@const Component = activeComponent}
     <div class="tabs-content">
-      <svelte:component this={activeComponent} />
+      <Component />
     </div>
   {/if}
 </div>
