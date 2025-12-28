@@ -3,7 +3,7 @@
   import AuthCard from './AuthCard.svelte';
 
   const { Story } = defineMeta({
-    title: 'Components/AuthCard',
+    title: 'Data Display/AuthCard',
     component: AuthCard,
     args: {
       title: 'Sign In',

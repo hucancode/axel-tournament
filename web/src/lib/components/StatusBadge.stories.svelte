@@ -3,7 +3,7 @@
   import StatusBadge from './StatusBadge.svelte';
 
   const { Story } = defineMeta({
-    title: 'Components/StatusBadge',
+    title: 'Data Display/StatusBadge',
     component: StatusBadge,
   });
 </script>

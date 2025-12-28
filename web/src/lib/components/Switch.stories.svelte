@@ -3,7 +3,7 @@
   import Switch from './Switch.svelte';
 
   const { Story } = defineMeta({
-    title: 'Forms/Switch',
+    title: 'Data Entry/Switch',
     component: Switch,
   });
 </script>

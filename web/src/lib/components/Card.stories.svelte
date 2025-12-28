@@ -4,7 +4,7 @@
   import Button from './Button.svelte';
 
   const { Story } = defineMeta({
-    title: 'Styles/Cards',
+    title: 'Data Display/Card',
     component: Card,
   });
 </script>

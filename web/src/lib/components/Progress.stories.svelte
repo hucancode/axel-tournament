@@ -3,7 +3,7 @@
   import Progress from './Progress.svelte';
 
   const { Story } = defineMeta({
-    title: 'Components/Progress',
+    title: 'Data Display/Progress',
     component: Progress,
   });
 </script>

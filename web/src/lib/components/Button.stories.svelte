@@ -3,7 +3,7 @@
   import Button from './Button.svelte';
 
   const { Story } = defineMeta({
-    title: 'Styles/Buttons',
+    title: 'Data Entry/Button',
     component: Button,
   });
 </script>

@@ -11,7 +11,7 @@
   ];
 
   const { Story } = defineMeta({
-    title: 'Components/Select',
+    title: 'Data Entry/Select',
     component: Select,
     args: {
       label: 'Status:',

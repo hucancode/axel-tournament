@@ -3,7 +3,7 @@
   import Pagination from './Pagination.svelte';
 
   const { Story } = defineMeta({
-    title: 'Components/Pagination',
+    title: 'Layout Management/Pagination',
     component: Pagination,
   });
 </script>

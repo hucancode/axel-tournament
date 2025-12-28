@@ -3,7 +3,7 @@
   import PlayerCount from './PlayerCount.svelte';
 
   const { Story } = defineMeta({
-    title: 'Components/PlayerCount',
+    title: 'Data Display/PlayerCount',
     component: PlayerCount,
     args: {
       current: 5,

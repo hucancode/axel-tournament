@@ -4,7 +4,7 @@
   import { defaultInteractiveFrontend } from './templates/game-templates';
 
   const { Story } = defineMeta({
-    title: 'Components/GameIframe',
+    title: 'Data Display/GameIframe',
     component: GameIframe,
     args: {
       gameCode: "",

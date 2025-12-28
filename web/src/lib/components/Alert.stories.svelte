@@ -3,7 +3,7 @@
   import Alert from './Alert.svelte';
 
   const { Story } = defineMeta({
-    title: 'Components/Alert',
+    title: 'Data Display/Alert',
     component: Alert,
   });
 </script>

@@ -3,7 +3,7 @@
   import LoadingCard from './LoadingCard.svelte';
 
   const { Story } = defineMeta({
-    title: 'Components/LoadingCard',
+    title: 'Data Display/LoadingCard',
     component: LoadingCard,
     args: {
       message: 'Loading...',

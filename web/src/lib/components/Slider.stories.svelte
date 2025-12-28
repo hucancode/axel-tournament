@@ -3,7 +3,7 @@
   import Slider from './Slider.svelte';
 
   const { Story } = defineMeta({
-    title: 'Components/Slider',
+    title: 'Data Entry/Slider',
     component: Slider,
   });
 </script>

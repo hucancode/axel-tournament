@@ -3,7 +3,7 @@
   import TournamentCard from './TournamentCard.svelte';
 
   const { Story } = defineMeta({
-    title: 'Components/TournamentCard',
+    title: 'Data Display/TournamentCard',
     component: TournamentCard,
   });
 </script>

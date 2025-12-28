@@ -3,7 +3,7 @@
   import LanguageSelector from './LanguageSelector.svelte';
 
   const { Story } = defineMeta({
-    title: 'Components/LanguageSelector',
+    title: 'Data Entry/LanguageSelector',
     component: LanguageSelector,
     args: {
       languages: ['rust', 'go', 'c'],

@@ -4,7 +4,7 @@
 
   const { Story } = defineMeta({
     component: DatePicker,
-    title: 'Components/DatePicker',
+    title: 'Data Entry/DatePicker',
   });
 </script>
 

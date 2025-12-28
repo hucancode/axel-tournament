@@ -3,7 +3,7 @@
     import Accordion from "./Accordion.svelte";
 
     const { Story } = defineMeta({
-        title: "Components/Accordion",
+        title: "Layout Management/Accordion",
         component: Accordion,
     });
 </script>

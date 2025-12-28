@@ -3,7 +3,7 @@
   import Dialog from './Dialog.svelte';
 
   const { Story } = defineMeta({
-    title: 'Components/Dialog',
+    title: 'Layout Management/Dialog',
     component: Dialog,
   });
 </script>

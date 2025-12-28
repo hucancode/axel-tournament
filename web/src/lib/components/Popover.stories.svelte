@@ -4,7 +4,7 @@
     import Button from './Button.svelte';
 
   const { Story } = defineMeta({
-    title: 'Components/Popover',
+    title: 'Layout Management/Popover',
     component: Popover,
   });
 </script>
