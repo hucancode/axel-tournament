@@ -258,7 +258,7 @@
 <!-- Create/Edit Form Modal -->
 {#if showForm}
     <div
-        class="fixed inset-0 bg-black/50 flex items-center justify-center z-[1000] p-4"
+        class="fixed inset-0 bg-black/50 flex items-center justify-center z-1000 p-4"
         role="button"
         tabindex="0"
         aria-label="Close game form"
@@ -276,7 +276,7 @@
         }}
     >
         <div
-            class="card max-w-[700px] w-full max-h-[90vh] overflow-y-auto"
+            class="card max-w-175 w-full max-h-[90vh] overflow-y-auto"
         >
             <h2 class="font-bold text-xl mb-4">
                 {isEditing ? "Edit Game" : "Create New Game"}

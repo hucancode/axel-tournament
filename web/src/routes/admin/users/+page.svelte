@@ -237,7 +237,7 @@
 <!-- Ban Dialog Modal -->
 {#if showBanDialog && selectedUser}
     <div
-        class="fixed inset-0 bg-black/50 flex items-center justify-center z-[1000]"
+        class="fixed inset-0 bg-black/50 flex items-center justify-center z-1000"
         role="button"
         tabindex="0"
         aria-label="Close ban dialog"
@@ -255,7 +255,7 @@
         }}
     >
         <div
-            class="card max-w-[500px] w-[90%] max-h-[90vh] overflow-y-auto"
+            class="card max-w-125 w-[90%] max-h-[90vh] overflow-y-auto"
         >
             <h2 class="font-bold text-xl mb-4">
                 Ban User: {selectedUser.username}
