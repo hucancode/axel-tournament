@@ -12,12 +12,17 @@
 
   let iframeRef: HTMLIFrameElement;
   let ws: WebSocket | null = null;
+  let reconnectAttempts = 0;
+  let shouldReconnect = true;
+  const MAX_RECONNECT_ATTEMPTS = 5;
+  const RECONNECT_DELAY = 2000;
 
   onMount(() => {
     setupWebSocket();
     loadGameCode();
 
     return () => {
+      shouldReconnect = false;
       ws?.close();
     };
   });
@@ -29,6 +34,7 @@
 
     ws.onopen = () => {
       console.log('Connected to game room');
+      reconnectAttempts = 0;
     };
 
     ws.onmessage = (event) => {
@@ -42,6 +48,17 @@
 
     ws.onclose = () => {
       console.log('Disconnected from game room');
+      if (shouldReconnect && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+        setTimeout(() => {
+          reconnectAttempts++;
+          console.log(`Reconnecting... attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}`);
+          setupWebSocket();
+        }, RECONNECT_DELAY);
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
     };
   }
 
