@@ -12,6 +12,7 @@ export { default as LinkButton } from './LinkButton.svelte';
 export { default as LoadingCard } from './LoadingCard.svelte';
 export { default as PlayerCount } from './PlayerCount.svelte';
 export { default as Popover } from './Popover.svelte';
+export { default as Segmented } from './Segmented.svelte';
 export { default as Select } from './Select.svelte';
 export { default as StatusBadge } from './StatusBadge.svelte';
 export { default as TimePicker } from './TimePicker.svelte';

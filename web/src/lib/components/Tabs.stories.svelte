@@ -3,7 +3,7 @@
   import Tabs from './Tabs.svelte';
 
   const { Story } = defineMeta({
-    title: 'Layout Management/Tabs',
+    title: 'Container/Tabs',
     component: Tabs,
   });
 </script>
