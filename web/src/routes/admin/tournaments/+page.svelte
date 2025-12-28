@@ -4,7 +4,7 @@
     import { authStore } from "$lib/stores/auth";
     import { tournamentService } from "$lib/services/tournaments";
     import { gameService } from "$lib/services/games";
-    import { Button, LinkButton } from "$lib/components";
+    import { Button, LinkButton, DateTimePicker, Select } from "$lib/components";
     import type {
         Tournament,
         TournamentParticipant,
@@ -411,18 +411,12 @@
             {/if}
             <form onsubmit={handleSubmit}>
                 <div class="form-group">
-                    <label for="game_id">Game</label>
-                    <select
-                        id="game_id"
-                        class="select"
+                    <Select
+                        label="Game"
+                        options={games.map(game => ({ value: game.id, label: game.name }))}
                         bind:value={formData.game_id}
                         disabled={formLoading}
-                        required
-                    >
-                        {#each games as game}
-                            <option value={game.id}>{game.name}</option>
-                        {/each}
-                    </select>
+                    />
                 </div>
                 <div class="form-group">
                     <label for="name">Tournament Name</label>
@@ -447,25 +441,17 @@
                     ></textarea>
                 </div>
                 <div class="form-group">
-                    <label for="match_generation_type"
-                        >Match Generation Type</label
-                    >
-                    <select
-                        id="match_generation_type"
-                        class="select"
+                    <Select
+                        label="Match Generation Type"
+                        options={[
+                            { value: "all_vs_all", label: "All vs All" },
+                            { value: "round_robin", label: "Round Robin" },
+                            { value: "single_elimination", label: "Single Elimination" },
+                            { value: "double_elimination", label: "Double Elimination" }
+                        ]}
                         bind:value={formData.match_generation_type}
                         disabled={formLoading || isEditing}
-                        required
-                    >
-                        <option value="all_vs_all">All vs All</option>
-                        <option value="round_robin">Round Robin</option>
-                        <option value="single_elimination">
-                            Single Elimination
-                        </option>
-                        <option value="double_elimination">
-                            Double Elimination
-                        </option>
-                    </select>
+                    />
                     {#if isEditing}
                         <p
                             class="text-sm text-gray-500 mt-1"
@@ -476,21 +462,19 @@
                     {/if}
                 </div>
                 <div class="form-group">
-                    <label for="status">Status</label>
-                    <select
-                        id="status"
-                        class="select"
+                    <Select
+                        label="Status"
+                        options={[
+                            { value: "scheduled", label: "Scheduled" },
+                            { value: "registration", label: "Registration" },
+                            { value: "generating", label: "Generating" },
+                            { value: "running", label: "Running" },
+                            { value: "completed", label: "Completed" },
+                            { value: "cancelled", label: "Cancelled" }
+                        ]}
                         bind:value={formData.status}
                         disabled={formLoading}
-                        required
-                    >
-                        <option value="scheduled">Scheduled</option>
-                        <option value="registration">Registration</option>
-                        <option value="generating">Generating</option>
-                        <option value="running">Running</option>
-                        <option value="completed">Completed</option>
-                        <option value="cancelled">Cancelled</option>
-                    </select>
+                    />
                 </div>
                 <div class="grid grid-2 gap-4">
                     <div class="form-group">
@@ -519,26 +503,16 @@
                     </div>
                 </div>
                 <div class="grid grid-2 gap-4">
-                    <div class="form-group">
-                        <label for="start_time">Start Time (Optional)</label>
-                        <input
-                            id="start_time"
-                            type="datetime-local"
-                            class="input"
-                            bind:value={formData.start_time}
-                            disabled={formLoading}
-                        />
-                    </div>
-                    <div class="form-group">
-                        <label for="end_time">End Time (Optional)</label>
-                        <input
-                            id="end_time"
-                            type="datetime-local"
-                            class="input"
-                            bind:value={formData.end_time}
-                            disabled={formLoading}
-                        />
-                    </div>
+                    <DateTimePicker
+                        label="Start Time (Optional)"
+                        bind:value={formData.start_time}
+                        disabled={formLoading}
+                    />
+                    <DateTimePicker
+                        label="End Time (Optional)"
+                        bind:value={formData.end_time}
+                        disabled={formLoading}
+                    />
                 </div>
                 <div class="flex gap-2">
                     <Button

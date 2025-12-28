@@ -10,7 +10,7 @@
     TournamentStatus,
     MatchGenerationType,
   } from "$lib/types";
-  import { Button } from "$lib/components";
+  import { Button, DateTimePicker, Select } from "$lib/components";
 
   let { user, isAuthenticated } = $derived($authStore);
   let myGames: Game[] = $state([]);
@@ -127,13 +127,14 @@
     {:else}
       <div class="card">
         <div class="form-group">
-          <label for="game">Game *</label>
-          <select id="game" class="input" bind:value={form.game_id} required>
-            <option value="">Select a game...</option>
-            {#each myGames as game}
-              <option value={game.id}>{game.name}</option>
-            {/each}
-          </select>
+          <Select
+            label="Game *"
+            options={[
+              { value: "", label: "Select a game..." },
+              ...myGames.map(game => ({ value: game.id, label: game.name }))
+            ]}
+            bind:value={form.game_id}
+          />
           {#if myGames.length === 0}
             <p class="text-sm">You don't have any games yet. <a href="/game-setter/games/new">Create a game</a> first.</p>
           {/if}
@@ -157,18 +158,16 @@
         </div>
 
         <div class="form-group">
-          <label for="match-generation">Match Generation Type *</label>
-          <select
-            id="match-generation"
-            class="input"
+          <Select
+            label="Match Generation Type *"
+            options={[
+              { value: "all_vs_all", label: "All vs All" },
+              { value: "round_robin", label: "Round Robin" },
+              { value: "single_elimination", label: "Single Elimination" },
+              { value: "double_elimination", label: "Double Elimination" }
+            ]}
             bind:value={form.match_generation_type}
-            required
-          >
-            <option value="all_vs_all">All vs All</option>
-            <option value="round_robin">Round Robin</option>
-            <option value="single_elimination">Single Elimination</option>
-            <option value="double_elimination">Double Elimination</option>
-          </select>
+          />
         </div>
 
         <div class="grid grid-2">
@@ -184,23 +183,26 @@
         </div>
 
         <div class="form-group">
-          <label for="status">Initial Status *</label>
-          <select id="status" class="input" bind:value={form.status}>
-            <option value="scheduled">Scheduled</option>
-            <option value="registration">Registration Open</option>
-          </select>
+          <Select
+            label="Initial Status *"
+            options={[
+              { value: "scheduled", label: "Scheduled" },
+              { value: "registration", label: "Registration Open" }
+            ]}
+            bind:value={form.status}
+          />
         </div>
 
         <div class="grid grid-2">
-          <div class="form-group">
-            <label for="start-time">Start Time (optional)</label>
-            <input type="datetime-local" id="start-time" class="input" bind:value={form.start_time} />
-          </div>
+          <DateTimePicker
+            label="Start Time (optional)"
+            bind:value={form.start_time}
+          />
 
-          <div class="form-group">
-            <label for="end-time">End Time (optional)</label>
-            <input type="datetime-local" id="end-time" class="input" bind:value={form.end_time} />
-          </div>
+          <DateTimePicker
+            label="End Time (optional)"
+            bind:value={form.end_time}
+          />
         </div>
 
         <div class="flex gap-2 mt-6">

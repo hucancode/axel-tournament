@@ -52,7 +52,6 @@
                     {/if}
                     <a href="/profile">{user?.username}</a>
                     <Button onclick={logout} label="Logout" />
-                    >
                 {:else}
                     <a href="/login">Login</a>
                     <LinkButton href="/register" variant="primary" label="Sign Up" />
