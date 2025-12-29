@@ -22,13 +22,6 @@
     Users can still toggle it closed and open again.
 </Story>
 
-<Story
-    name="Disabled"
-    args={{ title: "This accordion is disabled", disabled: true }}
->
-    This content cannot be accessed when the accordion is disabled.
-</Story>
-
 <Story name="Multiple Accordions">
     {#snippet template(args)}
         <Accordion title="Introduction">
@@ -45,7 +38,7 @@
             styling with thick borders and box shadows makes each section
             clearly defined.
         </Accordion>
-        <Accordion title="Disabled Section" disabled>
+        <Accordion title="Disabled Section">
             This section is disabled and cannot be opened.
         </Accordion>
     {/snippet}
@@ -58,7 +51,7 @@
     <div class="flex flex-col gap-3">
         <p><strong>Q: Can I nest other components inside?</strong></p>
         <p>A: Yes! You can include any content in the accordion body.</p>
-        <div class="p-4 border-3 border-black bg-yellow-100">
+        <div class="p-4">
             <p class="font-bold">Example nested content</p>
             <ul class="list-disc list-inside mt-2">
                 <li>Lists work great</li>
