@@ -13,8 +13,8 @@
 
 <details class:disabled {open}>
   <summary>
-    <span class="icon">▸</span>
-    <span class="title">{title}</span>
+    <span>▸</span>
+    {title}
   </summary>
   <div>
     {@render children()}
@@ -45,6 +45,8 @@
     user-select: none;
     list-style: none;
     background-color: var(--blueprint-line-faint);
+    background-image: repeating-linear-gradient(315deg, var(--pattern-fg) 0, var(--pattern-fg) 1px, transparent 0, transparent 50%);
+    background-size: 10px 10px;
     border-bottom: 1px solid transparent;
     color: var(--text);
     transition: border-color 0.15s ease, background-color 0.15s ease;
@@ -65,7 +67,7 @@
     opacity: 0.9;
   }
 
-  details > summary > .icon {
+  summary > span {
     display: inline-block;
     font-size: 1rem;
     font-weight: bold;
@@ -73,16 +75,12 @@
     transition: transform 0.2s;
   }
 
-  details[open] > summary > .icon {
+  details[open] > summary > span {
     transform: rotate(90deg);
   }
 
   details[open] > summary {
     border-bottom-color: var(--blueprint-line-faint);
-  }
-
-  details > summary > .title {
-    flex: 1;
   }
 
   details > div {

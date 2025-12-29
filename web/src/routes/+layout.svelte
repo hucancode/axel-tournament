@@ -3,7 +3,7 @@
     import { page } from "$app/state";
     import { authStore } from "$lib/stores/auth";
     import { goto } from "$app/navigation";
-    import { Button, LinkButton } from "$lib/components";
+    import { Nav } from "$lib/components";
     let { children } = $props();
     function logout() {
         authStore.logout();
@@ -18,47 +18,13 @@
     <title>Axel Tournament Platform</title>
 </svelte:head>
 
-<div class="min-h-screen flex flex-col bg-blueprint-grid">
-    <nav>
-        <div class="nav-content">
-            <div class="nav-links">
-                <a href="/" class="logo">Axel Tournament</a>
-                <a
-                    href="/tournaments"
-                    class:active={currentPath.startsWith("/tournaments")}
-                >
-                    Tournaments
-                </a>
-                <a
-                    href="/games"
-                    class:active={currentPath.startsWith("/games")}
-                >
-                    Games
-                </a>
-                <a
-                    href="/leaderboard"
-                    class:active={currentPath === "/leaderboard"}
-                >
-                    Leaderboard
-                </a>
-            </div>
-            <div class="nav-links">
-                {#if isAuthenticated}
-                    {#if user?.role === "admin"}
-                        <a href="/admin">Admin</a>
-                    {/if}
-                    {#if user?.role === "gamesetter" || user?.role === "admin"}
-                        <a href="/game-setter">Game Setter</a>
-                    {/if}
-                    <a href="/profile">{user?.username}</a>
-                    <Button onclick={logout} label="Logout" />
-                {:else}
-                    <a href="/login">Login</a>
-                    <LinkButton href="/register" variant="primary" label="Sign Up" />
-                {/if}
-            </div>
-        </div>
-    </nav>
+<div class="min-h-screen flex flex-col bg-blueprint-grid bg-blueprint-major-grid">
+    <Nav
+        currentPath={currentPath}
+        isAuthenticated={isAuthenticated}
+        user={user}
+        onLogout={logout}
+    />
     <main class="flex-1">
         {@render children()}
     </main>

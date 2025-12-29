@@ -51,11 +51,11 @@
   }
 </script>
 
-<nav class="pagination" aria-label="Pagination">
-  <ul class="pagination-list">
+<nav aria-label="Pagination">
+  <ul>
     <li>
       <button
-        class="pagination-btn pagination-prev"
+        class="nav-btn"
         disabled={!canGoPrevious}
         onclick={() => handlePageClick(currentPage - 1)}
         aria-label="Previous page"
@@ -67,10 +67,9 @@
     {#each pages as page}
       <li>
         {#if page === '...'}
-          <span class="pagination-ellipsis">...</span>
+          <span>...</span>
         {:else}
           <button
-            class="pagination-btn"
             class:active={page === currentPage}
             onclick={() => handlePageClick(page as number)}
             aria-label={`Page ${page}`}
@@ -84,7 +83,7 @@
 
     <li>
       <button
-        class="pagination-btn pagination-next"
+        class="nav-btn"
         disabled={!canGoNext}
         onclick={() => handlePageClick(currentPage + 1)}
         aria-label="Next page"
@@ -96,15 +95,15 @@
 </nav>
 
 <style>
-  .pagination {
+  nav {
     display: flex;
     justify-content: center;
     margin: 1.5rem 0;
   }
 
-  .pagination-list {
+  ul {
     display: flex;
-    gap: 0.5rem;
+    gap: 0.25rem;
     list-style: none;
     padding: 0;
     margin: 0;
@@ -112,66 +111,62 @@
     align-items: center;
   }
 
-  .pagination-btn {
-    min-width: 2.5rem;
+  button {
+    min-width: 2rem;
     padding: 0.5rem 0.75rem;
     background: var(--white);
-    border: 3px solid var(--black);
-    border-radius: 4px;
-    font-weight: 700;
+    border: 1px solid var(--border-color-strong);
+    border-radius: 0;
+    font-weight: 500;
     font-size: 0.875rem;
     cursor: pointer;
-    box-shadow: 3px 3px 0 0 var(--black);
-    transition: none;
-    color: var(--black);
+    transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+    color: var(--text-muted);
   }
 
-  .pagination-btn:hover:not(:disabled) {
-    transform: translate(1px, 1px);
-    box-shadow: 2px 2px 0 0 var(--black);
-    background: var(--secondary);
+  button:hover:not(:disabled) {
+    background: var(--gray-light);
+    color: var(--text);
+    border-color: var(--border-color-strong);
   }
 
-  .pagination-btn:active:not(:disabled) {
-    transform: translate(3px, 3px);
-    box-shadow: none;
+  button:active:not(:disabled) {
+    opacity: 0.9;
   }
 
-  .pagination-btn:focus {
-    outline: 3px solid var(--primary);
+  button:focus {
+    outline: 2px solid var(--primary);
     outline-offset: 2px;
+    z-index: 1;
   }
 
-  .pagination-btn.active {
+  button.active {
     background: var(--primary);
-    color: var(--black);
+    border-color: var(--primary);
+    color: var(--white);
   }
 
-  .pagination-btn.active:hover {
+  button.active:hover {
     background: var(--primary);
-    transform: none;
-    box-shadow: 3px 3px 0 0 var(--black);
+    border-color: var(--primary);
     cursor: default;
   }
 
-  .pagination-btn:disabled {
+  button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
-    transform: none;
-    box-shadow: 2px 2px 0 0 var(--gray-medium);
-    border-color: var(--gray-medium);
+    color: var(--text-muted);
   }
 
-  .pagination-ellipsis {
+  span {
     display: flex;
     align-items: center;
-    padding: 0.5rem;
-    font-weight: 700;
-    color: var(--gray-medium);
+    padding: 0.5rem 0.25rem;
+    font-weight: 500;
+    color: var(--text-muted);
   }
 
-  .pagination-prev,
-  .pagination-next {
+  .nav-btn {
     min-width: auto;
   }
 </style>

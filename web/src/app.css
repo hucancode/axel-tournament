@@ -114,6 +114,15 @@ body {
     background-size: 10px 10px;
 }
 
+.bg-blueprint-major-grid {
+    background-image:
+        repeating-linear-gradient(0deg, var(--pattern-fg-strong) 0, var(--pattern-fg-strong) 1px, transparent 1px, transparent 100px),
+        repeating-linear-gradient(90deg, var(--pattern-fg-strong) 0, var(--pattern-fg-strong) 1px, transparent 1px, transparent 100px),
+        repeating-linear-gradient(0deg, var(--pattern-fg) 0, var(--pattern-fg) 1px, transparent 1px, transparent 10px),
+        repeating-linear-gradient(90deg, var(--pattern-fg) 0, var(--pattern-fg) 1px, transparent 1px, transparent 10px);
+    background-size: 100px 100px, 100px 100px, 10px 10px, 10px 10px;
+}
+
 
 /* Form inputs - Blueprint style */
 .input,
