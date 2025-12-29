@@ -27,24 +27,20 @@
   }
 </script>
 
-<div class="steps" role="navigation" aria-label="Progress steps">
+<div role="navigation" aria-label="Progress steps">
   {#each steps as step, index (index)}
-    <div class="step-wrapper">
+    <div>
       <button
         type="button"
-        class="step"
-        class:completed={getStepStatus(index) === 'completed'}
-        class:current={getStepStatus(index) === 'current'}
-        class:upcoming={getStepStatus(index) === 'upcoming'}
-        class:clickable={clickable}
+        data-status={getStepStatus(index)}
+        data-clickable={clickable || undefined}
         disabled={!clickable}
         onclick={() => handleStepClick(index)}
         aria-current={getStepStatus(index) === 'current' ? 'step' : undefined}
       >
-        <div class="step-indicator">
+        <div>
           {#if getStepStatus(index) === 'completed'}
             <svg
-              class="checkmark"
               viewBox="0 0 20 20"
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
@@ -58,20 +54,20 @@
               />
             </svg>
           {:else}
-            <span class="step-number">{index + 1}</span>
+            <span>{index + 1}</span>
           {/if}
         </div>
-        <div class="step-content">
-          <div class="step-label">{step.label}</div>
+        <div>
+          <div>{step.label}</div>
           {#if step.description}
-            <div class="step-description">{step.description}</div>
+            <div>{step.description}</div>
           {/if}
         </div>
       </button>
       {#if index < steps.length - 1}
         <div
-          class="step-connector"
-          class:completed={index < current}
+          data-connector
+          data-completed={index < current || undefined}
         ></div>
       {/if}
     </div>
@@ -79,65 +75,68 @@
 </div>
 
 <style>
-  .steps {
+  /* Root navigation */
+  div[role="navigation"] {
     display: flex;
     width: 100%;
     gap: 0;
   }
 
-  .step-wrapper {
+  /* Step wrapper - first level div */
+  div[role="navigation"] > div {
     display: flex;
     flex: 1;
     align-items: center;
     min-width: 0;
   }
 
-  .step {
+  /* Step button */
+  button {
     display: flex;
     align-items: center;
     gap: 0.75rem;
     padding: 1rem;
     background-color: var(--white);
     border: 1px solid var(--blueprint-line-light);
-    border-radius: 0;
     cursor: default;
     transition: border-color 0.15s ease;
     flex: 1;
     min-width: 0;
   }
 
-  .step.clickable {
+  button[data-clickable] {
     cursor: pointer;
   }
 
-  .step.clickable:hover {
+  button[data-clickable]:hover {
     border-color: var(--primary);
     border-width: 2px;
     padding: calc(1rem - 1px);
   }
 
-  .step.clickable:active {
+  button[data-clickable]:active {
     opacity: 0.9;
   }
 
-  .step:focus {
+  button:focus {
     outline: 2px solid var(--primary);
     outline-offset: 2px;
     z-index: 1;
   }
 
-  .step.current {
+  button[data-status="current"] {
     background-color: var(--primary);
     border-color: var(--primary);
     color: var(--white);
   }
 
-  .step.upcoming {
+  button[data-status="upcoming"] {
     background-color: var(--blueprint-line-faint);
     opacity: 0.7;
   }
 
-  .step-indicator {
+  /* Step indicator - first div inside button */
+  button > div:first-child {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -145,7 +144,6 @@
     height: 2rem;
     flex-shrink: 0;
     border: 1px solid var(--blueprint-line-light);
-    border-radius: 0;
     background-color: var(--white);
     font-weight: 600;
     font-size: 0.875rem;
@@ -153,34 +151,37 @@
     transition: all 0.15s;
   }
 
-  .step.completed .step-indicator {
+  button[data-status="completed"] > div:first-child {
     background-color: var(--success);
     border-color: var(--success);
     color: var(--white);
   }
 
-  .step.current .step-indicator {
+  button[data-status="current"] > div:first-child {
     background-color: var(--white);
     border-color: var(--white);
     color: var(--primary);
   }
 
-  .step.upcoming .step-indicator {
+  button[data-status="upcoming"] > div:first-child {
     background-color: var(--blueprint-line-faint);
     border-color: var(--blueprint-line-light);
     color: var(--text-muted);
   }
 
-  .checkmark {
+  /* Checkmark SVG */
+  svg {
     width: 1rem;
     height: 1rem;
   }
 
-  .step-number {
+  /* Step number */
+  button > div:first-child > span {
     line-height: 1;
   }
 
-  .step-content {
+  /* Step content - second div inside button */
+  button > div:last-child {
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
@@ -188,7 +189,8 @@
     flex: 1;
   }
 
-  .step-label {
+  /* Step label - first div in content */
+  button > div:last-child > div:first-child {
     font-weight: 600;
     font-size: 0.875rem;
     color: var(--text);
@@ -197,11 +199,12 @@
     text-overflow: ellipsis;
   }
 
-  .step.current .step-label {
+  button[data-status="current"] > div:last-child > div:first-child {
     color: var(--white);
   }
 
-  .step-description {
+  /* Step description - second div in content */
+  button > div:last-child > div:last-child {
     font-size: 0.75rem;
     color: var(--text-muted);
     white-space: nowrap;
@@ -209,16 +212,16 @@
     text-overflow: ellipsis;
   }
 
-  .step.current .step-description {
+  button[data-status="current"] > div:last-child > div:last-child {
     color: rgba(255, 255, 255, 0.8);
   }
 
-  .step.upcoming .step-label,
-  .step.upcoming .step-description {
+  button[data-status="upcoming"] > div:last-child > div {
     opacity: 0.6;
   }
 
-  .step-connector {
+  /* Step connector */
+  div[data-connector] {
     height: 1px;
     flex: 1;
     background-color: var(--blueprint-line-light);
@@ -227,22 +230,22 @@
     min-width: 1rem;
   }
 
-  .step-connector.completed {
+  div[data-connector][data-completed] {
     background-color: var(--success);
   }
 
   @media (max-width: 768px) {
-    .steps {
+    div[role="navigation"] {
       flex-direction: column;
       gap: 0.5rem;
     }
 
-    .step-wrapper {
+    div[role="navigation"] > div {
       flex-direction: column;
       align-items: stretch;
     }
 
-    .step-connector {
+    div[data-connector] {
       width: 1px;
       height: 1rem;
       margin: 0;
@@ -250,11 +253,7 @@
       margin-left: 1rem;
     }
 
-    .step-label {
-      white-space: normal;
-    }
-
-    .step-description {
+    button > div:last-child > div {
       white-space: normal;
     }
   }

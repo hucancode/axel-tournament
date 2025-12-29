@@ -29,11 +29,10 @@
   let activeComponent = $derived(items.find(item => item.value === activeTab)?.component);
 </script>
 
-<div class="tabs {className}">
-  <div class="tabs-list">
+<div class={className}>
+  <div role="tablist">
     {#each items as item}
       <button
-        class="tabs-trigger"
         class:active={activeTab === item.value}
         onclick={() => setActiveTab(item.value)}
         role="tab"
@@ -47,28 +46,25 @@
 
   {#if activeComponent}
     {@const Component = activeComponent}
-    <div class="tabs-content">
+    <div role="tabpanel">
       <Component />
     </div>
   {/if}
 </div>
 
 <style>
-  .tabs {
+  div {
     width: 100%;
   }
-
-  .tabs-list {
+  div[role="tablist"] {
     display: inline-flex;
     align-items: center;
     gap: 0;
     padding: 0;
     background-color: var(--white);
     border: 1px solid var(--blueprint-line-light);
-    border-radius: 0;
   }
-
-  .tabs-trigger {
+  button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -77,7 +73,6 @@
     font-size: 0.875rem;
     border: none;
     border-right: 1px solid var(--blueprint-line-faint);
-    border-radius: 0;
     background-color: transparent;
     color: var(--text);
     cursor: pointer;
@@ -85,40 +80,40 @@
     white-space: nowrap;
   }
 
-  .tabs-trigger:last-child {
+  button:last-child {
     border-right: none;
   }
 
-  .tabs-trigger:hover:not(.active) {
+  button:hover:not(.active) {
     background-color: var(--blueprint-line-faint);
   }
 
-  .tabs-trigger:focus {
+  button:focus {
     outline: 2px solid var(--primary);
     outline-offset: -2px;
   }
 
-  .tabs-trigger.active {
+  button.active {
     background-color: var(--primary);
     color: var(--white);
     border-color: var(--primary);
   }
 
-  .tabs-trigger:disabled {
+  button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
     pointer-events: none;
   }
 
-  .tabs-content {
+  /* Tab content panel */
+  div[role="tabpanel"] {
     margin-top: -1px;
     padding: 1.5rem;
     background-color: var(--white);
     border: 1px solid var(--blueprint-line-light);
-    border-radius: 0;
   }
 
-  .tabs-content:focus {
+  div[role="tabpanel"]:focus {
     outline: 2px solid var(--primary);
     outline-offset: 2px;
   }

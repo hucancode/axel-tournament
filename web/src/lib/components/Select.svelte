@@ -172,7 +172,6 @@
     padding: 0.75rem 1rem;
     border: 1px solid var(--blueprint-line-light);
     background: var(--white);
-    border-radius: 0;
     font-size: 1rem;
     color: var(--text);
     cursor: pointer;
@@ -232,7 +231,6 @@
     background: var(--white);
     border: 1px solid var(--blueprint-line-light);
     border-top: none;
-    border-radius: 0;
     max-height: 300px;
     overflow-y: auto;
   }

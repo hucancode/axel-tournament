@@ -17,31 +17,30 @@
   }
 </script>
 
-<label class="checkbox-wrapper" class:disabled>
+<label class:disabled>
   <input
     type="checkbox"
-    class="checkbox-input"
     bind:checked
     {disabled}
     {indeterminate}
     onchange={handleChange}
   />
-  <span class="checkbox-box">
+  <span>
     {#if indeterminate}
-      <span class="checkbox-indeterminate"></span>
+      <span></span>
     {:else if checked}
-      <svg class="checkbox-check" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M2 8L6 12L14 4" stroke="currentColor" stroke-width="3" stroke-linecap="square" stroke-linejoin="miter"/>
       </svg>
     {/if}
   </span>
   {#if label}
-    <span class="checkbox-label">{label}</span>
+    <span>{label}</span>
   {/if}
 </label>
 
 <style>
-  .checkbox-wrapper {
+  label {
     display: inline-flex;
     align-items: center;
     gap: 0.75rem;
@@ -49,19 +48,20 @@
     user-select: none;
   }
 
-  .checkbox-wrapper.disabled {
+  label.disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }
 
-  .checkbox-input {
+  input {
     position: absolute;
     opacity: 0;
     width: 0;
     height: 0;
   }
 
-  .checkbox-box {
+  /* Checkbox box - first span after input */
+  input + span {
     position: relative;
     display: inline-flex;
     align-items: center;
@@ -70,51 +70,53 @@
     height: 20px;
     background-color: var(--white);
     border: 1px solid var(--blueprint-line-light);
-    border-radius: 0;
     transition: border-color 0.15s ease;
   }
 
-  .checkbox-check {
+  /* Checkmark SVG */
+  input + span svg {
     width: 14px;
     height: 14px;
     color: var(--white);
   }
 
-  .checkbox-indeterminate {
+  /* Indeterminate indicator - nested span */
+  input + span > span {
     width: 10px;
     height: 2px;
     background-color: var(--white);
   }
 
-  .checkbox-input:checked + .checkbox-box {
+  input:checked + span {
     background-color: var(--primary);
     border-color: var(--primary);
   }
 
-  .checkbox-input:indeterminate + .checkbox-box {
+  input:indeterminate + span {
     background-color: var(--blueprint-line-light);
     border-color: var(--blueprint-line-light);
   }
 
-  .checkbox-input:focus + .checkbox-box {
+  input:focus + span {
     outline: 2px solid var(--primary);
     outline-offset: 2px;
   }
 
-  .checkbox-wrapper:hover .checkbox-box {
+  label:hover input + span {
     border-color: var(--primary);
     border-width: 2px;
   }
 
-  .checkbox-wrapper:active .checkbox-box {
+  label:active input + span {
     opacity: 0.9;
   }
 
-  .checkbox-wrapper.disabled .checkbox-box {
+  label.disabled input + span {
     border-color: var(--gray-medium);
   }
 
-  .checkbox-label {
+  /* Label text - second span (if exists) */
+  input + span + span {
     font-weight: 500;
     color: var(--text);
   }

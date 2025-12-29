@@ -13,8 +13,8 @@
 </script>
 
 <nav>
-    <div class="nav-content">
-        <div class="nav-links">
+    <div>
+        <div>
             <a href="/" class="logo">Axel Tournament</a>
             <a
                 href="/tournaments"
@@ -35,7 +35,7 @@
                 Leaderboard
             </a>
         </div>
-        <div class="nav-links">
+        <div>
             {#if isAuthenticated}
                 {#if user?.role === "admin"}
                     <a href="/admin" class:active={currentPath.startsWith("/admin")}>Admin</a>
@@ -52,3 +52,53 @@
         </div>
     </div>
 </nav>
+
+<style>
+    nav {
+        border-bottom: 1px solid var(--blueprint-line-light);
+        background: var(--white);
+        padding: 1rem 2rem;
+    }
+
+    /* Container - there's only one div child of nav */
+    nav > div {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    /* Nav link groups - both divs inside the container */
+    nav > div > div {
+        display: flex;
+        gap: 1.5rem;
+        align-items: center;
+    }
+
+    a {
+        text-decoration: none;
+        color: var(--text);
+        font-weight: 500;
+        transition: color 0.15s ease;
+    }
+
+    a:hover {
+        color: var(--primary);
+    }
+
+    a.active {
+        color: var(--primary);
+        font-weight: 600;
+    }
+
+    a.logo {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--primary);
+    }
+
+    a.logo:hover {
+        opacity: 0.8;
+    }
+</style>

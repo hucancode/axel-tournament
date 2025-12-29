@@ -32,19 +32,18 @@
   }
 </script>
 
-<div class="slider-container">
+<div>
   {#if label}
-    <label for={sliderId} class="slider-label">
+    <label for={sliderId}>
       {label}
       {#if showValue}
-        <span class="slider-value">{value}</span>
+        <span>{value}</span>
       {/if}
     </label>
   {/if}
   <input
     id={sliderId}
     type="range"
-    class="slider"
     style="--percentage: {percentage}%"
     {value}
     {min}
@@ -56,14 +55,14 @@
 </div>
 
 <style>
-  .slider-container {
+  div {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
     width: 100%;
   }
 
-  .slider-label {
+  label {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -72,18 +71,17 @@
     color: var(--text);
   }
 
-  .slider-value {
+  span {
     background: var(--primary);
     color: var(--white);
     border: 1px solid var(--blueprint-line);
-    border-radius: 0;
     padding: 0.25rem 0.75rem;
     font-weight: 600;
     min-width: 3rem;
     text-align: center;
   }
 
-  .slider {
+  input {
     -webkit-appearance: none;
     appearance: none;
     width: 100%;
@@ -91,7 +89,7 @@
     cursor: pointer;
   }
 
-  .slider::-webkit-slider-runnable-track {
+  input::-webkit-slider-runnable-track {
     width: 100%;
     height: 1rem;
     background: linear-gradient(
@@ -102,75 +100,71 @@
       var(--white) 100%
     );
     border: 1px solid var(--blueprint-line-light);
-    border-radius: 0;
   }
 
-  .slider::-webkit-slider-thumb {
+  input::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
     width: 1.25rem;
     height: 1.25rem;
     background: var(--primary);
     border: 1px solid var(--blueprint-line);
-    border-radius: 0;
     cursor: grab;
     margin-top: -0.125rem;
   }
 
-  .slider::-moz-range-track {
+  input::-moz-range-track {
     width: 100%;
     height: 1rem;
     background: var(--white);
     border: 1px solid var(--blueprint-line-light);
-    border-radius: 0;
   }
 
-  .slider::-moz-range-progress {
+  input::-moz-range-progress {
     height: 1rem;
     background: var(--primary);
     border: none;
   }
 
-  .slider::-moz-range-thumb {
+  input::-moz-range-thumb {
     width: 1.25rem;
     height: 1.25rem;
     background: var(--primary);
     border: 1px solid var(--blueprint-line);
-    border-radius: 0;
     cursor: grab;
   }
 
-  .slider::-webkit-slider-thumb:hover {
+  input::-webkit-slider-thumb:hover {
     border-width: 2px;
     border-color: var(--blueprint-line);
   }
 
-  .slider::-moz-range-thumb:hover {
+  input::-moz-range-thumb:hover {
     border-width: 2px;
     border-color: var(--blueprint-line);
   }
 
-  .slider::-webkit-slider-thumb:active {
+  input::-webkit-slider-thumb:active {
     cursor: grabbing;
     opacity: 0.9;
   }
 
-  .slider::-moz-range-thumb:active {
+  input::-moz-range-thumb:active {
     cursor: grabbing;
     opacity: 0.9;
   }
 
-  .slider:focus {
+  input:focus {
     outline: 2px solid var(--primary);
     outline-offset: 2px;
   }
 
-  .slider:disabled {
+  input:disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }
 
-  .slider:disabled::-webkit-slider-runnable-track {
+  input:disabled::-webkit-slider-runnable-track {
     background: linear-gradient(
       to right,
       var(--gray-medium) 0%,
@@ -180,17 +174,17 @@
     );
   }
 
-  .slider:disabled::-moz-range-progress {
+  input:disabled::-moz-range-progress {
     background: var(--gray-medium);
   }
 
-  .slider:disabled::-webkit-slider-thumb {
+  input:disabled::-webkit-slider-thumb {
     cursor: not-allowed;
     background: var(--gray-medium);
     border-color: var(--gray-medium);
   }
 
-  .slider:disabled::-moz-range-thumb {
+  input:disabled::-moz-range-thumb {
     cursor: not-allowed;
     background: var(--gray-medium);
     border-color: var(--gray-medium);

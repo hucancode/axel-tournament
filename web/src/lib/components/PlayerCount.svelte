@@ -4,25 +4,62 @@
         min: number;
         max: number;
     }
-    
+
     let { current, min, max }: Props = $props();
-    
-    function getBadgeInfo() {
-        if (current >= max) {
-            return { text: "Full", class: "badge-failed" };
-        } else if (current >= min) {
-            return { text: "Active", class: "badge-accepted" };
-        } else {
-            return { text: `Need ${min - current} more`, class: "badge-pending" };
-        }
+
+    function getBadgeType() {
+        if (current >= max) return "full";
+        if (current >= min) return "active";
+        return "pending";
     }
-    
-    let badgeInfo = $derived(getBadgeInfo());
+
+    function getBadgeText() {
+        if (current >= max) return "Full";
+        if (current >= min) return "Active";
+        return `Need ${min - current} more`;
+    }
+
+    let badgeType = $derived(getBadgeType());
+    let badgeText = $derived(getBadgeText());
 </script>
 
-<div class="text-sm">
+<div>
     {current} / {max}
-    <span class="badge {badgeInfo.class} ml-2">
-        {badgeInfo.text}
+    <span data-type={badgeType}>
+        {badgeText}
     </span>
 </div>
+
+<style>
+    div {
+        font-size: 0.875rem;
+    }
+
+    span {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        margin-left: 0.5rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        border-radius: 4px;
+        border: 1px solid;
+    }
+
+    span[data-type="full"] {
+        background: rgb(239 68 68 / 0.1);
+        color: var(--error);
+        border-color: var(--error);
+    }
+
+    span[data-type="active"] {
+        background: rgb(34 197 94 / 0.1);
+        color: var(--success);
+        border-color: var(--success);
+    }
+
+    span[data-type="pending"] {
+        background: rgb(234 179 8 / 0.1);
+        color: #D97706;
+        border-color: var(--warning);
+    }
+</style>

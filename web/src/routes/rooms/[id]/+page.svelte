@@ -315,7 +315,6 @@
 
   .status {
     padding: 0.25rem 0.5rem;
-    border-radius: 4px;
     font-size: 0.8rem;
     text-transform: capitalize;
   }
@@ -326,7 +325,6 @@
 
   .ws-status {
     padding: 0.25rem 0.5rem;
-    border-radius: 4px;
     font-size: 0.8rem;
     background: #ffebee;
     color: #c62828;
@@ -367,7 +365,6 @@
     justify-content: center;
     height: 100%;
     background: #f9f9f9;
-    border-radius: 8px;
     padding: 2rem;
   }
 
@@ -380,7 +377,6 @@
     padding: 0.5rem;
     background: white;
     margin: 0.25rem 0;
-    border-radius: 4px;
   }
 
   .chat-area {
@@ -388,7 +384,6 @@
     display: flex;
     flex-direction: column;
     border: 1px solid #e0e0e0;
-    border-radius: 8px;
     min-width: 300px;
   }
 
@@ -410,7 +405,6 @@
     color: #f57c00;
     background: #fff3e0;
     padding: 0.25rem 0.5rem;
-    border-radius: 4px;
   }
 
   .chat-messages {
@@ -432,7 +426,6 @@
     margin-bottom: 1rem;
     padding: 0.75rem;
     background: white;
-    border-radius: 8px;
     box-shadow: 0 1px 2px rgba(0,0,0,0.05);
   }
 
@@ -470,15 +463,12 @@
     flex: 1;
     padding: 0.5rem;
     border: 1px solid #ddd;
-    border-radius: 4px 0 0 4px;
   }
 
   .chat-input button {
     padding: 0.5rem 1rem;
     background: #1976d2;
     color: white;
-    border: none;
-    border-radius: 0 4px 4px 0;
     cursor: pointer;
     transition: all 0.2s;
   }
@@ -494,8 +484,6 @@
 
   .btn-primary, .btn-secondary {
     padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 4px;
     cursor: pointer;
   }
 

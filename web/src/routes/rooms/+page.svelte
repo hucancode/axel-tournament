@@ -243,7 +243,6 @@
 
   .status {
     padding: 0.25rem 0.5rem;
-    border-radius: 4px;
     font-size: 0.8rem;
     text-transform: capitalize;
   }
@@ -259,7 +258,6 @@
     margin-bottom: 2rem;
     padding: 1rem;
     background: #f9f9f9;
-    border-radius: 8px;
   }
 
   .filter-bar label {
@@ -269,14 +267,11 @@
   .filter-select {
     padding: 0.5rem;
     border: 1px solid #ddd;
-    border-radius: 4px;
     min-width: 200px;
   }
 
   .btn-primary, .btn-secondary, .btn-join, .btn-disabled {
     padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 4px;
     cursor: pointer;
     font-size: 0.9rem;
     font-weight: 500;
@@ -332,7 +327,6 @@
     width: 100%;
     padding: 0.5rem;
     border: 1px solid #ddd;
-    border-radius: 4px;
   }
 
   .loading, .empty-state {

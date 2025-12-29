@@ -24,7 +24,6 @@
 <style>
   details {
     border: 1px solid var(--blueprint-line-light);
-    border-radius: 0;
     background-color: var(--white);
     overflow: hidden;
   }
@@ -34,7 +33,7 @@
     pointer-events: none;
   }
 
-  details > summary {
+  summary {
     display: flex;
     align-items: center;
     gap: 0.75rem;
@@ -52,22 +51,22 @@
     transition: border-color 0.15s ease, background-color 0.15s ease;
   }
 
-  details > summary::-webkit-details-marker {
+  summary::-webkit-details-marker {
     display: none;
   }
 
-  details > summary:hover {
+  summary:hover {
     background-color: var(--blueprint-line-faint);
     border-color: var(--primary);
     border-left: 2px solid var(--primary);
     padding-left: calc(1rem - 1px);
   }
 
-  details > summary:active {
+  summary:active {
     opacity: 0.9;
   }
 
-  summary > span {
+  span {
     display: inline-block;
     font-size: 1rem;
     font-weight: bold;
@@ -75,15 +74,15 @@
     transition: transform 0.2s;
   }
 
-  details[open] > summary > span {
+  details[open] span {
     transform: rotate(90deg);
   }
 
-  details[open] > summary {
+  details[open] summary {
     border-bottom-color: var(--blueprint-line-faint);
   }
 
-  details > div {
+  div {
     padding: 1rem;
     background-color: var(--white);
   }

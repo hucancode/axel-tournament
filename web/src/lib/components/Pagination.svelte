@@ -55,7 +55,7 @@
   <ul>
     <li>
       <button
-        class="nav-btn"
+        data-nav
         disabled={!canGoPrevious}
         onclick={() => handlePageClick(currentPage - 1)}
         aria-label="Previous page"
@@ -83,7 +83,7 @@
 
     <li>
       <button
-        class="nav-btn"
+        data-nav
         disabled={!canGoNext}
         onclick={() => handlePageClick(currentPage + 1)}
         aria-label="Next page"
@@ -98,7 +98,6 @@
   nav {
     display: flex;
     justify-content: center;
-    margin: 1.5rem 0;
   }
 
   ul {
@@ -116,7 +115,6 @@
     padding: 0.5rem 0.75rem;
     background: var(--white);
     border: 1px solid var(--border-color-strong);
-    border-radius: 0;
     font-weight: 500;
     font-size: 0.875rem;
     cursor: pointer;
@@ -166,7 +164,8 @@
     color: var(--text-muted);
   }
 
-  .nav-btn {
+  /* Navigation buttons (prev/next) */
+  button[data-nav] {
     min-width: auto;
   }
 </style>

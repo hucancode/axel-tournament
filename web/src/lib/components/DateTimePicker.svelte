@@ -178,7 +178,6 @@
     padding: 0.75rem 1rem;
     border: 3px solid var(--black);
     background: var(--white);
-    border-radius: 4px;
     font-size: 1rem;
     cursor: pointer;
     transition: none;
@@ -220,7 +219,6 @@
     z-index: 50;
     background: var(--white);
     border: 3px solid var(--black);
-    border-radius: 4px;
     box-shadow: 6px 6px 0 0 var(--black);
     padding: 1rem;
   }
@@ -244,7 +242,6 @@
     padding: 0.75rem 1rem;
     border: 3px solid var(--black);
     background: var(--white);
-    border-radius: 4px;
     font-size: 1rem;
     transition: none;
     box-shadow: none;

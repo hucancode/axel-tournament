@@ -50,7 +50,6 @@
     display: inline-flex;
     background-color: var(--white);
     border: 1px solid var(--blueprint-line-light);
-    border-radius: 0;
     overflow: hidden;
   }
 

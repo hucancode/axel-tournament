@@ -39,32 +39,3 @@
     />
   </div>
 </Story>
-
-<Story name="All Variants">
-  <div class="flex flex-col gap-4">
-    <div>
-      <p class="mb-2 font-semibold">First Page (Prev disabled)</p>
-      <Pagination currentPage={1} totalPages={10} />
-    </div>
-
-    <div>
-      <p class="mb-2 font-semibold">Middle Page</p>
-      <Pagination currentPage={5} totalPages={10} />
-    </div>
-
-    <div>
-      <p class="mb-2 font-semibold">Last Page (Next disabled)</p>
-      <Pagination currentPage={10} totalPages={10} />
-    </div>
-
-    <div>
-      <p class="mb-2 font-semibold">Few Pages (No ellipsis)</p>
-      <Pagination currentPage={3} totalPages={6} />
-    </div>
-
-    <div>
-      <p class="mb-2 font-semibold">Many Pages (With ellipsis)</p>
-      <Pagination currentPage={25} totalPages={100} />
-    </div>
-  </div>
-</Story>

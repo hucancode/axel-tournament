@@ -106,27 +106,25 @@
   });
 </script>
 
-<div class="game-container">
+<div>
   <iframe
     bind:this={iframeRef}
     title="Interactive Game"
     sandbox="allow-scripts allow-same-origin"
-    class="game-iframe"
   ></iframe>
 </div>
 
 <style>
-  .game-container {
+  div {
     width: 100%;
     height: 600px;
     border: 4px solid #000;
-    border-radius: 4px;
     overflow: hidden;
     box-shadow: 6px 6px 0 0 #000;
     background: #fff;
   }
 
-  .game-iframe {
+  iframe {
     width: 100%;
     height: 100%;
     border: none;

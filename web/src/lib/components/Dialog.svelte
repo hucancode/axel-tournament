@@ -6,25 +6,23 @@
 
 <dialog bind:this={dialog} onclose={onclose}>
   <form method="dialog">
-    <div class="modal-header">
+    <header>
       <h2>{title}</h2>
-      <button type="button" class="close-btn" onclick={() => dialog?.close()}>×</button>
-    </div>
-    <div class="modal-body">
+      <button type="button" onclick={() => dialog?.close()} aria-label="Close">×</button>
+    </header>
+    <div>
       <slot />
     </div>
-    <div class="modal-footer">
-      <button type="button" class="btn-secondary" onclick={() => dialog?.close()}>Cancel</button>
-      <button type="submit" class="btn-primary" value="submit">Submit</button>
-    </div>
+    <footer>
+      <button type="button" onclick={() => dialog?.close()}>Cancel</button>
+      <button type="submit" value="submit">Submit</button>
+    </footer>
   </form>
 </dialog>
 
 <style>
   dialog {
     border: 1px solid var(--blueprint-line-light);
-    border-radius: 0;
-    padding: 0;
     max-width: 500px;
     width: 90%;
     background: var(--white);
@@ -39,7 +37,7 @@
     background: rgba(15, 23, 42, 0.6);
   }
 
-  .modal-header {
+  header {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -48,7 +46,13 @@
     color: var(--text);
   }
 
-  .close-btn {
+  header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+  }
+
+  header button {
     background: none;
     border: none;
     font-size: 1.5rem;
@@ -58,19 +62,46 @@
     transition: color 0.15s ease;
   }
 
-  .close-btn:hover {
+  header button:hover {
     color: var(--primary);
   }
 
-  .modal-body {
+  /* Modal body - the div between header and footer */
+  form > div {
     padding: 1.5rem;
   }
 
-  .modal-footer {
+  footer {
     display: flex;
     justify-content: flex-end;
     gap: 1rem;
     padding: 1.5rem;
     border-top: 1px solid var(--blueprint-line-faint);
+  }
+
+  footer button {
+    padding: 0.75rem 1.5rem;
+    border: 1px solid var(--blueprint-line-light);
+    background: var(--white);
+    color: var(--text);
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.15s ease;
+  }
+
+  footer button:hover {
+    border-color: var(--primary);
+    background: var(--blueprint-line-faint);
+  }
+
+  footer button[type="submit"] {
+    background: var(--primary);
+    color: var(--white);
+    border-color: var(--primary);
+  }
+
+  footer button[type="submit"]:hover {
+    opacity: 0.9;
+    background: var(--primary);
   }
 </style>

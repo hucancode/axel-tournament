@@ -16,7 +16,6 @@
 <style>
     aside {
         margin-bottom: 1rem;
-        border-radius: 0;
         border: 1px solid var(--border-color-strong);
         position: relative;
         padding: 1rem 2.5rem 1rem 1rem;

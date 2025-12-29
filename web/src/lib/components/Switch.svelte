@@ -16,24 +16,23 @@
   }
 </script>
 
-<label class="switch-wrapper" class:disabled>
+<label class:disabled>
   <input
     type="checkbox"
-    class="switch-input"
     bind:checked
     {disabled}
     onchange={handleChange}
   />
-  <span class="switch-track">
-    <span class="switch-thumb"></span>
+  <span>
+    <span></span>
   </span>
   {#if label}
-    <span class="switch-label">{label}</span>
+    <span>{label}</span>
   {/if}
 </label>
 
 <style>
-  .switch-wrapper {
+  label {
     display: inline-flex;
     align-items: center;
     gap: 0.75rem;
@@ -41,30 +40,31 @@
     user-select: none;
   }
 
-  .switch-wrapper.disabled {
+  label.disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }
 
-  .switch-input {
+  input {
     position: absolute;
     opacity: 0;
     width: 0;
     height: 0;
   }
 
-  .switch-track {
+  /* Switch track - first span after input */
+  input + span {
     position: relative;
     display: inline-block;
     width: 48px;
     height: 24px;
     background-color: var(--gray-light);
     border: 1px solid var(--blueprint-line-light);
-    border-radius: 0;
     transition: background-color 0.15s ease, border-color 0.15s ease;
   }
 
-  .switch-thumb {
+  /* Switch thumb - nested span inside track */
+  input + span > span {
     position: absolute;
     top: 2px;
     left: 2px;
@@ -72,40 +72,40 @@
     height: 18px;
     background-color: var(--white);
     border: 1px solid var(--blueprint-line-light);
-    border-radius: 0;
     transition: transform 0.2s ease;
   }
 
-  .switch-input:checked + .switch-track {
+  input:checked + span {
     background-color: var(--primary);
     border-color: var(--primary);
   }
 
-  .switch-input:checked + .switch-track .switch-thumb {
+  input:checked + span > span {
     transform: translateX(24px);
     background-color: var(--white);
     border-color: var(--white);
   }
 
-  .switch-input:focus + .switch-track {
+  input:focus + span {
     outline: 2px solid var(--primary);
     outline-offset: 2px;
   }
 
-  .switch-wrapper:hover .switch-track {
+  label:hover input + span {
     border-color: var(--primary);
     border-width: 2px;
   }
 
-  .switch-wrapper:active .switch-track {
+  label:active input + span {
     opacity: 0.9;
   }
 
-  .switch-wrapper.disabled .switch-track {
+  label.disabled input + span {
     border-color: var(--gray-medium);
   }
 
-  .switch-label {
+  /* Label text - second span (if exists) */
+  input + span + span {
     font-weight: 500;
     color: var(--text);
   }
