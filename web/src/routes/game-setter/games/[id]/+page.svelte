@@ -248,7 +248,7 @@
 
       <!-- Tab Content -->
       {#if activeTab === "info"}
-        <div class="card">
+        <div class="border border-[--border-color] p-6 shadow-sm bg-hatch">
           <div class="flex justify-between items-center mb-6">
             <h2>Basic Information</h2>
             <div class="flex gap-2">
@@ -261,13 +261,13 @@
 
           {#if editMode}
             <!-- Edit Mode -->
-            <div class="form-group">
-              <label for="edit-name">Name</label>
+            <div class="mb-4">
+              <label for="edit-name" class="block mb-2 font-medium text-gray-dark">Name</label>
               <input type="text" id="edit-name" class="input" bind:value={editForm.name} />
             </div>
 
-            <div class="form-group">
-              <label for="edit-description">Description</label>
+            <div class="mb-4">
+              <label for="edit-description" class="block mb-2 font-medium text-gray-dark">Description</label>
               <textarea
                 id="edit-description"
                 class="textarea"
@@ -276,8 +276,8 @@
               ></textarea>
             </div>
 
-            <div class="form-group">
-              <label for="edit-rounds">Rounds per Match</label>
+            <div class="mb-4">
+              <label for="edit-rounds" class="block mb-2 font-medium text-gray-dark">Rounds per Match</label>
               <input
                 type="number"
                 id="edit-rounds"
@@ -288,8 +288,8 @@
               />
             </div>
 
-            <div class="form-group">
-              <label for="edit-repetitions">Repetitions</label>
+            <div class="mb-4">
+              <label for="edit-repetitions" class="block mb-2 font-medium text-gray-dark">Repetitions</label>
               <input
                 type="number"
                 id="edit-repetitions"
@@ -300,8 +300,8 @@
               />
             </div>
 
-            <div class="form-group">
-              <label for="edit-timeout">Match Timeout (seconds)</label>
+            <div class="mb-4">
+              <label for="edit-timeout" class="block mb-2 font-medium text-gray-dark">Match Timeout (seconds)</label>
               <input
                 type="number"
                 id="edit-timeout"
@@ -312,8 +312,8 @@
               />
             </div>
 
-            <div class="form-group">
-              <label for="edit-cpu-limit">CPU Limit</label>
+            <div class="mb-4">
+              <label for="edit-cpu-limit" class="block mb-2 font-medium text-gray-dark">CPU Limit</label>
               <input
                 type="text"
                 id="edit-cpu-limit"
@@ -322,8 +322,8 @@
               />
             </div>
 
-            <div class="form-group">
-              <label for="edit-memory-limit">Memory Limit</label>
+            <div class="mb-4">
+              <label for="edit-memory-limit" class="block mb-2 font-medium text-gray-dark">Memory Limit</label>
               <input
                 type="text"
                 id="edit-memory-limit"
@@ -332,7 +332,7 @@
               />
             </div>
 
-            <div class="form-group">
+            <div class="mb-4">
               <label>
                 <input type="checkbox" bind:checked={editForm.is_active} />
                 Active
@@ -383,7 +383,7 @@
           {/if}
         </div>
       {:else if activeTab === "gamecode"}
-        <div class="card">
+        <div class="border border-[--border-color] p-6 shadow-sm bg-hatch">
           <h2>Upload Game Code</h2>
           <div class="text-sm">
             This is your main game orchestration code that will:
@@ -407,8 +407,8 @@
             </p>
           {/if}
 
-          <div class="form-group mt-4">
-            <label for="game-lang">Programming Language</label>
+          <div class="mt-4 mb-4">
+            <label for="game-lang" class="block mb-2 font-medium text-gray-dark">Programming Language</label>
             <select id="game-lang" class="input" bind:value={selectedGameLang}>
               <option value="">Select language...</option>
               {#each game.supported_languages as lang}
@@ -417,8 +417,8 @@
             </select>
           </div>
 
-          <div class="form-group">
-            <label for="game-code">Game Code</label>
+          <div class="mb-4">
+            <label for="game-code" class="block mb-2 font-medium text-gray-dark">Game Code</label>
             <textarea
               id="game-code"
               class="textarea font-mono text-sm"
@@ -431,7 +431,7 @@
           <Button variant="primary" label={uploadingGameCode ? "Uploading..." : "Upload Game Code"} onclick={uploadGameCode} disabled={uploadingGameCode} />
         </div>
       {:else if activeTab === "templates"}
-        <div class="card">
+        <div class="border border-[--border-color] p-6 shadow-sm bg-hatch">
           <h2>Code Templates</h2>
           <p class="text-sm">Provide starter code templates for each supported language.</p>
 

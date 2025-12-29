@@ -29,9 +29,9 @@
   }
 </script>
 
-<div class:disabled role="radiogroup">
+<div role="radiogroup" class="inline-flex bg-blueprint-paper border border-blueprint-line-light overflow-hidden {disabled ? 'opacity-50 cursor-not-allowed border-gray-medium' : ''}">
   {#each options as option, index (option.value)}
-    <label>
+    <label class="px-6 py-3 bg-transparent border-r border-blueprint-line-faint font-medium cursor-pointer transition-all relative inline-flex items-center select-none last:border-r-0 has-checked:bg-primary has-checked:text-white has-checked:border-primary has-focus:outline-2 has-focus:outline-primary has-focus:-outline-offset-2 has-focus:z-10 hover:has-[:not(:disabled):not(:checked)]:bg-blueprint-line-faint active:has-[:not(:disabled)]:bg-primary active:has-[:not(:disabled)]:text-white has-disabled:cursor-not-allowed {disabled ? 'border-gray-medium' : ''}">
       <input
         type="radio"
         {name}
@@ -39,77 +39,9 @@
         checked={option.value == value}
         onchange={handleChange}
         {disabled}
+        class="absolute opacity-0 w-0 h-0"
       />
       {option.label}
     </label>
   {/each}
 </div>
-
-<style>
-  div[role="radiogroup"] {
-    display: inline-flex;
-    background-color: var(--white);
-    border: 1px solid var(--blueprint-line-light);
-    overflow: hidden;
-  }
-
-  div[role="radiogroup"].disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    border-color: var(--gray-medium);
-  }
-
-  label {
-    padding: 0.75rem 1.5rem;
-    background-color: transparent;
-    border-right: 1px solid var(--blueprint-line-faint);
-    font-weight: 500;
-    color: var(--text);
-    cursor: pointer;
-    transition: background-color 0.15s ease, border-color 0.15s ease;
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    user-select: none;
-  }
-
-  label:last-child {
-    border-right: none;
-  }
-
-  input {
-    position: absolute;
-    opacity: 0;
-    width: 0;
-    height: 0;
-  }
-
-  label:hover:not(:has(input:disabled)):not(:has(input:checked)) {
-    background-color: var(--blueprint-line-faint);
-  }
-
-  label:has(input:checked) {
-    background-color: var(--primary);
-    color: var(--white);
-    border-color: var(--primary);
-  }
-
-  label:has(input:focus) {
-    outline: 2px solid var(--primary);
-    outline-offset: -2px;
-    z-index: 1;
-  }
-
-  label:active:not(:has(input:disabled)) {
-    background-color: var(--primary);
-    color: var(--white);
-  }
-
-  label:has(input:disabled) {
-    cursor: not-allowed;
-  }
-
-  div[role="radiogroup"].disabled label {
-    border-color: var(--gray-medium);
-  }
-</style>

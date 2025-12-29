@@ -65,7 +65,7 @@
             <h1 class="page-title">Tournaments</h1>
             <p class="text-gray-500">Browse and join programming tournaments</p>
         </div>
-        <div class="card mb-4">
+        <div class="border border-[--border-color] p-6 shadow-sm bg-hatch mb-4">
             <div class="flex items-center gap-4">
                 <label for="status-filter" class="font-semibold"
                     >Filter by Status:</label
@@ -84,16 +84,16 @@
             </div>
         </div>
         {#if error}
-            <div class="card bg-red-100 mb-4">
+            <div class="border border-[--border-color] p-6 shadow-sm bg-hatch bg-red-100 mb-4">
                 <p class="text-red-600">{error}</p>
             </div>
         {/if}
         {#if loading}
-            <div class="card text-center">
+            <div class="border border-[--border-color] p-6 shadow-sm bg-hatch text-center">
                 <p class="text-gray-500">Loading tournaments...</p>
             </div>
         {:else if tournaments.length === 0}
-            <div class="card text-center">
+            <div class="border border-[--border-color] p-6 shadow-sm bg-hatch text-center">
                 <p class="text-gray-500">No tournaments found</p>
             </div>
         {:else}

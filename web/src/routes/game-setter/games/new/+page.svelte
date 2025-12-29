@@ -81,8 +81,8 @@
     {/if}
 
     <form onsubmit={handleSubmit}>
-      <div class="form-group">
-        <label for="name">Game Name *</label>
+      <div class="mb-4">
+        <label for="name" class="block mb-2 font-medium text-gray-dark">Game Name *</label>
         <input
           id="name"
           type="text"
@@ -93,8 +93,8 @@
         />
       </div>
 
-      <div class="form-group">
-        <label for="description">Description *</label>
+      <div class="mb-4">
+        <label for="description" class="block mb-2 font-medium text-gray-dark">Description *</label>
         <textarea
           id="description"
           class="textarea"
@@ -105,7 +105,7 @@
         ></textarea>
       </div>
 
-      <fieldset class="form-group border-none p-0">
+      <fieldset class="border-0 p-0">
         <legend class="font-semibold mb-1">Supported Languages *</legend>
         <div class="flex gap-4 flex-wrap">
           <label class="flex items-center gap-2">
@@ -135,8 +135,8 @@
         </div>
       </fieldset>
 
-      <div class="form-group">
-        <label for="game-lang">Game Code Language *</label>
+      <div class="mb-4">
+        <label for="game-lang" class="block mb-2 font-medium text-gray-dark">Game Code Language *</label>
         <select
           id="game-lang"
           class="input"
@@ -150,8 +150,8 @@
         </select>
       </div>
 
-      <div class="form-group">
-        <label for="game-code">Game Code *</label>
+      <div class="mb-4">
+        <label for="game-code" class="block mb-2 font-medium text-gray-dark">Game Code *</label>
         <textarea
           id="game-code"
           class="textarea font-mono text-sm"
@@ -162,8 +162,8 @@
         ></textarea>
       </div>
 
-      <div class="form-group">
-        <label for="rounds">Rounds per Match *</label>
+      <div class="mb-4">
+        <label for="rounds" class="block mb-2 font-medium text-gray-dark">Rounds per Match *</label>
         <input
           id="rounds"
           type="number"
@@ -175,8 +175,8 @@
         />
       </div>
 
-      <div class="form-group">
-        <label for="repetitions">Repetitions *</label>
+      <div class="mb-4">
+        <label for="repetitions" class="block mb-2 font-medium text-gray-dark">Repetitions *</label>
         <input
           id="repetitions"
           type="number"
@@ -188,8 +188,8 @@
         />
       </div>
 
-      <div class="form-group">
-        <label for="timeout-ms">Match Timeout (miliseconds) *</label>
+      <div class="mb-4">
+        <label for="timeout-ms" class="block mb-2 font-medium text-gray-dark">Match Timeout (miliseconds) *</label>
         <input
           id="timeout-ms"
           type="number"
@@ -201,8 +201,8 @@
         />
       </div>
 
-      <div class="form-group">
-        <label for="cpu-limit">CPU Limit *</label>
+      <div class="mb-4">
+        <label for="cpu-limit" class="block mb-2 font-medium text-gray-dark">CPU Limit *</label>
         <input
           id="cpu-limit"
           type="text"
@@ -212,8 +212,8 @@
         />
       </div>
 
-      <div class="form-group">
-        <label for="memory-limit">Memory Limit *</label>
+      <div class="mb-4">
+        <label for="memory-limit" class="block mb-2 font-medium text-gray-dark">Memory Limit *</label>
         <input
           id="memory-limit"
           type="text"

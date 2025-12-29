@@ -53,23 +53,23 @@
             <p class="text-gray-500">Available programming challenge games</p>
         </div>
         {#if error}
-            <div class="card bg-red-100 mb-4">
+            <div class="border p-6 shadow-sm bg-hatch bg-red-100 mb-4">
                 <p class="text-red-600">{error}</p>
             </div>
         {/if}
         {#if loading}
-            <div class="card text-center">
+            <div class="border border-[--border-color] p-6 shadow-sm bg-hatch text-center">
                 <p class="text-gray-500">Loading games...</p>
             </div>
         {:else if games.length === 0}
-            <div class="card text-center">
+            <div class="border border-[--border-color] p-6 shadow-sm bg-hatch text-center">
                 <p class="text-gray-500">No games available</p>
             </div>
         {:else}
             <div class="grid grid-2">
                 {#each games as game}
                     {#if game.is_active}
-                        <div class="card">
+                        <div class="border border-[--border-color] p-6 shadow-sm bg-hatch">
                             <div class="flex justify-between items-center mb-2">
                                 <h2 class="text-xl font-semibold">
                                     {game.name}
@@ -145,7 +145,7 @@
                     <div class="grid grid-3">
                         {#each games as game}
                             {#if !game.is_active}
-                                <div class="card opacity-70">
+                                <div class="border border-[--border-color] p-6 shadow-sm bg-hatch opacity-70">
                                     <div
                                         class="flex justify-between items-center mb-2"
                                     >

@@ -82,11 +82,11 @@
                 Top performing players across all tournaments
             </p>
         </div>
-        <div class="card mb-4">
+        <div class="border border-[--border-color] p-6 shadow-sm bg-hatch mb-4">
             <h2 class="text-lg font-semibold mb-4">Filters</h2>
             <div class="filter-section">
-                <div class="form-group mb-0">
-                    <label for="tournament-filter">Tournament</label>
+                <div class="">
+                    <label for="tournament-filter" class="block mb-2 font-medium text-gray-dark">Tournament</label>
                     <select
                         id="tournament-filter"
                         class="select"
@@ -102,8 +102,8 @@
                         {/each}
                     </select>
                 </div>
-                <div class="form-group mb-0">
-                    <label for="game-filter">Game</label>
+                <div class="">
+                    <label for="game-filter" class="block mb-2 font-medium text-gray-dark">Game</label>
                     <select
                         id="game-filter"
                         class="select"
@@ -117,8 +117,8 @@
                         {/each}
                     </select>
                 </div>
-                <div class="form-group mb-0">
-                    <label for="limit-filter">Limit</label>
+                <div class="">
+                    <label for="limit-filter" class="block mb-2 font-medium text-gray-dark">Limit</label>
                     <select
                         id="limit-filter"
                         class="select"
@@ -135,23 +135,23 @@
             </div>
         </div>
         {#if error}
-            <div class="card bg-red-100 mb-4">
+            <div class="border p-6 shadow-sm bg-hatch bg-red-100 mb-4">
                 <p class="text-red-600">{error}</p>
             </div>
         {/if}
         {#if loading}
-            <div class="card text-center">
+            <div class="border border-[--border-color] p-6 shadow-sm bg-hatch text-center">
                 <p class="text-gray-500">Loading leaderboard...</p>
             </div>
         {:else if entries.length === 0}
-            <div class="card text-center">
+            <div class="border border-[--border-color] p-6 shadow-sm bg-hatch text-center">
                 <p class="text-gray-500">No leaderboard entries found</p>
                 <p class="text-sm text-gray-500 mt-2">
                     Try adjusting your filters or check back later
                 </p>
             </div>
         {:else}
-            <div class="card p-0 overflow-x-auto">
+            <div class="border border-[--border-color] shadow-sm bg-hatch p-0 overflow-x-auto">
                 <table class="leaderboard-table">
                     <thead>
                         <tr>
@@ -230,7 +230,7 @@
         background: white;
     }
     .leaderboard-table thead {
-        background: var(--gray-100);
+        background: var(--gray-light);
         position: sticky;
         top: 0;
         z-index: 10;
@@ -239,14 +239,14 @@
         padding: 0.75rem;
         text-align: left;
         font-weight: 600;
-        border-bottom: 2px solid var(--gray-300);
+        border-bottom: 2px solid var(--gray-light);
     }
     .leaderboard-table td {
         padding: 0.75rem;
-        border-bottom: 1px solid var(--gray-200);
+        border-bottom: 1px solid var(--gray-light);
     }
     .leaderboard-table tbody tr:hover {
-        background: var(--gray-50);
+        background: var(--background);
     }
     .rank-cell {
         font-weight: 700;
@@ -255,12 +255,12 @@
     }
     .username-cell {
         font-weight: 600;
-        color: var(--gray-900);
+        color: var(--blueprint-line);
     }
     .score-cell {
         font-weight: 700;
         font-size: 1.125rem;
-        color: var(--primary-600);
+        color: var(--primary);
     }
     .filter-section {
         display: grid;

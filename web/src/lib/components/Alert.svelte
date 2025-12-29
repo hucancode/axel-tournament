@@ -6,67 +6,15 @@
     }
 
     let { message, type = "error", onclose }: Props = $props();
+
+    const typeClasses = {
+        error: "bg-error/10 text-error border-l-2 border-l-error",
+        success: "bg-success/10 text-success border-l-2 border-l-success",
+        warning: "bg-warning/10 text-amber-600 border-l-2 border-l-warning",
+    };
 </script>
 
-<aside class="alert" class:error={type === 'error'} class:success={type === 'success'} class:warning={type === 'warning'} role="alert">
-    <p>{message}</p>
-    <button hidden={!onclose} onclick={onclose} aria-label="Close alert">×</button>
+<aside class="mb-4 border border-border-strong relative pr-10 pl-4 py-4 {typeClasses[type]}" role="alert">
+    <p class="m-0 font-medium">{message}</p>
+    <button hidden={!onclose} onclick={onclose} aria-label="Close alert" class="absolute top-1/2 right-2 -translate-y-1/2 bg-transparent border-0 text-xl font-bold cursor-pointer p-0 w-6 h-6 flex items-center justify-center leading-none opacity-60 transition-opacity hover:opacity-100">×</button>
 </aside>
-
-<style>
-    aside {
-        margin-bottom: 1rem;
-        border: 1px solid var(--border-color-strong);
-        position: relative;
-        padding: 1rem 2.5rem 1rem 1rem;
-    }
-
-    .error {
-        background: rgb(239 68 68 / 0.1);
-        color: var(--error);
-        border-left: 2px solid var(--error);
-    }
-
-    .success {
-        background: rgb(16 185 129 / 0.1);
-        color: var(--success);
-        border-left: 2px solid var(--success);
-    }
-
-    .warning {
-        background: rgb(245 158 11 / 0.1);
-        color: #D97706;
-        border-left: 2px solid var(--warning);
-    }
-
-    p {
-        margin: 0;
-        font-weight: 500;
-    }
-
-    button {
-        position: absolute;
-        top: 50%;
-        right: 0.5rem;
-        transform: translateY(-50%);
-        background: none;
-        border: none;
-        font-size: 1.25rem;
-        font-weight: bold;
-        cursor: pointer;
-        padding: 0;
-        width: 1.5rem;
-        height: 1.5rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        line-height: 1;
-        color: inherit;
-        opacity: 0.6;
-        transition: opacity 0.15s ease;
-    }
-
-    button:hover {
-        opacity: 1;
-    }
-</style>

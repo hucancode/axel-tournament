@@ -43,11 +43,11 @@
 
       // Load all tournaments, will be filtered by myGameIds
       allTournaments = await api.get<Tournament[]>("/api/tournaments", true);
-      
+
       // Load participants for tournaments related to user's games
       const myGameIds = myGames.map(g => g.id);
       const relevantTournaments = allTournaments.filter(t => myGameIds.includes(t.game_id));
-      
+
       const participantPromises = relevantTournaments.map(async (tournament) => {
         try {
           const participants = await tournamentService.getParticipants(tournament.id);
@@ -57,7 +57,7 @@
           return { tournamentId: tournament.id, participants: [] };
         }
       });
-      
+
       const participantResults = await Promise.all(participantPromises);
       participantCounts = participantResults.reduce((acc, { tournamentId, participants }) => {
         acc[tournamentId] = participants;
@@ -150,13 +150,13 @@
     </div>
 
     {#if actionMessage}
-      <div class="card bg-emerald-100 mb-3">
+      <div class="border border-[--border-color] p-6 shadow-sm bg-hatch bg-emerald-100 mb-3">
         <p class="text-green-700">{actionMessage}</p>
       </div>
     {/if}
 
     {#if actionError}
-      <div class="card bg-red-100 mb-3">
+      <div class="border border-[--border-color] p-6 shadow-sm bg-hatch bg-red-100 mb-3">
         <p class="text-red-600">{actionError}</p>
       </div>
     {/if}
@@ -166,13 +166,13 @@
     {/if}
 
     {#if loading}
-      <div class="card text-center">
+      <div class="border border-[--border-color] p-6 shadow-sm bg-hatch text-center">
         <p class="text-gray-500">Loading your games and tournaments...</p>
       </div>
     {:else}
       <div class="grid grid-2">
         <!-- My Games -->
-        <div class="card">
+        <div class="border border-[--border-color] p-6 shadow-sm bg-hatch">
           <div class="flex justify-between items-center mb-4">
             <h2>My Games</h2>
             <Button variant="primary" label="Create Game" onclick={createGame} />
@@ -184,7 +184,7 @@
             <div class="flex flex-col gap-4">
               {#each myGames as game}
                 <div
-                  class="card cursor-pointer"
+                  class="border border-[--border-color] p-6 shadow-sm bg-hatch cursor-pointer"
                   role="button"
                   tabindex="0"
                   onclick={() => manageGame(game.id)}
@@ -204,7 +204,7 @@
         </div>
 
         <!-- My Tournaments -->
-        <div class="card">
+        <div class="border border-[--border-color] p-6 shadow-sm bg-hatch">
           <div class="flex justify-between items-center mb-4">
             <h2>My Tournaments</h2>
             <Button variant="primary" label="Create Tournament" onclick={createTournament} />
@@ -215,7 +215,7 @@
           {:else}
             <div class="flex flex-col gap-4">
               {#each filteredTournaments as tournament}
-                <div class="card">
+                <div class="border border-[--border-color] p-6 shadow-sm bg-hatch">
                   <div class="flex justify-between gap-3">
                     <div>
                       <h3 class="mb-1.5">{tournament.name}</h3>

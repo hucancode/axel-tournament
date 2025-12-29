@@ -111,16 +111,16 @@
     <fieldset>
       <legend>Basic Information</legend>
       
-      <label for="game-type">Game Type</label>
+      <label for="game-type" class="block mb-2 font-medium text-gray-dark">Game Type</label>
       <select id="game-type" bind:value={gameType} onchange={onGameTypeChange}>
         <option value="automated">Automated (Code vs Code)</option>
         <option value="interactive">Interactive (Human vs Human)</option>
       </select>
       
-      <label for="name">Game Name</label>
+      <label for="name" class="block mb-2 font-medium text-gray-dark">Game Name</label>
       <input id="name" type="text" bind:value={name} placeholder="Enter game name" required />
       
-      <label for="description">Description</label>
+      <label for="description" class="block mb-2 font-medium text-gray-dark">Description</label>
       <textarea id="description" bind:value={description} placeholder="Describe your game" required></textarea>
       
       <LanguageSelector 
@@ -133,14 +133,14 @@
     <fieldset>
       <legend>Game Code</legend>
       
-      <label for="game-language">Backend Language</label>
+      <label for="game-language" class="block mb-2 font-medium text-gray-dark">Backend Language</label>
       <select id="game-language" bind:value={gameLanguage}>
         {#each languages as lang}
           <option value={lang}>{lang.toUpperCase()}</option>
         {/each}
       </select>
       
-      <label for="game-code">Backend Code (Game Logic)</label>
+      <label for="game-code" class="block mb-2 font-medium text-gray-dark">Backend Code (Game Logic)</label>
       <textarea
         id="game-code"
         bind:value={gameCode}
@@ -150,7 +150,7 @@
       ></textarea>
       
       {#if gameType === 'interactive'}
-        <label for="frontend-code">Frontend Code (HTML/CSS/JS)</label>
+        <label for="frontend-code" class="block mb-2 font-medium text-gray-dark">Frontend Code (HTML/CSS/JS)</label>
         <textarea
           id="frontend-code"
           bind:value={frontendCode}
@@ -165,26 +165,26 @@
       <legend>Game Settings</legend>
       
       <div class="row">
-        <label for="rounds">Rounds per Match</label>
+        <label for="rounds" class="block mb-2 font-medium text-gray-dark">Rounds per Match</label>
         <input id="rounds" type="number" bind:value={roundsPerMatch} min="1" max="100" />
         
-        <label for="repetitions">Repetitions</label>
+        <label for="repetitions" class="block mb-2 font-medium text-gray-dark">Repetitions</label>
         <input id="repetitions" type="number" bind:value={repetitions} min="1" max="100" />
       </div>
       
       <div class="row">
-        <label for="timeout">Timeout (ms)</label>
+        <label for="timeout" class="block mb-2 font-medium text-gray-dark">Timeout (ms)</label>
         <input id="timeout" type="number" bind:value={timeoutMs} min="100" max="5000" />
         
-        <label for="cpu-limit">CPU Limit</label>
+        <label for="cpu-limit" class="block mb-2 font-medium text-gray-dark">CPU Limit</label>
         <input id="cpu-limit" type="number" bind:value={cpuLimit} min="0.1" max="64" step="0.1" />
       </div>
       
       <div class="row">
-        <label for="turn-timeout">Turn Timeout (ms)</label>
+        <label for="turn-timeout" class="block mb-2 font-medium text-gray-dark">Turn Timeout (ms)</label>
         <input id="turn-timeout" type="number" bind:value={turnTimeoutMs} min="1" max="2000" />
         
-        <label for="memory-limit">Memory Limit (MB)</label>
+        <label for="memory-limit" class="block mb-2 font-medium text-gray-dark">Memory Limit (MB)</label>
         <input id="memory-limit" type="number" bind:value={memoryLimitMb} min="1" max="8192" />
       </div>
     </fieldset>

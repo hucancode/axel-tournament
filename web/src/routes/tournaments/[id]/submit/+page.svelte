@@ -106,18 +106,18 @@
         {/if}
     </div>
     {#if initialLoading}
-        <div class="card text-center">
+        <div class="border border-[--border-color] p-6 shadow-sm bg-hatch text-center">
             <p class="text-gray-500">Loading tournament...</p>
         </div>
     {:else}
         {#if error}
             <div
-                class="card bg-red-100 border-l-4 border-red-600 mb-4"
+                class="border p-6 shadow-sm bg-hatch bg-red-100 border-l-4 border-red-600 mb-4"
             >
                 <p class="text-red-600">{error}</p>
             </div>
         {/if}
-        <div class="card">
+        <div class="border border-[--border-color] p-6 shadow-sm bg-hatch">
             {#if !isParticipant}
                 <div
                     class="text-sm text-red-600 mb-4"
@@ -132,8 +132,8 @@
                 </div>
             {/if}
             <form onsubmit={handleSubmit}>
-                <div class="form-group">
-                    <label for="language">Programming Language</label>
+                <div class="mb-4">
+                    <label for="language" class="block mb-2 font-medium text-gray-dark">Programming Language</label>
                     <select
                         id="language"
                         class="select"
@@ -148,8 +148,8 @@
                         <p class="form-error">{validationErrors.language}</p>
                     {/if}
                 </div>
-                <div class="form-group">
-                    <label for="code">Code</label>
+                <div class="mb-4">
+                    <label for="code" class="block mb-2 font-medium text-gray-dark">Code</label>
                     <textarea
                         id="code"
                         class="textarea font-mono text-sm"

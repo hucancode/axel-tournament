@@ -144,10 +144,10 @@
       </div>
     </div>
 
-    <div class="card mb-4">
+    <div class="border border-[--border-color] p-6 shadow-sm bg-hatch mb-4">
       <div class="grid grid-2 gap-4">
-        <div class="form-group mb-0">
-          <label for="game">Game</label>
+        <div class="">
+          <label for="game" class="block mb-2 font-medium text-gray-dark">Game</label>
           <select
             id="game"
             class="select"
@@ -161,8 +161,8 @@
             {/each}
           </select>
         </div>
-        <div class="form-group mb-0">
-          <label for="status">Status</label>
+        <div class="">
+          <label for="status" class="block mb-2 font-medium text-gray-dark">Status</label>
           <select
             id="status"
             class="select"
@@ -182,27 +182,27 @@
     </div>
 
     {#if error}
-      <div class="card bg-red-100 mb-4">
+      <div class="border border-[--border-color] p-6 shadow-sm bg-hatch bg-red-100 mb-4">
         <p class="text-red-600">{error}</p>
       </div>
     {/if}
 
     {#if loading}
-      <div class="card text-center">
+      <div class="border border-[--border-color] p-6 shadow-sm bg-hatch text-center">
         <p class="text-gray-500">Loading matches...</p>
       </div>
     {:else if myGames.length === 0}
-      <div class="card text-center">
+      <div class="border border-[--border-color] p-6 shadow-sm bg-hatch text-center">
         <p class="text-gray-500">
           You do not have any games yet. Create a game to start scheduling matches.
         </p>
       </div>
     {:else if matches.length === 0}
-      <div class="card text-center">
+      <div class="border border-[--border-color] p-6 shadow-sm bg-hatch text-center">
         <p class="text-gray-500">No matches found for the current filters.</p>
       </div>
     {:else}
-      <div class="card p-0 overflow-x-auto">
+      <div class="border border-[--border-color] shadow-sm bg-hatch p-0 overflow-x-auto">
         <table>
           <thead>
             <tr>

@@ -58,34 +58,34 @@
     </div>
     {#if error}
         <div
-            class="card bg-red-100 border-l-4 border-red-600 mb-4"
+            class="border border-p-6 shadow-sm bg-hatch bg-red-100 border-l-4 border-red-600 mb-4"
         >
             <p class="text-red-600">{error}</p>
         </div>
     {/if}
     {#if loading}
-        <div class="card text-center">
+        <div class="border border-[--border-color] p-6 shadow-sm bg-hatch text-center">
             <p class="text-gray-500">Loading dashboard...</p>
         </div>
     {:else}
         <!-- Quick Stats -->
         <div class="grid grid-3 mb-4">
-            <div class="card">
+            <div class="border border-[--border-color] p-6 shadow-sm bg-hatch">
                 <h3 class="text-gray-500 text-sm font-semibold">Total Users</h3>
                 <p class="text-2xl font-bold mt-2">{stats.totalUsers}</p>
             </div>
-            <div class="card">
+            <div class="border border-[--border-color] p-6 shadow-sm bg-hatch">
                 <h3 class="text-gray-500 text-sm font-semibold">Total Games</h3>
                 <p class="text-2xl font-bold mt-2">{stats.totalGames}</p>
             </div>
-            <div class="card">
+            <div class="border border-[--border-color] p-6 shadow-sm bg-hatch">
                 <h3 class="text-gray-500 text-sm font-semibold">
                     Total Tournaments
                 </h3>
                 <p class="text-2xl font-bold mt-2">{stats.totalTournaments}</p>
             </div>
         </div>
-        <div class="card mb-4">
+        <div class="border border-[--border-color] p-6 shadow-sm bg-hatch mb-4">
             <h3 class="text-gray-500 text-sm font-semibold">
                 Active Tournaments
             </h3>
@@ -95,21 +95,21 @@
         <div class="grid grid-2">
             <a
                 href="/admin/users"
-                class="card no-underline text-inherit transition-transform duration-200 hover:-translate-y-1"
+                class="border border-[--border-color] p-6 shadow-sm bg-hatch no-underline transition-transform duration-200 hover:-translate-y-1"
             >
                 <h2 class="font-semibold text-lg mb-2">User Management</h2>
                 <p class="text-gray-500">View, ban, and manage user accounts</p>
             </a>
             <a
                 href="/admin/games"
-                class="card no-underline text-inherit transition-transform duration-200 hover:-translate-y-1"
+                class="border border-[--border-color] p-6 shadow-sm bg-hatch no-underline text-inherit transition-transform duration-200 hover:-translate-y-1"
             >
                 <h2 class="font-semibold text-lg mb-2">Game Management</h2>
                 <p class="text-gray-500">Create, edit, and delete games</p>
             </a>
             <a
                 href="/admin/tournaments"
-                class="card no-underline text-inherit transition-transform duration-200 hover:-translate-y-1"
+                class="border border-[--border-color] p-6 shadow-sm bg-hatch no-underline text-inherit transition-transform duration-200 hover:-translate-y-1"
             >
                 <h2 class="font-semibold text-lg mb-2">
                     Tournament Management
@@ -118,7 +118,7 @@
             </a>
             <a
                 href="/admin/matches"
-                class="card no-underline text-inherit transition-transform duration-200 hover:-translate-y-1"
+                class="border border-[--border-color] p-6 shadow-sm bg-hatch no-underline text-inherit transition-transform duration-200 hover:-translate-y-1"
             >
                 <h2 class="font-semibold text-lg mb-2">Match Management</h2>
                 <p class="text-gray-500">View and manage match results</p>

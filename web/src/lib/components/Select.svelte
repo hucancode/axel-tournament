@@ -92,13 +92,13 @@
   });
 </script>
 
-<div class="select-container">
+<div class="w-full">
   {#if label}
-    <label class="select-label" for={inputId}>{label}</label>
+    <label class="block mb-2 font-semibold text-sm" for={inputId}>{label}</label>
   {/if}
 
   <div
-    class="select-wrapper"
+    class="relative w-full"
     bind:this={selectRef}
     role="combobox"
     aria-expanded={isOpen}
@@ -110,25 +110,20 @@
     <button
       type="button"
       id={inputId}
-      class="select-trigger"
-      class:select-trigger-open={isOpen}
-      class:select-trigger-disabled={disabled}
-      class:select-trigger-placeholder={!selectedOption}
+      class="w-full flex items-center justify-between px-4 py-3 border border-blueprint-line-light bg-blueprint-paper text-base cursor-pointer transition-colors text-left hover:border-primary focus:outline-none focus:border-primary focus:border-2 focus:px-3.75 focus:py-2.75 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-blueprint-line-light {isOpen ? 'border-b-transparent' : ''} {!selectedOption ? 'text-muted' : ''}"
       onclick={toggleDropdown}
       {disabled}
     >
-      <span class="select-value">{displayText}</span>
-      <span class="select-arrow" class:select-arrow-open={isOpen}>▼</span>
+      <span class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap">{displayText}</span>
+      <span class="ml-2 text-xs text-primary transition-transform shrink-0 {isOpen ? 'rotate-180' : ''}">▼</span>
     </button>
 
     {#if isOpen}
-      <div id={dropdownId} class="select-dropdown" role="listbox">
+      <div id={dropdownId} class="absolute top-full left-0 right-0 z-50 bg-blueprint-paper border border-blueprint-line-light border-t-0 max-h-75 overflow-y-auto" role="listbox">
         {#each options as option}
           <button
             type="button"
-            class="select-option"
-            class:select-option-selected={option.value === value}
-            class:select-option-disabled={option.disabled}
+            class="w-full px-3.5 py-2.5 border-0 bg-blueprint-paper text-left cursor-pointer text-sm transition-colors hover:bg-blueprint-line-faint disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blueprint-paper {option.value === value ? 'bg-primary text-white font-semibold hover:bg-primary' : ''}"
             onclick={() => selectOption(option)}
             disabled={option.disabled}
             role="option"
@@ -142,129 +137,6 @@
   </div>
 
   {#if error}
-    <div class="form-error">{error}</div>
+    <div class="mt-2 text-error text-sm">{error}</div>
   {/if}
 </div>
-
-<style>
-  .select-container {
-    width: 100%;
-  }
-
-  .select-label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 600;
-    color: var(--text);
-    font-size: 0.875rem;
-  }
-
-  .select-wrapper {
-    position: relative;
-    width: 100%;
-  }
-
-  .select-trigger {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.75rem 1rem;
-    border: 1px solid var(--blueprint-line-light);
-    background: var(--white);
-    font-size: 1rem;
-    color: var(--text);
-    cursor: pointer;
-    transition: border-color 0.15s ease;
-    text-align: left;
-  }
-
-  .select-trigger:hover:not(:disabled) {
-    border-color: var(--primary);
-  }
-
-  .select-trigger:focus {
-    outline: none;
-    border-color: var(--primary);
-    border-width: 2px;
-    padding: calc(0.75rem - 1px) calc(1rem - 1px);
-  }
-
-  .select-trigger-open {
-    border-bottom-color: transparent;
-  }
-
-  .select-trigger-disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .select-trigger-placeholder {
-    color: var(--text-muted);
-  }
-
-  .select-value {
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .select-arrow {
-    margin-left: 0.5rem;
-    font-size: 0.75rem;
-    color: var(--primary);
-    transition: transform 0.2s;
-    flex-shrink: 0;
-  }
-
-  .select-arrow-open {
-    transform: rotate(180deg);
-  }
-
-  .select-dropdown {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    z-index: 50;
-    background: var(--white);
-    border: 1px solid var(--blueprint-line-light);
-    border-top: none;
-    max-height: 300px;
-    overflow-y: auto;
-  }
-
-  .select-option {
-    width: 100%;
-    padding: 0.625rem 0.875rem;
-    border: none;
-    background: var(--white);
-    text-align: left;
-    cursor: pointer;
-    font-size: 0.875rem;
-    color: var(--text);
-    transition: background-color 0.15s ease;
-  }
-
-  .select-option:hover:not(:disabled) {
-    background: var(--blueprint-line-faint);
-  }
-
-  .select-option-selected {
-    background: var(--primary);
-    color: var(--white);
-    font-weight: 600;
-  }
-
-  .select-option-disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .form-error {
-    margin-top: 0.5rem;
-    color: var(--error);
-    font-size: 0.875rem;
-  }
-</style>

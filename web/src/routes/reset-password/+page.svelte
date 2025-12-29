@@ -30,7 +30,7 @@
 
 <div class="page">
     <div class="container max-w-md">
-        <div class="card">
+        <div class="border border-[--border-color] p-6 shadow-sm bg-hatch">
             <h1 class="page-title text-center">Reset Password</h1>
             <p
                 class="text-sm text-gray-500 mb-6 text-center"
@@ -39,21 +39,21 @@
             </p>
             {#if error}
                 <div
-                    class="card bg-red-100 mb-4"
+                    class="border p-6 shadow-sm bg-hatch bg-red-100 mb-4"
                 >
                     <p class="text-red-600">{error}</p>
                 </div>
             {/if}
             {#if message}
                 <div
-                    class="card bg-green-100 mb-4"
+                    class="border p-6 shadow-sm bg-hatch bg-green-100 mb-4"
                 >
                     <p class="text-green-700">{message}</p>
                 </div>
             {/if}
             <form onsubmit={handleSubmit}>
-                <div class="form-group">
-                    <label for="email">Email</label>
+                <div class="mb-4">
+                    <label for="email" class="block mb-2 font-medium text-gray-dark">Email</label>
                     <input
                         type="email"
                         id="email"

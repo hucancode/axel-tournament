@@ -26,12 +26,12 @@
       Open Form Dialog
     </button>
     <Dialog {...args}>
-      <div class="form-group">
-        <label for="name">Name</label>
+      <div class="mb-4">
+        <label for="name" class="block mb-2 font-medium text-gray-dark">Name</label>
         <input id="name" type="text" placeholder="Enter your name" />
       </div>
-      <div class="form-group">
-        <label for="email">Email</label>
+      <div class="mb-4">
+        <label for="email" class="block mb-2 font-medium text-gray-dark">Email</label>
         <input id="email" type="email" placeholder="Enter your email" />
       </div>
     </Dialog>

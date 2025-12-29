@@ -112,21 +112,21 @@
     </div>
     {#if error}
         <div
-            class="card bg-red-100 border-l-4 border-red-600 mb-4"
+            class="border p-6 shadow-sm bg-hatch bg-red-100 border-l-4 border-red-600 mb-4"
         >
             <p class="text-red-600">{error}</p>
         </div>
     {/if}
     {#if loading}
-        <div class="card text-center">
+        <div class="border border-[--border-color] p-6 shadow-sm bg-hatch text-center">
             <p class="text-gray-500">Loading users...</p>
         </div>
     {:else if users.length === 0}
-        <div class="card text-center">
+        <div class="border border-[--border-color] p-6 shadow-sm bg-hatch text-center">
             <p class="text-gray-500">No users found</p>
         </div>
     {:else}
-        <div class="card">
+        <div class="border border-[--border-color] p-6 shadow-sm bg-hatch">
             <div class="overflow-x-auto">
                 <table>
                     <thead>
@@ -255,7 +255,7 @@
         }}
     >
         <div
-            class="card max-w-125 w-[90%] max-h-[90vh] overflow-y-auto"
+            class="border border-[--border-color] p-6 shadow-sm bg-hatch max-w-125 w-[90%] max-h-[90vh] overflow-y-auto"
         >
             <h2 class="font-bold text-xl mb-4">
                 Ban User: {selectedUser.username}
@@ -273,8 +273,8 @@
                     handleBan();
                 }}
             >
-                <div class="form-group">
-                    <label for="banReason">Reason for ban</label>
+                <div class="mb-4">
+                    <label for="banReason" class="block mb-2 font-medium text-gray-dark">Reason for ban</label>
                     <textarea
                         id="banReason"
                         class="textarea"

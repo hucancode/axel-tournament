@@ -195,23 +195,23 @@
     </div>
     {#if error}
         <div
-            class="card bg-red-100 border-l-4 border-red-600 mb-4"
+            class="border p-6 shadow-sm bg-hatch bg-red-100 border-l-4 border-red-600 mb-4"
         >
             <p class="text-red-600">{error}</p>
         </div>
     {/if}
     {#if loading}
-        <div class="card text-center">
+        <div class="border border-[--border-color] p-6 shadow-sm bg-hatch text-center">
             <p class="text-gray-500">Loading games...</p>
         </div>
     {:else if games.length === 0}
-        <div class="card text-center">
+        <div class="border border-[--border-color] p-6 shadow-sm bg-hatch text-center">
             <p class="text-gray-500">No games found. Create your first game!</p>
         </div>
     {:else}
         <div class="grid grid-2">
             {#each games as game}
-                <div class="card">
+                <div class="border border-[--border-color] p-6 shadow-sm bg-hatch">
                     <div class="flex justify-between items-start mb-2">
                         <h3 class="font-bold text-lg">{game.name}</h3>
                         <span
@@ -276,7 +276,7 @@
         }}
     >
         <div
-            class="card max-w-175 w-full max-h-[90vh] overflow-y-auto"
+            class="border border-[--border-color] p-6 shadow-sm bg-hatch max-w-175 w-full max-h-[90vh] overflow-y-auto"
         >
             <h2 class="font-bold text-xl mb-4">
                 {isEditing ? "Edit Game" : "Create New Game"}
@@ -289,8 +289,8 @@
                 </div>
             {/if}
             <form onsubmit={handleSubmit}>
-                <div class="form-group">
-                    <label for="name">Game Name</label>
+                <div class="mb-4">
+                    <label for="name" class="block mb-2 font-medium text-gray-dark">Game Name</label>
                     <input
                         id="name"
                         type="text"
@@ -300,8 +300,8 @@
                         required
                     />
                 </div>
-                <div class="form-group">
-                    <label for="description">Description</label>
+                <div class="mb-4">
+                    <label for="description" class="block mb-2 font-medium text-gray-dark">Description</label>
                     <textarea
                         id="description"
                         class="textarea"
@@ -312,7 +312,7 @@
                     ></textarea>
                 </div>
                 <fieldset
-                    class="form-group border-none p-0 m-0"
+                    class="border-0 p-0 m-0"
                 >
                     <legend
                         class="text-sm font-semibold mb-1"
@@ -340,8 +340,8 @@
                         {/each}
                     </div>
                 </fieldset>
-                <div class="form-group">
-                    <label for="game-language">Game Code Language</label>
+                <div class="mb-4">
+                    <label for="game-language" class="block mb-2 font-medium text-gray-dark">Game Code Language</label>
                     <select
                         id="game-language"
                         class="input"
@@ -357,8 +357,8 @@
                         {/each}
                     </select>
                 </div>
-                <div class="form-group">
-                    <label for="game-code">Game Code</label>
+                <div class="mb-4">
+                    <label for="game-code" class="block mb-2 font-medium text-gray-dark">Game Code</label>
                     <textarea
                         id="game-code"
                         class="textarea font-mono text-sm"
@@ -368,8 +368,8 @@
                         required
                     ></textarea>
                 </div>
-                <div class="form-group">
-                    <label for="rounds-per-match">Rounds per Match</label>
+                <div class="mb-4">
+                    <label for="rounds-per-match" class="block mb-2 font-medium text-gray-dark">Rounds per Match</label>
                     <input
                         id="rounds-per-match"
                         type="number"
@@ -381,8 +381,8 @@
                         required
                     />
                 </div>
-                <div class="form-group">
-                    <label for="repetitions">Repetitions</label>
+                <div class="mb-4">
+                    <label for="repetitions" class="block mb-2 font-medium text-gray-dark">Repetitions</label>
                     <input
                         id="repetitions"
                         type="number"
@@ -394,8 +394,8 @@
                         required
                     />
                 </div>
-                <div class="form-group">
-                    <label for="timeout-seconds">Match Timeout (seconds)</label>
+                <div class="mb-4">
+                    <label for="timeout-seconds" class="block mb-2 font-medium text-gray-dark">Match Timeout (seconds)</label>
                     <input
                         id="timeout-seconds"
                         type="number"
@@ -407,8 +407,8 @@
                         required
                     />
                 </div>
-                <div class="form-group">
-                    <label for="cpu-limit">CPU Limit</label>
+                <div class="mb-4">
+                    <label for="cpu-limit" class="block mb-2 font-medium text-gray-dark">CPU Limit</label>
                     <input
                         id="cpu-limit"
                         type="text"
@@ -418,8 +418,8 @@
                         required
                     />
                 </div>
-                <div class="form-group">
-                    <label for="memory-limit">Memory Limit</label>
+                <div class="mb-4">
+                    <label for="memory-limit" class="block mb-2 font-medium text-gray-dark">Memory Limit</label>
                     <input
                         id="memory-limit"
                         type="text"
@@ -429,7 +429,7 @@
                         required
                     />
                 </div>
-                <div class="form-group">
+                <div class="mb-4">
                     <label
                         class="flex items-center gap-2 cursor-pointer"
                     >

@@ -51,14 +51,15 @@
   }
 </script>
 
-<nav aria-label="Pagination">
-  <ul>
+<nav aria-label="Pagination" class="flex justify-center">
+  <ul class="flex gap-1 list-none p-0 m-0 flex-wrap items-center">
     <li>
       <button
         data-nav
         disabled={!canGoPrevious}
         onclick={() => handlePageClick(currentPage - 1)}
         aria-label="Previous page"
+        class="min-w-0 px-3 py-2 bg-blueprint-paper border border-border-strong font-medium text-sm cursor-pointer transition-all-muted hover:bg-gray-light hover:border-border-strong active:opacity-90 focus:outline-2 focus:outline-primary focus:outline-offset-2 focus:z-10 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blueprint-paper disabled:hover:text-muted"
       >
         ← Prev
       </button>
@@ -67,13 +68,13 @@
     {#each pages as page}
       <li>
         {#if page === '...'}
-          <span>...</span>
+          <span class="flex items-center px-1 py-2 font-medium-muted">...</span>
         {:else}
           <button
-            class:active={page === currentPage}
             onclick={() => handlePageClick(page as number)}
             aria-label={`Page ${page}`}
             aria-current={page === currentPage ? 'page' : undefined}
+            class="min-w-8 px-3 py-2 bg-blueprint-paper border border-border-strong font-medium text-sm cursor-pointer transition-all-muted hover:bg-gray-light hover:border-border-strong active:opacity-90 focus:outline-2 focus:outline-primary focus:outline-offset-2 focus:z-10 disabled:opacity-50 disabled:cursor-not-allowed {page === currentPage ? 'bg-primary border-primary text-white hover:bg-primary hover:border-primary hover:cursor-default' : ''}"
           >
             {page}
           </button>
@@ -87,85 +88,10 @@
         disabled={!canGoNext}
         onclick={() => handlePageClick(currentPage + 1)}
         aria-label="Next page"
+        class="min-w-0 px-3 py-2 bg-blueprint-paper border border-border-strong font-medium text-sm cursor-pointer transition-all-muted hover:bg-gray-light hover:border-border-strong active:opacity-90 focus:outline-2 focus:outline-primary focus:outline-offset-2 focus:z-10 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blueprint-paper disabled:hover:text-muted"
       >
         Next →
       </button>
     </li>
   </ul>
 </nav>
-
-<style>
-  nav {
-    display: flex;
-    justify-content: center;
-  }
-
-  ul {
-    display: flex;
-    gap: 0.25rem;
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    flex-wrap: wrap;
-    align-items: center;
-  }
-
-  button {
-    min-width: 2rem;
-    padding: 0.5rem 0.75rem;
-    background: var(--white);
-    border: 1px solid var(--border-color-strong);
-    font-weight: 500;
-    font-size: 0.875rem;
-    cursor: pointer;
-    transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
-    color: var(--text-muted);
-  }
-
-  button:hover:not(:disabled) {
-    background: var(--gray-light);
-    color: var(--text);
-    border-color: var(--border-color-strong);
-  }
-
-  button:active:not(:disabled) {
-    opacity: 0.9;
-  }
-
-  button:focus {
-    outline: 2px solid var(--primary);
-    outline-offset: 2px;
-    z-index: 1;
-  }
-
-  button.active {
-    background: var(--primary);
-    border-color: var(--primary);
-    color: var(--white);
-  }
-
-  button.active:hover {
-    background: var(--primary);
-    border-color: var(--primary);
-    cursor: default;
-  }
-
-  button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    color: var(--text-muted);
-  }
-
-  span {
-    display: flex;
-    align-items: center;
-    padding: 0.5rem 0.25rem;
-    font-weight: 500;
-    color: var(--text-muted);
-  }
-
-  /* Navigation buttons (prev/next) */
-  button[data-nav] {
-    min-width: auto;
-  }
-</style>

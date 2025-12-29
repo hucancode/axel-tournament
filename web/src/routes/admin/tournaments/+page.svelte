@@ -255,41 +255,41 @@
         </div>
     </div>
     {#if actionMessage}
-        <div class="card bg-emerald-100 mb-4">
+        <div class="border border-[--border-color] p-6 shadow-sm bg-hatch bg-emerald-100 mb-4">
             <p class="text-green-700">{actionMessage}</p>
         </div>
     {/if}
     {#if actionError}
-        <div class="card bg-red-100 mb-4">
+        <div class="border border-[--border-color] p-6 shadow-sm bg-hatch bg-red-100 mb-4">
             <p class="text-red-600">{actionError}</p>
         </div>
     {/if}
     {#if error}
         <div
-            class="card bg-red-100 border-l-4 border-red-600 mb-4"
+            class="border p-6 shadow-sm bg-hatch bg-red-100 border-l-4 border-red-600 mb-4"
         >
             <p class="text-red-600">{error}</p>
         </div>
     {/if}
     {#if loading}
-        <div class="card text-center">
+        <div class="border border-[--border-color] p-6 shadow-sm bg-hatch text-center">
             <p class="text-gray-500">Loading tournaments...</p>
         </div>
     {:else if games.length === 0}
-        <div class="card text-center">
+        <div class="border border-[--border-color] p-6 shadow-sm bg-hatch text-center">
             <p class="text-gray-500">
                 Please create a game first before creating tournaments.
             </p>
             <LinkButton variant="primary" href="/admin/games" label="Go to Game Management" />
         </div>
     {:else if tournaments.length === 0}
-        <div class="card text-center">
+        <div class="border border-[--border-color] p-6 shadow-sm bg-hatch text-center">
             <p class="text-gray-500">
                 No tournaments found. Create your first tournament!
             </p>
         </div>
     {:else}
-        <div class="card">
+        <div class="border border-[--border-color] p-6 shadow-sm bg-hatch">
             <div class="overflow-x-auto">
                 <table>
                     <thead>
@@ -397,7 +397,7 @@
         }}
     >
         <div
-            class="card max-w-175 w-full max-h-[90vh] overflow-y-auto"
+            class="border border-[--border-color] p-6 shadow-sm bg-hatch max-w-175 w-full max-h-[90vh] overflow-y-auto"
         >
             <h2 class="font-bold text-xl mb-4">
                 {isEditing ? "Edit Tournament" : "Create New Tournament"}
@@ -410,7 +410,7 @@
                 </div>
             {/if}
             <form onsubmit={handleSubmit}>
-                <div class="form-group">
+                <div class="mb-4">
                     <Select
                         label="Game"
                         options={games.map(game => ({ value: game.id, label: game.name }))}
@@ -418,8 +418,8 @@
                         disabled={formLoading}
                     />
                 </div>
-                <div class="form-group">
-                    <label for="name">Tournament Name</label>
+                <div class="mb-4">
+                    <label for="name" class="block mb-2 font-medium text-gray-dark">Tournament Name</label>
                     <input
                         id="name"
                         type="text"
@@ -429,8 +429,8 @@
                         required
                     />
                 </div>
-                <div class="form-group">
-                    <label for="description">Description</label>
+                <div class="mb-4">
+                    <label for="description" class="block mb-2 font-medium text-gray-dark">Description</label>
                     <textarea
                         id="description"
                         class="textarea"
@@ -440,7 +440,7 @@
                         required
                     ></textarea>
                 </div>
-                <div class="form-group">
+                <div class="mb-4">
                     <Select
                         label="Match Generation Type"
                         options={[
@@ -461,7 +461,7 @@
                         </p>
                     {/if}
                 </div>
-                <div class="form-group">
+                <div class="mb-4">
                     <Select
                         label="Status"
                         options={[
@@ -477,8 +477,8 @@
                     />
                 </div>
                 <div class="grid grid-2 gap-4">
-                    <div class="form-group">
-                        <label for="min_players">Minimum Players</label>
+                    <div class="mb-4">
+                        <label for="min_players" class="block mb-2 font-medium text-gray-dark">Minimum Players</label>
                         <input
                             id="min_players"
                             type="number"
@@ -489,8 +489,8 @@
                             required
                         />
                     </div>
-                    <div class="form-group">
-                        <label for="max_players">Maximum Players</label>
+                    <div class="mb-4">
+                        <label for="max_players" class="block mb-2 font-medium text-gray-dark">Maximum Players</label>
                         <input
                             id="max_players"
                             type="number"

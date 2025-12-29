@@ -17,107 +17,25 @@
   }
 </script>
 
-<label class:disabled>
+<label class="inline-flex items-center gap-3 cursor-pointer select-none {disabled ? 'opacity-50 cursor-not-allowed' : ''}">
   <input
     type="checkbox"
     bind:checked
     {disabled}
     {indeterminate}
     onchange={handleChange}
+    class="absolute opacity-0 w-0 h-0 peer"
   />
-  <span>
+  <span class="relative inline-flex items-center justify-center w-5 h-5 bg-blueprint-paper border border-blueprint-line-light transition-colors peer-checked:bg-primary peer-checked:border-primary peer-indeterminate:bg-blueprint-line-light peer-indeterminate:border-blueprint-line-light peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-2 hover:border-primary hover:border-2 active:opacity-90 {disabled ? 'border-gray-medium' : ''}">
     {#if indeterminate}
-      <span></span>
+      <span class="w-2.5 h-0.5 bg-white"></span>
     {:else if checked}
-      <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-white">
         <path d="M2 8L6 12L14 4" stroke="currentColor" stroke-width="3" stroke-linecap="square" stroke-linejoin="miter"/>
       </svg>
     {/if}
   </span>
   {#if label}
-    <span>{label}</span>
+    <span class="font-medium">{label}</span>
   {/if}
 </label>
-
-<style>
-  label {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.75rem;
-    cursor: pointer;
-    user-select: none;
-  }
-
-  label.disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  input {
-    position: absolute;
-    opacity: 0;
-    width: 0;
-    height: 0;
-  }
-
-  /* Checkbox box - first span after input */
-  input + span {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 20px;
-    height: 20px;
-    background-color: var(--white);
-    border: 1px solid var(--blueprint-line-light);
-    transition: border-color 0.15s ease;
-  }
-
-  /* Checkmark SVG */
-  input + span svg {
-    width: 14px;
-    height: 14px;
-    color: var(--white);
-  }
-
-  /* Indeterminate indicator - nested span */
-  input + span > span {
-    width: 10px;
-    height: 2px;
-    background-color: var(--white);
-  }
-
-  input:checked + span {
-    background-color: var(--primary);
-    border-color: var(--primary);
-  }
-
-  input:indeterminate + span {
-    background-color: var(--blueprint-line-light);
-    border-color: var(--blueprint-line-light);
-  }
-
-  input:focus + span {
-    outline: 2px solid var(--primary);
-    outline-offset: 2px;
-  }
-
-  label:hover input + span {
-    border-color: var(--primary);
-    border-width: 2px;
-  }
-
-  label:active input + span {
-    opacity: 0.9;
-  }
-
-  label.disabled input + span {
-    border-color: var(--gray-medium);
-  }
-
-  /* Label text - second span (if exists) */
-  input + span + span {
-    font-weight: 500;
-    color: var(--text);
-  }
-</style>

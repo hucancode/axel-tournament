@@ -10,35 +10,15 @@
   let { title = '', content = '', children }: Props = $props();
 </script>
 
-<div>
+<div class="border border-border p-6 shadow-sm bg-hatch">
   {#if children}
     {@render children()}
   {:else}
     {#if title}
-      <h3>{title}</h3>
+      <h3 class="text-lg font-semibold mb-2">{title}</h3>
     {/if}
     {#if content}
-      <p>{content}</p>
+      <p class="text-muted">{content}</p>
     {/if}
   {/if}
 </div>
-
-<style>
-  div {
-    background: var(--white);
-    border: 1px solid var(--blueprint-line-light);
-    padding: 1.5rem;
-  }
-
-  h3 {
-    margin: 0 0 0.5rem 0;
-    font-size: 1.125rem;
-    font-weight: 600;
-    color: var(--text);
-  }
-
-  p {
-    margin: 0;
-    color: var(--text-muted);
-  }
-</style>

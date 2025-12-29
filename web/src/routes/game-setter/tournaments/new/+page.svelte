@@ -125,8 +125,8 @@
     {#if loading}
       <p>Loading...</p>
     {:else}
-      <div class="card">
-        <div class="form-group">
+      <div class="border border-[--border-color] p-6 shadow-sm bg-hatch">
+        <div class="mb-4">
           <Select
             label="Game *"
             options={[
@@ -140,13 +140,13 @@
           {/if}
         </div>
 
-        <div class="form-group">
-          <label for="name">Tournament Name *</label>
+        <div class="mb-4">
+          <label for="name" class="block mb-2 font-medium text-gray-dark">Tournament Name *</label>
           <input type="text" id="name" class="input" bind:value={form.name} placeholder="My Awesome Tournament" required />
         </div>
 
-        <div class="form-group">
-          <label for="description">Description *</label>
+        <div class="mb-4">
+          <label for="description" class="block mb-2 font-medium text-gray-dark">Description *</label>
           <textarea
             id="description"
             class="textarea"
@@ -157,7 +157,7 @@
           ></textarea>
         </div>
 
-        <div class="form-group">
+        <div class="mb-4">
           <Select
             label="Match Generation Type *"
             options={[
@@ -171,18 +171,18 @@
         </div>
 
         <div class="grid grid-2">
-          <div class="form-group">
-            <label for="min-players">Minimum Players *</label>
+          <div class="mb-4">
+            <label for="min-players" class="block mb-2 font-medium text-gray-dark">Minimum Players *</label>
             <input type="number" id="min-players" class="input" bind:value={form.min_players} min="2" required />
           </div>
 
-          <div class="form-group">
-            <label for="max-players">Maximum Players *</label>
+          <div class="mb-4">
+            <label for="max-players" class="block mb-2 font-medium text-gray-dark">Maximum Players *</label>
             <input type="number" id="max-players" class="input" bind:value={form.max_players} min="2" required />
           </div>
         </div>
 
-        <div class="form-group">
+        <div class="mb-4">
           <Select
             label="Initial Status *"
             options={[

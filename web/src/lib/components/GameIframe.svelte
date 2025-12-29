@@ -106,27 +106,11 @@
   });
 </script>
 
-<div>
+<div class="w-full h-[600px] border-4 border-black overflow-hidden shadow-[6px_6px_0_0_#000] bg-white">
   <iframe
     bind:this={iframeRef}
     title="Interactive Game"
     sandbox="allow-scripts allow-same-origin"
+    class="w-full h-full border-0"
   ></iframe>
 </div>
-
-<style>
-  div {
-    width: 100%;
-    height: 600px;
-    border: 4px solid #000;
-    overflow: hidden;
-    box-shadow: 6px 6px 0 0 #000;
-    background: #fff;
-  }
-
-  iframe {
-    width: 100%;
-    height: 100%;
-    border: none;
-  }
-</style>

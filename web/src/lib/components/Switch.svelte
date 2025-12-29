@@ -16,97 +16,18 @@
   }
 </script>
 
-<label class:disabled>
+<label class="inline-flex items-center gap-3 cursor-pointer select-none {disabled ? 'opacity-50 cursor-not-allowed' : ''}">
   <input
     type="checkbox"
     bind:checked
     {disabled}
     onchange={handleChange}
+    class="absolute opacity-0 w-0 h-0 peer"
   />
-  <span>
-    <span></span>
+  <span class="relative inline-block w-12 h-6 bg-gray-light border border-blueprint-line-light transition-all peer-checked:bg-primary peer-checked:border-primary peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-2 hover:border-primary hover:border-2 active:opacity-90 {disabled ? 'border-gray-medium' : ''}">
+    <span class="absolute top-0.5 left-0.5 w-[18px] h-[18px] bg-blueprint-paper border border-blueprint-line-light transition-transform peer-checked:translate-x-6 peer-checked:bg-blueprint-paper peer-checked:border-white"></span>
   </span>
   {#if label}
-    <span>{label}</span>
+    <span class="font-medium">{label}</span>
   {/if}
 </label>
-
-<style>
-  label {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.75rem;
-    cursor: pointer;
-    user-select: none;
-  }
-
-  label.disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  input {
-    position: absolute;
-    opacity: 0;
-    width: 0;
-    height: 0;
-  }
-
-  /* Switch track - first span after input */
-  input + span {
-    position: relative;
-    display: inline-block;
-    width: 48px;
-    height: 24px;
-    background-color: var(--gray-light);
-    border: 1px solid var(--blueprint-line-light);
-    transition: background-color 0.15s ease, border-color 0.15s ease;
-  }
-
-  /* Switch thumb - nested span inside track */
-  input + span > span {
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    width: 18px;
-    height: 18px;
-    background-color: var(--white);
-    border: 1px solid var(--blueprint-line-light);
-    transition: transform 0.2s ease;
-  }
-
-  input:checked + span {
-    background-color: var(--primary);
-    border-color: var(--primary);
-  }
-
-  input:checked + span > span {
-    transform: translateX(24px);
-    background-color: var(--white);
-    border-color: var(--white);
-  }
-
-  input:focus + span {
-    outline: 2px solid var(--primary);
-    outline-offset: 2px;
-  }
-
-  label:hover input + span {
-    border-color: var(--primary);
-    border-width: 2px;
-  }
-
-  label:active input + span {
-    opacity: 0.9;
-  }
-
-  label.disabled input + span {
-    border-color: var(--gray-medium);
-  }
-
-  /* Label text - second span (if exists) */
-  input + span + span {
-    font-weight: 500;
-    color: var(--text);
-  }
-</style>

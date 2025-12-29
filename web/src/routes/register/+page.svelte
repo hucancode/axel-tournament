@@ -49,8 +49,8 @@
 
 <AuthCard title="Sign Up" {error} {loading}>
     <form onsubmit={handleSubmit}>
-        <div class="form-group">
-            <label for="email">Email</label>
+        <div class="mb-4">
+            <label for="email" class="block mb-2 font-medium text-gray-dark">Email</label>
             <input
                 type="email"
                 id="email"
@@ -60,8 +60,8 @@
                 disabled={loading}
             />
         </div>
-        <div class="form-group">
-            <label for="username">Username</label>
+        <div class="mb-4">
+            <label for="username" class="block mb-2 font-medium text-gray-dark">Username</label>
             <input
                 type="text"
                 id="username"
@@ -73,8 +73,8 @@
                 disabled={loading}
             />
         </div>
-        <div class="form-group">
-            <label for="password">Password</label>
+        <div class="mb-4">
+            <label for="password" class="block mb-2 font-medium text-gray-dark">Password</label>
             <input
                 type="password"
                 id="password"
@@ -90,8 +90,8 @@
                 Minimum 8 characters
             </p>
         </div>
-        <div class="form-group">
-            <label for="confirmPassword">Confirm Password</label>
+        <div class="mb-4">
+            <label for="confirmPassword" class="block mb-2 font-medium text-gray-dark">Confirm Password</label>
             <input
                 type="password"
                 id="confirmPassword"
@@ -101,8 +101,8 @@
                 disabled={loading}
             />
         </div>
-        <div class="form-group">
-            <label for="location">Country Code (Optional)</label>
+        <div class="mb-4">
+            <label for="location" class="block mb-2 font-medium text-gray-dark">Country Code (Optional)</label>
             <input
                 type="text"
                 id="location"

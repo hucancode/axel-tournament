@@ -35,18 +35,18 @@
 
 <div class="page">
     <div class="container max-w-md">
-        <div class="card">
+        <div class="p-6 bg-hatch">
             <h1 class="page-title text-center">{title}</h1>
             {#if error}
-                <div class="card bg-red-100 mb-4">
+                <div class="bg-red-100 border border-border p-6 shadow-sm bg-hatch mb-4">
                     <p class="text-red-600">{error}</p>
                 </div>
             {/if}
 
             {#if showEmailPassword}
                 <form onsubmit={handleSubmit}>
-                    <div class="form-group">
-                        <label for="email">Email</label>
+                    <div class="mb-4">
+                        <label for="email" class="block mb-2 font-medium text-gray-dark">Email</label>
                         <input
                             type="email"
                             id="email"
@@ -56,8 +56,8 @@
                             disabled={loading}
                         />
                     </div>
-                    <div class="form-group">
-                        <label for="password">Password</label>
+                    <div class="mb-4">
+                        <label for="password" class="block mb-2 font-medium text-gray-dark">Password</label>
                         <input
                             type="password"
                             id="password"

@@ -108,7 +108,7 @@
   {/if}
 
   <div class="filter-bar">
-    <label for="game-filter">Filter by game:</label>
+    <label for="game-filter" class="block mb-2 font-medium text-gray-dark">Filter by game:</label>
     <select
       id="game-filter"
       bind:value={filterGameId}
@@ -163,8 +163,8 @@
 </div>
 
 <Dialog bind:dialog={createDialog} title="Create New Room" onclose={onDialogClose}>
-  <div class="form-group">
-    <label for="game-select">Game</label>
+  <div class="mb-4">
+    <label for="game-select" class="block mb-2 font-medium text-gray-dark">Game</label>
     <select id="game-select" bind:value={selectedGameId}>
       <option value="">Select a game</option>
       {#each games as game}
@@ -172,8 +172,8 @@
       {/each}
     </select>
   </div>
-  <div class="form-group">
-    <label for="room-name">Room Name</label>
+  <div class="mb-4">
+    <label for="room-name" class="block mb-2 font-medium text-gray-dark">Room Name</label>
     <input
       id="room-name"
       type="text"
@@ -181,8 +181,8 @@
       placeholder="Enter room name"
     />
   </div>
-  <div class="form-group">
-    <label for="max-players">Max Players</label>
+  <div class="mb-4">
+    <label for="max-players" class="block mb-2 font-medium text-gray-dark">Max Players</label>
     <input
       id="max-players"
       type="number"
@@ -310,23 +310,6 @@
     background: #f5f5f5;
     color: #999;
     cursor: not-allowed;
-  }
-
-  .form-group {
-    margin-bottom: 1rem;
-  }
-
-  .form-group label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 500;
-  }
-
-  .form-group input,
-  .form-group select {
-    width: 100%;
-    padding: 0.5rem;
-    border: 1px solid #ddd;
   }
 
   .loading, .empty-state {

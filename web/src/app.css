@@ -1,85 +1,66 @@
 @import "tailwindcss";
 
-:root {
+@theme {
     /* Blueprint color palette - inspired by tailwindcss.com */
-    --blueprint-bg: #FFFFFF;
-    --blueprint-paper: #FFFFFF;
-    --blueprint-line: oklch(0.13 0.028 261.692);
-    --blueprint-line-light: oklch(0.50 0.02 261);
-    --blueprint-line-faint: oklch(0.95 0.01 261);
+    --color-blueprint-bg: #FFFFFF;
+    --color-blueprint-paper: #FFFFFF;
+    --color-blueprint-line: oklch(0.13 0.028 261.692);
+    --color-blueprint-line-light: oklch(0.50 0.02 261);
+    --color-blueprint-line-faint: oklch(0.95 0.01 261);
 
-    --primary: #3B82F6;
-    --secondary: #60A5FA;
-    --accent: #EC4899;
-    --success: #10B981;
-    --warning: #F59E0B;
-    --error: #EF4444;
+    /* Primary colors */
+    --color-primary: #3B82F6;
+    --color-secondary: #60A5FA;
+    --color-accent: #EC4899;
+    --color-success: #10B981;
+    --color-warning: #F59E0B;
+    --color-error: #EF4444;
 
-    --black: var(--blueprint-line);
-    --white: var(--blueprint-paper);
-    --background: var(--blueprint-bg);
-    --gray-light: #F1F5F9;
-    --gray-medium: #94A3B8;
-    --gray-dark: #475569;
+    /* Grayscale */
+    --color-gray-light: #F1F5F9;
+    --color-gray-medium: #94A3B8;
+    --color-gray-dark: #475569;
 
-    --text: #0F172A;
-    --text-muted: #64748B;
+    /* Text colors */
+    --color-fg: #0F172A;
+    --color-muted: #64748B;
 
-    /* Pattern variables - using opacity like Tailwind */
-    --pattern-fg: rgb(0 0 0 / 0.05);
-    --pattern-fg-strong: rgb(0 0 0 / 0.08);
+    /* Pattern colors */
+    --color-pattern-fg: rgb(0 0 0 / 0.05);
+    --color-pattern-fg-strong: rgb(0 0 0 / 0.08);
 
-    /* Border colors - opacity-based like Tailwind */
-    --border-color: rgb(0 0 0 / 0.05);
-    --border-color-strong: rgb(0 0 0 / 0.10);
-
-    /* Legacy variable mapping for compatibility */
-    --primary-500: var(--primary);
-    --primary-600: var(--primary);
-    --primary-700: var(--blueprint-line);
-    --gray-50: var(--background);
-    --gray-100: var(--gray-light);
-    --gray-200: var(--gray-light);
-    --gray-300: var(--gray-light);
-    --gray-500: var(--gray-medium);
-    --gray-700: var(--gray-dark);
-    --gray-800: var(--blueprint-line);
-    --gray-900: var(--blueprint-line);
-    --red-600: var(--error);
-    --red-700: var(--error);
-    --green-600: var(--success);
-    --green-700: var(--success);
+    /* Border colors */
+    --color-border: rgb(0 0 0 / 0.05);
+    --color-border-strong: rgb(0 0 0 / 0.10);
 }
 
 @media (prefers-color-scheme: dark) {
-    :root {
-        --blueprint-bg: oklch(0.13 0.028 261.692);
-        --blueprint-paper: #1E293B;
-        --blueprint-line: #E2E8F0;
-        --blueprint-line-light: #64748B;
-        --blueprint-line-faint: #334155;
+    @theme {
+        --color-blueprint-bg: oklch(0.13 0.028 261.692);
+        --color-blueprint-paper: #1E293B;
+        --color-blueprint-line: #E2E8F0;
+        --color-blueprint-line-light: #64748B;
+        --color-blueprint-line-faint: #334155;
 
-        --primary: #3B82F6;
-        --secondary: #60A5FA;
-        --accent: #F472B6;
-        --success: #34D399;
-        --warning: #FBBF24;
-        --error: #F87171;
+        --color-primary: #3B82F6;
+        --color-secondary: #60A5FA;
+        --color-accent: #F472B6;
+        --color-success: #34D399;
+        --color-warning: #FBBF24;
+        --color-error: #F87171;
 
-        --gray-light: #334155;
-        --gray-medium: #64748B;
-        --gray-dark: #94A3B8;
+        --color-gray-light: #334155;
+        --color-gray-medium: #64748B;
+        --color-gray-dark: #94A3B8;
 
-        --text: #F8FAFC;
-        --text-muted: #94A3B8;
+        --color-fg: #F8FAFC;
+        --color-muted: #94A3B8;
 
-        /* Dark mode patterns - inverted opacity */
-        --pattern-fg: rgb(255 255 255 / 0.03);
-        --pattern-fg-strong: rgb(255 255 255 / 0.05);
+        --color-pattern-fg: rgb(255 255 255 / 0.03);
+        --color-pattern-fg-strong: rgb(255 255 255 / 0.05);
 
-        /* Dark mode borders */
-        --border-color: rgb(255 255 255 / 0.10);
-        --border-color-strong: rgb(255 255 255 / 0.15);
+        --color-border: rgb(77 77 77 / 0.10);
+        --color-border-strong: rgb(255 255 255 / 0.15);
     }
 }
 
@@ -89,238 +70,55 @@ body {
 }
 
 body {
-    background-color: var(--background);
-    color: var(--text);
+    background-color: var(--color-blueprint-bg);
+    color: var(--color-fg);
     line-height: 1.6;
 }
 
 /* Blueprint pattern utilities */
 .bg-blueprint-grid {
     background-image:
-        repeating-linear-gradient(0deg, var(--pattern-fg) 0, var(--pattern-fg) 1px, transparent 1px, transparent 20px),
-        repeating-linear-gradient(90deg, var(--pattern-fg) 0, var(--pattern-fg) 1px, transparent 1px, transparent 20px);
+        repeating-linear-gradient(0deg, var(--color-pattern-fg) 0, var(--color-pattern-fg) 1px, transparent 1px, transparent 20px),
+        repeating-linear-gradient(90deg, var(--color-pattern-fg) 0, var(--color-pattern-fg) 1px, transparent 1px, transparent 20px);
     background-size: 20px 20px;
 }
 
 .bg-blueprint-hatch {
-    background-image: repeating-linear-gradient(315deg, var(--pattern-fg) 0, var(--pattern-fg) 1px, transparent 0, transparent 50%);
+    background-image: repeating-linear-gradient(315deg, var(--color-pattern-fg) 0, var(--color-pattern-fg) 1px, transparent 0, transparent 50%);
     background-size: 10px 10px;
 }
 
 .bg-blueprint-fine-grid {
     background-image:
-        repeating-linear-gradient(0deg, var(--pattern-fg) 0, var(--pattern-fg) 1px, transparent 1px, transparent 10px),
-        repeating-linear-gradient(90deg, var(--pattern-fg) 0, var(--pattern-fg) 1px, transparent 1px, transparent 10px);
+        repeating-linear-gradient(0deg, var(--color-pattern-fg) 0, var(--color-pattern-fg) 1px, transparent 1px, transparent 10px),
+        repeating-linear-gradient(90deg, var(--color-pattern-fg) 0, var(--color-pattern-fg) 1px, transparent 1px, transparent 10px);
     background-size: 10px 10px;
 }
 
 .bg-blueprint-major-grid {
     background-image:
-        repeating-linear-gradient(0deg, var(--pattern-fg-strong) 0, var(--pattern-fg-strong) 1px, transparent 1px, transparent 100px),
-        repeating-linear-gradient(90deg, var(--pattern-fg-strong) 0, var(--pattern-fg-strong) 1px, transparent 1px, transparent 100px),
-        repeating-linear-gradient(0deg, var(--pattern-fg) 0, var(--pattern-fg) 1px, transparent 1px, transparent 10px),
-        repeating-linear-gradient(90deg, var(--pattern-fg) 0, var(--pattern-fg) 1px, transparent 1px, transparent 10px);
+        repeating-linear-gradient(0deg, var(--color-pattern-fg-strong) 0, var(--color-pattern-fg-strong) 1px, transparent 1px, transparent 100px),
+        repeating-linear-gradient(90deg, var(--color-pattern-fg-strong) 0, var(--color-pattern-fg-strong) 1px, transparent 1px, transparent 100px),
+        repeating-linear-gradient(0deg, var(--color-pattern-fg) 0, var(--color-pattern-fg) 1px, transparent 1px, transparent 10px),
+        repeating-linear-gradient(90deg, var(--color-pattern-fg) 0, var(--color-pattern-fg) 1px, transparent 1px, transparent 10px);
     background-size: 100px 100px, 100px 100px, 10px 10px, 10px 10px;
 }
 
-
-/* Form inputs - Blueprint style */
-.input,
-.textarea,
-.select {
-    width: 100%;
-    padding: 0.75rem 1rem;
-    border: 1px solid var(--border-color-strong);
-    font-size: 1rem;
-    background-color: var(--white);
-    color: var(--text);
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.input:focus,
-.textarea:focus,
-.select:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgb(59 130 246 / 0.1);
-}
-
-.textarea {
-    resize: vertical;
-    min-height: 100px;
-    font-family: monospace;
-}
-
-/* Cards - Blueprint style (Tailwind-inspired) */
-.card {
-    background: var(--white);
-    border: 1px solid var(--border-color);
-    padding: 1.5rem;
-    display: block;
+/* Hatching pattern utility for blueprint style */
+.bg-hatch {
     position: relative;
-    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
 }
 
-.card::before {
+.bg-hatch::before {
     content: "";
     position: absolute;
     inset: 0;
-    background-image: repeating-linear-gradient(315deg, var(--pattern-fg) 0, var(--pattern-fg) 1px, transparent 0, transparent 50%);
+    background-image: repeating-linear-gradient(315deg, var(--color-pattern-fg) 0, var(--color-pattern-fg) 1px, transparent 0, transparent 50%);
     background-size: 10px 10px;
     pointer-events: none;
 }
 
-.tournament-card {
-    text-decoration: none;
-    color: inherit;
-    transition: box-shadow 0.15s ease, border-color 0.15s ease;
-}
-
-.tournament-card:hover {
-    border-color: var(--border-color-strong);
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-}
-
-/* Containers */
-.container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 1rem;
-}
-
-/* Navigation - Blueprint style (Tailwind-inspired) */
-
-nav .logo {
-    font-size: 1.125rem;
-    font-weight: 700;
-    color: var(--text);
-    text-decoration: none;
-    padding: 0.5rem 0;
-    background: transparent;
-    border: none;
-}
-
-nav a {
-    text-decoration: none;
-    color: var(--text-muted);
-    font-weight: 500;
-    font-size: 0.875rem;
-    padding: 0.5rem 0.75rem;
-    transition: color 0.15s ease, background-color 0.15s ease;
-}
-
-/* Footer - Blueprint style (Tailwind-inspired) */
-footer {
-    background: var(--white);
-    color: var(--text-muted);
-    padding: 2rem 0;
-    margin-top: auto;
-    text-align: center;
-    border-top: 1px solid var(--border-color);
-}
-
-/* Tables - Blueprint style (Tailwind-inspired) */
-table {
-    width: 100%;
-    border-collapse: collapse;
-    background: var(--white);
-    border: 1px solid var(--border-color);
-}
-
-th,
-td {
-    padding: 0.75rem;
-    text-align: left;
-    border-bottom: 1px solid var(--border-color);
-}
-
-th {
-    font-weight: 600;
-    background: var(--gray-light);
-    color: var(--text);
-    border-bottom: 1px solid var(--border-color-strong);
-}
-
-/* Status badges - Blueprint style (Tailwind-inspired) */
-.badge {
-    display: inline-block;
-    padding: 0.125rem 0.625rem;
-    font-size: 0.75rem;
-    font-weight: 500;
-    border: none;
-}
-
-.badge-scheduled {
-    background: rgb(100 116 139 / 0.1);
-    color: var(--gray-dark);
-}
-.badge-registration {
-    background: rgb(59 130 246 / 0.1);
-    color: var(--primary);
-}
-.badge-generating {
-    background: rgb(236 72 153 / 0.1);
-    color: var(--accent);
-}
-.badge-running {
-    background: rgb(245 158 11 / 0.1);
-    color: #D97706;
-}
-.badge-completed {
-    background: rgb(16 185 129 / 0.1);
-    color: var(--success);
-}
-.badge-cancelled {
-    background: rgb(239 68 68 / 0.1);
-    color: var(--error);
-}
-.badge-pending {
-    background: rgb(100 116 139 / 0.1);
-    color: var(--gray-dark);
-}
-.badge-accepted {
-    background: rgb(16 185 129 / 0.1);
-    color: var(--success);
-}
-.badge-failed {
-    background: rgb(239 68 68 / 0.1);
-    color: var(--error);
-}
-
-/* Form groups */
-.form-group {
-    margin-bottom: 1rem;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 500;
-    color: var(--gray-700);
-}
-
-.form-error {
-    color: var(--red-600);
-    font-size: 0.875rem;
-    margin-top: 0.25rem;
-}
-
-/* Page layout */
-.page {
-    min-height: calc(100vh - 8rem);
-    padding: 2rem 0;
-}
-
-.page-header {
-    margin-bottom: 2rem;
-}
-
-.page-title {
-    font-size: 2rem;
-    font-weight: bold;
-    margin-bottom: 0.5rem;
-}
-
+/* Legacy class support - prefer using new components */
 details + details {
     margin-top: -3px;
 }

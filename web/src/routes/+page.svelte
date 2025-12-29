@@ -30,7 +30,7 @@
         </div>
         {#if !$authStore.isAuthenticated}
             <div
-                class="card text-center max-w-2xl mx-auto my-8"
+                class="border border-[--border-color] p-6 shadow-sm bg-hatch text-center max-w-2xl mx-auto my-8"
             >
                 <h2 class="text-xl font-semibold mb-4">Get Started</h2>
                 <p class="mb-4">
@@ -43,7 +43,7 @@
                 </div>
             </div>
         {:else}
-            <div class="card mb-8">
+            <div class="border border-[--border-color] p-6 shadow-sm bg-hatch mb-8">
                 <h2 class="text-xl font-semibold mb-2">
                     Welcome back, {user?.username}!
                 </h2>
@@ -59,7 +59,7 @@
         {#if loading}
             <p>Loading tournaments...</p>
         {:else if tournaments.length === 0}
-            <div class="card text-center">
+            <div class="border border-[--border-color] p-6 shadow-sm bg-hatch text-center">
                 <p>No active tournaments at the moment. Check back soon!</p>
             </div>
         {:else}

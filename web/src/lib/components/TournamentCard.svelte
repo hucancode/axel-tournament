@@ -1,7 +1,6 @@
 <script lang="ts">
-  import StatusBadge from "$lib/components/StatusBadge.svelte";
+  import Badge from "$lib/components/Badge.svelte";
   import type { Tournament } from "$lib/types";
-
   let {
     tournament,
     participants = [],
@@ -13,12 +12,10 @@
     href?: string;
     class?: string;
   }>();
-
   let link = $derived(href ?? `/tournaments/${tournament.id}`);
-  let cardClass = $derived(`card tournament-card ${className}`.trim());
 </script>
 
-<a href={link} class={cardClass}>
+<a href={link} class={`block border border-border p-6 bg-hatch no-underline transition-all duration-150 hover:border-border-strong ${className}`}>
   <h3 class="text-lg font-semibold mb-2">{tournament.name}</h3>
   <p
     class="text-sm text-gray-700 mb-4 line-clamp-2"
@@ -26,7 +23,7 @@
     {tournament.description}
   </p>
   <div class="flex items-center justify-between">
-    <StatusBadge status={tournament.status} label={tournament.status} />
+    <Badge status={tournament.status} label={tournament.status} />
     <span class="text-sm text-gray-500">
       {participants.length}/{tournament.max_players} players
     </span>

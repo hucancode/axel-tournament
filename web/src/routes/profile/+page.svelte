@@ -47,7 +47,7 @@
         <div class="page-header">
             <h1 class="page-title">My Profile</h1>
         </div>
-        <div class="card mb-4">
+        <div class="border border-[--border-color] p-6 shadow-sm bg-hatch mb-4">
             <h2 class="text-xl font-semibold mb-4">User Information</h2>
             <div
                 class="grid grid-cols-[1fr_2fr] gap-4"
@@ -74,24 +74,24 @@
                 </div>
             </div>
         </div>
-        <div class="card mb-4">
+        <div class="border border-[--border-color] p-6 shadow-sm bg-hatch mb-4">
             <h2 class="text-xl font-semibold mb-4">Update Location</h2>
             {#if error}
                 <div
-                    class="card bg-red-100 mb-4"
+                    class="border p-6 shadow-sm bg-hatch bg-red-100 mb-4"
                 >
                     <p class="text-red-600">{error}</p>
                 </div>
             {/if}
             {#if success}
                 <div
-                    class="card bg-green-100 mb-4"
+                    class="border border-[--border-color] p-6 shadow-sm bg-hatch bg-green-100 mb-4"
                 >
                     <p class="text-green-600">{success}</p>
                 </div>
             {/if}
-            <div class="form-group">
-                <label for="location">Country Code</label>
+            <div class="mb-4">
+                <label for="location" class="block mb-2 font-medium text-gray-dark">Country Code</label>
                 <input
                     type="text"
                     id="location"
@@ -112,7 +112,7 @@
                 disabled={loading}
             />
         </div>
-        <div class="card">
+        <div class="border border-[--border-color] p-6 shadow-sm bg-hatch">
             <h2 class="text-xl font-semibold mb-4">My Submissions</h2>
             {#if submissions.length === 0}
                 <p class="text-center text-gray-500">No submissions yet</p>
