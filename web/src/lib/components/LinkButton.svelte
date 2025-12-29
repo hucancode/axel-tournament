@@ -1,6 +1,6 @@
 <script lang="ts">
 	interface Props {
-		variant?: "primary" | "secondary" | "danger" | "success";
+		variant?: "primary" | "secondary" | "danger" | "success" | "ghost";
 		href: string;
 		label?: string;
 	}
@@ -11,77 +11,17 @@
 		label = "Button",
 	}: Props = $props();
 
+	const baseClasses = "inline-flex items-center justify-center px-4 py-2 text-sm font-medium border no-underline transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-600";
+
+	const variantClasses = {
+		primary: "bg-slate-800 text-white border-slate-800 hover:bg-slate-700 hover:border-slate-700 dark:bg-slate-200 dark:text-slate-900 dark:border-slate-200 dark:hover:bg-slate-300",
+		secondary: "bg-white text-slate-800 border-slate-200 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700 dark:hover:bg-slate-700",
+		ghost: "bg-transparent text-slate-600 border-transparent hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200",
+		danger: "bg-red-800 text-white border-red-800 hover:bg-red-900 hover:border-red-900",
+		success: "bg-emerald-800 text-white border-emerald-800 hover:bg-emerald-900 hover:border-emerald-900",
+	};
 </script>
 
-<a {href} class={variant}>
+<a {href} class="{baseClasses} {variantClasses[variant]}">
 	{label}
 </a>
-
-<style>
-	a {
-		padding: 0.75rem 1.5rem;
-		border-radius: 4px;
-		font-weight: 700;
-		border: 3px solid var(--black);
-		cursor: pointer;
-		text-decoration: none;
-		display: inline-block;
-		box-shadow: 4px 4px 0 0 var(--black);
-		transition: none;
-	}
-
-	a:hover {
-		transform: translate(2px, 2px);
-		box-shadow: 2px 2px 0 0 var(--black);
-	}
-
-	a:active {
-		transform: translate(4px, 4px);
-		box-shadow: none;
-	}
-
-	a:focus {
-		outline: 3px solid var(--primary);
-		outline-offset: 2px;
-	}
-
-	a.primary {
-		background-color: var(--primary);
-		color: var(--black);
-	}
-
-	a.primary:hover {
-		background-color: var(--primary);
-	}
-
-	a.primary:focus {
-		outline-color: var(--primary);
-	}
-
-	a.secondary {
-		background-color: var(--secondary);
-		color: var(--black);
-	}
-
-	a.secondary:hover {
-		background-color: var(--secondary);
-	}
-
-	a.danger {
-		background-color: var(--error);
-		color: var(--white);
-	}
-
-	a.danger:hover {
-		background-color: var(--error);
-	}
-
-	a.success {
-		background-color: var(--success);
-		color: var(--black);
-	}
-
-	a.success:hover {
-		background-color: var(--success);
-	}
-</style>

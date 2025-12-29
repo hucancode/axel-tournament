@@ -155,7 +155,7 @@
     display: block;
     margin-bottom: 0.5rem;
     font-weight: 600;
-    color: var(--black);
+    color: var(--text);
     font-size: 0.875rem;
   }
 
@@ -170,37 +170,38 @@
     align-items: center;
     justify-content: space-between;
     padding: 0.75rem 1rem;
-    border: 3px solid var(--black);
+    border: 1px solid var(--blueprint-line-light);
     background: var(--white);
-    border-radius: 4px;
+    border-radius: 0;
     font-size: 1rem;
+    color: var(--text);
     cursor: pointer;
-    transition: none;
+    transition: border-color 0.15s ease;
     text-align: left;
-    box-shadow: none;
   }
 
   .select-trigger:hover:not(:disabled) {
-    box-shadow: 3px 3px 0 0 var(--primary);
+    border-color: var(--primary);
   }
 
   .select-trigger:focus {
     outline: none;
-    box-shadow: 3px 3px 0 0 var(--primary);
+    border-color: var(--primary);
+    border-width: 2px;
+    padding: calc(0.75rem - 1px) calc(1rem - 1px);
   }
 
   .select-trigger-open {
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0;
+    border-bottom-color: transparent;
   }
 
   .select-trigger-disabled {
-    opacity: 0.6;
+    opacity: 0.5;
     cursor: not-allowed;
   }
 
   .select-trigger-placeholder {
-    color: var(--gray-medium);
+    color: var(--text-muted);
   }
 
   .select-value {
@@ -213,6 +214,7 @@
   .select-arrow {
     margin-left: 0.5rem;
     font-size: 0.75rem;
+    color: var(--primary);
     transition: transform 0.2s;
     flex-shrink: 0;
   }
@@ -228,11 +230,9 @@
     right: 0;
     z-index: 50;
     background: var(--white);
-    border: 3px solid var(--black);
+    border: 1px solid var(--blueprint-line-light);
     border-top: none;
-    border-bottom-left-radius: 4px;
-    border-bottom-right-radius: 4px;
-    box-shadow: 4px 4px 0 0 var(--black);
+    border-radius: 0;
     max-height: 300px;
     overflow-y: auto;
   }
@@ -245,15 +245,16 @@
     text-align: left;
     cursor: pointer;
     font-size: 0.875rem;
-    transition: none;
+    color: var(--text);
+    transition: background-color 0.15s ease;
   }
 
   .select-option:hover:not(:disabled) {
-    background: var(--gray-light);
+    background: var(--blueprint-line-faint);
   }
 
   .select-option-selected {
-    background: var(--black);
+    background: var(--primary);
     color: var(--white);
     font-weight: 600;
   }

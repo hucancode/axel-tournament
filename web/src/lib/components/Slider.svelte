@@ -11,7 +11,7 @@
   }
 
   let {
-    value = 50,
+    value = $bindable(50),
     min = 0,
     max = 100,
     step = 1,
@@ -27,6 +27,7 @@
   function handleInput(event: Event) {
     const target = event.target as HTMLInputElement;
     const newValue = Number(target.value);
+    value = newValue;
     onValueChange(newValue);
   }
 </script>
@@ -66,18 +67,18 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-weight: 700;
+    font-weight: 600;
     font-size: 0.875rem;
-    color: var(--black);
+    color: var(--text);
   }
 
   .slider-value {
     background: var(--primary);
-    border: 3px solid var(--black);
-    border-radius: 4px;
+    color: var(--white);
+    border: 1px solid var(--blueprint-line);
+    border-radius: 0;
     padding: 0.25rem 0.75rem;
-    box-shadow: 2px 2px 0 0 var(--black);
-    font-weight: 700;
+    font-weight: 600;
     min-width: 3rem;
     text-align: center;
   }
@@ -88,12 +89,11 @@
     width: 100%;
     background: transparent;
     cursor: pointer;
-    transition: none;
   }
 
   .slider::-webkit-slider-runnable-track {
     width: 100%;
-    height: 1.5rem;
+    height: 1rem;
     background: linear-gradient(
       to right,
       var(--primary) 0%,
@@ -101,74 +101,67 @@
       var(--white) var(--percentage),
       var(--white) 100%
     );
-    border: 3px solid var(--black);
-    border-radius: 4px;
-    box-shadow: 3px 3px 0 0 var(--black);
+    border: 1px solid var(--blueprint-line-light);
+    border-radius: 0;
   }
 
   .slider::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    width: 2rem;
-    height: 2rem;
+    width: 1.25rem;
+    height: 1.25rem;
     background: var(--primary);
-    border: 3px solid var(--black);
-    border-radius: 4px;
-    box-shadow: 2px 2px 0 0 var(--black);
+    border: 1px solid var(--blueprint-line);
+    border-radius: 0;
     cursor: grab;
-    transition: none;
-    margin-top: -0.25rem;
+    margin-top: -0.125rem;
   }
 
   .slider::-moz-range-track {
     width: 100%;
-    height: 1.5rem;
+    height: 1rem;
     background: var(--white);
-    border: 3px solid var(--black);
-    border-radius: 4px;
-    box-shadow: 3px 3px 0 0 var(--black);
+    border: 1px solid var(--blueprint-line-light);
+    border-radius: 0;
   }
 
   .slider::-moz-range-progress {
-    height: 1.5rem;
+    height: 1rem;
     background: var(--primary);
     border: none;
-    border-radius: 4px 0 0 4px;
   }
 
   .slider::-moz-range-thumb {
-    width: 2rem;
-    height: 2rem;
+    width: 1.25rem;
+    height: 1.25rem;
     background: var(--primary);
-    border: 3px solid var(--black);
-    border-radius: 4px;
-    box-shadow: 2px 2px 0 0 var(--black);
+    border: 1px solid var(--blueprint-line);
+    border-radius: 0;
     cursor: grab;
-    transition: none;
   }
 
   .slider::-webkit-slider-thumb:hover {
-    background: var(--secondary);
+    border-width: 2px;
+    border-color: var(--blueprint-line);
   }
 
   .slider::-moz-range-thumb:hover {
-    background: var(--secondary);
+    border-width: 2px;
+    border-color: var(--blueprint-line);
   }
 
   .slider::-webkit-slider-thumb:active {
     cursor: grabbing;
-    box-shadow: none;
-    transform: translate(1px, 1px);
+    opacity: 0.9;
   }
 
   .slider::-moz-range-thumb:active {
     cursor: grabbing;
-    box-shadow: none;
-    transform: translate(1px, 1px);
+    opacity: 0.9;
   }
 
   .slider:focus {
-    outline: 3px solid var(--primary);
+    outline: 2px solid var(--primary);
     outline-offset: 2px;
   }
 
@@ -195,13 +188,11 @@
     cursor: not-allowed;
     background: var(--gray-medium);
     border-color: var(--gray-medium);
-    box-shadow: 2px 2px 0 0 var(--gray-medium);
   }
 
   .slider:disabled::-moz-range-thumb {
     cursor: not-allowed;
     background: var(--gray-medium);
     border-color: var(--gray-medium);
-    box-shadow: 2px 2px 0 0 var(--gray-medium);
   }
 </style>

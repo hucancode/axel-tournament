@@ -211,8 +211,8 @@
   .time-label {
     display: block;
     margin-bottom: 0.5rem;
-    font-weight: 600;
-    color: var(--black);
+    font-weight: 500;
+    color: var(--text);
     font-size: 0.875rem;
   }
 
@@ -226,27 +226,27 @@
     align-items: center;
     justify-content: space-between;
     padding: 0.75rem 1rem;
-    border: 3px solid var(--black);
+    border: 1px solid var(--border-color-strong);
     background: var(--white);
-    border-radius: 4px;
     font-size: 1rem;
     cursor: pointer;
-    transition: none;
+    transition: border-color 0.15s ease;
     text-align: left;
-    box-shadow: none;
+    color: var(--text);
   }
 
   .time-input:hover:not(:disabled) {
-    box-shadow: 3px 3px 0 0 var(--primary);
+    border-color: var(--primary);
   }
 
   .time-input:focus {
     outline: none;
-    box-shadow: 3px 3px 0 0 var(--primary);
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgb(59 130 246 / 0.1);
   }
 
   .time-input-disabled {
-    opacity: 0.6;
+    opacity: 0.5;
     cursor: not-allowed;
   }
 
@@ -255,7 +255,7 @@
   }
 
   .time-placeholder {
-    color: var(--gray-medium);
+    color: var(--text-muted);
   }
 
   .time-icon {
@@ -269,9 +269,7 @@
     left: 0;
     z-index: 50;
     background: var(--white);
-    border: 3px solid var(--black);
-    border-radius: 4px;
-    box-shadow: 6px 6px 0 0 var(--black);
+    border: 1px solid var(--border-color-strong);
     padding: 1rem;
   }
 
@@ -291,61 +289,62 @@
   .time-btn {
     width: 2.5rem;
     height: 2rem;
-    border: 3px solid var(--black);
+    border: 1px solid var(--border-color-strong);
     background: var(--white);
-    border-radius: 4px;
     cursor: pointer;
     font-size: 0.875rem;
-    transition: none;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+    color: var(--text-muted);
   }
 
   .time-btn:hover:not(:disabled) {
-    transform: translate(-1px, -1px);
-    box-shadow: 1px 1px 0 0 var(--black);
+    border-color: var(--primary);
+    color: var(--primary);
   }
 
   .time-btn:disabled {
-    opacity: 0.6;
+    opacity: 0.5;
     cursor: not-allowed;
   }
 
   .time-display {
     width: 2.5rem;
     padding: 0.5rem;
-    border: 3px solid var(--black);
+    border: 1px solid var(--border-color-strong);
     background: var(--white);
-    border-radius: 4px;
     text-align: center;
     font-size: 1.25rem;
     font-weight: 600;
+    color: var(--text);
   }
 
   .time-separator {
     font-size: 1.5rem;
     font-weight: 600;
     padding: 0 0.25rem;
+    color: var(--text-muted);
   }
 
   .ampm-btn {
     width: 3rem;
     height: 100%;
-    border: 3px solid var(--black);
-    background: var(--black);
-    color: var(--white);
-    border-radius: 4px;
+    border: 1px solid var(--border-color-strong);
+    background: var(--gray-light);
+    color: var(--text);
     cursor: pointer;
     font-size: 0.875rem;
     font-weight: 600;
-    transition: none;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
   }
 
   .ampm-btn:hover:not(:disabled) {
-    transform: translate(-2px, -2px);
-    box-shadow: 2px 2px 0 0 var(--black);
+    border-color: var(--primary);
+    background: rgb(59 130 246 / 0.1);
+    color: var(--primary);
   }
 
   .ampm-btn:disabled {
-    opacity: 0.6;
+    opacity: 0.5;
     cursor: not-allowed;
   }
 

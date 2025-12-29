@@ -18,31 +18,33 @@
 <style>
     .alert {
         margin-bottom: 1rem;
-        border-radius: 4px;
-        border: 3px solid #000;
-        box-shadow: 4px 4px 0 0 #000;
+        border-radius: 0;
+        border: 1px solid var(--blueprint-line-light);
         position: relative;
         padding-right: 2.5rem;
     }
 
     .alert-error {
-        background: #FF4444;
-        color: #fff;
+        background: var(--error);
+        color: var(--white);
+        border-left: 3px solid var(--error);
     }
 
     .alert-success {
-        background: #00FF88;
-        color: #000;
+        background: var(--success);
+        color: var(--white);
+        border-left: 3px solid var(--success);
     }
 
     .alert-warning {
-        background: #FFFF00;
-        color: #000;
+        background: var(--warning);
+        color: var(--blueprint-line);
+        border-left: 3px solid var(--warning);
     }
 
     .alert p {
         margin: 0;
-        font-weight: 600;
+        font-weight: 500;
     }
 
     .close-button {
@@ -64,7 +66,7 @@
         line-height: 1;
         color: inherit;
         opacity: 0.7;
-        transition: opacity 0.2s;
+        transition: opacity 0.15s ease;
     }
 
     .close-button:hover {

@@ -151,11 +151,9 @@
 
 <style>
   .calendar {
-    border: 3px solid var(--black);
+    border: 1px solid var(--border-color-strong);
     background: var(--white);
     padding: 0.75rem;
-    border-radius: 4px;
-    box-shadow: 6px 6px 0 0 var(--black);
     width: fit-content;
   }
 
@@ -170,26 +168,26 @@
   .calendar-month {
     font-size: 0.875rem;
     font-weight: 600;
-    color: var(--black);
+    color: var(--text);
   }
 
   .calendar-nav-btn {
     width: 1.75rem;
     height: 1.75rem;
-    border: 3px solid var(--black);
+    border: 1px solid var(--border-color-strong);
     background: var(--white);
-    border-radius: 4px;
     cursor: pointer;
     font-size: 1rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: none;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+    color: var(--text-muted);
   }
 
   .calendar-nav-btn:hover:not(:disabled) {
-    transform: translate(-2px, -2px);
-    box-shadow: 2px 2px 0 0 var(--black);
+    border-color: var(--primary);
+    color: var(--primary);
   }
 
   .calendar-nav-btn:disabled {
@@ -206,9 +204,9 @@
 
   .calendar-weekday {
     text-align: center;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     font-weight: 500;
-    color: var(--black);
+    color: var(--text-muted);
     width: 2.25rem;
   }
 
@@ -221,20 +219,20 @@
   .calendar-day {
     width: 2.25rem;
     height: 2.25rem;
-    border: 3px solid var(--black);
+    border: 1px solid transparent;
     background: var(--white);
-    border-radius: 4px;
     cursor: pointer;
     font-size: 0.875rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: none;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+    color: var(--text);
   }
 
-  .calendar-day:hover:not(:disabled) {
-    transform: translate(-1px, -1px);
-    box-shadow: 1px 1px 0 0 var(--black);
+  .calendar-day:hover:not(:disabled):not(.calendar-day-selected) {
+    border-color: var(--primary);
+    background-color: rgb(59 130 246 / 0.05);
   }
 
   .calendar-day-today {
@@ -243,13 +241,14 @@
   }
 
   .calendar-day-selected {
-    background: var(--black) !important;
-    color: var(--white) !important;
+    background: var(--primary);
+    color: var(--white);
     font-weight: 600;
   }
 
   .calendar-day-outside {
-    opacity: 0.4;
+    color: var(--text-muted);
+    opacity: 0.5;
   }
 
   .calendar-day-disabled {

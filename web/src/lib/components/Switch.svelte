@@ -42,7 +42,7 @@
   }
 
   .switch-wrapper.disabled {
-    opacity: 0.6;
+    opacity: 0.5;
     cursor: not-allowed;
   }
 
@@ -56,57 +56,57 @@
   .switch-track {
     position: relative;
     display: inline-block;
-    width: 60px;
-    height: 32px;
+    width: 48px;
+    height: 24px;
     background-color: var(--gray-light);
-    border: 3px solid var(--black);
-    border-radius: 4px;
-    box-shadow: 3px 3px 0 0 var(--black);
-    transition: all 0.1s;
+    border: 1px solid var(--blueprint-line-light);
+    border-radius: 0;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
   }
 
   .switch-thumb {
     position: absolute;
     top: 2px;
     left: 2px;
-    width: 22px;
-    height: 22px;
+    width: 18px;
+    height: 18px;
     background-color: var(--white);
-    border: 3px solid var(--black);
-    border-radius: 2px;
-    transition: all 0.2s;
+    border: 1px solid var(--blueprint-line-light);
+    border-radius: 0;
+    transition: transform 0.2s ease;
   }
 
   .switch-input:checked + .switch-track {
-    background-color: var(--success);
+    background-color: var(--primary);
+    border-color: var(--primary);
   }
 
   .switch-input:checked + .switch-track .switch-thumb {
-    transform: translateX(28px);
+    transform: translateX(24px);
     background-color: var(--white);
+    border-color: var(--white);
   }
 
   .switch-input:focus + .switch-track {
-    outline: 3px solid var(--primary);
+    outline: 2px solid var(--primary);
     outline-offset: 2px;
   }
 
   .switch-wrapper:hover .switch-track {
-    box-shadow: 4px 4px 0 0 var(--black);
+    border-color: var(--primary);
+    border-width: 2px;
   }
 
   .switch-wrapper:active .switch-track {
-    transform: translate(1px, 1px);
-    box-shadow: 2px 2px 0 0 var(--black);
+    opacity: 0.9;
   }
 
   .switch-wrapper.disabled .switch-track {
     border-color: var(--gray-medium);
-    box-shadow: 2px 2px 0 0 var(--gray-medium);
   }
 
   .switch-label {
     font-weight: 500;
-    color: var(--black);
+    color: var(--text);
   }
 </style>

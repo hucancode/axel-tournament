@@ -1,6 +1,6 @@
 <script lang="ts">
     interface Props {
-        variant?: "primary" | "secondary" | "danger" | "success";
+        variant?: "primary" | "secondary" | "danger" | "success" | "ghost";
         disabled?: boolean;
         label?: string;
         type?: "button" | "submit" | "reset";
@@ -14,85 +14,18 @@
         type = "button",
         onclick,
     }: Props = $props();
+
+    const baseClasses = "inline-flex items-center justify-center px-4 py-2 text-sm font-medium border transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-600 disabled:opacity-50 disabled:pointer-events-none";
+
+    const variantClasses = {
+        primary: "bg-slate-800 text-white border-slate-800 hover:bg-slate-700 hover:border-slate-700 dark:bg-slate-200 dark:text-slate-900 dark:border-slate-200 dark:hover:bg-slate-300",
+        secondary: "bg-white text-slate-800 border-slate-200 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700 dark:hover:bg-slate-700",
+        ghost: "bg-transparent text-slate-600 border-transparent hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200",
+        danger: "bg-red-800 text-white border-red-800 hover:bg-red-900 hover:border-red-900",
+        success: "bg-emerald-800 text-white border-emerald-800 hover:bg-emerald-900 hover:border-emerald-900",
+    };
 </script>
 
-<button class={variant} {disabled} {type} {onclick}>
+<button class="{baseClasses} {variantClasses[variant]}" {disabled} {type} {onclick}>
     {label}
 </button>
-
-<style>
-    button {
-        padding: 0.75rem 1.5rem;
-        border-radius: 4px;
-        font-weight: 700;
-        border: 3px solid var(--black);
-        cursor: pointer;
-        text-decoration: none;
-        display: inline-block;
-        box-shadow: 4px 4px 0 0 var(--black);
-        transition: none;
-    }
-
-    button:hover {
-        transform: translate(2px, 2px);
-        box-shadow: 2px 2px 0 0 var(--black);
-    }
-
-    button:active {
-        transform: translate(4px, 4px);
-        box-shadow: none;
-    }
-
-    button:focus {
-        outline: 3px solid var(--primary);
-        outline-offset: 2px;
-    }
-
-    button.primary {
-        background-color: var(--primary);
-        color: var(--black);
-    }
-
-    button.primary:hover {
-        background-color: var(--primary);
-    }
-
-    button.primary:focus {
-        outline-color: var(--primary);
-    }
-
-    button.secondary {
-        background-color: var(--secondary);
-        color: var(--black);
-    }
-
-    button.secondary:hover {
-        background-color: var(--secondary);
-    }
-
-    button.danger {
-        background-color: var(--error);
-        color: var(--white);
-    }
-
-    button.danger:hover {
-        background-color: var(--error);
-    }
-
-    button.success {
-        background-color: var(--success);
-        color: var(--black);
-    }
-
-    button.success:hover {
-        background-color: var(--success);
-    }
-
-    button:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-        transform: none;
-        box-shadow: 2px 2px 0 0 var(--gray-medium);
-        border-color: var(--gray-medium);
-    }
-</style>

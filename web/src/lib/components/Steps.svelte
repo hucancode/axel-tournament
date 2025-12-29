@@ -98,11 +98,10 @@
     gap: 0.75rem;
     padding: 1rem;
     background-color: var(--white);
-    border: 3px solid var(--black);
-    border-radius: 4px;
-    box-shadow: 3px 3px 0 0 var(--black);
+    border: 1px solid var(--blueprint-line-light);
+    border-radius: 0;
     cursor: default;
-    transition: all 0.15s;
+    transition: border-color 0.15s ease;
     flex: 1;
     min-width: 0;
   }
@@ -112,28 +111,29 @@
   }
 
   .step.clickable:hover {
-    transform: translate(1px, 1px);
-    box-shadow: 2px 2px 0 0 var(--black);
+    border-color: var(--primary);
+    border-width: 2px;
+    padding: calc(1rem - 1px);
   }
 
   .step.clickable:active {
-    transform: translate(2px, 2px);
-    box-shadow: 1px 1px 0 0 var(--black);
+    opacity: 0.9;
   }
 
   .step:focus {
-    outline: 3px solid var(--primary);
+    outline: 2px solid var(--primary);
     outline-offset: 2px;
     z-index: 1;
   }
 
   .step.current {
     background-color: var(--primary);
-    border-width: 3px;
+    border-color: var(--primary);
+    color: var(--white);
   }
 
   .step.upcoming {
-    background-color: var(--gray-light);
+    background-color: var(--blueprint-line-faint);
     opacity: 0.7;
   }
 
@@ -141,36 +141,39 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 2.5rem;
-    height: 2.5rem;
+    width: 2rem;
+    height: 2rem;
     flex-shrink: 0;
-    border: 3px solid var(--black);
-    border-radius: 50%;
+    border: 1px solid var(--blueprint-line-light);
+    border-radius: 0;
     background-color: var(--white);
-    font-weight: 700;
-    font-size: 1rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--text);
     transition: all 0.15s;
   }
 
   .step.completed .step-indicator {
     background-color: var(--success);
-    color: var(--black);
+    border-color: var(--success);
+    color: var(--white);
   }
 
   .step.current .step-indicator {
-    background-color: var(--black);
-    color: var(--white);
-    box-shadow: 2px 2px 0 0 rgba(0, 0, 0, 0.3);
+    background-color: var(--white);
+    border-color: var(--white);
+    color: var(--primary);
   }
 
   .step.upcoming .step-indicator {
-    background-color: var(--gray-light);
-    color: var(--gray-medium);
+    background-color: var(--blueprint-line-faint);
+    border-color: var(--blueprint-line-light);
+    color: var(--text-muted);
   }
 
   .checkmark {
-    width: 1.25rem;
-    height: 1.25rem;
+    width: 1rem;
+    height: 1rem;
   }
 
   .step-number {
@@ -186,20 +189,28 @@
   }
 
   .step-label {
-    font-weight: 700;
+    font-weight: 600;
     font-size: 0.875rem;
-    color: var(--black);
+    color: var(--text);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
+  .step.current .step-label {
+    color: var(--white);
+  }
+
   .step-description {
     font-size: 0.75rem;
-    color: var(--gray-dark);
+    color: var(--text-muted);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  .step.current .step-description {
+    color: rgba(255, 255, 255, 0.8);
   }
 
   .step.upcoming .step-label,
@@ -208,9 +219,9 @@
   }
 
   .step-connector {
-    height: 3px;
+    height: 1px;
     flex: 1;
-    background-color: var(--gray-medium);
+    background-color: var(--blueprint-line-light);
     margin: 0 0.5rem;
     transition: background-color 0.3s;
     min-width: 1rem;
@@ -232,11 +243,11 @@
     }
 
     .step-connector {
-      width: 3px;
+      width: 1px;
       height: 1rem;
       margin: 0;
       align-self: flex-start;
-      margin-left: 1.25rem;
+      margin-left: 1rem;
     }
 
     .step-label {

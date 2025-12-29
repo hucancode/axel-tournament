@@ -131,8 +131,8 @@
   .date-label {
     display: block;
     margin-bottom: 0.5rem;
-    font-weight: 600;
-    color: var(--black);
+    font-weight: 500;
+    color: var(--text);
     font-size: 0.875rem;
   }
 
@@ -146,27 +146,27 @@
     align-items: center;
     justify-content: space-between;
     padding: 0.75rem 1rem;
-    border: 3px solid var(--black);
+    border: 1px solid var(--border-color-strong);
     background: var(--white);
-    border-radius: 4px;
     font-size: 1rem;
     cursor: pointer;
-    transition: none;
+    transition: border-color 0.15s ease;
     text-align: left;
-    box-shadow: none;
+    color: var(--text);
   }
 
   .date-input:hover:not(:disabled) {
-    box-shadow: 3px 3px 0 0 var(--primary);
+    border-color: var(--primary);
   }
 
   .date-input:focus {
     outline: none;
-    box-shadow: 3px 3px 0 0 var(--primary);
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgb(59 130 246 / 0.1);
   }
 
   .date-input-disabled {
-    opacity: 0.6;
+    opacity: 0.5;
     cursor: not-allowed;
   }
 
@@ -175,7 +175,7 @@
   }
 
   .date-placeholder {
-    color: var(--gray-medium);
+    color: var(--text-muted);
   }
 
   .date-icon {

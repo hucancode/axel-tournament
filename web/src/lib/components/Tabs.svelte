@@ -61,12 +61,11 @@
   .tabs-list {
     display: inline-flex;
     align-items: center;
-    gap: 0.25rem;
-    padding: 0.25rem;
-    background-color: var(--gray-light);
-    border: 3px solid var(--black);
-    border-radius: 4px;
-    box-shadow: 3px 3px 0 0 var(--black);
+    gap: 0;
+    padding: 0;
+    background-color: var(--white);
+    border: 1px solid var(--blueprint-line-light);
+    border-radius: 0;
   }
 
   .tabs-trigger {
@@ -74,31 +73,35 @@
     align-items: center;
     justify-content: center;
     padding: 0.75rem 1.5rem;
-    font-weight: 700;
+    font-weight: 600;
     font-size: 0.875rem;
-    border: 2px solid transparent;
-    border-radius: 4px;
+    border: none;
+    border-right: 1px solid var(--blueprint-line-faint);
+    border-radius: 0;
     background-color: transparent;
-    color: var(--black);
+    color: var(--text);
     cursor: pointer;
-    transition: all 0.15s;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
     white-space: nowrap;
   }
 
+  .tabs-trigger:last-child {
+    border-right: none;
+  }
+
   .tabs-trigger:hover:not(.active) {
-    background-color: var(--white);
+    background-color: var(--blueprint-line-faint);
   }
 
   .tabs-trigger:focus {
     outline: 2px solid var(--primary);
-    outline-offset: 2px;
+    outline-offset: -2px;
   }
 
   .tabs-trigger.active {
     background-color: var(--primary);
-    color: var(--black);
-    border-color: var(--black);
-    box-shadow: 2px 2px 0 0 var(--black);
+    color: var(--white);
+    border-color: var(--primary);
   }
 
   .tabs-trigger:disabled {
@@ -108,12 +111,11 @@
   }
 
   .tabs-content {
-    margin-top: 1rem;
+    margin-top: -1px;
     padding: 1.5rem;
     background-color: var(--white);
-    border: 3px solid var(--black);
-    border-radius: 4px;
-    box-shadow: 4px 4px 0 0 var(--black);
+    border: 1px solid var(--blueprint-line-light);
+    border-radius: 0;
   }
 
   .tabs-content:focus {

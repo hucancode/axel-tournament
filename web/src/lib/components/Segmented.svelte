@@ -14,13 +14,15 @@
 
   let {
     options,
-    value = options[0]?.value,
+    value = $bindable(options[0]?.value),
     disabled = false,
+    name = `segmented-${Math.random().toString(36).slice(2)}`,
     onchange
   }: Props = $props();
 
   function handleChange(event: Event) {
     const target = event.target as HTMLInputElement;
+    value = target.value;
     if (onchange) {
       onchange(target.value);
     }
@@ -32,9 +34,11 @@
     <label>
       <input
         type="radio"
+        {name}
         value={option.value}
         checked={option.value == value}
         onchange={handleChange}
+        {disabled}
       />
       {option.label}
     </label>
@@ -44,28 +48,26 @@
 <style>
   div[role="radiogroup"] {
     display: inline-flex;
-    background-color: var(--gray-light);
-    border: 3px solid var(--black);
-    border-radius: 4px;
-    box-shadow: 3px 3px 0 0 var(--black);
+    background-color: var(--white);
+    border: 1px solid var(--blueprint-line-light);
+    border-radius: 0;
     overflow: hidden;
   }
 
   div[role="radiogroup"].disabled {
-    opacity: 0.6;
+    opacity: 0.5;
     cursor: not-allowed;
     border-color: var(--gray-medium);
-    box-shadow: 2px 2px 0 0 var(--gray-medium);
   }
 
   label {
     padding: 0.75rem 1.5rem;
     background-color: transparent;
-    border-right: 3px solid var(--black);
+    border-right: 1px solid var(--blueprint-line-faint);
     font-weight: 500;
-    color: var(--black);
+    color: var(--text);
     cursor: pointer;
-    transition: all 0.1s;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
     position: relative;
     display: inline-flex;
     align-items: center;
@@ -84,21 +86,24 @@
   }
 
   label:hover:not(:has(input:disabled)):not(:has(input:checked)) {
-    background-color: var(--white);
+    background-color: var(--blueprint-line-faint);
   }
 
   label:has(input:checked) {
     background-color: var(--primary);
+    color: var(--white);
+    border-color: var(--primary);
   }
 
   label:has(input:focus) {
-    outline: 3px solid var(--primary);
-    outline-offset: -3px;
+    outline: 2px solid var(--primary);
+    outline-offset: -2px;
     z-index: 1;
   }
 
   label:active:not(:has(input:disabled)) {
     background-color: var(--primary);
+    color: var(--white);
   }
 
   label:has(input:disabled) {

@@ -23,10 +23,9 @@
 
 <style>
   details {
-    border: 3px solid var(--black);
-    border-radius: 4px;
+    border: 1px solid var(--blueprint-line-light);
+    border-radius: 0;
     background-color: var(--white);
-    box-shadow: 3px 3px 0 0 var(--black);
     overflow: hidden;
   }
 
@@ -40,14 +39,15 @@
     align-items: center;
     gap: 0.75rem;
     padding: 1rem;
-    font-weight: 700;
+    font-weight: 600;
     font-size: 1rem;
     cursor: pointer;
     user-select: none;
     list-style: none;
-    background-color: var(--gray-light);
-    border-bottom: 3px solid transparent;
-    transition: all 0.1s;
+    background-color: var(--blueprint-line-faint);
+    border-bottom: 1px solid transparent;
+    color: var(--text);
+    transition: border-color 0.15s ease, background-color 0.15s ease;
   }
 
   details > summary::-webkit-details-marker {
@@ -55,18 +55,21 @@
   }
 
   details > summary:hover {
-    background-color: var(--primary);
-    color: var(--white);
+    background-color: var(--blueprint-line-faint);
+    border-color: var(--primary);
+    border-left: 2px solid var(--primary);
+    padding-left: calc(1rem - 1px);
   }
 
   details > summary:active {
-    transform: translate(1px, 1px);
+    opacity: 0.9;
   }
 
   details > summary > .icon {
     display: inline-block;
     font-size: 1rem;
     font-weight: bold;
+    color: var(--primary);
     transition: transform 0.2s;
   }
 
@@ -75,7 +78,7 @@
   }
 
   details[open] > summary {
-    border-bottom-color: var(--black);
+    border-bottom-color: var(--blueprint-line-faint);
   }
 
   details > summary > .title {

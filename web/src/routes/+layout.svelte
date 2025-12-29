@@ -18,7 +18,7 @@
     <title>Axel Tournament Platform</title>
 </svelte:head>
 
-<div class="min-h-screen flex flex-col">
+<div class="min-h-screen flex flex-col bg-blueprint-grid">
     <nav>
         <div class="nav-content">
             <div class="nav-links">
