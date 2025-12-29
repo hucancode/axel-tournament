@@ -10,6 +10,7 @@ export { default as DateTimePicker } from './DateTimePicker.svelte';
 export { default as EmptyState } from './EmptyState.svelte';
 export { default as LinkButton } from './LinkButton.svelte';
 export { default as LoadingCard } from './LoadingCard.svelte';
+export { default as Nav } from './Nav.svelte';
 export { default as PlayerCount } from './PlayerCount.svelte';
 export { default as Popover } from './Popover.svelte';
 export { default as Segmented } from './Segmented.svelte';
