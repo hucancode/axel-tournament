@@ -4,11 +4,11 @@ import type { Room, CreateRoomRequest, RoomMessage, CreateRoomMessageRequest } f
 export const roomService = {
   async list(gameId?: string): Promise<Room[]> {
     const params = gameId ? `?game_id=${gameId}` : '';
-    return api.get<Room[]>(`/api/rooms${params}`);
+    return api.get<Room[]>(`/api/rooms${params}`, true);
   },
 
   async get(id: string): Promise<Room> {
-    return api.get<Room>(`/api/rooms/${id}`);
+    return api.get<Room>(`/api/rooms/${id}`, true);
   },
 
   async create(data: CreateRoomRequest): Promise<Room> {
@@ -29,7 +29,7 @@ export const roomService = {
 
   async getMessages(id: string, limit?: number): Promise<RoomMessage[]> {
     const params = limit ? `?limit=${limit}` : '';
-    return api.get<RoomMessage[]>(`/api/rooms/${id}/messages${params}`);
+    return api.get<RoomMessage[]>(`/api/rooms/${id}/messages${params}`, true);
   },
 
   async sendMessage(id: string, data: CreateRoomMessageRequest): Promise<RoomMessage> {
