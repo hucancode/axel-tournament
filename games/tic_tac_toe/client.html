@@ -1,121 +1,180 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>Tic-Tac-Toe</title>
-    <style>
-        .board {
-            display: grid;
-            grid-template-columns: repeat(3, 100px);
-            grid-gap: 2px;
-            margin: 20px auto;
-            width: 306px;
-        }
-        .cell {
-            width: 100px;
-            height: 100px;
-            background: #f0f0f0;
-            border: 1px solid #ccc;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            cursor: pointer;
-        }
-        .cell:hover { background: #e0e0e0; }
-        .cell.disabled { cursor: not-allowed; opacity: 0.5; }
-        #status { text-align: center; margin: 20px; }
-    </style>
-</head>
-<body>
+<style>
+    #game-container {
+        text-align: center;
+        padding: 20px;
+    }
+    #status {
+        color: white;
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 20px;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+</style>
+
+<div id="game-container">
     <div id="status">Waiting for game to start...</div>
-    <div class="board" id="board"></div>
+    <div id="canvas-wrapper"></div>
+</div>
 
-    <script>
-        const gameAPI = window.gameAPI;
+<script>
+// Tic-Tac-Toe Game State
+let board = Array(9).fill('');
+let currentPlayer = '';
+let mySymbol = '';
+let gameActive = false;
+let statusMessage = 'Waiting for game to start...';
+let cellSize = 120;
+let padding = 20;
+let animationProgress = {};
 
-        let board = Array(9).fill('');
-        let currentPlayer = '';
-        let mySymbol = '';
-        let gameActive = false;
+function setup() {
+    let canvas = createCanvas(cellSize * 3 + padding * 4, cellSize * 3 + padding * 4);
+    canvas.parent('canvas-wrapper');
+    textAlign(CENTER, CENTER);
+    textSize(60);
+    strokeWeight(4);
+}
 
-        function initBoard() {
-            const boardEl = document.getElementById('board');
-            boardEl.innerHTML = '';
-            for (let i = 0; i < 9; i++) {
-                const cell = document.createElement('div');
-                cell.className = 'cell';
-                cell.dataset.index = i;
-                cell.onclick = () => makeMove(i);
-                boardEl.appendChild(cell);
+function draw() {
+    background(255);
+
+    // Draw grid
+    stroke(100);
+    strokeWeight(3);
+    for (let i = 0; i < 3; i++) {
+        for (let j = 0; j < 3; j++) {
+            let x = padding + j * (cellSize + padding);
+            let y = padding + i * (cellSize + padding);
+
+            // Cell background
+            let cellIndex = i * 3 + j;
+            let isHovering = mouseX > x && mouseX < x + cellSize &&
+                           mouseY > y && mouseY < y + cellSize;
+
+            if (gameActive && !board[cellIndex] && currentPlayer === mySymbol && isHovering) {
+                fill(220, 240, 255);
+            } else {
+                fill(240);
+            }
+
+            rect(x, y, cellSize, cellSize, 10);
+
+            // Draw X or O
+            if (board[cellIndex]) {
+                drawSymbol(board[cellIndex], x, y, cellSize, cellIndex);
             }
         }
+    }
 
-        function makeMove(index) {
-            if (!gameActive || board[index] || currentPlayer !== mySymbol) return;
+    // Update status display
+    if (document.getElementById('status')) {
+        document.getElementById('status').textContent = statusMessage;
+    }
+}
 
-            gameAPI.sendMove(`MOVE ${index} ${mySymbol}`);
-        }
+function drawSymbol(symbol, x, y, size, index) {
+    let progress = animationProgress[index] || 1;
 
-        function updateBoard() {
-            const cells = document.querySelectorAll('.cell');
-            cells.forEach((cell, index) => {
-                cell.textContent = board[index];
-                cell.classList.toggle('disabled',
-                    !gameActive || board[index] || currentPlayer !== mySymbol);
-            });
-        }
+    push();
+    translate(x + size/2, y + size/2);
 
-        function updateStatus(message) {
-            document.getElementById('status').textContent = message;
-        }
+    if (symbol === 'X') {
+        stroke(231, 76, 60);
+        strokeWeight(8);
+        let offset = size * 0.3 * progress;
+        line(-offset, -offset, offset, offset);
+        line(-offset, offset, offset, -offset);
+    } else if (symbol === 'O') {
+        noFill();
+        stroke(52, 152, 219);
+        strokeWeight(8);
+        let radius = size * 0.3 * progress;
+        ellipse(0, 0, radius * 2, radius * 2);
+    }
 
-        gameAPI.onMessage((message) => {
-            const parts = message.split(' ');
-            const command = parts[0];
+    pop();
+}
 
-            switch (command) {
-                case 'START':
-                    mySymbol = parts[1];
-                    currentPlayer = 'X';
-                    gameActive = true;
-                    updateStatus(`Game started! You are ${mySymbol}. ${
-                        currentPlayer === mySymbol ? 'Your turn' : 'Opponent\'s turn'
-                    }`);
-                    break;
+function mousePressed() {
+    if (!gameActive) return;
 
-                case 'MOVE':
-                    const position = parseInt(parts[1]);
-                    const player = parts[2];
-                    board[position] = player;
-                    updateBoard();
-                    break;
+    for (let i = 0; i < 3; i++) {
+        for (let j = 0; j < 3; j++) {
+            let x = padding + j * (cellSize + padding);
+            let y = padding + i * (cellSize + padding);
+            let cellIndex = i * 3 + j;
 
-                case 'TURN':
-                    currentPlayer = parts[1];
-                    updateStatus(currentPlayer === mySymbol ? 'Your turn' : 'Opponent\'s turn');
-                    break;
-
-                case 'END':
-                    gameActive = false;
-                    const result = parts[1];
-                    if (result === 'DRAW') {
-                        updateStatus('Game ended in a draw!');
-                    } else if (result === mySymbol) {
-                        updateStatus('You won!');
-                    } else {
-                        updateStatus('You lost!');
-                    }
-                    break;
-
-                case 'ERROR':
-                    updateStatus('Error: ' + parts.slice(1).join(' '));
-                    break;
+            if (mouseX > x && mouseX < x + cellSize &&
+                mouseY > y && mouseY < y + cellSize) {
+                makeMove(cellIndex);
+                return;
             }
-        });
+        }
+    }
+}
 
-        initBoard();
-        updateBoard();
-    </script>
-</body>
-</html>
+function makeMove(index) {
+    if (!gameActive || board[index] || currentPlayer !== mySymbol) return;
+    gameAPI.sendMove(`MOVE ${index} ${mySymbol}`);
+}
+
+function animateSymbol(index) {
+    animationProgress[index] = 0;
+    let startTime = millis();
+    let duration = 200;
+
+    function animate() {
+        let elapsed = millis() - startTime;
+        animationProgress[index] = min(elapsed / duration, 1);
+
+        if (animationProgress[index] < 1) {
+            setTimeout(animate, 16);
+        }
+    }
+    animate();
+}
+
+// Handle game messages
+function onMessage(message) {
+    const parts = message.split(' ');
+    const command = parts[0];
+
+    switch (command) {
+        case 'START':
+            mySymbol = parts[1];
+            currentPlayer = 'X';
+            gameActive = true;
+            statusMessage = `You are ${mySymbol}. ${currentPlayer === mySymbol ? 'Your turn!' : "Opponent's turn"}`;
+            break;
+
+        case 'MOVE':
+            const position = parseInt(parts[1]);
+            const player = parts[2];
+            board[position] = player;
+            animateSymbol(position);
+            break;
+
+        case 'TURN':
+            currentPlayer = parts[1];
+            statusMessage = currentPlayer === mySymbol ? 'Your turn!' : "Opponent's turn";
+            break;
+
+        case 'END':
+            gameActive = false;
+            const result = parts[1];
+            if (result === 'DRAW') {
+                statusMessage = 'Game ended in a draw!';
+            } else if (result === mySymbol) {
+                statusMessage = 'You won!';
+            } else {
+                statusMessage = 'You lost!';
+            }
+            break;
+
+        case 'ERROR':
+            statusMessage = 'Error: ' + parts.slice(1).join(' ');
+            break;
+    }
+}
+</script>
