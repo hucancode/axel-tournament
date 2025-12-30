@@ -78,6 +78,7 @@
                     variant="primary"
                     label={loading ? "Loading..." : submitText}
                     disabled={loading}
+                    type="submit"
                 />
             </form>
         {/if}
