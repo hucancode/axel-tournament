@@ -29,6 +29,12 @@
                 Games
             </a>
             <a
+                href="/rooms"
+                class="no-underline font-medium transition-colors hover:text-primary {currentPath.startsWith('/rooms') ? 'text-primary font-semibold' : ''}"
+            >
+                Rooms
+            </a>
+            <a
                 href="/leaderboard"
                 class="no-underline font-medium transition-colors hover:text-primary {currentPath === '/leaderboard' ? 'text-primary font-semibold' : ''}"
             >
