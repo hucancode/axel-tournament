@@ -42,8 +42,6 @@
     }
 
     async function createRoom() {
-        if (!selectedGameId || !roomName.trim()) return;
-
         try {
             error = null;
             const request: CreateRoomRequest = {
@@ -51,14 +49,12 @@
                 name: roomName.trim(),
                 max_players: maxPlayers,
             };
-
             const newRoom = await roomService.create(request);
             await loadData();
             closeCreateModal();
             goto(`/rooms/${newRoom.id}`);
         } catch (err) {
-            error =
-                err instanceof Error ? err.message : "Failed to create room";
+            error = err instanceof Error ? err.message : "";
             console.error("Failed to create room:", err);
         }
     }
@@ -195,7 +191,7 @@
             <label for="game-select" class="block mb-2 font-medium text-blueprint-ink"
                 >Game</label
             >
-            <select id="game-select" bind:value={selectedGameId} class="w-full p-2 bg-blueprint-paper">
+            <select id="game-select" required bind:value={selectedGameId} class="w-full p-2 bg-blueprint-paper">
                 <option value="">Select a game</option>
                 {#each games as game}
                     <option value={game.id}>{game.name}</option>
@@ -209,6 +205,7 @@
             <input
                 id="room-name"
                 type="text"
+                required
                 bind:value={roomName}
                 placeholder="Enter room name"
                 class="w-full p-2 bg-blueprint-paper"

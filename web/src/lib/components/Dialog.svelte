@@ -47,7 +47,7 @@
                 label="Cancel"
                 onclick={() => dialog?.close()}
             />
-            <Button variant="primary" type="submit" label="Submit" />
+            <Button variant="primary" type="submit" value="submit" label="Submit" />
         </footer>
     </form>
 </dialog>

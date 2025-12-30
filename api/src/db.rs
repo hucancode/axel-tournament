@@ -146,18 +146,20 @@ pub async fn init_schema(db: &Database) -> Result<(), surrealdb::Error> {
     .await?;
     // Rooms table
     db.query(
-        "DEFINE TABLE IF NOT EXISTS room SCHEMAFULL;
-         DEFINE FIELD IF NOT EXISTS game_id ON room TYPE record<game>;
-         DEFINE FIELD IF NOT EXISTS status ON room TYPE string;
-         DEFINE FIELD IF NOT EXISTS participants ON room TYPE array;
-         DEFINE FIELD IF NOT EXISTS created_at ON room TYPE datetime;
-         DEFINE FIELD IF NOT EXISTS updated_at ON room TYPE datetime;
-         DEFINE INDEX IF NOT EXISTS idx_room_game ON room COLUMNS game_id;
-         DEFINE INDEX IF NOT EXISTS idx_room_status ON room COLUMNS status;",
+        "DEFINE TABLE room SCHEMAFULL;
+         DEFINE FIELD game_id ON room TYPE record<game>;
+         DEFINE FIELD host_id ON room TYPE record<user>;
+         DEFINE FIELD name ON room TYPE string;
+         DEFINE FIELD max_players ON room TYPE number;
+         DEFINE FIELD status ON room TYPE string;
+         DEFINE FIELD players ON room TYPE array<record<user>>;
+         DEFINE FIELD created_at ON room TYPE datetime;
+         DEFINE FIELD updated_at ON room TYPE datetime;
+         DEFINE INDEX idx_room_game ON room COLUMNS game_id;
+         DEFINE INDEX idx_room_status ON room COLUMNS status;",
     )
     .await?;
 
-    // Matches table
     db.query(
         "DEFINE TABLE IF NOT EXISTS match SCHEMAFULL;
          DEFINE FIELD IF NOT EXISTS tournament_id ON match TYPE option<record<tournament>>;

@@ -4,6 +4,7 @@
         disabled?: boolean;
         label?: string;
         type?: "button" | "submit" | "reset";
+        value?: string;
         onclick?: (e: MouseEvent) => void;
     }
 
@@ -12,6 +13,7 @@
         disabled = false,
         label = "Button",
         type = "button",
+        value,
         onclick,
     }: Props = $props();
 
@@ -26,6 +28,6 @@
     };
 </script>
 
-<button class="{baseClasses} {variantClasses[variant]}" {disabled} {type} {onclick}>
+<button class="{baseClasses} {variantClasses[variant]}" {disabled} {type} {value} {onclick}>
     {label}
 </button>
