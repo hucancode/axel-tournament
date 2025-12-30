@@ -23,7 +23,7 @@
     }: Props = $props();
 </script>
 
-<article class="border border-border p-6 shadow-sm bg-hatch text-center" role="status" aria-live="polite">
+<article class="border border-gray-800 p-6 bg-hatch text-center" role="status" aria-live="polite">
     {#if illustration}
         <div class="mb-4">
             {@render illustration()}

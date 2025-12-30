@@ -1,13 +1,13 @@
 <script lang="ts">
     import { goto } from "$app/navigation";
-    import { page } from "$app/stores";
+    import { page } from "$app/state";
     import { onMount } from "svelte";
     import { authStore } from "$lib/stores/auth";
     import { gameService } from "$lib/services/games";
     import { Button, LinkButton, LoadingCard } from "$lib/components";
     import type { Game, ProgrammingLanguage, UpdateGameRequest } from "$lib/types";
 
-    let gameId = $derived($page.params.id);
+    let gameId = page.params.id!;
     let game = $state<Game | null>(null);
     let loading = $state(true);
     let error = $state("");
@@ -146,7 +146,7 @@
             </div>
         {/if}
 
-        <form onsubmit={handleSubmit} class="border border-[--border-color] p-6 shadow-sm bg-hatch">
+        <form onsubmit={handleSubmit} class="p-6 bg-hatch">
             <div class="mb-4">
                 <label for="name" class="block mb-2 font-medium text-gray-dark">Game Name</label>
                 <input

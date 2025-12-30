@@ -37,7 +37,7 @@
     <div class="p-6 bg-hatch border-blueprint-line-faint">
         <h1 class="page-title text-center">{title}</h1>
         {#if error}
-            <div class="bg-red-100 p-6 shadow-sm bg-hatch mb-4">
+            <div class="bg-red-100 p-6 bg-hatch mb-4">
                 <p class="text-red-600">{error}</p>
             </div>
         {/if}

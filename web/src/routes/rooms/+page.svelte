@@ -122,7 +122,7 @@
                 id="game-filter"
                 bind:value={filterGameId}
                 onchange={loadData}
-                class="p-2 border border-blueprint-line-light min-w-50"
+                class="p-2 min-w-50"
             >
                 <option value="">All Games</option>
                 {#each games as game}
@@ -141,7 +141,7 @@
         {:else}
             <div class="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-6">
                 {#each rooms as room}
-                    <div class="border border-blueprint-line-light rounded-lg p-6 bg-blueprint-paper">
+                    <div class="rounded-lg p-6 bg-blueprint-paper">
                         <div class="mb-4">
                             <h3 class="mb-2 text-blueprint-ink">{room.name}</h3>
                             <span class="text-blueprint-ink-light text-sm"
@@ -195,7 +195,7 @@
             <label for="game-select" class="block mb-2 font-medium text-blueprint-ink"
                 >Game</label
             >
-            <select id="game-select" bind:value={selectedGameId} class="w-full p-2 border border-blueprint-line-light bg-blueprint-paper">
+            <select id="game-select" bind:value={selectedGameId} class="w-full p-2 bg-blueprint-paper">
                 <option value="">Select a game</option>
                 {#each games as game}
                     <option value={game.id}>{game.name}</option>
@@ -211,7 +211,7 @@
                 type="text"
                 bind:value={roomName}
                 placeholder="Enter room name"
-                class="w-full p-2 border border-blueprint-line-light bg-blueprint-paper"
+                class="w-full p-2 bg-blueprint-paper"
             />
         </div>
         <div class="mb-4">
@@ -224,7 +224,7 @@
                 bind:value={maxPlayers}
                 min="2"
                 max="8"
-                class="w-full p-2 border border-blueprint-line-light bg-blueprint-paper"
+                class="w-full p-2 bg-blueprint-paper"
             />
         </div>
     {/snippet}

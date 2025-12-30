@@ -34,7 +34,7 @@
         {#if loading}
             <h1>Authenticating with Google...</h1>
         {:else if error}
-            <div class="border border-[--border-color] p-6 shadow-sm bg-hatch max-w-lg mx-auto">
+            <div class="p-6 bg-hatch max-w-lg mx-auto">
                 <h1 class="text-2xl font-bold mb-4">Authentication Failed</h1>
                 <p class="text-red-600 mb-4">{error}</p>
                 <LinkButton href="/login" variant="primary" label="Back to Login" />

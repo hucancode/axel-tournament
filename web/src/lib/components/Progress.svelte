@@ -259,7 +259,7 @@
     @keyframes checkmark-draw {
         0% {
             opacity: 0;
-            transform: scale(0) rotate(-45deg);
+            transform: scale(0) rotate(-315deg);
         }
         50% {
             opacity: 1;

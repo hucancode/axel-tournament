@@ -75,7 +75,7 @@
 </script>
 
 <section class="container">
-    <div class="border border-blueprint-line-light p-6 shadow-sm bg-hatch mb-4">
+    <div class="p-6 bg-hatch mb-4">
         <h2 class="text-lg font-semibold mb-4">Filters</h2>
         <div class="grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-4 mb-6">
             <div>
@@ -86,7 +86,7 @@
                 >
                 <select
                     id="tournament-filter"
-                    class="w-full p-2 border border-blueprint-line-light bg-blueprint-paper"
+                    class="w-full p-2 bg-blueprint-paper"
                     bind:value={selectedTournament}
                     onchange={handleFilterChange}
                     disabled={loading}
@@ -104,7 +104,7 @@
                 >
                 <select
                     id="game-filter"
-                    class="w-full p-2 border border-blueprint-line-light bg-blueprint-paper"
+                    class="w-full p-2 bg-blueprint-paper"
                     bind:value={selectedGame}
                     onchange={handleFilterChange}
                     disabled={loading}
@@ -122,7 +122,7 @@
                 >
                 <select
                     id="limit-filter"
-                    class="w-full p-2 border border-blueprint-line-light bg-blueprint-paper"
+                    class="w-full p-2 bg-blueprint-paper"
                     bind:value={limit}
                     onchange={handleFilterChange}
                     disabled={loading}
@@ -136,19 +136,19 @@
         </div>
     </div>
     {#if error}
-        <div class="border border-red-200 p-6 shadow-sm bg-red-50 mb-4">
+        <div class="border border-red-200 p-6 bg-red-50 mb-4">
             <p class="text-red-600">{error}</p>
         </div>
     {/if}
     {#if loading}
         <div
-            class="border border-blueprint-line-light p-6 shadow-sm bg-hatch text-center"
+            class="p-6 bg-hatch text-center"
         >
             <p class="text-blueprint-ink-light">Loading leaderboard...</p>
         </div>
     {:else if entries.length === 0}
         <div
-            class="border border-blueprint-line-light p-6 shadow-sm bg-hatch text-center"
+            class="p-6 bg-hatch text-center"
         >
             <p class="text-blueprint-ink-light">No leaderboard entries found</p>
             <p class="text-sm text-blueprint-ink-light mt-2">
@@ -157,7 +157,7 @@
         </div>
     {:else}
         <div
-            class="border border-blueprint-line-light shadow-sm bg-hatch p-0 overflow-x-auto"
+            class="bg-hatch p-0 overflow-x-auto"
         >
             <table class="w-full border-collapse bg-blueprint-paper">
                 <thead class="bg-blueprint-line-faint sticky top-0 z-10">

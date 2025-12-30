@@ -19,9 +19,13 @@
 </svelte:head>
 
 <Nav {currentPath} {isAuthenticated} {user} onLogout={logout} />
-<main class="bg-blueprint-fine-grid bg-blueprint-major-grid">
-    {@render children()}
-</main>
+<div class="bg-blueprint-fine-grid bg-blueprint-major-grid flex grow justify-center">
+    <div class="bg-hatch h-full w-8"></div>
+    <main class="container bg-gray-950">
+        {@render children()}
+    </main>
+    <div class="bg-hatch h-full w-8"></div>
+</div>
 <footer>
     <div class="max-w-300 mx-auto px-4">
         <p class="text-sm">

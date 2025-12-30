@@ -6,7 +6,7 @@
     import { tournamentService } from "$lib/services/tournaments";
     import { api } from "$lib/api";
     import TournamentCard from "$lib/components/TournamentCard.svelte";
-    import { LinkButton, LoadingCard, EmptyState } from "$lib/components";
+    import { LinkButton, LoadingCard, EmptyState, Statistic } from "$lib/components";
 
     let tournaments = $state<Tournament[]>([]);
     let games = $state<Game[]>([]);
@@ -58,7 +58,7 @@
     </section>
     {#if !$authStore.isAuthenticated}
         <section
-            class="border border-[--border-color] p-6 shadow-sm bg-hatch text-center max-w-2xl mx-auto my-8"
+            class="p-6 bg-hatch text-center max-w-2xl mx-auto my-8"
         >
             <h2 class="text-xl font-semibold mb-4">Get Started</h2>
             <p class="mb-4">
@@ -76,7 +76,7 @@
         </section>
     {:else}
         <section
-            class="border border-[--border-color] p-6 shadow-sm bg-hatch mb-8"
+            class="p-6 bg-hatch mb-8"
         >
             <h2 class="text-xl font-semibold mb-2">
                 Welcome back, {user?.username}!
@@ -102,18 +102,9 @@
                     <LoadingCard message="Loading statistics..." />
                 {:else}
                     <div class="grid grid-cols-3 gap-4">
-                        <div class="border border-[--border-color] p-6 shadow-sm bg-hatch text-center">
-                            <div class="text-3xl font-bold text-primary">{userCount}</div>
-                            <div class="text-sm text-gray-600 mt-2">Total Users</div>
-                        </div>
-                        <div class="border border-[--border-color] p-6 shadow-sm bg-hatch text-center">
-                            <div class="text-3xl font-bold text-primary">{games.length}</div>
-                            <div class="text-sm text-gray-600 mt-2">Total Games</div>
-                        </div>
-                        <div class="border border-[--border-color] p-6 shadow-sm bg-hatch text-center">
-                            <div class="text-3xl font-bold text-primary">{tournaments.length}</div>
-                            <div class="text-sm text-gray-600 mt-2">Total Tournaments</div>
-                        </div>
+                        <Statistic value={userCount} label="Total Users" variant="neutral" />
+                        <Statistic value={games.length} label="Total Games" variant="positive" />
+                        <Statistic value={tournaments.length} label="Total Tournaments" variant="neutral" />
                     </div>
                 {/if}
             </section>

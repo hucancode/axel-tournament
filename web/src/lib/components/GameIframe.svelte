@@ -106,7 +106,7 @@
   });
 </script>
 
-<div class="w-full h-150 border-4 border-black overflow-hidden shadow-[6px_6px_0_0_#000] bg-white">
+<div class="w-full h-150 border-4 border-black overflow-hidden bg-white">
   <iframe
     bind:this={iframeRef}
     title="Interactive Game"

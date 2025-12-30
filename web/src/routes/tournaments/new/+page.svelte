@@ -128,7 +128,7 @@
             </div>
         {/if}
 
-        <form onsubmit={handleSubmit} class="border border-[--border-color] p-6 shadow-sm bg-hatch">
+        <form onsubmit={handleSubmit} class="p-6 bg-hatch">
             <div class="mb-4">
                 <label for="game" class="block mb-2 font-medium text-gray-dark">Game</label>
                 <select

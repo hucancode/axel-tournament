@@ -110,7 +110,7 @@
     <button
       type="button"
       id={inputId}
-      class="w-full flex items-center justify-between px-4 py-3 border border-blueprint-line-light bg-blueprint-paper text-base cursor-pointer transition-colors text-left hover:border-primary focus:outline-none focus:border-primary focus:border-2 focus:px-3.75 focus:py-2.75 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-blueprint-line-light {isOpen ? 'border-b-transparent' : ''} {!selectedOption ? 'text-muted' : ''}"
+      class="w-full flex items-center justify-between px-4 py-3 bg-blueprint-paper text-base cursor-pointer transition-colors text-left hover:border-primary focus:outline-none focus:border-primary focus:border-2 focus:px-3.75 focus:py-2.75 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-blueprint-line-light {isOpen ? 'border-b-transparent' : ''} {!selectedOption ? 'text-muted' : ''}"
       onclick={toggleDropdown}
       {disabled}
     >
@@ -119,7 +119,7 @@
     </button>
 
     {#if isOpen}
-      <div id={dropdownId} class="absolute top-full left-0 right-0 z-50 bg-blueprint-paper border border-blueprint-line-light border-t-0 max-h-75 overflow-y-auto" role="listbox">
+      <div id={dropdownId} class="absolute top-full left-0 right-0 z-50 bg-blueprint-paper border-t-0 max-h-75 overflow-y-auto" role="listbox">
         {#each options as option}
           <button
             type="button"

@@ -19,7 +19,7 @@
 <dialog
     bind:this={dialog}
     {onclose}
-    class="border border-blueprint-line-light max-w-125 w-[90%] bg-blueprint-paper fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 backdrop:bg-slate-900/60"
+    class="max-w-125 w-[90%] bg-blueprint-paper fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 backdrop:bg-slate-900/60"
 >
     <form method="dialog">
         <header

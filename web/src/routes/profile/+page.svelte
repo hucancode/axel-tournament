@@ -43,7 +43,7 @@
 </script>
 
 <section class="container max-w-3xl">
-    <div class="border border-[--border-color] p-6 shadow-sm bg-hatch mb-4">
+    <div class="p-6 bg-hatch mb-4">
         <h2 class="text-xl font-semibold mb-4">User Information</h2>
         <div class="grid grid-cols-[1fr_2fr] gap-4">
             <div class="font-semibold">Username:</div>
@@ -68,16 +68,16 @@
             </div>
         </div>
     </div>
-    <div class="border border-[--border-color] p-6 shadow-sm bg-hatch mb-4">
+    <div class="p-6 bg-hatch mb-4">
         <h2 class="text-xl font-semibold mb-4">Update Location</h2>
         {#if error}
-            <div class="border p-6 shadow-sm bg-hatch bg-red-100 mb-4">
+            <div class="border p-6 bg-hatch bg-red-100 mb-4">
                 <p class="text-red-600">{error}</p>
             </div>
         {/if}
         {#if success}
             <div
-                class="border border-[--border-color] p-6 shadow-sm bg-hatch bg-green-100 mb-4"
+                class="p-6 bg-hatch bg-green-100 mb-4"
             >
                 <p class="text-green-600">{success}</p>
             </div>
@@ -104,7 +104,7 @@
             disabled={loading}
         />
     </div>
-    <div class="border border-[--border-color] p-6 shadow-sm bg-hatch">
+    <div class="p-6 bg-hatch">
         <h2 class="text-xl font-semibold mb-4">My Submissions</h2>
         {#if submissions.length === 0}
             <p class="text-center text-gray-500">No submissions yet</p>

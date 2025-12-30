@@ -1,6 +1,6 @@
 <script lang="ts">
     import { goto } from "$app/navigation";
-    import { page } from "$app/stores";
+    import { page } from "$app/state";
     import { onMount } from "svelte";
     import { authStore } from "$lib/stores/auth";
     import { tournamentService } from "$lib/services/tournaments";
@@ -8,7 +8,7 @@
     import { Button, LinkButton, LoadingCard } from "$lib/components";
     import type { Tournament, Game, UpdateTournamentRequest, TournamentStatus } from "$lib/types";
 
-    let tournamentId = $derived($page.params.id);
+    let tournamentId = page.params.id!;
     let tournament = $state<Tournament | null>(null);
     let games = $state<Game[]>([]);
     let loading = $state(true);
@@ -131,7 +131,7 @@
             </div>
         {/if}
 
-        <form onsubmit={handleSubmit} class="border border-[--border-color] p-6 shadow-sm bg-hatch">
+        <form onsubmit={handleSubmit} class="p-6 bg-hatch">
             <div class="mb-4">
                 <label for="name" class="block mb-2 font-medium text-gray-dark">Tournament Name</label>
                 <input

@@ -46,7 +46,7 @@
 
   {#if activeComponent}
     {@const Component = activeComponent}
-    <div role="tabpanel" class="-mt-px p-6 bg-blueprint-paper border border-blueprint-line-light focus:outline-2 focus:outline-primary focus:outline-offset-2">
+    <div role="tabpanel" class="-mt-px p-6 bg-blueprint-paper focus:outline-2 focus:outline-primary focus:outline-offset-2">
       <Component />
     </div>
   {/if}

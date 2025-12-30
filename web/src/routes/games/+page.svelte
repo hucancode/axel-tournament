@@ -4,7 +4,7 @@
     import { authStore } from "$lib/stores/auth";
     import { onMount } from "svelte";
     import type { Game, Tournament } from "$lib/types";
-    import { LinkButton, Button, LoadingCard, EmptyState, Badge } from "$lib/components";
+    import { LinkButton, Button, LoadingCard, EmptyState, Badge, Card } from "$lib/components";
 
     let games = $state<Game[]>([]);
     let tournamentsByGame = $state<Map<string, Tournament[]>>(new Map());
@@ -86,7 +86,7 @@
     </div>
 
     {#if error}
-        <div class="border p-6 shadow-sm bg-hatch bg-red-100 mb-4">
+        <div class="border p-6 bg-hatch bg-red-100 mb-4">
             <p class="text-red-600">{error}</p>
         </div>
     {/if}
@@ -95,12 +95,10 @@
     {:else if games.length === 0}
         <EmptyState message="No games available" />
     {:else}
-        <div class="grid grid-2">
+        <div class="grid grid-cols-2">
             {#each games as game}
                 {#if game.is_active}
-                    <div
-                        class="border border-[--border-color] p-6 shadow-sm bg-hatch"
-                    >
+                    <Card>
                         <div class="flex justify-between items-center mb-2">
                             <h2 class="text-xl font-semibold">
                                 {game.name}
@@ -109,9 +107,7 @@
                         </div>
                         <p class="text-gray-700 mb-4">{game.description}</p>
                         <div class="mb-4">
-                            <div
-                                class="text-sm font-semibold text-gray-700 mb-2"
-                            >
+                            <div class="text-sm font-semibold text-gray-700 mb-2">
                                 Supported Languages:
                             </div>
                             <div class="flex gap-2">
@@ -121,9 +117,7 @@
                             </div>
                         </div>
                         <div class="mb-4">
-                            <div
-                                class="text-sm font-semibold text-gray-700 mb-2"
-                            >
+                            <div class="text-sm font-semibold text-gray-700 mb-2">
                                 Tournament Statistics:
                             </div>
                             <div class="grid gap-2 grid-cols-[auto_1fr]">
@@ -173,7 +167,7 @@
                                 game.created_at,
                             ).toLocaleDateString()}
                         </div>
-                    </div>
+                    </Card>
                 {/if}
             {/each}
         </div>
@@ -184,20 +178,18 @@
                 <div class="grid grid-3">
                     {#each games as game}
                         {#if !game.is_active}
-                            <div
-                                class="border border-[--border-color] p-6 shadow-sm bg-hatch opacity-70"
-                            >
-                                <div
-                                    class="flex justify-between items-center mb-2"
-                                >
-                                    <h3 class="text-lg font-semibold">
-                                        {game.name}
-                                    </h3>
-                                    <Badge status="cancelled" label="Inactive" />
-                                </div>
-                                <p class="text-sm text-gray-600">
-                                    {game.description}
-                                </p>
+                            <div class="opacity-70">
+                                <Card>
+                                    <div class="flex justify-between items-center mb-2">
+                                        <h3 class="text-lg font-semibold">
+                                            {game.name}
+                                        </h3>
+                                        <Badge status="cancelled" label="Inactive" />
+                                    </div>
+                                    <p class="text-sm text-gray-600">
+                                        {game.description}
+                                    </p>
+                                </Card>
                             </div>
                         {/if}
                     {/each}

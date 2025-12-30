@@ -56,8 +56,8 @@
         --color-fg: #F8FAFC;
         --color-muted: #94A3B8;
 
-        --color-pattern-fg: rgb(255 255 255 / 0.03);
-        --color-pattern-fg-strong: rgb(255 255 255 / 0.05);
+        --color-pattern-fg: rgb(255 255 255 / 0.05);
+        --color-pattern-fg-strong: rgb(255 255 255 / 0.08);
 
         --color-border: rgb(77 77 77 / 0.10);
         --color-border-strong: rgb(255 255 255 / 0.15);
@@ -94,18 +94,10 @@ body {
 /* Hatching pattern utility for blueprint style */
 .bg-hatch {
     position: relative;
-    border-style: solid;
+    border-color: var(--color-pattern-fg-strong);
     border-width: 1px;
-}
-
-.bg-hatch::before {
-    z-index: -1;
-    content: "";
-    position: absolute;
-    inset: 0;
-    background-image: repeating-linear-gradient(315deg, var(--color-pattern-fg) 0, var(--color-pattern-fg) 1px, transparent 0, transparent 50%);
-    background-size: 10px 10px;
-    pointer-events: none;
+    background-image: repeating-linear-gradient(315deg, var(--color-pattern-fg-strong) 0, var(--color-pattern-fg-strong) 2px, var(--color-blueprint-bg) 0, var(--color-blueprint-bg) 50%);
+    background-size: 12px 12px;
 }
 
 /* Legacy class support - prefer using new components */
@@ -124,10 +116,6 @@ footer {
     margin-top: auto;
     text-align: center;
     border-top: 1px solid var(--color-border);
-}
-
-main {
-    flex: 1;
 }
 
 section {

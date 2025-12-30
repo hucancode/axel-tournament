@@ -29,7 +29,7 @@
   }
 </script>
 
-<div role="radiogroup" class="inline-flex bg-blueprint-paper border border-blueprint-line-light overflow-hidden {disabled ? 'opacity-50 cursor-not-allowed border-gray-medium' : ''}">
+<div role="radiogroup" class="inline-flex bg-blueprint-paper overflow-hidden {disabled ? 'opacity-50 cursor-not-allowed border-gray-medium' : ''}">
   {#each options as option, index (option.value)}
     <label class="px-6 py-3 bg-transparent border-r border-blueprint-line-faint font-medium cursor-pointer transition-all relative inline-flex items-center select-none last:border-r-0 has-checked:bg-primary has-checked:text-white has-checked:border-primary has-focus:outline-2 has-focus:outline-primary has-focus:-outline-offset-2 has-focus:z-10 hover:has-[:not(:disabled):not(:checked)]:bg-blueprint-line-faint active:has-[:not(:disabled)]:bg-primary active:has-[:not(:disabled)]:text-white has-disabled:cursor-not-allowed {disabled ? 'border-gray-medium' : ''}">
       <input

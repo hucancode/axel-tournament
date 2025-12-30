@@ -82,7 +82,7 @@
         {/if}
     </div>
 
-    <div class="border border-[--border-color] p-6 shadow-sm bg-hatch mb-4">
+    <div class="p-6 bg-hatch mb-4">
         <div class="flex items-center gap-4">
             <label for="status-filter" class="font-semibold"
                 >Filter by Status:</label
@@ -102,7 +102,7 @@
     </div>
     {#if error}
         <div
-            class="border border-[--border-color] p-6 shadow-sm bg-hatch bg-red-100 mb-4"
+            class="p-6 bg-hatch bg-red-100 mb-4"
         >
             <p class="text-red-600">{error}</p>
         </div>

@@ -162,11 +162,11 @@
 <div class="page">
     <div class="container">
         {#if loading}
-            <div class="border border-[--border-color] p-6 shadow-sm bg-hatch text-center">
+            <div class="p-6 bg-hatch text-center">
                 <p class="text-gray-500">Loading tournament...</p>
             </div>
         {:else if error}
-            <div class="border border-[--border-color] p-6 shadow-sm bg-hatch bg-red-100">
+            <div class="p-6 bg-hatch bg-red-100">
                 <p class="text-red-600">{error}</p>
             </div>
         {:else if tournament}
@@ -182,7 +182,7 @@
                 </div>
             </div>
             {#if actionError}
-                <div class="border border-[--border-color] p-6 shadow-sm bg-hatch mb-4 bg-red-100">
+                <div class="p-6 bg-hatch mb-4 bg-red-100">
                     <p class="text-red-600">{actionError}</p>
                 </div>
             {/if}
@@ -191,7 +191,7 @@
             >
                 <div class="flex flex-col gap-4">
                     <!-- Tournament Details -->
-                    <div class="border border-[--border-color] p-6 shadow-sm bg-hatch">
+                    <div class="p-6 bg-hatch">
                         <h2 class="text-xl font-semibold mb-4">
                             About This Tournament
                         </h2>
@@ -240,7 +240,7 @@
                     </div>
                     <!-- Game Details -->
                     {#if game}
-                        <div class="border border-[--border-color] p-6 shadow-sm bg-hatch">
+                        <div class="p-6 bg-hatch">
                             <h2 class="text-xl font-semibold mb-4">
                                 Game: {game.name}
                             </h2>
@@ -260,7 +260,7 @@
                         </div>
                     {/if}
                     <!-- Participants -->
-                    <div class="border border-[--border-color] p-6 shadow-sm bg-hatch">
+                    <div class="p-6 bg-hatch">
                         <h2 class="text-xl font-semibold mb-4">
                             Participants ({participants.length})
                         </h2>
@@ -315,7 +315,7 @@
                         {/if}
                     </div>
                     <!-- User submissions -->
-                    <div class="border border-[--border-color] p-6 shadow-sm bg-hatch">
+                    <div class="p-6 bg-hatch">
                         <div class="flex justify-between items-center mb-3">
                             <h2 class="text-xl font-semibold">
                                 Your Submissions
@@ -387,7 +387,7 @@
                 </div>
                 <!-- Actions Sidebar -->
                 <div class="flex flex-col gap-4">
-                    <div class="border border-[--border-color] p-6 shadow-sm bg-hatch">
+                    <div class="p-6 bg-hatch">
                         <h3 class="font-semibold mb-4">Actions</h3>
                         {#if !$authStore.isAuthenticated}
                             <p class="text-sm text-gray-500 mb-4">
@@ -441,7 +441,7 @@
                     </div>
                     {#if tournament.status === "registration"}
                         <div
-                            class="border border-[--border-color] p-6 shadow-sm bg-hatch bg-primary-50"
+                            class="p-6 bg-hatch bg-primary-50"
                         >
                             <h3
                                 class="font-semibold mb-2 text-primary-700"
@@ -455,7 +455,7 @@
                             </p>
                         </div>
                     {:else if tournament.status === "running"}
-                        <div class="border border-[--border-color] p-6 shadow-sm bg-hatch bg-amber-100">
+                        <div class="p-6 bg-hatch bg-amber-100">
                             <h3
                                 class="font-semibold mb-2 text-amber-900"
                             >
@@ -467,7 +467,7 @@
                             </p>
                         </div>
                     {:else if tournament.status === "completed"}
-                        <div class="border border-[--border-color] p-6 shadow-sm bg-hatch bg-emerald-100">
+                        <div class="p-6 bg-hatch bg-emerald-100">
                             <h3
                                 class="font-semibold mb-2 text-emerald-800"
                             >
@@ -481,7 +481,7 @@
                 </div>
             </div>
         {:else}
-            <div class="border border-[--border-color] p-6 shadow-sm bg-hatch text-center">
+            <div class="p-6 bg-hatch text-center">
                 <p class="text-gray-500">Tournament not found</p>
             </div>
         {/if}

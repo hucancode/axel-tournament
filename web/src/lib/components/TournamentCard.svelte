@@ -15,7 +15,7 @@
   let link = $derived(href ?? `/tournaments/${tournament.id}`);
 </script>
 
-<a href={link} class={`block border border-border p-6 bg-hatch no-underline transition-all duration-150 hover:border-border-strong ${className}`}>
+<a href={link} class={`block border border-gray-800 p-6 bg-hatch no-underline transition-all duration-150 hover:border-border-strong ${className}`}>
   <h3 class="text-lg font-semibold mb-2">{tournament.name}</h3>
   <p
     class="text-sm text-gray-700 mb-4 line-clamp-2"

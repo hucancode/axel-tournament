@@ -26,7 +26,7 @@
     onchange={handleChange}
     class="absolute opacity-0 w-0 h-0 peer"
   />
-  <span class="relative inline-flex items-center justify-center w-5 h-5 bg-blueprint-paper border border-blueprint-line-light transition-colors peer-checked:bg-primary peer-checked:border-primary peer-indeterminate:bg-blueprint-line-light peer-indeterminate:border-blueprint-line-light peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-2 hover:border-primary hover:border-2 active:opacity-90 {disabled ? 'border-gray-medium' : ''}">
+  <span class="relative inline-flex items-center justify-center w-5 h-5 bg-blueprint-paper transition-colors peer-checked:bg-primary peer-checked:border-primary peer-indeterminate:bg-blueprint-line-light peer-indeterminate:border-blueprint-line-light peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-2 hover:border-primary hover:border-2 active:opacity-90 {disabled ? 'border-gray-medium' : ''}">
     {#if indeterminate}
       <span class="w-2.5 h-0.5 bg-white"></span>
     {:else if checked}
