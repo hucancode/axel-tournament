@@ -1,22 +1,51 @@
 <script lang="ts">
     import { authStore } from "$lib/stores/auth";
+    import { gameService } from "$lib/services/games";
     import { onMount } from "svelte";
-    import type { Tournament } from "$lib/types";
+    import type { Tournament, Game } from "$lib/types";
     import { tournamentService } from "$lib/services/tournaments";
+    import { api } from "$lib/api";
     import TournamentCard from "$lib/components/TournamentCard.svelte";
-    import { LinkButton } from "$lib/components";
+    import { LinkButton, LoadingCard, EmptyState } from "$lib/components";
+
     let tournaments = $state<Tournament[]>([]);
+    let games = $state<Game[]>([]);
+    let userCount = $state(0);
     let loading = $state(true);
+    let statsLoading = $state(false);
+
+    const user = $derived($authStore.user);
+    const isAdmin = $derived($authStore.user?.role === "admin");
+
     onMount(async () => {
         try {
             tournaments = await tournamentService.list();
+
+            if (isAdmin) {
+                await loadAdminStats();
+            }
         } catch (err) {
             console.error("Failed to load tournaments:", err);
         } finally {
             loading = false;
         }
     });
-    let user = $derived($authStore.user);
+
+    async function loadAdminStats() {
+        statsLoading = true;
+        try {
+            const [gamesData, usersData] = await Promise.all([
+                gameService.list(),
+                api.get<any[]>("/api/admin/users", true)
+            ]);
+            games = gamesData;
+            userCount = usersData.length;
+        } catch (err) {
+            console.error("Failed to load admin stats:", err);
+        } finally {
+            statsLoading = false;
+        }
+    }
 </script>
 
 <div class="container mx-auto">
@@ -65,17 +94,37 @@
                 />
             </div>
         </section>
+
+        {#if isAdmin}
+            <section class="mb-8">
+                <h2 class="text-2xl font-bold mb-4">Platform Statistics</h2>
+                {#if statsLoading}
+                    <LoadingCard message="Loading statistics..." />
+                {:else}
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="border border-[--border-color] p-6 shadow-sm bg-hatch text-center">
+                            <div class="text-3xl font-bold text-primary">{userCount}</div>
+                            <div class="text-sm text-gray-600 mt-2">Total Users</div>
+                        </div>
+                        <div class="border border-[--border-color] p-6 shadow-sm bg-hatch text-center">
+                            <div class="text-3xl font-bold text-primary">{games.length}</div>
+                            <div class="text-sm text-gray-600 mt-2">Total Games</div>
+                        </div>
+                        <div class="border border-[--border-color] p-6 shadow-sm bg-hatch text-center">
+                            <div class="text-3xl font-bold text-primary">{tournaments.length}</div>
+                            <div class="text-sm text-gray-600 mt-2">Total Tournaments</div>
+                        </div>
+                    </div>
+                {/if}
+            </section>
+        {/if}
     {/if}
     <section>
         <h2 class="text-2xl font-bold">Active Tournaments</h2>
         {#if loading}
-            <p>Loading tournaments...</p>
+            <LoadingCard message="Loading tournaments..." />
         {:else if tournaments.length === 0}
-            <div
-                class="border border-[--border-color] p-6 shadow-sm bg-hatch text-center"
-            >
-                <p>No active tournaments at the moment. Check back soon!</p>
-            </div>
+            <EmptyState message="No active tournaments at the moment. Check back soon!" />
         {:else}
             <div class="grid grid-2">
                 {#each tournaments.slice(0, 6) as tournament}

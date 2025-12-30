@@ -43,12 +43,6 @@
         </div>
         <div class="flex gap-6 items-center">
             {#if isAuthenticated}
-                {#if user?.role === "admin"}
-                    <a href="/admin" class="no-underline font-medium transition-colors hover:text-primary {currentPath.startsWith('/admin') ? 'text-primary font-semibold' : ''}">Admin</a>
-                {/if}
-                {#if user?.role === "gamesetter" || user?.role === "admin"}
-                    <a href="/game-setter" class="no-underline font-medium transition-colors hover:text-primary {currentPath.startsWith('/game-setter') ? 'text-primary font-semibold' : ''}">Game Setter</a>
-                {/if}
                 <a href="/profile" class="no-underline font-medium transition-colors hover:text-primary {currentPath === '/profile' ? 'text-primary font-semibold' : ''}">{user?.username}</a>
                 <Button onclick={onLogout} label="Logout" variant="ghost" />
             {:else}

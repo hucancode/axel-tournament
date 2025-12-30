@@ -1,25 +1,36 @@
 <script lang="ts">
     import { gameService } from "$lib/services/games";
     import { tournamentService } from "$lib/services/tournaments";
+    import { authStore } from "$lib/stores/auth";
     import { onMount } from "svelte";
     import type { Game, Tournament } from "$lib/types";
-    import { LinkButton, Button } from "$lib/components";
+    import { LinkButton, Button, LoadingCard, EmptyState, Badge } from "$lib/components";
+
     let games = $state<Game[]>([]);
     let tournamentsByGame = $state<Map<string, Tournament[]>>(new Map());
     let loading = $state(true);
     let error = $state("");
+
+    const auth = $derived($authStore);
+    const canManageGames = $derived(auth.isAuthenticated && (auth.user?.role === "admin" || auth.user?.role === "gamesetter"));
+
+    function canEditGame(game: Game): boolean {
+        if (!auth.isAuthenticated) return false;
+        if (auth.user?.role === "admin") return true;
+        if (auth.user?.role === "gamesetter" && game.owner_id === auth.user.id) return true;
+        return false;
+    }
+
     onMount(async () => {
         await loadGames();
     });
+
     async function loadGames() {
         loading = true;
         error = "";
         try {
-            // Load all games
             games = await gameService.list();
-            // Load all tournaments to group by game
             const allTournaments = await tournamentService.list();
-            // Group tournaments by game_id
             const groupedTournaments = new Map<string, Tournament[]>();
             for (const tournament of allTournaments) {
                 if (!groupedTournaments.has(tournament.game_id)) {
@@ -35,35 +46,54 @@
             loading = false;
         }
     }
+
     function getActiveTournamentCount(gameId: string): number {
         const tournaments = tournamentsByGame.get(gameId) || [];
         return tournaments.filter(
             (t) => t.status === "registration" || t.status === "running",
         ).length;
     }
+
     function getTotalTournamentCount(gameId: string): number {
         return tournamentsByGame.get(gameId)?.length || 0;
+    }
+
+    async function handleDelete(game: Game) {
+        if (
+            !confirm(
+                `Are you sure you want to delete "${game.name}"? This action cannot be undone.`,
+            )
+        ) {
+            return;
+        }
+
+        try {
+            await gameService.delete(game.id);
+            await loadGames();
+        } catch (err) {
+            error =
+                err instanceof Error ? err.message : "Failed to delete game";
+        }
     }
 </script>
 
 <section class="container">
+    <div class="flex justify-between items-center mb-4">
+        <h1 class="text-2xl font-bold">Games</h1>
+        {#if canManageGames}
+            <LinkButton href="/games/new" label="+ Create Game" variant="primary" />
+        {/if}
+    </div>
+
     {#if error}
         <div class="border p-6 shadow-sm bg-hatch bg-red-100 mb-4">
             <p class="text-red-600">{error}</p>
         </div>
     {/if}
     {#if loading}
-        <div
-            class="border border-[--border-color] p-6 shadow-sm bg-hatch text-center"
-        >
-            <p class="text-gray-500">Loading games...</p>
-        </div>
+        <LoadingCard message="Loading games..." />
     {:else if games.length === 0}
-        <div
-            class="border border-[--border-color] p-6 shadow-sm bg-hatch text-center"
-        >
-            <p class="text-gray-500">No games available</p>
-        </div>
+        <EmptyState message="No games available" />
     {:else}
         <div class="grid grid-2">
             {#each games as game}
@@ -75,7 +105,7 @@
                             <h2 class="text-xl font-semibold">
                                 {game.name}
                             </h2>
-                            <span class="badge badge-accepted">Active</span>
+                            <Badge status="accepted" label="Active" />
                         </div>
                         <p class="text-gray-700 mb-4">{game.description}</p>
                         <div class="mb-4">
@@ -86,9 +116,7 @@
                             </div>
                             <div class="flex gap-2">
                                 {#each game.supported_languages as lang}
-                                    <span class="badge badge-scheduled"
-                                        >{lang.toUpperCase()}</span
-                                    >
+                                    <Badge status="scheduled" label={lang.toUpperCase()} />
                                 {/each}
                             </div>
                         </div>
@@ -113,7 +141,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="flex gap-2">
+                        <div class="flex gap-2 flex-wrap">
                             {#if tournamentsByGame.get(game.id)?.length}
                                 <LinkButton
                                     href="/tournaments?game={game.id}"
@@ -125,6 +153,18 @@
                                     variant="secondary"
                                     label="No Tournaments Yet"
                                     disabled={true}
+                                />
+                            {/if}
+                            {#if canEditGame(game)}
+                                <LinkButton
+                                    href="/games/{game.id}/edit"
+                                    variant="secondary"
+                                    label="Edit"
+                                />
+                                <Button
+                                    variant="danger"
+                                    label="Delete"
+                                    onclick={() => handleDelete(game)}
                                 />
                             {/if}
                         </div>
@@ -153,9 +193,7 @@
                                     <h3 class="text-lg font-semibold">
                                         {game.name}
                                     </h3>
-                                    <span class="badge badge-cancelled"
-                                        >Inactive</span
-                                    >
+                                    <Badge status="cancelled" label="Inactive" />
                                 </div>
                                 <p class="text-sm text-gray-600">
                                     {game.description}

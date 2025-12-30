@@ -1,13 +1,18 @@
 <script lang="ts">
     import { tournamentService } from "$lib/services/tournaments";
+    import { gameService } from "$lib/services/games";
+    import { authStore } from "$lib/stores/auth";
     import { onMount } from "svelte";
-    import type { Tournament, TournamentParticipant } from "$lib/types";
-    import { TournamentCard } from "$lib/components";
+    import type { Tournament, TournamentParticipant, Game } from "$lib/types";
+    import { TournamentCard, LinkButton, LoadingCard, EmptyState } from "$lib/components";
+
     let tournaments = $state<Tournament[]>([]);
+    let games = $state<Game[]>([]);
     let participantCounts = $state<Record<string, TournamentParticipant[]>>({});
     let loading = $state(true);
     let error = $state("");
     let selectedStatus = $state<string>("all");
+
     const statusOptions = [
         { value: "all", label: "All Tournaments" },
         { value: "scheduled", label: "Scheduled" },
@@ -17,28 +22,33 @@
         { value: "completed", label: "Completed" },
         { value: "cancelled", label: "Cancelled" },
     ];
+
+    const auth = $derived($authStore);
+    const canManageTournaments = $derived(auth.isAuthenticated && (auth.user?.role === "admin" || auth.user?.role === "gamesetter"));
+
     onMount(async () => {
         await loadTournaments();
     });
+
     async function loadTournaments() {
         loading = true;
         error = "";
         try {
-            const status =
-                selectedStatus === "all" ? undefined : selectedStatus;
-            tournaments = await tournamentService.list(status);
+            const status = selectedStatus === "all" ? undefined : selectedStatus;
+            const [tournamentsData, gamesData] = await Promise.all([
+                tournamentService.list(status),
+                gameService.list(),
+            ]);
+            tournaments = tournamentsData;
+            games = gamesData;
 
             // Load participants for each tournament
             const participantPromises = tournaments.map(async (tournament) => {
                 try {
-                    const participants =
-                        await tournamentService.getParticipants(tournament.id);
+                    const participants = await tournamentService.getParticipants(tournament.id);
                     return { tournamentId: tournament.id, participants };
                 } catch (err) {
-                    console.error(
-                        `Failed to load participants for tournament ${tournament.id}:`,
-                        err,
-                    );
+                    console.error(`Failed to load participants for tournament ${tournament.id}:`, err);
                     return { tournamentId: tournament.id, participants: [] };
                 }
             });
@@ -52,21 +62,26 @@
                 {} as Record<string, TournamentParticipant[]>,
             );
         } catch (err) {
-            error =
-                err instanceof Error
-                    ? err.message
-                    : "Failed to load tournaments";
+            error = err instanceof Error ? err.message : "Failed to load tournaments";
             console.error("Failed to load tournaments:", err);
         } finally {
             loading = false;
         }
     }
+
     async function handleStatusChange() {
         await loadTournaments();
     }
 </script>
 
 <section class="container">
+    <div class="flex justify-between items-center mb-4">
+        <h1 class="text-2xl font-bold">Tournaments</h1>
+        {#if canManageTournaments}
+            <LinkButton href="/tournaments/new" label="+ Create Tournament" variant="primary" />
+        {/if}
+    </div>
+
     <div class="border border-[--border-color] p-6 shadow-sm bg-hatch mb-4">
         <div class="flex items-center gap-4">
             <label for="status-filter" class="font-semibold"
@@ -93,17 +108,9 @@
         </div>
     {/if}
     {#if loading}
-        <div
-            class="border border-[--border-color] p-6 shadow-sm bg-hatch text-center"
-        >
-            <p class="text-gray-500">Loading tournaments...</p>
-        </div>
+        <LoadingCard message="Loading tournaments..." />
     {:else if tournaments.length === 0}
-        <div
-            class="border border-[--border-color] p-6 shadow-sm bg-hatch text-center"
-        >
-            <p class="text-gray-500">No tournaments found</p>
-        </div>
+        <EmptyState message="No tournaments found" />
     {:else}
         <div class="grid grid-2">
             {#each tournaments as tournament}

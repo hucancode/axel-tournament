@@ -7,6 +7,7 @@
     import Dialog from "$lib/components/Dialog.svelte";
     import Alert from "$lib/components/Alert.svelte";
     import Button from "$lib/components/Button.svelte";
+    import LinkButton from "$lib/components/LinkButton.svelte";
 
     let rooms = $state<Room[]>([]);
     let games = $state<Game[]>([]);
@@ -98,11 +99,11 @@
 </script>
 
 <section class="container">
+    <div class="flex justify-between items-center mb-4">
+        <h1 class="text-2xl font-bold">Rooms</h1>
+        <Button onclick={openCreateModal} label="+ Create Room" variant="primary" />
+    </div>
     <div class="max-w-7xl mx-auto p-8">
-        <div class="flex justify-end mb-2">
-            <Button label="+ Create Room" onclick={openCreateModal} />
-        </div>
-
         {#if error}
             <Alert
                 type="error"
