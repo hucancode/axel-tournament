@@ -32,6 +32,7 @@
     }
 </script>
 
+<section>
 <AuthCard
     title="Login"
     {error}
@@ -63,3 +64,4 @@
         >
     </div>
 </AuthCard>
+</section>

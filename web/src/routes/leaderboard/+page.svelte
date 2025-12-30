@@ -67,205 +67,148 @@
         return "";
     }
     function getRankClass(rank: number): string {
-        if (rank === 1) return "text-rank-1";
-        if (rank === 2) return "text-rank-2";
-        if (rank === 3) return "text-rank-3";
+        if (rank === 1) return "text-amber-600 font-bold";
+        if (rank === 2) return "text-slate-500 font-bold";
+        if (rank === 3) return "text-amber-800 font-bold";
         return "";
     }
 </script>
 
-<div class="page">
-    <div class="container">
-        <div class="page-header">
-            <h1 class="page-title">Leaderboard</h1>
-            <p class="text-gray-500">
-                Top performing players across all tournaments
+<section class="container">
+    <div class="border border-blueprint-line-light p-6 shadow-sm bg-hatch mb-4">
+        <h2 class="text-lg font-semibold mb-4">Filters</h2>
+        <div class="grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-4 mb-6">
+            <div>
+                <label
+                    for="tournament-filter"
+                    class="block mb-2 font-medium text-blueprint-ink"
+                    >Tournament</label
+                >
+                <select
+                    id="tournament-filter"
+                    class="w-full p-2 border border-blueprint-line-light bg-blueprint-paper"
+                    bind:value={selectedTournament}
+                    onchange={handleFilterChange}
+                    disabled={loading}
+                >
+                    <option value="all">All Tournaments</option>
+                    {#each tournaments as tournament}
+                        <option value={tournament.id}>{tournament.name}</option>
+                    {/each}
+                </select>
+            </div>
+            <div>
+                <label
+                    for="game-filter"
+                    class="block mb-2 font-medium text-blueprint-ink">Game</label
+                >
+                <select
+                    id="game-filter"
+                    class="w-full p-2 border border-blueprint-line-light bg-blueprint-paper"
+                    bind:value={selectedGame}
+                    onchange={handleFilterChange}
+                    disabled={loading}
+                >
+                    <option value="all">All Games</option>
+                    {#each games as game}
+                        <option value={game.id}>{game.name}</option>
+                    {/each}
+                </select>
+            </div>
+            <div>
+                <label
+                    for="limit-filter"
+                    class="block mb-2 font-medium text-blueprint-ink">Limit</label
+                >
+                <select
+                    id="limit-filter"
+                    class="w-full p-2 border border-blueprint-line-light bg-blueprint-paper"
+                    bind:value={limit}
+                    onchange={handleFilterChange}
+                    disabled={loading}
+                >
+                    <option value={10}>Top 10</option>
+                    <option value={25}>Top 25</option>
+                    <option value={50}>Top 50</option>
+                    <option value={100}>Top 100</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    {#if error}
+        <div class="border border-red-200 p-6 shadow-sm bg-red-50 mb-4">
+            <p class="text-red-600">{error}</p>
+        </div>
+    {/if}
+    {#if loading}
+        <div
+            class="border border-blueprint-line-light p-6 shadow-sm bg-hatch text-center"
+        >
+            <p class="text-blueprint-ink-light">Loading leaderboard...</p>
+        </div>
+    {:else if entries.length === 0}
+        <div
+            class="border border-blueprint-line-light p-6 shadow-sm bg-hatch text-center"
+        >
+            <p class="text-blueprint-ink-light">No leaderboard entries found</p>
+            <p class="text-sm text-blueprint-ink-light mt-2">
+                Try adjusting your filters or check back later
             </p>
         </div>
-        <div class="border border-[--border-color] p-6 shadow-sm bg-hatch mb-4">
-            <h2 class="text-lg font-semibold mb-4">Filters</h2>
-            <div class="filter-section">
-                <div class="">
-                    <label for="tournament-filter" class="block mb-2 font-medium text-gray-dark">Tournament</label>
-                    <select
-                        id="tournament-filter"
-                        class="select"
-                        bind:value={selectedTournament}
-                        onchange={handleFilterChange}
-                        disabled={loading}
-                    >
-                        <option value="all">All Tournaments</option>
-                        {#each tournaments as tournament}
-                            <option value={tournament.id}
-                                >{tournament.name}</option
+    {:else}
+        <div
+            class="border border-blueprint-line-light shadow-sm bg-hatch p-0 overflow-x-auto"
+        >
+            <table class="w-full border-collapse bg-blueprint-paper">
+                <thead class="bg-blueprint-line-faint sticky top-0 z-10">
+                    <tr>
+                        <th class="p-3 text-left font-semibold border-b-2 border-blueprint-line-light w-20">Rank</th>
+                        <th class="p-3 text-left font-semibold border-b-2 border-blueprint-line-light">Player</th>
+                        <th class="p-3 text-left font-semibold border-b-2 border-blueprint-line-light">Location</th>
+                        <th class="p-3 text-left font-semibold border-b-2 border-blueprint-line-light">Score</th>
+                        <th class="p-3 text-left font-semibold border-b-2 border-blueprint-line-light">Tournament</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {#each entries as entry, index}
+                        <tr class="hover:bg-blueprint-line-faint">
+                            <td class="p-3 border-b border-blueprint-line-light font-bold text-lg {getRankClass(entry.rank)}">
+                                <span class="inline-flex items-center gap-2">
+                                    <span>{entry.rank}</span>
+                                    <span class="text-xl"
+                                        >{getMedalEmoji(entry.rank)}</span
+                                    >
+                                </span>
+                            </td>
+                            <td class="p-3 border-b border-blueprint-line-light font-semibold text-blueprint-line">{entry.username}</td>
+                            <td class="p-3 border-b border-blueprint-line-light">
+                                {#if entry.location}
+                                    <span class="badge badge-scheduled"
+                                        >{entry.location}</span
+                                    >
+                                {:else}
+                                    <span class="text-blueprint-ink-light">-</span>
+                                {/if}
+                            </td>
+                            <td class="p-3 border-b border-blueprint-line-light font-bold text-lg text-primary"
+                                >{entry.score.toLocaleString()}</td
                             >
-                        {/each}
-                    </select>
-                </div>
-                <div class="">
-                    <label for="game-filter" class="block mb-2 font-medium text-gray-dark">Game</label>
-                    <select
-                        id="game-filter"
-                        class="select"
-                        bind:value={selectedGame}
-                        onchange={handleFilterChange}
-                        disabled={loading}
-                    >
-                        <option value="all">All Games</option>
-                        {#each games as game}
-                            <option value={game.id}>{game.name}</option>
-                        {/each}
-                    </select>
-                </div>
-                <div class="">
-                    <label for="limit-filter" class="block mb-2 font-medium text-gray-dark">Limit</label>
-                    <select
-                        id="limit-filter"
-                        class="select"
-                        bind:value={limit}
-                        onchange={handleFilterChange}
-                        disabled={loading}
-                    >
-                        <option value={10}>Top 10</option>
-                        <option value={25}>Top 25</option>
-                        <option value={50}>Top 50</option>
-                        <option value={100}>Top 100</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-        {#if error}
-            <div class="border p-6 shadow-sm bg-hatch bg-red-100 mb-4">
-                <p class="text-red-600">{error}</p>
-            </div>
-        {/if}
-        {#if loading}
-            <div class="border border-[--border-color] p-6 shadow-sm bg-hatch text-center">
-                <p class="text-gray-500">Loading leaderboard...</p>
-            </div>
-        {:else if entries.length === 0}
-            <div class="border border-[--border-color] p-6 shadow-sm bg-hatch text-center">
-                <p class="text-gray-500">No leaderboard entries found</p>
-                <p class="text-sm text-gray-500 mt-2">
-                    Try adjusting your filters or check back later
-                </p>
-            </div>
-        {:else}
-            <div class="border border-[--border-color] shadow-sm bg-hatch p-0 overflow-x-auto">
-                <table class="leaderboard-table">
-                    <thead>
-                        <tr>
-                            <th class="rank-cell">Rank</th>
-                            <th>Player</th>
-                            <th>Location</th>
-                            <th>Score</th>
-                            <th>Tournament</th>
+                            <td class="p-3 border-b border-blueprint-line-light">
+                                <a
+                                    href="/tournaments/{entry.tournament_id}"
+                                    class="text-sm text-primary no-underline"
+                                >
+                                    {entry.tournament_name}
+                                </a>
+                            </td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        {#each entries as entry, index}
-                            <tr>
-                                <td
-                                    class="rank-cell {getRankClass(entry.rank)}"
-                                >
-                                    <span
-                                        class="inline-flex items-center gap-2"
-                                    >
-                                        <span>{entry.rank}</span>
-                                        <span class="text-xl"
-                                            >{getMedalEmoji(entry.rank)}</span
-                                        >
-                                    </span>
-                                </td>
-                                <td class="username-cell">{entry.username}</td>
-                                <td>
-                                    {#if entry.location}
-                                        <span class="badge badge-scheduled"
-                                            >{entry.location}</span
-                                        >
-                                    {:else}
-                                        <span class="text-gray-400">-</span>
-                                    {/if}
-                                </td>
-                                <td class="score-cell"
-                                    >{entry.score.toLocaleString()}</td
-                                >
-                                <td>
-                                    <a
-                                        href="/tournaments/{entry.tournament_id}"
-                                        class="text-sm text-primary-600 no-underline"
-                                    >
-                                        {entry.tournament_name}
-                                    </a>
-                                </td>
-                            </tr>
-                        {/each}
-                    </tbody>
-                </table>
-            </div>
-            <div class="text-center mt-4 text-sm text-gray-500">
-                Showing {entries.length}
-                {entries.length === 1 ? "entry" : "entries"}
-            </div>
-        {/if}
-    </div>
-</div>
-
-<style>
-    .text-rank-1 {
-        color: #d97706;
-        font-weight: 700;
-    }
-    .text-rank-2 {
-        color: #64748b;
-        font-weight: 700;
-    }
-    .text-rank-3 {
-        color: #92400e;
-        font-weight: 700;
-    }
-    .leaderboard-table {
-        width: 100%;
-        border-collapse: collapse;
-        background: white;
-    }
-    .leaderboard-table thead {
-        background: var(--gray-light);
-        position: sticky;
-        top: 0;
-        z-index: 10;
-    }
-    .leaderboard-table th {
-        padding: 0.75rem;
-        text-align: left;
-        font-weight: 600;
-        border-bottom: 2px solid var(--gray-light);
-    }
-    .leaderboard-table td {
-        padding: 0.75rem;
-        border-bottom: 1px solid var(--gray-light);
-    }
-    .leaderboard-table tbody tr:hover {
-        background: var(--background);
-    }
-    .rank-cell {
-        font-weight: 700;
-        font-size: 1.125rem;
-        width: 80px;
-    }
-    .username-cell {
-        font-weight: 600;
-        color: var(--blueprint-line);
-    }
-    .score-cell {
-        font-weight: 700;
-        font-size: 1.125rem;
-        color: var(--primary);
-    }
-    .filter-section {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 1rem;
-        margin-bottom: 1.5rem;
-    }
-</style>
+                    {/each}
+                </tbody>
+            </table>
+        </div>
+        <div class="text-center mt-4 text-sm text-blueprint-ink-light">
+            Showing {entries.length}
+            {entries.length === 1 ? "entry" : "entries"}
+        </div>
+    {/if}
+</section>

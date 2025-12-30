@@ -47,6 +47,7 @@
     }
 </script>
 
+<section>
 <AuthCard title="Sign Up" {error} {loading}>
     <form onsubmit={handleSubmit}>
         <div class="mb-4">
@@ -130,3 +131,4 @@
         >
     </div>
 </AuthCard>
+</section>

@@ -11,7 +11,7 @@
 </script>
 
 <details {open} class="border border-blueprint-line-light bg-blueprint-paper">
-  <summary class="p-4 font-semibold cursor-pointer bg-blueprint-hatch border-b-2 border-transparent hover:border-primary">
+  <summary class="p-4 font-semibold cursor-pointer bg-hatch border-b-2 border-transparent hover:border-primary">
     {title}
   </summary>
   <div class="p-4">

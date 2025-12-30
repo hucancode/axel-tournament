@@ -67,25 +67,12 @@
 html,
 body {
     height: 100%;
-}
-
-body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
     background-color: var(--color-blueprint-bg);
     color: var(--color-fg);
     line-height: 1.6;
-}
-
-/* Blueprint pattern utilities */
-.bg-blueprint-grid {
-    background-image:
-        repeating-linear-gradient(0deg, var(--color-pattern-fg) 0, var(--color-pattern-fg) 1px, transparent 1px, transparent 20px),
-        repeating-linear-gradient(90deg, var(--color-pattern-fg) 0, var(--color-pattern-fg) 1px, transparent 1px, transparent 20px);
-    background-size: 20px 20px;
-}
-
-.bg-blueprint-hatch {
-    background-image: repeating-linear-gradient(315deg, var(--color-pattern-fg) 0, var(--color-pattern-fg) 1px, transparent 0, transparent 50%);
-    background-size: 10px 10px;
 }
 
 .bg-blueprint-fine-grid {
@@ -107,9 +94,12 @@ body {
 /* Hatching pattern utility for blueprint style */
 .bg-hatch {
     position: relative;
+    border-style: solid;
+    border-width: 1px;
 }
 
 .bg-hatch::before {
+    z-index: -1;
     content: "";
     position: absolute;
     inset: 0;
@@ -121,4 +111,80 @@ body {
 /* Legacy class support - prefer using new components */
 details + details {
     margin-top: -3px;
+}
+
+dialog {
+    color: var(--color-fg);
+}
+
+footer {
+    background: var(--color-blueprint-paper);
+    color: var(--color-text-muted);
+    padding: 2rem 0;
+    margin-top: auto;
+    text-align: center;
+    border-top: 1px solid var(--color-border);
+}
+
+main {
+    flex: 1;
+}
+
+section {
+    margin-inline: auto;
+    margin-top: 1rem;
+}
+
+main input,
+main textarea,
+main select {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--color-border-strong);
+    font-size: 1rem;
+    background-color: var(--color-blueprint-paper);
+    color: var(--color-text);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+main .input:focus,
+main .textarea:focus,
+main .select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgb(59 130 246 / 0.1);
+}
+
+main .textarea {
+    resize: vertical;
+    min-height: 100px;
+    font-family: monospace;
+}
+
+main .form-error {
+    color: var(--color-error);
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+
+/* Table utilities - legacy support (prefer using Table component) */
+main table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--color-blueprint-paper);
+    border: 1px solid var(--color-border);
+}
+
+main th,
+main td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid var(--color-border);
+}
+
+main th {
+    font-weight: 600;
+    background: var(--color-gray-light);
+    color: var(--color-text);
+    border-bottom: 1px solid var(--color-border-strong);
 }

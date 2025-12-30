@@ -19,21 +19,3 @@
     </Dialog>
   {/snippet}
 </Story>
-
-<Story name="With Form" args={{ title: 'User Information' }}>
-  {#snippet template(args)}
-    <button class="btn-primary" onclick={() => document.querySelector("dialog")?.showModal()}>
-      Open Form Dialog
-    </button>
-    <Dialog {...args}>
-      <div class="mb-4">
-        <label for="name" class="block mb-2 font-medium text-gray-dark">Name</label>
-        <input id="name" type="text" placeholder="Enter your name" />
-      </div>
-      <div class="mb-4">
-        <label for="email" class="block mb-2 font-medium text-gray-dark">Email</label>
-        <input id="email" type="email" placeholder="Enter your email" />
-      </div>
-    </Dialog>
-  {/snippet}
-</Story>
