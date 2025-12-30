@@ -20,12 +20,18 @@
 
 <button
     class="btn inline-block"
+    style="anchor-name: --{id};"
     bind:this={triggerButton}
     {disabled}
     popovertarget={id}
 >
     {@render trigger()}
 </button>
-<div {id} bind:this={popoverElement} popover>
+<div
+    {id}
+    bind:this={popoverElement}
+    popover
+    style="position-anchor: --{id}; position-area: bottom span-right;"
+>
     {@render children()}
 </div>

@@ -36,10 +36,10 @@
   {#if label}
     <label for={sliderId}>
       {label}
-      {#if showValue}
-        <span>{value}</span>
-      {/if}
     </label>
+  {/if}
+  {#if showValue}
+    <output>{value}</output>
   {/if}
   <input
     id={sliderId}
@@ -68,11 +68,10 @@
     align-items: center;
     font-weight: 600;
     font-size: 0.875rem;
-    color: var(--text);
   }
 
-  span {
-    background: var(--primary);
+  output {
+    background: var(--color-primary);
     color: var(--white);
     border: 1px solid var(--blueprint-line);
     padding: 0.25rem 0.75rem;
@@ -94,10 +93,10 @@
     height: 1rem;
     background: linear-gradient(
       to right,
-      var(--primary) 0%,
-      var(--primary) var(--percentage),
-      var(--white) var(--percentage),
-      var(--white) 100%
+      var(--color-primary) 0%,
+      var(--color-primary) var(--percentage),
+      var(--color-white) var(--percentage),
+      var(--color-white) 100%
     );
     border: 1px solid var(--blueprint-line-light);
   }
@@ -107,7 +106,7 @@
     appearance: none;
     width: 1.25rem;
     height: 1.25rem;
-    background: var(--primary);
+    background: var(--color-primary);
     border: 1px solid var(--blueprint-line);
     cursor: grab;
     margin-top: -0.125rem;
@@ -116,20 +115,20 @@
   input::-moz-range-track {
     width: 100%;
     height: 1rem;
-    background: var(--white);
+    background: var(--color-white);
     border: 1px solid var(--blueprint-line-light);
   }
 
   input::-moz-range-progress {
     height: 1rem;
-    background: var(--primary);
+    background: var(--color-primary);
     border: none;
   }
 
   input::-moz-range-thumb {
     width: 1.25rem;
     height: 1.25rem;
-    background: var(--primary);
+    background: var(--color-primary);
     border: 1px solid var(--blueprint-line);
     cursor: grab;
   }
@@ -155,7 +154,7 @@
   }
 
   input:focus {
-    outline: 2px solid var(--primary);
+    outline: 2px solid var(--color-primary);
     outline-offset: 2px;
   }
 

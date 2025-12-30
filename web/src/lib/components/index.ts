@@ -8,7 +8,6 @@ export { default as Calendar } from './Calendar.svelte';
 export { default as DatePicker } from './DatePicker.svelte';
 export { default as DateTimePicker } from './DateTimePicker.svelte';
 export { default as EmptyState } from './EmptyState.svelte';
-export { default as Input } from './Input.svelte';
 export { default as LinkButton } from './LinkButton.svelte';
 export { default as LoadingCard } from './LoadingCard.svelte';
 export { default as Nav } from './Nav.svelte';
