@@ -18,12 +18,16 @@
   const RECONNECT_DELAY = 2000;
 
   onMount(() => {
+    console.log('[GameIframe] Component mounted, connecting to:', wsUrl);
     setupWebSocket();
     loadGameCode();
+    window.addEventListener('message', handleMessage);
 
     return () => {
+      console.log('[GameIframe] Component unmounting, closing WebSocket');
       shouldReconnect = false;
       ws?.close();
+      window.removeEventListener('message', handleMessage);
     };
   });
 
@@ -100,10 +104,6 @@
     }
   }
 
-  onMount(() => {
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  });
 </script>
 
 <div class="w-full h-150 border-4 border-black overflow-hidden bg-white">

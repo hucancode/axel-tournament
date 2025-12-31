@@ -121,6 +121,7 @@
         </div>
         <Button
             variant="primary"
+            type="submit"
             label={loading ? "Creating account..." : "Create Account"}
             disabled={loading}
         />

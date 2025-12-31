@@ -19,6 +19,11 @@
   let wsConnected = $state(false);
   let chatContainer = $state<HTMLDivElement | null>(null);
 
+  // WebSocket URL for interactive-judge (constant for the session)
+  const gameWsUrl = window.location.host.includes('localhost')
+    ? 'http://localhost:8081'
+    : `${window.location.protocol}//${window.location.host}`;
+
   onMount(() => {
     if (!roomId) {
       goto('/rooms');
@@ -109,12 +114,17 @@
       case 'player_joined':
         error = null;
         console.log(`${data.username} joined the room`);
-        // Reload room to update player list
-        loadRoomData();
+        // Only reload if game hasn't started yet
+        if (room?.status === 'waiting') {
+          loadRoomData();
+        }
         break;
       case 'player_left':
         console.log(`Player ${data.user_id} left the room`);
-        loadRoomData();
+        // Only reload if game hasn't started yet
+        if (room?.status === 'waiting') {
+          loadRoomData();
+        }
         break;
       case 'game_started':
         loadRoomData();
@@ -217,11 +227,13 @@
     <div class="room-content">
       <div class="game-area">
         {#if room.status === 'playing' && game.frontend_code}
-          <GameIframe
-            gameCode={game.frontend_code || ''}
-            roomId={roomId}
-            wsUrl={`${window.location.protocol === 'https:' ? 'https:' : 'http:'}//${window.location.hostname.replace(/^[^.]+\./, 'api.')}`}
-          />
+          {#key roomId}
+            <GameIframe
+              gameCode={game.frontend_code || ''}
+              roomId={roomId}
+              wsUrl={gameWsUrl}
+            />
+          {/key}
         {:else if room.status === 'waiting'}
           <div class="waiting-area">
             <h2>Waiting for game to start...</h2>
