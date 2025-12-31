@@ -43,11 +43,18 @@
 
     ws.onmessage = (event) => {
       const message = JSON.parse(event.data);
-      // Forward message to game iframe
-      iframeRef?.contentWindow?.postMessage({
-        type: 'game_message',
-        data: message
-      }, '*');
+
+      // Only forward game_move and game_state messages to the game
+      // Game expects plain text, not JSON
+      if (message.type === 'game_move' || message.type === 'game_state') {
+        iframeRef?.contentWindow?.postMessage({
+          type: 'game_message',
+          data: message.data // Forward only the plain text data
+        }, '*');
+      } else if (message.type === 'game_started') {
+        // Game started - can add game initialization here if needed
+        console.log('Game started!');
+      }
     };
 
     ws.onclose = () => {

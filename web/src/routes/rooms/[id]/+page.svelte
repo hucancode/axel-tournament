@@ -168,6 +168,17 @@
     try {
       error = null;
       await roomService.start(roomId);
+      console.log('Room started via API');
+
+      // Update the database via REST API
+      await roomService.start(roomId);
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        console.log('Sending start_game WebSocket message');
+        ws.send(JSON.stringify({ type: 'start_game' }));
+      } else {
+        console.error('WebSocket not connected!', ws?.readyState);
+      }
+
       await loadRoomData();
     } catch (err) {
       error = err instanceof Error ? err.message : 'Failed to start game';
