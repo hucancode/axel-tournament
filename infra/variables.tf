@@ -49,7 +49,7 @@ variable "app_instance_type" {
 variable "game_server_instance_type" {
   type        = string
   description = "Instance type for the game server node group (CPU-optimized recommended)."
-  default     = "c5.xlarge"
+  default     = "t3.medium"
 }
 
 variable "db_instance_type" {
