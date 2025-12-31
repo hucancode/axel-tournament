@@ -19,9 +19,15 @@ FROM debian:bookworm-slim
 WORKDIR /app
 
 RUN apt-get update && \
-    apt-get install -y ca-certificates libssl3 && \
+    apt-get install -y ca-certificates libssl3 docker.io && \
     rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /app/axel-healer healer
+COPY ../games/game-framework/target/rust-compiler.tar rust-compiler.tar
+COPY ../games/game-framework/target/go-compiler.tar go-compiler.tar
+COPY ../games/game-framework/target/c-compiler.tar c-compiler.tar
+COPY entrypoint.sh entrypoint.sh
 
-CMD ["healer"]
+RUN chmod +x entrypoint.sh
+
+ENTRYPOINT ["./entrypoint.sh"]

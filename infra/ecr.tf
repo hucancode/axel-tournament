@@ -1,5 +1,5 @@
 locals {
-  ecr_repos = ["web", "api", "judge", "healer"]
+  ecr_repos = ["web", "api", "healer", "game-rock-paper-scissors", "game-prisoners-dilemma", "game-tic-tac-toe"]
 }
 
 resource "aws_ecr_repository" "repos" {

@@ -50,6 +50,7 @@ module "eks" {
   }
 
   eks_managed_node_groups = {
+    # Node group for frontend, API server, and healer (balanced/lightweight workloads)
     app = {
       name           = "app"
       instance_types = [var.app_instance_type]
@@ -64,19 +65,20 @@ module "eks" {
       }
     }
 
-    judge = {
-      name           = "judge"
-      instance_types = [var.judge_instance_type]
-      desired_size   = var.judge_desired_size
-      min_size       = var.judge_min_size
-      max_size       = var.judge_max_size
+    # Node group for game servers (CPU-heavy workloads with Docker-in-Docker)
+    game-server = {
+      name           = "game-server"
+      instance_types = [var.game_server_instance_type]
+      desired_size   = var.game_server_desired_size
+      min_size       = var.game_server_min_size
+      max_size       = var.game_server_max_size
       labels = {
-        role = "judge"
+        role = "game-server"
       }
       taints = {
         dedicated = {
           key    = "dedicated"
-          value  = "judge"
+          value  = "game-server"
           effect = "NO_SCHEDULE"
         }
       }

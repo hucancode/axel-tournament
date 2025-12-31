@@ -11,11 +11,6 @@ metadata:
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: judge
----
-apiVersion: v1
-kind: Namespace
-metadata:
   name: healer
 ---
 apiVersion: v1

@@ -1,0 +1,413 @@
+# Rock Paper Scissors Game Server
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: game-rock-paper-scissors
+  namespace: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: game-rock-paper-scissors
+  template:
+    metadata:
+      labels:
+        app: game-rock-paper-scissors
+    spec:
+      nodeSelector:
+        role: game-server
+      tolerations:
+        - key: "dedicated"
+          operator: "Equal"
+          value: "game-server"
+          effect: "NoSchedule"
+      containers:
+        - name: game-server
+          image: ${GAME_RPS_IMAGE}
+          ports:
+            - containerPort: 8082
+          env:
+            - name: RUST_LOG
+              value: "info"
+            - name: DATABASE_URL
+              value: "ws://surrealdb.db.svc.cluster.local:8000"
+            - name: DATABASE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: db_user
+            - name: DATABASE_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: db_pass
+            - name: DATABASE_NS
+              value: "axel"
+            - name: DATABASE_DB
+              value: "axel"
+            - name: SANDBOX_IMAGE
+              value: "${SANDBOX_IMAGE}"
+            - name: DOCKER_HOST
+              value: "unix:///var/run/docker.sock"
+            - name: GAME_SERVER_PORT
+              value: "8082"
+            - name: ARTIFACT_STORAGE_PATH
+              value: "/artifacts"
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "256Mi"
+            limits:
+              cpu: "1500m"
+              memory: "1Gi"
+          volumeMounts:
+            - name: docker-run
+              mountPath: /var/run
+            - name: workspace
+              mountPath: /workspace
+            - name: artifacts
+              mountPath: /artifacts
+              readOnly: true
+        - name: dockerd
+          image: docker:27-dind
+          args:
+            - --host=unix:///var/run/docker.sock
+          env:
+            - name: DOCKER_TLS_CERTDIR
+              value: ""
+          securityContext:
+            privileged: true
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "2Gi"
+          volumeMounts:
+            - name: docker-run
+              mountPath: /var/run
+            - name: dind-storage
+              mountPath: /var/lib/docker
+            - name: workspace
+              mountPath: /workspace
+      volumes:
+        - name: docker-run
+          emptyDir: {}
+        - name: dind-storage
+          emptyDir: {}
+        - name: workspace
+          emptyDir: {}
+        - name: artifacts
+          persistentVolumeClaim:
+            claimName: compiled-artifacts-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: game-rock-paper-scissors
+  namespace: backend
+spec:
+  type: ClusterIP
+  ports:
+    - name: ws
+      port: 8082
+      targetPort: 8082
+  selector:
+    app: game-rock-paper-scissors
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: game-rock-paper-scissors
+  namespace: backend
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: game-rock-paper-scissors
+  minReplicas: 1
+  maxReplicas: 4
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 80
+---
+# Prisoner's Dilemma Game Server
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: game-prisoners-dilemma
+  namespace: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: game-prisoners-dilemma
+  template:
+    metadata:
+      labels:
+        app: game-prisoners-dilemma
+    spec:
+      nodeSelector:
+        role: game-server
+      tolerations:
+        - key: "dedicated"
+          operator: "Equal"
+          value: "game-server"
+          effect: "NoSchedule"
+      containers:
+        - name: game-server
+          image: ${GAME_PRISONERS_DILEMMA_IMAGE}
+          ports:
+            - containerPort: 8083
+          env:
+            - name: RUST_LOG
+              value: "info"
+            - name: DATABASE_URL
+              value: "ws://surrealdb.db.svc.cluster.local:8000"
+            - name: DATABASE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: db_user
+            - name: DATABASE_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: db_pass
+            - name: DATABASE_NS
+              value: "axel"
+            - name: DATABASE_DB
+              value: "axel"
+            - name: SANDBOX_IMAGE
+              value: "${SANDBOX_IMAGE}"
+            - name: DOCKER_HOST
+              value: "unix:///var/run/docker.sock"
+            - name: GAME_SERVER_PORT
+              value: "8083"
+            - name: ARTIFACT_STORAGE_PATH
+              value: "/artifacts"
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "256Mi"
+            limits:
+              cpu: "1500m"
+              memory: "1Gi"
+          volumeMounts:
+            - name: docker-run
+              mountPath: /var/run
+            - name: workspace
+              mountPath: /workspace
+            - name: artifacts
+              mountPath: /artifacts
+              readOnly: true
+        - name: dockerd
+          image: docker:27-dind
+          args:
+            - --host=unix:///var/run/docker.sock
+          env:
+            - name: DOCKER_TLS_CERTDIR
+              value: ""
+          securityContext:
+            privileged: true
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "2Gi"
+          volumeMounts:
+            - name: docker-run
+              mountPath: /var/run
+            - name: dind-storage
+              mountPath: /var/lib/docker
+            - name: workspace
+              mountPath: /workspace
+      volumes:
+        - name: docker-run
+          emptyDir: {}
+        - name: dind-storage
+          emptyDir: {}
+        - name: workspace
+          emptyDir: {}
+        - name: artifacts
+          persistentVolumeClaim:
+            claimName: compiled-artifacts-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: game-prisoners-dilemma
+  namespace: backend
+spec:
+  type: ClusterIP
+  ports:
+    - name: ws
+      port: 8083
+      targetPort: 8083
+  selector:
+    app: game-prisoners-dilemma
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: game-prisoners-dilemma
+  namespace: backend
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: game-prisoners-dilemma
+  minReplicas: 1
+  maxReplicas: 4
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 80
+---
+# Tic Tac Toe Game Server
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: game-tic-tac-toe
+  namespace: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: game-tic-tac-toe
+  template:
+    metadata:
+      labels:
+        app: game-tic-tac-toe
+    spec:
+      nodeSelector:
+        role: game-server
+      tolerations:
+        - key: "dedicated"
+          operator: "Equal"
+          value: "game-server"
+          effect: "NoSchedule"
+      containers:
+        - name: game-server
+          image: ${GAME_TIC_TAC_TOE_IMAGE}
+          ports:
+            - containerPort: 8084
+          env:
+            - name: RUST_LOG
+              value: "info"
+            - name: DATABASE_URL
+              value: "ws://surrealdb.db.svc.cluster.local:8000"
+            - name: DATABASE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: db_user
+            - name: DATABASE_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: db_pass
+            - name: DATABASE_NS
+              value: "axel"
+            - name: DATABASE_DB
+              value: "axel"
+            - name: SANDBOX_IMAGE
+              value: "${SANDBOX_IMAGE}"
+            - name: DOCKER_HOST
+              value: "unix:///var/run/docker.sock"
+            - name: GAME_SERVER_PORT
+              value: "8084"
+            - name: ARTIFACT_STORAGE_PATH
+              value: "/artifacts"
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "256Mi"
+            limits:
+              cpu: "1500m"
+              memory: "1Gi"
+          volumeMounts:
+            - name: docker-run
+              mountPath: /var/run
+            - name: workspace
+              mountPath: /workspace
+            - name: artifacts
+              mountPath: /artifacts
+              readOnly: true
+        - name: dockerd
+          image: docker:27-dind
+          args:
+            - --host=unix:///var/run/docker.sock
+          env:
+            - name: DOCKER_TLS_CERTDIR
+              value: ""
+          securityContext:
+            privileged: true
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "2Gi"
+          volumeMounts:
+            - name: docker-run
+              mountPath: /var/run
+            - name: dind-storage
+              mountPath: /var/lib/docker
+            - name: workspace
+              mountPath: /workspace
+      volumes:
+        - name: docker-run
+          emptyDir: {}
+        - name: dind-storage
+          emptyDir: {}
+        - name: workspace
+          emptyDir: {}
+        - name: artifacts
+          persistentVolumeClaim:
+            claimName: compiled-artifacts-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: game-tic-tac-toe
+  namespace: backend
+spec:
+  type: ClusterIP
+  ports:
+    - name: ws
+      port: 8084
+      targetPort: 8084
+  selector:
+    app: game-tic-tac-toe
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: game-tic-tac-toe
+  namespace: backend
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: game-tic-tac-toe
+  minReplicas: 1
+  maxReplicas: 4
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 80

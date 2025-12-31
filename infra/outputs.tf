@@ -22,16 +22,20 @@ output "ecr_api_repository" {
   value = try(aws_ecr_repository.repos["api"].repository_url, "")
 }
 
-output "ecr_judge_repository" {
-  value = try(aws_ecr_repository.repos["judge"].repository_url, "")
-}
-
-output "ecr_sandbox_repository" {
-  value = try(aws_ecr_repository.repos["sandbox"].repository_url, "")
-}
-
 output "ecr_healer_repository" {
   value = try(aws_ecr_repository.repos["healer"].repository_url, "")
+}
+
+output "ecr_game_rps_repository" {
+  value = try(aws_ecr_repository.repos["game-rock-paper-scissors"].repository_url, "")
+}
+
+output "ecr_game_prisoners_dilemma_repository" {
+  value = try(aws_ecr_repository.repos["game-prisoners-dilemma"].repository_url, "")
+}
+
+output "ecr_game_tic_tac_toe_repository" {
+  value = try(aws_ecr_repository.repos["game-tic-tac-toe"].repository_url, "")
 }
 
 output "ses_domain_identity_arn" {

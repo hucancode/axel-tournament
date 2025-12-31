@@ -10,8 +10,8 @@ use tracing::{info, warn, error};
 
 const COMPILER_IMAGES: &[(&str, &str)] = &[
     ("rust", "rust:1.92-slim"),
-    ("go", "golang:1.21-alpine"),
-    ("c", "gcc:13-alpine"),
+    ("go", "golang:1.25"),
+    ("c", "gcc:15"),
 ];
 
 pub struct Compiler {

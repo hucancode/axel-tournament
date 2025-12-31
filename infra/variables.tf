@@ -46,10 +46,10 @@ variable "app_instance_type" {
   default     = "t3.small"
 }
 
-variable "judge_instance_type" {
+variable "game_server_instance_type" {
   type        = string
-  description = "Instance type for the judge node group."
-  default     = "t3.small"
+  description = "Instance type for the game server node group (CPU-optimized recommended)."
+  default     = "c5.xlarge"
 }
 
 variable "db_instance_type" {
@@ -73,24 +73,24 @@ variable "app_min_size" {
 variable "app_max_size" {
   type        = number
   description = "Maximum size for the app node group."
+  default     = 3
+}
+
+variable "game_server_desired_size" {
+  type        = number
+  description = "Desired size for the game server node group."
   default     = 2
 }
 
-variable "judge_desired_size" {
+variable "game_server_min_size" {
   type        = number
-  description = "Desired size for the judge node group."
+  description = "Minimum size for the game server node group."
   default     = 1
 }
 
-variable "judge_min_size" {
+variable "game_server_max_size" {
   type        = number
-  description = "Minimum size for the judge node group."
-  default     = 1
-}
-
-variable "judge_max_size" {
-  type        = number
-  description = "Maximum size for the judge node group."
+  description = "Maximum size for the game server node group."
   default     = 8
 }
 
