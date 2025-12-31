@@ -2,7 +2,7 @@ use crate::{
     db::Database,
     error::{ApiError, ApiResult},
     models::{
-        Game,
+        game::find_game_by_id,
         matches::{Match, MatchParticipant, MatchStatus},
         submission::Submission,
     },
@@ -14,13 +14,12 @@ use surrealdb::sql::{Datetime, Thing};
 pub async fn create_match(
     db: &Database,
     tournament_id: Thing,
-    game_id: Thing,
+    game_id: String,
     participant_submission_ids: Vec<Thing>,
 ) -> ApiResult<Match> {
-    // 1. Verify Game exists
-    let game_key = (game_id.tb.as_str(), game_id.id.to_string());
-    let game: Option<Game> = db.select(game_key).await?;
-    let game = game.ok_or_else(|| ApiError::NotFound("Game not found".to_string()))?;
+    // 1. Verify Game exists in hardcoded registry
+    find_game_by_id(&game_id)
+        .ok_or_else(|| ApiError::NotFound("Game not found".to_string()))?;
 
     // 2. Fetch and Validate Submissions
     let mut participants = Vec::new();
@@ -32,8 +31,7 @@ pub async fn create_match(
             .ok_or_else(|| ApiError::NotFound(format!("Submission {} not found", sub_id)))?;
 
         // Ensure submission belongs to the correct game
-        // Note: Thing comparison handles equality correctly
-        if submission.game_id != game.id.clone().unwrap() {
+        if submission.game_id != game_id {
             return Err(ApiError::BadRequest(format!(
                 "Submission {} does not belong to game {}",
                 sub_id, game_id
@@ -51,7 +49,7 @@ pub async fn create_match(
     let new_match = Match {
         id: None,
         tournament_id: Some(tournament_id),
-        game_id: game.id.unwrap(),
+        game_id: game_id.clone(),
         status: MatchStatus::Pending,
         participants,
         metadata: None,

@@ -3,7 +3,7 @@ use axum::{
     Router,
     http::{Method, header},
     middleware as axum_middleware,
-    routing::{delete, get, patch, post, put},
+    routing::{delete, get, patch, post},
 };
 use tower_http::cors::CorsLayer;
 
@@ -84,9 +84,6 @@ pub fn create_router(state: AppState) -> Router {
         ));
     // Admin routes
     let admin_routes = Router::new()
-        .route("/api/admin/games", post(handlers::create_game))
-        .route("/api/admin/games/{id}", put(handlers::update_game))
-        .route("/api/admin/games/{id}", delete(handlers::delete_game))
         .route("/api/admin/tournaments", post(handlers::create_tournament))
         .route(
             "/api/admin/tournaments/{id}",
@@ -108,58 +105,11 @@ pub fn create_router(state: AppState) -> Router {
             middleware::auth_middleware,
         ));
 
-    // Game Setter routes (require GameSetter or Admin role)
-    let game_setter_routes = Router::new()
-        // Game management
-        .route("/api/game-setter/games", get(handlers::list_my_games))
-        .route("/api/game-setter/games", post(handlers::create_game))
-        .route(
-            "/api/game-setter/games/{id}",
-            put(handlers::update_game),
-        )
-        .route(
-            "/api/game-setter/games/{id}",
-            delete(handlers::delete_game),
-        )
-        // Template management
-        .route(
-            "/api/game-setter/templates",
-            post(handlers::create_template),
-        )
-        .route(
-            "/api/game-setter/games/{id}/template/{language}",
-            get(handlers::get_template),
-        )
-        .route(
-            "/api/game-setter/games/{id}/template/{language}",
-            put(handlers::update_template),
-        )
-        .route("/api/game-setter/templates", get(handlers::list_templates))
-        // Tournament management (game setters can create tournaments for their games)
-        .route("/api/game-setter/tournaments", post(handlers::create_tournament))
-        .route(
-            "/api/game-setter/tournaments/{id}",
-            patch(handlers::update_tournament),
-        )
-        .route(
-            "/api/game-setter/tournaments/{id}/start",
-            post(handlers::start_tournament),
-        )
-        .route_layer(axum_middleware::from_fn_with_state(
-            state.clone(),
-            middleware::game_setter_middleware,
-        ))
-        .route_layer(axum_middleware::from_fn_with_state(
-            state.clone(),
-            middleware::auth_middleware,
-        ));
-
     // Combine all routes
     Router::new()
         .merge(public_routes)
         .merge(protected_routes)
         .merge(admin_routes)
-        .merge(game_setter_routes)
         .layer(cors)
         .with_state(state)
 }

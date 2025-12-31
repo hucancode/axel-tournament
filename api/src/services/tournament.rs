@@ -2,8 +2,9 @@ use crate::{
     db::Database,
     error::{ApiError, ApiResult},
     models::{
-        Match, MatchGenerationType, MatchParticipant, MatchStatus, Tournament,
-        TournamentParticipant, TournamentStatus,
+        tournament::{MatchGenerationType, Tournament, TournamentParticipant, TournamentStatus},
+        matches::{Match, MatchParticipant, MatchStatus},
+        game::find_game_by_id,
     },
 };
 use chrono::{DateTime, Utc};
@@ -11,7 +12,7 @@ use surrealdb::sql::{Datetime, Thing};
 
 pub async fn create_tournament(
     db: &Database,
-    game_id: Thing,
+    game_id: String,
     name: String,
     description: String,
     min_players: u32,
@@ -20,6 +21,10 @@ pub async fn create_tournament(
     end_time: Option<DateTime<Utc>>,
     match_generation_type: Option<MatchGenerationType>,
 ) -> ApiResult<Tournament> {
+    // Verify game exists in hardcoded registry
+    find_game_by_id(&game_id)
+        .ok_or_else(|| ApiError::NotFound("Game not found".to_string()))?;
+
     let tournament = Tournament {
         id: None,
         game_id,

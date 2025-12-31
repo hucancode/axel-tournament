@@ -6,7 +6,7 @@ use validator::Validate;
 pub struct Match {
     pub id: Option<Thing>,
     pub tournament_id: Option<Thing>, // Optional for standalone interactive matches
-    pub game_id: Thing,
+    pub game_id: String, // Changed from Thing - games are now hardcoded
     pub status: MatchStatus,
     pub participants: Vec<MatchParticipant>,
     pub metadata: Option<serde_json::Value>, // For game-specific replay data or logs
@@ -37,7 +37,7 @@ impl From<Match> for MatchResponse {
         Self {
             id: match_data.id.map(|t| t.to_string()).unwrap_or_default(),
             tournament_id: match_data.tournament_id.map(|t| t.to_string()),
-            game_id: match_data.game_id.to_string(),
+            game_id: match_data.game_id, // Already a String
             status: match_data.status,
             participants: match_data.participants.into_iter().map(Into::into).collect(),
             metadata: match_data.metadata,

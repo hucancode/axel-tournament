@@ -1,7 +1,5 @@
 pub mod auth;
 pub mod email;
-pub mod game;
-pub mod game_template;
 pub mod interactive_match;
 pub mod leaderboard;
 pub mod matches;
@@ -12,8 +10,6 @@ pub mod user;
 
 pub use auth::*;
 pub use email::*;
-pub use game::*;
-pub use game_template::*;
 pub use leaderboard::*;
 pub use matches::*;
 pub use submission::*;

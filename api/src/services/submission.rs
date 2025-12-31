@@ -9,7 +9,7 @@ pub async fn create_submission(
     db: &Database,
     user_id: Thing,
     tournament_id: Thing,
-    game_id: Thing,
+    game_id: String,
     language: ProgrammingLanguage,
     code: String,
 ) -> ApiResult<Submission> {

@@ -102,19 +102,13 @@ export interface Game {
   description: string;
   game_type: GameType;
   supported_languages: ProgrammingLanguage[];
-  is_active: boolean;
-  owner_id: string;
-  game_code: string;
-  game_language: ProgrammingLanguage;
-  frontend_code?: string;
+  server_port: number;
   rounds_per_match: number;
   repetitions: number;
   timeout_ms: number;
   cpu_limit: number;
   turn_timeout_ms: number;
   memory_limit_mb: number;
-  created_at: string;
-  updated_at: string;
 }
 
 type GameEditableFields = Omit<Game, "id" | "owner_id" | "created_at" | "updated_at">;

@@ -1,7 +1,6 @@
 pub mod admin;
 pub mod auth;
 pub mod game;
-pub mod game_template;
 pub mod leaderboard;
 pub mod matches;
 pub mod room;
@@ -12,7 +11,6 @@ pub mod user;
 pub use admin::*;
 pub use auth::*;
 pub use game::*;
-pub use game_template::*;
 pub use leaderboard::*;
 pub use matches::*;
 pub use room::*;

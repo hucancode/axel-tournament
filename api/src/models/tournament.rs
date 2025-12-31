@@ -6,7 +6,7 @@ use validator::Validate;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Tournament {
     pub id: Option<Thing>,
-    pub game_id: Thing, // Reference to Game
+    pub game_id: String, // Game ID (e.g., "rock-paper-scissors")
     pub name: String,
     pub description: String,
     pub status: TournamentStatus,
@@ -39,7 +39,7 @@ impl From<Tournament> for TournamentResponse {
     fn from(tournament: Tournament) -> Self {
         Self {
             id: tournament.id.map(|t| t.to_string()).unwrap_or_default(),
-            game_id: tournament.game_id.to_string(),
+            game_id: tournament.game_id,
             name: tournament.name,
             description: tournament.description,
             status: tournament.status,

@@ -1,17 +1,15 @@
-use anyhow::{Result, anyhow};
-use chrono::{DateTime, Duration, Utc};
+mod compiler;
+mod db_client;
+
+use anyhow::Result;
+use compiler::Compiler;
+use db_client::{DbClient, SubmissionRow};
 use futures_util::StreamExt;
-use serde::Deserialize;
-use std::collections::HashMap;
 use std::time::Duration as StdDuration;
 use surrealdb::engine::remote::ws::{Client, Ws};
 use surrealdb::opt::auth::Root;
-use surrealdb::sql::{Datetime, Thing};
 use surrealdb::Surreal;
 use tracing::{error, info, warn};
-
-const STATUS_PENDING: &str = "pending";
-const STATUS_RUNNING: &str = "running";
 
 #[derive(Clone, Debug)]
 struct HealerConfig {
@@ -20,9 +18,6 @@ struct HealerConfig {
     db_pass: String,
     db_ns: String,
     db_name: String,
-    pending_stale_seconds: i64,
-    running_stale_seconds: i64,
-    sweep_interval_seconds: u64,
 }
 
 impl HealerConfig {
@@ -33,18 +28,6 @@ impl HealerConfig {
         let db_pass = std::env::var("DATABASE_PASS").unwrap_or_else(|_| "root".to_string());
         let db_ns = std::env::var("DATABASE_NS").unwrap_or_else(|_| "axel".to_string());
         let db_name = std::env::var("DATABASE_DB").unwrap_or_else(|_| "axel".to_string());
-        let pending_stale_seconds = std::env::var("HEALER_PENDING_STALE_SECONDS")
-            .unwrap_or_else(|_| "120".to_string())
-            .parse()
-            .unwrap_or(120);
-        let running_stale_seconds = std::env::var("HEALER_RUNNING_STALE_SECONDS")
-            .unwrap_or_else(|_| "600".to_string())
-            .parse()
-            .unwrap_or(600);
-        let sweep_interval_seconds = std::env::var("HEALER_SWEEP_INTERVAL_SECONDS")
-            .unwrap_or_else(|_| "30".to_string())
-            .parse()
-            .unwrap_or(30);
 
         Self {
             db_url,
@@ -52,25 +35,8 @@ impl HealerConfig {
             db_pass,
             db_ns,
             db_name,
-            pending_stale_seconds,
-            running_stale_seconds,
-            sweep_interval_seconds,
         }
     }
-}
-
-#[derive(Debug, Deserialize)]
-struct MatchRow {
-    id: Thing,
-    status: String,
-    #[serde(default)]
-    updated_at: Option<Datetime>,
-}
-
-#[derive(Debug, Clone)]
-struct MatchState {
-    status: String,
-    updated_at: Option<DateTime<Utc>>,
 }
 
 #[tokio::main]
@@ -92,16 +58,20 @@ async fn run_healer(config: HealerConfig) -> Result<()> {
     db.use_ns(&config.db_ns).use_db(&config.db_name).await?;
     info!("Healer connected to SurrealDB at {}", config.db_url);
 
-    let mut tracked: HashMap<String, MatchState> = HashMap::new();
-    loop {
-        tracked.clear();
-        if let Err(err) = seed_matches(&db, &mut tracked).await {
-            error!("Healer failed to seed matches: {}", err);
-        }
+    let db_client = DbClient::new(db.clone());
+    let compiler = Compiler::new()?;
 
+    // Ensure compiler images are pulled
+    info!("Pulling compiler images...");
+    compiler.ensure_images().await?;
+    info!("Compiler images ready");
+
+    loop {
+        // Set up LIVE query for pending submissions
         let response = db
-            .query("LIVE SELECT id, status, updated_at FROM match WHERE status IN ['pending','running']")
+            .query("LIVE SELECT id, game_id, language, code, status FROM submission WHERE status = 'pending'")
             .await;
+
         let mut response = match response {
             Ok(response) => response,
             Err(err) => {
@@ -110,7 +80,8 @@ async fn run_healer(config: HealerConfig) -> Result<()> {
                 continue;
             }
         };
-        let mut stream = match response.stream::<surrealdb::Notification<MatchRow>>(0) {
+
+        let mut stream = match response.stream::<surrealdb::Notification<SubmissionRow>>(0) {
             Ok(stream) => stream,
             Err(err) => {
                 error!("Healer live query stream creation failed: {}", err);
@@ -119,29 +90,41 @@ async fn run_healer(config: HealerConfig) -> Result<()> {
             }
         };
 
-        let mut interval =
-            tokio::time::interval(StdDuration::from_secs(config.sweep_interval_seconds));
+        info!("Healer compilation service started, watching for pending submissions");
 
         loop {
-            tokio::select! {
-                _ = interval.tick() => {
-                    if let Err(err) = heal_stale(&db, &mut tracked, &config).await {
-                        error!("Healer sweep failed: {}", err);
-                    }
+            match stream.next().await {
+                Some(Ok(notification)) => {
+                    let submission = notification.data;
+                    info!("Received submission: {:?}", submission.id);
+
+                    // Process compilation in background
+                    let db_client_clone = DbClient::new(db.clone());
+                    let compiler_clone = Compiler::new().unwrap();
+                    let submission_id = submission.id.clone();
+                    let language = submission.language.clone();
+                    let code = submission.code.clone();
+
+                    tokio::spawn(async move {
+                        if let Err(e) = handle_compilation(
+                            db_client_clone,
+                            compiler_clone,
+                            submission_id,
+                            language,
+                            code,
+                        )
+                        .await
+                        {
+                            error!("Compilation handling failed: {}", e);
+                        }
+                    });
                 }
-                next = stream.next() => {
-                    match next {
-                        Some(Ok(notification)) => {
-                            handle_notification(&mut tracked, notification);
-                        }
-                        Some(Err(err)) => {
-                            error!("Healer live query error: {}", err);
-                        }
-                        None => {
-                            warn!("Healer live query stream ended, resubscribing...");
-                            break;
-                        }
-                    }
+                Some(Err(err)) => {
+                    error!("Healer live query error: {}", err);
+                }
+                None => {
+                    warn!("Healer live query stream ended, resubscribing...");
+                    break;
                 }
             }
         }
@@ -150,118 +133,45 @@ async fn run_healer(config: HealerConfig) -> Result<()> {
     }
 }
 
-async fn seed_matches(db: &Surreal<Client>, tracked: &mut HashMap<String, MatchState>) -> Result<()> {
-    let mut response = db
-        .query("SELECT id, status, updated_at FROM match WHERE status IN ['pending','running']")
-        .await?;
-    let matches: Vec<MatchRow> = response.take(0)?;
-    for row in matches {
-        tracked.insert(
-            row.id.to_string(),
-            MatchState {
-                status: row.status,
-                updated_at: row.updated_at.map(Into::into),
-            },
-        );
-    }
-    Ok(())
-}
-
-fn handle_notification(
-    tracked: &mut HashMap<String, MatchState>,
-    notification: surrealdb::Notification<MatchRow>,
-) {
-    let row = notification.data;
-    let state = MatchState {
-        status: row.status,
-        updated_at: row.updated_at.map(Into::into),
-    };
-    match notification.action {
-        surrealdb::Action::Delete => {
-            tracked.remove(&row.id.to_string());
-        }
-        _ => {
-            tracked.insert(row.id.to_string(), state);
-        }
-    }
-}
-
-async fn heal_stale(
-    db: &Surreal<Client>,
-    tracked: &mut HashMap<String, MatchState>,
-    config: &HealerConfig,
+async fn handle_compilation(
+    db_client: DbClient,
+    compiler: Compiler,
+    submission_id: surrealdb::sql::Thing,
+    language: String,
+    code: String,
 ) -> Result<()> {
-    let now = Utc::now();
-    let mut to_remove = Vec::new();
-
-    for (match_id, state) in tracked.iter_mut() {
-        let limit = match state.status.as_str() {
-            STATUS_PENDING => config.pending_stale_seconds,
-            STATUS_RUNNING => config.running_stale_seconds,
-            _ => {
-                to_remove.push(match_id.clone());
-                continue;
-            }
-        };
-        if limit <= 0 {
-            continue;
-        }
-
-        let is_stale = match state.updated_at {
-            Some(updated_at) => now - updated_at > Duration::seconds(limit),
-            None => true,
-        };
-        if !is_stale {
-            continue;
-        }
-
-        let updated = if state.status == STATUS_PENDING {
-            touch_pending(db, match_id).await?
-        } else {
-            requeue_running(db, match_id).await?
-        };
-
-        if updated {
-            state.status = STATUS_PENDING.to_string();
-            state.updated_at = Some(now);
-        } else {
-            to_remove.push(match_id.clone());
-        }
+    // Try to claim the submission
+    let claimed = db_client.try_claim_submission(submission_id.clone()).await?;
+    if !claimed {
+        info!("Submission {:?} already claimed by another healer", submission_id);
+        return Ok(());
     }
 
-    for match_id in to_remove {
-        tracked.remove(&match_id);
+    info!("Compiling submission {:?} ({})", submission_id, language);
+
+    // Perform compilation
+    let submission_id_str = submission_id.to_string();
+    let result = compiler
+        .compile_submission(&submission_id_str, &language, &code)
+        .await;
+
+    match result {
+        Ok(binary_path) => {
+            info!(
+                "Compilation succeeded for {:?}: {}",
+                submission_id, binary_path
+            );
+            db_client
+                .update_compilation_success(submission_id, binary_path)
+                .await?;
+        }
+        Err(e) => {
+            warn!("Compilation failed for {:?}: {}", submission_id, e);
+            db_client
+                .update_compilation_failure(submission_id, e.to_string())
+                .await?;
+        }
     }
 
     Ok(())
-}
-
-async fn touch_pending(db: &Surreal<Client>, match_id: &str) -> Result<bool> {
-    let match_thing: Thing = match_id
-        .parse()
-        .map_err(|_| anyhow!("Invalid match id {}", match_id))?;
-    let mut response = db
-        .query(
-            "UPDATE $match_id SET updated_at = time::now()
-             WHERE status = 'pending' RETURN AFTER",
-        )
-        .bind(("match_id", match_thing))
-        .await?;
-    let updated: Vec<MatchRow> = response.take(0)?;
-    Ok(!updated.is_empty())
-}
-
-async fn requeue_running(db: &Surreal<Client>, match_id: &str) -> Result<bool> {
-    let match_thing: Thing = match_id
-        .parse()
-        .map_err(|_| anyhow!("Invalid match id {}", match_id))?;
-    let mut response = db
-        .query(
-            "UPDATE $match_id SET status = 'pending', started_at = NONE, updated_at = time::now()
-             WHERE status = 'running' RETURN AFTER",
-        )
-        .bind(("match_id", match_thing))
-        .await?;
-    let updated: Vec<MatchRow> = response.take(0)?;
-    Ok(!updated.is_empty())
 }

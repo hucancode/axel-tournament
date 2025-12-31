@@ -32,13 +32,10 @@
         { value: "double_elimination", label: "Double Elimination" },
     ];
 
-    // Get games owned by the current user
+    // Only admins can create tournaments
     const ownedGames = $derived(() => {
         if (!auth.isAuthenticated) return [];
         if (auth.user?.role === "admin") return games;
-        if (auth.user?.role === "gamesetter") {
-            return games.filter(g => g.owner_id === auth.user?.id);
-        }
         return [];
     });
 

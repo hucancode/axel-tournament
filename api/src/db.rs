@@ -3,7 +3,7 @@ use crate::models::{User, UserRole};
 use surrealdb::Surreal;
 use surrealdb::engine::remote::ws::{Client, Ws};
 use surrealdb::opt::auth::Root;
-use surrealdb::sql::{Datetime, Thing};
+use surrealdb::sql::Datetime;
 
 // Type alias for database connection
 pub type Database = Surreal<Client>;
@@ -80,34 +80,10 @@ pub async fn init_schema(db: &Database) -> Result<(), surrealdb::Error> {
          DEFINE INDEX IF NOT EXISTS unique_username ON user COLUMNS username UNIQUE;",
     )
     .await?;
-    // Games table
-    db.query(
-        "DEFINE TABLE IF NOT EXISTS game SCHEMAFULL;
-         DEFINE FIELD IF NOT EXISTS name ON game TYPE string;
-         DEFINE FIELD IF NOT EXISTS description ON game TYPE string;
-         DEFINE FIELD IF NOT EXISTS supported_languages ON game TYPE array<string>;
-         DEFINE FIELD IF NOT EXISTS is_active ON game TYPE bool DEFAULT true;
-         DEFINE FIELD IF NOT EXISTS owner_id ON game TYPE record<user>;
-         DEFINE FIELD IF NOT EXISTS game_code ON game TYPE string;
-         DEFINE FIELD IF NOT EXISTS game_language ON game TYPE string;
-         DEFINE FIELD IF NOT EXISTS game_type ON game TYPE string;
-         DEFINE FIELD IF NOT EXISTS frontend_code ON game TYPE option<string>;
-         DEFINE FIELD IF NOT EXISTS rounds_per_match ON game TYPE number;
-         DEFINE FIELD IF NOT EXISTS repetitions ON game TYPE number;
-         DEFINE FIELD IF NOT EXISTS timeout_ms ON game TYPE number;
-         DEFINE FIELD IF NOT EXISTS cpu_limit ON game TYPE number;
-         DEFINE FIELD IF NOT EXISTS turn_timeout_ms ON game TYPE number DEFAULT 2000;
-         DEFINE FIELD IF NOT EXISTS memory_limit_mb ON game TYPE number DEFAULT 64;
-         DEFINE FIELD IF NOT EXISTS created_at ON game TYPE datetime;
-         DEFINE FIELD IF NOT EXISTS updated_at ON game TYPE datetime;
-         DEFINE INDEX IF NOT EXISTS unique_game_name ON game COLUMNS name UNIQUE;
-         DEFINE INDEX IF NOT EXISTS idx_game_owner ON game COLUMNS owner_id;",
-    )
-    .await?;
     // Tournaments table
     db.query(
         "DEFINE TABLE IF NOT EXISTS tournament SCHEMAFULL;
-         DEFINE FIELD IF NOT EXISTS game_id ON tournament TYPE record<game>;
+         DEFINE FIELD IF NOT EXISTS game_id ON tournament TYPE string;
          DEFINE FIELD IF NOT EXISTS name ON tournament TYPE string;
          DEFINE FIELD IF NOT EXISTS description ON tournament TYPE string;
          DEFINE FIELD IF NOT EXISTS status ON tournament TYPE string;
@@ -136,38 +112,40 @@ pub async fn init_schema(db: &Database) -> Result<(), surrealdb::Error> {
         "DEFINE TABLE IF NOT EXISTS submission SCHEMAFULL;
          DEFINE FIELD IF NOT EXISTS user_id ON submission TYPE record<user>;
          DEFINE FIELD IF NOT EXISTS tournament_id ON submission TYPE record<tournament>;
-         DEFINE FIELD IF NOT EXISTS game_id ON submission TYPE record<game>;
+         DEFINE FIELD IF NOT EXISTS game_id ON submission TYPE string;
          DEFINE FIELD IF NOT EXISTS language ON submission TYPE string;
          DEFINE FIELD IF NOT EXISTS code ON submission TYPE string;
          DEFINE FIELD IF NOT EXISTS status ON submission TYPE string DEFAULT 'pending';
          DEFINE FIELD IF NOT EXISTS error_message ON submission TYPE option<string>;
+         DEFINE FIELD IF NOT EXISTS compiled_binary_path ON submission TYPE option<string>;
          DEFINE FIELD IF NOT EXISTS created_at ON submission TYPE datetime;",
     )
     .await?;
     // Rooms table
     db.query(
-        "DEFINE TABLE room SCHEMAFULL;
-         DEFINE FIELD game_id ON room TYPE record<game>;
-         DEFINE FIELD host_id ON room TYPE record<user>;
-         DEFINE FIELD name ON room TYPE string;
-         DEFINE FIELD max_players ON room TYPE number;
-         DEFINE FIELD status ON room TYPE string;
-         DEFINE FIELD players ON room TYPE array<record<user>>;
-         DEFINE FIELD created_at ON room TYPE datetime;
-         DEFINE FIELD updated_at ON room TYPE datetime;
-         DEFINE INDEX idx_room_game ON room COLUMNS game_id;
-         DEFINE INDEX idx_room_status ON room COLUMNS status;",
+        "DEFINE TABLE IF NOT EXISTS room SCHEMAFULL;
+         DEFINE FIELD IF NOT EXISTS game_id ON room TYPE string;
+         DEFINE FIELD IF NOT EXISTS host_id ON room TYPE record<user>;
+         DEFINE FIELD IF NOT EXISTS name ON room TYPE string;
+         DEFINE FIELD IF NOT EXISTS max_players ON room TYPE number;
+         DEFINE FIELD IF NOT EXISTS status ON room TYPE string;
+         DEFINE FIELD IF NOT EXISTS players ON room TYPE array<record<user>>;
+         DEFINE FIELD IF NOT EXISTS created_at ON room TYPE datetime;
+         DEFINE FIELD IF NOT EXISTS updated_at ON room TYPE datetime;
+         DEFINE INDEX IF NOT EXISTS idx_room_game ON room COLUMNS game_id;
+         DEFINE INDEX IF NOT EXISTS idx_room_status ON room COLUMNS status;",
     )
     .await?;
 
     db.query(
         "DEFINE TABLE IF NOT EXISTS match SCHEMAFULL;
          DEFINE FIELD IF NOT EXISTS tournament_id ON match TYPE option<record<tournament>>;
-         DEFINE FIELD IF NOT EXISTS game_id ON match TYPE record<game>;
+         DEFINE FIELD IF NOT EXISTS game_id ON match TYPE string;
          DEFINE FIELD IF NOT EXISTS room_id ON match TYPE option<record<room>>;
          DEFINE FIELD IF NOT EXISTS status ON match TYPE string;
          DEFINE FIELD IF NOT EXISTS participants ON match TYPE array;
          DEFINE FIELD IF NOT EXISTS metadata ON match TYPE option<object>;
+         DEFINE FIELD IF NOT EXISTS error_message ON match TYPE option<string>;
          DEFINE FIELD IF NOT EXISTS created_at ON match TYPE datetime;
          DEFINE FIELD IF NOT EXISTS updated_at ON match TYPE datetime;
          DEFINE FIELD IF NOT EXISTS started_at ON match TYPE option<datetime>;
@@ -179,26 +157,13 @@ pub async fn init_schema(db: &Database) -> Result<(), surrealdb::Error> {
     )
     .await?;
 
-    // Game templates table
-    db.query(
-        "DEFINE TABLE IF NOT EXISTS game_template SCHEMAFULL;
-         DEFINE FIELD IF NOT EXISTS game_id ON game_template TYPE record<game>;
-         DEFINE FIELD IF NOT EXISTS language ON game_template TYPE string;
-         DEFINE FIELD IF NOT EXISTS template_code ON game_template TYPE string;
-         DEFINE FIELD IF NOT EXISTS created_at ON game_template TYPE datetime;
-         DEFINE FIELD IF NOT EXISTS updated_at ON game_template TYPE datetime;
-         DEFINE INDEX IF NOT EXISTS unique_game_language ON game_template COLUMNS game_id, language UNIQUE;",
-    )
-    .await?;
-
     // Add indexes for performance on commonly queried fields
     db.query(
         "DEFINE INDEX IF NOT EXISTS idx_tournament_status ON tournament COLUMNS status;
          DEFINE INDEX IF NOT EXISTS idx_tournament_game ON tournament COLUMNS game_id;
          DEFINE INDEX IF NOT EXISTS idx_tournament_created ON tournament COLUMNS created_at;
          DEFINE INDEX IF NOT EXISTS idx_submission_user ON submission COLUMNS user_id;
-         DEFINE INDEX IF NOT EXISTS idx_submission_tournament ON submission COLUMNS tournament_id;
-         DEFINE INDEX IF NOT EXISTS idx_game_created ON game COLUMNS created_at;",
+         DEFINE INDEX IF NOT EXISTS idx_submission_tournament ON submission COLUMNS tournament_id;",
     )
     .await?;
 
@@ -219,7 +184,7 @@ pub async fn seed_admin_user(
             id: None,
             email: email.to_string(),
             username: "admin".to_string(),
-            password_hash: Some(password_hash),
+            password_hash: Some(password_hash.clone()),
             role: UserRole::Admin,
             location: "US".to_string(),
             oauth_provider: None,
@@ -231,86 +196,25 @@ pub async fn seed_admin_user(
             password_reset_token: None,
             password_reset_expires: None,
         };
-        let admin_user: Option<User> = db.create("user").content(admin).await?;
-
-        // Create initial games if admin user was created
-        if let Some(admin) = admin_user {
-            if let Err(e) = seed_initial_games(db, &admin.id.unwrap()).await {
-                eprintln!("Failed to create initial games: {:?}", e);
-            }
-        }
+        let _admin_user: Option<User> = db.create("user").content(admin).await?;
+        eprintln!("Created admin user");
+        let bob = User {
+            id: None,
+            email: "bob@example.com".to_string(),
+            username: "bob".to_string(),
+            password_hash: Some(password_hash),
+            role: UserRole::Player,
+            location: "US".to_string(),
+            oauth_provider: None,
+            oauth_id: None,
+            is_banned: false,
+            ban_reason: None,
+            created_at: Datetime::default(),
+            updated_at: Datetime::default(),
+            password_reset_token: None,
+            password_reset_expires: None,
+        };
+        let _bob_user: Option<User> = db.create("user").content(bob).await?;
     }
-    Ok(())
-}
-
-/// Create initial games for the admin user
-async fn seed_initial_games(db: &Database, admin_id: &Thing) -> Result<(), Box<dyn std::error::Error>> {
-    use crate::models::game::{ProgrammingLanguage, GameType};
-    use crate::services::game;
-
-    // Rock Paper Scissors game
-    let rps_code = include_str!("../../games/rock_paper_scissor/server.rs");
-
-    let _ = game::create_game(
-        db,
-        "Rock Paper Scissors".to_string(),
-        "Classic rock-paper-scissors game. Return 'rock', 'paper', or 'scissors'.".to_string(),
-        GameType::Automated,
-        vec![ProgrammingLanguage::Rust, ProgrammingLanguage::Go, ProgrammingLanguage::C],
-        admin_id.to_string(),
-        rps_code.to_string(),
-        ProgrammingLanguage::Rust,
-        None,
-        10,
-        1,
-        1000,
-        0.5,
-        100,
-        64,
-    ).await;
-
-    // Prisoner's Dilemma game
-    let pd_code = include_str!("../../games/prisoner_dilema/server.rs");
-
-    let _ = game::create_game(
-        db,
-        "Prisoner's Dilemma".to_string(),
-        "Classic prisoner's dilemma. Return 'cooperate' or 'defect'.".to_string(),
-        GameType::Automated,
-        vec![ProgrammingLanguage::Rust, ProgrammingLanguage::Go, ProgrammingLanguage::C],
-        admin_id.to_string(),
-        pd_code.to_string(),
-        ProgrammingLanguage::Rust,
-        None,
-        20,
-        1,
-        1000,
-        0.5,
-        100,
-        64,
-    ).await;
-
-    // Interactive Tic-Tac-Toe game
-    let ttt_server_code = include_str!("../../games/tic_tac_toe/server.rs");
-    let ttt_frontend_code = include_str!("../../games/tic_tac_toe/client.html");
-
-    let _ = game::create_game(
-        db,
-        "Interactive Tic-Tac-Toe".to_string(),
-        "Classic tic-tac-toe game played in real-time between two players.".to_string(),
-        GameType::Interactive,
-        vec![ProgrammingLanguage::Rust],
-        admin_id.to_string(),
-        ttt_server_code.to_string(),
-        ProgrammingLanguage::Rust,
-        Some(ttt_frontend_code.to_string()),
-        1,
-        1,
-        5000,
-        0.5,
-        2000,
-        64,
-    ).await;
-
     Ok(())
 }

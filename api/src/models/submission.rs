@@ -9,11 +9,12 @@ pub struct Submission {
     pub id: Option<Thing>,
     pub user_id: Thing,
     pub tournament_id: Thing,
-    pub game_id: Thing,
+    pub game_id: String, // Changed from Thing - games are now hardcoded
     pub language: ProgrammingLanguage,
     pub code: String, // Code content stored as string
     pub status: SubmissionStatus,
     pub error_message: Option<String>,
+    pub compiled_binary_path: Option<String>, // Path to compiled binary
     pub created_at: Datetime,
 }
 
@@ -21,6 +22,7 @@ pub struct Submission {
 #[serde(rename_all = "lowercase")]
 pub enum SubmissionStatus {
     Pending,
+    Compiling,
     Accepted,
     Failed,
 }

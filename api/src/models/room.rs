@@ -5,7 +5,7 @@ use validator::Validate;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Room {
     pub id: Option<Thing>,
-    pub game_id: Thing,
+    pub game_id: String,
     pub host_id: Thing,
     pub name: String,
     pub max_players: u32,
@@ -64,7 +64,7 @@ impl From<Room> for RoomResponse {
     fn from(room: Room) -> Self {
         Self {
             id: room.id.map(|t| t.to_string()).unwrap_or_default(),
-            game_id: room.game_id.to_string(),
+            game_id: room.game_id,
             host_id: room.host_id.to_string(),
             name: room.name,
             max_players: room.max_players,

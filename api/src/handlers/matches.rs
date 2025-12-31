@@ -33,10 +33,7 @@ pub async fn create_match(
         .tournament_id
         .parse()
         .map_err(|_| crate::error::ApiError::BadRequest("Invalid tournament id".to_string()))?;
-    let game_id: Thing = payload
-        .game_id
-        .parse()
-        .map_err(|_| crate::error::ApiError::BadRequest("Invalid game id".to_string()))?;
+    let game_id = payload.game_id; // game_id is now a String
     let submission_ids = payload
         .participant_submission_ids
         .iter()

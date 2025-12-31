@@ -1,7 +1,11 @@
 use crate::{
     db::Database,
     error::{ApiError, ApiResult},
-    models::{Room, RoomStatus, Match, MatchStatus, MatchParticipant, Game, GameType},
+    models::{
+        room::{Room, RoomStatus},
+        matches::{Match, MatchStatus, MatchParticipant},
+        game::find_game_by_id
+    },
 };
 use surrealdb::sql::{Datetime, Thing};
 
@@ -24,13 +28,11 @@ pub async fn create_interactive_match_from_room(
         return Err(ApiError::BadRequest("Interactive matches require exactly 2 players".to_string()));
     }
 
-    // Get game details
-    let game: Option<Game> = db.select(("game", room.game_id.id.to_string())).await?;
-    let game = game.ok_or_else(|| ApiError::NotFound("Game not found".to_string()))?;
+    // Verify game exists in hardcoded registry
+    find_game_by_id(&room.game_id)
+        .ok_or_else(|| ApiError::NotFound("Game not found".to_string()))?;
 
-    if game.game_type != GameType::Interactive {
-        return Err(ApiError::BadRequest("Game is not interactive".to_string()));
-    }
+    // Note: All games now support both automated and interactive modes
 
     // Create match participants
     let participants = vec![
@@ -52,7 +54,7 @@ pub async fn create_interactive_match_from_room(
     let match_data = Match {
         id: None,
         tournament_id: None, // Interactive matches can be standalone
-        game_id: room.game_id.clone(),
+        game_id: room.game_id.clone(), // room.game_id is already a String
         status: MatchStatus::Running,
         participants,
         metadata: None,

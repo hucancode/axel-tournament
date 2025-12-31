@@ -1,7 +1,7 @@
 use crate::{
     db::Database,
     error::{ApiError, ApiResult},
-    models::{Room, RoomStatus, RoomMessage, Game, GameType},
+    models::{room::{Room, RoomStatus, RoomMessage}, game::find_game_by_id},
 };
 use surrealdb::sql::{Datetime, Thing};
 
@@ -12,25 +12,20 @@ pub async fn create_room(
     name: String,
     max_players: u32,
 ) -> ApiResult<Room> {
-    let game_thing = game_id
-        .parse::<Thing>()
-        .map_err(|_| ApiError::BadRequest("Invalid game id".to_string()))?;
-    
-    // Verify game exists and is interactive
-    let game: Option<Game> = db.select(("game", game_thing.id.to_string())).await?;
-    let game = game.ok_or_else(|| ApiError::NotFound("Game not found".to_string()))?;
-    
-    if game.game_type != GameType::Interactive {
-        return Err(ApiError::BadRequest("Only interactive games can have rooms".to_string()));
-    }
-    
+    // Verify game exists in hardcoded registry
+    find_game_by_id(&game_id)
+        .ok_or_else(|| ApiError::NotFound("Game not found".to_string()))?;
+
+    // Note: All games now support both automated and interactive modes,
+    // so we don't need to check game type anymore
+
     let host_thing = host_id
         .parse::<Thing>()
         .map_err(|_| ApiError::BadRequest("Invalid host id".to_string()))?;
 
     let room = Room {
         id: None,
-        game_id: game_thing,
+        game_id,
         host_id: host_thing.clone(),
         name,
         max_players,

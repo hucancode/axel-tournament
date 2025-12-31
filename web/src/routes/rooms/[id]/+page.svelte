@@ -29,8 +29,10 @@
       goto('/rooms');
       return;
     }
-    loadRoomData();
-    setupWebSocket();
+    loadRoomData().then(() => {
+      // Setup WebSocket after game data is loaded
+      setupWebSocket();
+    });
 
     return () => {
       ws?.close();
@@ -62,22 +64,28 @@
   }
 
   function setupWebSocket() {
+    if (!game) {
+      console.error('Cannot setup WebSocket: game not loaded');
+      return;
+    }
+
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
 
-    // In development, connect to interactive-judge on port 8081
-    // In production, use the same host (ingress routes /ws to interactive-judge)
+    // Connect to the game server on its dedicated port
+    // In development: localhost:<game_server_port>
+    // In production: same host (ingress routes game server ports)
     const host = window.location.host.includes('localhost')
-      ? 'localhost:8081'
+      ? `localhost:${game.server_port}`
       : window.location.host;
 
-    const wsUrl = `${protocol}//${host}/ws/room/${roomId}`;
+    const wsUrl = `${protocol}//${host}/room/${roomId}`;
 
-    console.log('Connecting to WebSocket:', wsUrl);
+    console.log(`Connecting to ${game.name} game server:`, wsUrl);
     ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
       wsConnected = true;
-      console.log('WebSocket connected to interactive-judge');
+      console.log(`WebSocket connected to ${game?.name} game server`);
     };
 
     ws.onclose = () => {
@@ -237,14 +245,16 @@
 
     <div class="room-content">
       <div class="game-area">
-        {#if room.status === 'playing' && game.frontend_code}
-          {#key roomId}
-            <GameIframe
-              gameCode={game.frontend_code || ''}
-              roomId={roomId}
-              wsUrl={gameWsUrl}
-            />
-          {/key}
+        {#if room.status === 'playing'}
+          <div class="playing-area">
+            <h2>Game in progress...</h2>
+            <p>Playing: {game?.name || 'Game'}</p>
+            {#if wsConnected}
+              <p class="status-connected">✓ Connected to game server</p>
+            {:else}
+              <p class="status-disconnected">⚠ Connecting to game server...</p>
+            {/if}
+          </div>
         {:else if room.status === 'waiting'}
           <div class="waiting-area">
             <h2>Waiting for game to start...</h2>

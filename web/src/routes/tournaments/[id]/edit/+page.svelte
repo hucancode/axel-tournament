@@ -53,9 +53,8 @@
             tournament = tournamentData;
             games = gamesData;
 
-            // Check permissions
-            const game = games.find(g => g.id === tournament!.game_id);
-            if (auth.user?.role !== "admin" && game?.owner_id !== auth.user?.id) {
+            // Check permissions - only admins can edit tournaments
+            if (auth.user?.role !== "admin") {
                 goto("/tournaments");
                 return;
             }

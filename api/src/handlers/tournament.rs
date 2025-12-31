@@ -16,34 +16,17 @@ use serde::Deserialize;
 use surrealdb::sql::Thing;
 use validator::Validate;
 
-async fn ensure_game_owner(
-    state: &AppState,
-    game_id: Thing,
+async fn ensure_tournament_owner(
+    _state: &AppState,
+    _tournament_id: Thing,
     claims: &Claims,
 ) -> ApiResult<()> {
-    if claims.role == UserRole::Admin {
-        return Ok(());
-    }
-    let game = services::game::get_game(&state.db, game_id).await?;
-    let is_owner = game.owner_id.to_string() == claims.sub;
-    if !is_owner {
+    if claims.role != UserRole::Admin {
         return Err(crate::error::ApiError::Forbidden(
-            "You don't have permission to manage tournaments for this game".to_string(),
+            "You don't have permission to manage tournaments".to_string(),
         ));
     }
     Ok(())
-}
-
-async fn ensure_tournament_owner(
-    state: &AppState,
-    tournament_id: Thing,
-    claims: &Claims,
-) -> ApiResult<()> {
-    if claims.role == UserRole::Admin {
-        return Ok(());
-    }
-    let tournament = services::tournament::get_tournament(&state.db, tournament_id).await?;
-    ensure_game_owner(state, tournament.game_id, claims).await
 }
 
 pub async fn create_tournament(
@@ -51,6 +34,13 @@ pub async fn create_tournament(
     Extension(claims): Extension<Claims>,
     Json(payload): Json<CreateTournamentRequest>,
 ) -> ApiResult<(StatusCode, Json<TournamentResponse>)> {
+    // Only admins can create tournaments
+    if claims.role != UserRole::Admin {
+        return Err(crate::error::ApiError::Forbidden(
+            "Only admins can create tournaments".to_string(),
+        ));
+    }
+
     payload
         .validate()
         .map_err(|e| crate::error::ApiError::Validation(e.to_string()))?;
@@ -59,16 +49,10 @@ pub async fn create_tournament(
             "min_players cannot be greater than max_players".to_string(),
         ));
     }
-    let game_id: Thing = payload
-        .game_id
-        .parse()
-        .map_err(|_| crate::error::ApiError::BadRequest("Invalid game id".to_string()))?;
-    if claims.role == UserRole::GameSetter {
-        ensure_game_owner(&state, game_id.clone(), &claims).await?;
-    }
+
     let tournament = services::tournament::create_tournament(
         &state.db,
-        game_id,
+        payload.game_id,
         payload.name,
         payload.description,
         payload.min_players,
@@ -133,9 +117,10 @@ pub async fn update_tournament(
     let tournament_id: Thing = tournament_id
         .parse()
         .map_err(|_| crate::error::ApiError::BadRequest("Invalid tournament id".to_string()))?;
-    if claims.role == UserRole::GameSetter {
-        ensure_tournament_owner(&state, tournament_id.clone(), &claims).await?;
-    }
+
+    // Only admins can update tournaments
+    ensure_tournament_owner(&state, tournament_id.clone(), &claims).await?;
+
     let tournament = services::tournament::update_tournament(
         &state.db,
         tournament_id,
@@ -210,9 +195,10 @@ pub async fn start_tournament(
     let tournament_id: Thing = tournament_id
         .parse()
         .map_err(|_| crate::error::ApiError::BadRequest("Invalid tournament id".to_string()))?;
-    if claims.role == UserRole::GameSetter {
-        ensure_tournament_owner(&state, tournament_id.clone(), &claims).await?;
-    }
+
+    // Only admins can start tournaments
+    ensure_tournament_owner(&state, tournament_id.clone(), &claims).await?;
+
     let tournament = services::tournament::start_tournament(
         &state.db,
         tournament_id,

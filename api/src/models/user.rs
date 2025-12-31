@@ -24,7 +24,6 @@ pub struct User {
 #[serde(rename_all = "lowercase")]
 pub enum UserRole {
     Admin,
-    GameSetter,
     Player,
 }
 
