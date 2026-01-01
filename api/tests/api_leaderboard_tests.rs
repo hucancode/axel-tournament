@@ -4,30 +4,21 @@ use axel_tournament::services::tournament;
 use axum::http::{self, StatusCode};
 use surrealdb::sql::Thing;
 
+const TEST_GAME_ID: &str = "rock-paper-scissors";
+
 #[tokio::test]
 async fn leaderboard_returns_scored_players() {
     let app = common::setup_app().await;
     let admin_token = common::admin_token(&app).await;
-    // Create game
-    let (_, game_body) = common::json_request(
-        &app,
-        http::Method::POST,
-        "/api/admin/games",
-        Some(common::game_payload(
-            format!("Leaderboard Game {}", common::unique_name("")),
-            "Game for leaderboard API",
-        )),
-        Some(&admin_token),
-    )
-    .await;
-    let game_id = common::extract_thing_id(&game_body["id"]);
+    // Use hardcoded game (games are now maintained by developers)
+    let game_id = TEST_GAME_ID;
     // Create tournament
     let (_, tournament_body) = common::json_request(
         &app,
         http::Method::POST,
         "/api/admin/tournaments",
         Some(serde_json::json!({
-            "game_id": game_id.clone(),
+            "game_id": game_id,
             "name": format!("Leaderboard Tournament {}", common::unique_name("")),
             "description": "Tournament for leaderboard API",
             "min_players": 2,

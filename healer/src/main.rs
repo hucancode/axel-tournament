@@ -58,7 +58,6 @@ async fn run_healer(config: HealerConfig) -> Result<()> {
     db.use_ns(&config.db_ns).use_db(&config.db_name).await?;
     info!("Healer connected to SurrealDB at {}", config.db_url);
 
-    let db_client = DbClient::new(db.clone());
     let compiler = Compiler::new()?;
 
     // Ensure compiler images are pulled

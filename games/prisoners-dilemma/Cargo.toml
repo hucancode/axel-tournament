@@ -3,6 +3,14 @@ name = "prisoners-dilemma-server"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+name = "prisoners_dilemma"
+path = "src/lib.rs"
+
+[[bin]]
+name = "prisoners-dilemma-server"
+path = "src/main.rs"
+
 [dependencies]
 anyhow = "1"
 game-framework = { path = "../game-framework" }

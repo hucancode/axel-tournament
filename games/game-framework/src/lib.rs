@@ -12,6 +12,7 @@ pub mod automated;
 pub mod interactive;
 
 // Re-exports for convenience
+pub use automated::{format_simple_result, parse_simple_result};
 pub use automated_executor::execute_automated_match;
 pub use db_client::{DbClient, MatchParticipant, MatchRow, ParticipantResult, Submission};
 pub use docker_player::DockerPlayer;
@@ -22,6 +23,44 @@ pub use websocket_room::{websocket_handler, AppState, GameMessage};
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(tag = "type", content = "value", rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum PlayerResult {
+    /// Player completed successfully with a score
+    Score(i32),
+    /// Time Limit Exceeded - player took too long
+    TimeLimitExceeded,
+    /// Wrong Answer - player made an invalid move
+    WrongAnswer,
+    /// Runtime Error - player's code crashed or exited prematurely
+    RuntimeError,
+}
+
+impl PlayerResult {
+    /// Get the score for this result (0 if error)
+    pub fn score(&self) -> i32 {
+        match self {
+            PlayerResult::Score(s) => *s,
+            _ => 0,
+        }
+    }
+
+    /// Check if this result is an error
+    pub fn is_error(&self) -> bool {
+        !matches!(self, PlayerResult::Score(_))
+    }
+
+    /// Get the error code as a string, if this is an error
+    pub fn error_code(&self) -> Option<&'static str> {
+        match self {
+            PlayerResult::Score(_) => None,
+            PlayerResult::TimeLimitExceeded => Some("TLE"),
+            PlayerResult::WrongAnswer => Some("WA"),
+            PlayerResult::RuntimeError => Some("RE"),
+        }
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]

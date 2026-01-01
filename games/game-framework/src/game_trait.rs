@@ -1,14 +1,13 @@
 use anyhow::Result;
-use serde::{Deserialize, Serialize};
 
 /// Core trait that all games must implement
 /// Games only need to focus on their specific logic
 pub trait GameLogic: Send + Sync + 'static {
     /// The move type for this game (e.g., Rock/Paper/Scissors, or board position)
-    type Move: Clone + Send;
+    type Move: Clone + Send + Sync;
 
     /// The game state (e.g., scores, board, current player)
-    type GameState: Clone + Send;
+    type GameState: Clone + Send + Sync + std::fmt::Debug;
 
     /// Create a new game state
     fn new_game() -> Self::GameState;

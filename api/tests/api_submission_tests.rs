@@ -2,31 +2,21 @@ mod common;
 
 use axum::http::{self, StatusCode};
 
+const TEST_GAME_ID: &str = "rock-paper-scissors";
+
 #[tokio::test]
 async fn create_and_list_submissions() {
     let app = common::setup_app().await;
     let admin_token = common::admin_token(&app).await;
-    // Game
-    let (game_status, game_body) = common::json_request(
-        &app,
-        http::Method::POST,
-        "/api/admin/games",
-        Some(common::game_payload(
-            format!("Submission Game {}", common::unique_name("")),
-            "Game for submissions",
-        )),
-        Some(&admin_token),
-    )
-    .await;
-    assert!(game_status == StatusCode::CREATED);
-    let game_id = common::extract_thing_id(&game_body["id"]);
+    // Use hardcoded game (games are now maintained by developers)
+    let game_id = TEST_GAME_ID;
     // Tournament
     let (tournament_status, tournament_body) = common::json_request(
         &app,
         http::Method::POST,
         "/api/admin/tournaments",
         Some(serde_json::json!({
-            "game_id": game_id.clone(),
+            "game_id": game_id,
             "name": format!("Submission Tournament {}", common::unique_name("")),
             "description": "Tournament for submissions",
             "min_players": 2,
@@ -78,9 +68,8 @@ async fn create_and_list_submissions() {
     .await;
     if status != StatusCode::CREATED {
         panic!(
-            "create submission failed: status {} body {:?}, game body {:?}",
+            "create submission failed: status {} body {:?}",
             status, submission_body,
-            game_body,
         );
     }
     let submission_id = submission_body["id"].as_str().unwrap();

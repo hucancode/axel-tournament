@@ -80,7 +80,7 @@ impl DbClient {
                      participants = $results",
             )
             .bind(("match_id", match_id.clone()))
-            .bind(("results", &results))
+            .bind(("results", results.clone()))
             .await?;
 
         // Update tournament participant scores
@@ -92,7 +92,7 @@ impl DbClient {
                      WHERE tournament_id = (SELECT tournament_id FROM $match_id)[0]
                        AND submission_id = $submission_id",
                 )
-                .bind(("match_id", &match_id))
+                .bind(("match_id", match_id.clone()))
                 .bind(("submission_id", result.submission_id))
                 .bind(("delta", result.score))
                 .await?;
@@ -116,7 +116,7 @@ impl DbClient {
     }
 }
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ParticipantResult {
     pub submission_id: Thing,
     pub user_id: Thing,

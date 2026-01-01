@@ -2,30 +2,21 @@ mod common;
 
 use axum::http::{self, StatusCode};
 
+const TEST_GAME_ID: &str = "rock-paper-scissors";
+
 #[tokio::test]
 async fn tournament_create_join_and_leave() {
     let app = common::setup_app().await;
     let admin_token = common::admin_token(&app).await;
-    // Create game
-    let (_, game_body) = common::json_request(
-        &app,
-        http::Method::POST,
-        "/api/admin/games",
-        Some(common::game_payload(
-            format!("Tournament Game {}", common::unique_name("")),
-            "For tournament tests",
-        )),
-        Some(&admin_token),
-    )
-    .await;
-    let game_id = common::extract_thing_id(&game_body["id"]);
+    // Use hardcoded game (games are now maintained by developers)
+    let game_id = TEST_GAME_ID;
     // Create tournament
     let (t_status, tournament_body) = common::json_request(
         &app,
         http::Method::POST,
         "/api/admin/tournaments",
         Some(serde_json::json!({
-            "game_id": game_id.clone(),
+            "game_id": game_id,
             "name": format!("Tournament {}", common::unique_name("")),
             "description": "API tournament",
             "min_players": 2,

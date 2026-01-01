@@ -2,7 +2,7 @@ use anyhow::Result;
 use game_framework::GameLogic;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum Move {
     Cooperate,
     Defect,
@@ -72,6 +72,10 @@ impl GameLogic for PrisonersDilemmaGame {
             state.score_player1 += points1;
             state.score_player2 += points2;
             state.round += 1;
+
+            // Clear moves for next round
+            state.last_move_player1 = None;
+            state.last_move_player2 = None;
         }
 
         Ok(())

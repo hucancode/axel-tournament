@@ -2,8 +2,8 @@ mod common;
 
 use axel_tournament::{
     db,
-    models::{CreateTournamentRequest, MatchGenerationType, ProgrammingLanguage, TournamentStatus, GameType},
-    services::{auth::AuthService, game, matches, submission, tournament, user},
+    models::{CreateTournamentRequest, MatchGenerationType, ProgrammingLanguage, TournamentStatus},
+    services::{auth::AuthService, matches, submission, tournament, user},
 };
 use surrealdb::sql::Thing;
 use validator::Validate;
@@ -16,44 +16,15 @@ async fn setup_test_db() -> axel_tournament::db::Database {
         .expect("Failed to connect to test database")
 }
 
-const DEFAULT_GAME_CODE: &str = "fn main() {}";
-const DEFAULT_ROUNDS_PER_MATCH: u32 = 3;
-const DEFAULT_REPETITIONS: u32 = 1;
-const DEFAULT_TIMEOUT_MS: u32 = 2000;
-const DEFAULT_CPU_LIMIT: f64 = 1.0;
-const DEFAULT_TURN_TIMEOUT_MS: u64 = 200;
-const DEFAULT_MEMORY_LIMIT_MB: u64 = 64;
-
-fn default_owner_id() -> String {
-    "user:owner".to_string()
-}
+// Use hardcoded game IDs (games are now maintained by developers)
+const TEST_GAME_ID: &str = "rock-paper-scissors";
 
 #[tokio::test]
 async fn test_create_and_get_tournament() {
     let db = setup_test_db().await;
-    let game = game::create_game(
-        &db,
-        common::unique_name("Tournament Game "),
-        "Desc".to_string(),
-        GameType::Automated,
-        vec![ProgrammingLanguage::Rust],
-        default_owner_id(),
-        DEFAULT_GAME_CODE.to_string(),
-        ProgrammingLanguage::Rust,
-        None,
-        DEFAULT_ROUNDS_PER_MATCH,
-        DEFAULT_REPETITIONS,
-        DEFAULT_TIMEOUT_MS,
-        DEFAULT_CPU_LIMIT,
-        DEFAULT_TURN_TIMEOUT_MS,
-        DEFAULT_MEMORY_LIMIT_MB,
-    )
-    .await
-    .unwrap();
-    let game_id = game.id.unwrap();
     let tournament = tournament::create_tournament(
         &db,
-        game_id.clone(),
+        TEST_GAME_ID.to_string(),
         common::unique_name("Tournament "),
         "Test tournament".to_string(),
         2,
@@ -75,29 +46,9 @@ async fn test_create_and_get_tournament() {
 #[tokio::test]
 async fn test_update_tournament_status() {
     let db = setup_test_db().await;
-    let game = game::create_game(
-        &db,
-        common::unique_name("Status Game "),
-        "Desc".to_string(),
-        GameType::Automated,
-        vec![ProgrammingLanguage::Rust],
-        default_owner_id(),
-        DEFAULT_GAME_CODE.to_string(),
-        ProgrammingLanguage::Rust,
-        None,
-        DEFAULT_ROUNDS_PER_MATCH,
-        DEFAULT_REPETITIONS,
-        DEFAULT_TIMEOUT_MS,
-        DEFAULT_CPU_LIMIT,
-        DEFAULT_TURN_TIMEOUT_MS,
-        DEFAULT_MEMORY_LIMIT_MB,
-    )
-    .await
-    .unwrap();
-    let game_id = game.id.unwrap();
     let tournament = tournament::create_tournament(
         &db,
-        game_id,
+        TEST_GAME_ID.to_string(),
         common::unique_name("Status Tournament "),
         "Test tournament".to_string(),
         2,
@@ -128,29 +79,9 @@ async fn test_update_tournament_status() {
 async fn test_join_and_leave_tournament() {
     let db = setup_test_db().await;
     let auth_service = AuthService::new("test-secret".to_string(), 3600);
-    let game = game::create_game(
-        &db,
-        common::unique_name("Join Game "),
-        "Desc".to_string(),
-        GameType::Automated,
-        vec![ProgrammingLanguage::Rust],
-        default_owner_id(),
-        DEFAULT_GAME_CODE.to_string(),
-        ProgrammingLanguage::Rust,
-        None,
-        DEFAULT_ROUNDS_PER_MATCH,
-        DEFAULT_REPETITIONS,
-        DEFAULT_TIMEOUT_MS,
-        DEFAULT_CPU_LIMIT,
-        DEFAULT_TURN_TIMEOUT_MS,
-        DEFAULT_MEMORY_LIMIT_MB,
-    )
-    .await
-    .unwrap();
-    let game_id = game.id.unwrap();
     let tournament = tournament::create_tournament(
         &db,
-        game_id,
+        TEST_GAME_ID.to_string(),
         common::unique_name("Join Tournament "),
         "Test tournament".to_string(),
         2,
@@ -195,7 +126,7 @@ async fn test_join_and_leave_tournament() {
 #[test]
 fn test_create_tournament_request_validation() {
     let valid_request = CreateTournamentRequest {
-        game_id: "game123".to_string(),
+        game_id: TEST_GAME_ID.to_string(),
         name: "Test Tournament".to_string(),
         description: "A test tournament".to_string(),
         min_players: 2,
@@ -206,7 +137,7 @@ fn test_create_tournament_request_validation() {
     };
     assert!(valid_request.validate().is_ok());
     let low_min = CreateTournamentRequest {
-        game_id: "game123".to_string(),
+        game_id: TEST_GAME_ID.to_string(),
         name: "Test Tournament".to_string(),
         description: "A test tournament".to_string(),
         min_players: 1,
@@ -217,7 +148,7 @@ fn test_create_tournament_request_validation() {
     };
     assert!(low_min.validate().is_err());
     let high_max = CreateTournamentRequest {
-        game_id: "game123".to_string(),
+        game_id: TEST_GAME_ID.to_string(),
         name: "Test Tournament".to_string(),
         description: "A test tournament".to_string(),
         min_players: 2,
@@ -251,32 +182,10 @@ async fn test_start_tournament_all_vs_all() {
     let db = setup_test_db().await;
     let auth_service = AuthService::new("test-secret".to_string(), 3600);
 
-    // Create game
-    let game = game::create_game(
-        &db,
-        common::unique_name("MatchGen Game "),
-        "Match generation test".to_string(),
-        GameType::Automated,
-        vec![ProgrammingLanguage::Rust],
-        default_owner_id(),
-        DEFAULT_GAME_CODE.to_string(),
-        ProgrammingLanguage::Rust,
-        None,
-        DEFAULT_ROUNDS_PER_MATCH,
-        DEFAULT_REPETITIONS,
-        DEFAULT_TIMEOUT_MS,
-        DEFAULT_CPU_LIMIT,
-        DEFAULT_TURN_TIMEOUT_MS,
-        DEFAULT_MEMORY_LIMIT_MB,
-    )
-    .await
-    .unwrap();
-    let game_id = game.id.unwrap();
-
     // Create tournament with AllVsAll match generation (default)
     let tournament = tournament::create_tournament(
         &db,
-        game_id.clone(),
+        TEST_GAME_ID.to_string(),
         common::unique_name("AllVsAll Tournament "),
         "Test tournament".to_string(),
         2,
@@ -317,7 +226,7 @@ async fn test_start_tournament_all_vs_all() {
             &db,
             user_id.clone(),
             tournament_id.clone(),
-            game_id.clone(),
+            TEST_GAME_ID.to_string(),
             axel_tournament::models::ProgrammingLanguage::Rust,
             "fn main() {}".to_string(),
         )
@@ -357,32 +266,10 @@ async fn test_start_tournament_round_robin() {
     let db = setup_test_db().await;
     let auth_service = AuthService::new("test-secret".to_string(), 3600);
 
-    // Create game
-    let game = game::create_game(
-        &db,
-        common::unique_name("RoundRobin Game "),
-        "Round robin test".to_string(),
-        GameType::Automated,
-        vec![ProgrammingLanguage::Rust],
-        default_owner_id(),
-        DEFAULT_GAME_CODE.to_string(),
-        ProgrammingLanguage::Rust,
-        None,
-        DEFAULT_ROUNDS_PER_MATCH,
-        DEFAULT_REPETITIONS,
-        DEFAULT_TIMEOUT_MS,
-        DEFAULT_CPU_LIMIT,
-        DEFAULT_TURN_TIMEOUT_MS,
-        DEFAULT_MEMORY_LIMIT_MB,
-    )
-    .await
-    .unwrap();
-    let game_id = game.id.unwrap();
-
     // Create tournament with RoundRobin match generation
     let tournament = tournament::create_tournament(
         &db,
-        game_id.clone(),
+        TEST_GAME_ID.to_string(),
         common::unique_name("RoundRobin Tournament "),
         "Test tournament".to_string(),
         2,
@@ -426,7 +313,7 @@ async fn test_start_tournament_round_robin() {
             &db,
             user_id.clone(),
             tournament_id.clone(),
-            game_id.clone(),
+            TEST_GAME_ID.to_string(),
             axel_tournament::models::ProgrammingLanguage::Rust,
             "fn main() {}".to_string(),
         )
@@ -440,7 +327,6 @@ async fn test_start_tournament_round_robin() {
         .unwrap();
 
     // Verify tournament status changed
-    assert_eq!(started_tournament.status, TournamentStatus::Running);
     assert_eq!(started_tournament.status, TournamentStatus::Running);
 
     // Verify matches were created (4 players, unique pairings = 6 matches)
@@ -462,32 +348,10 @@ async fn test_start_tournament_without_submissions_fails() {
     let db = setup_test_db().await;
     let auth_service = AuthService::new("test-secret".to_string(), 3600);
 
-    // Create game
-    let game = game::create_game(
-        &db,
-        common::unique_name("NoSub Game "),
-        "No submissions test".to_string(),
-        GameType::Automated,
-        vec![ProgrammingLanguage::Rust],
-        default_owner_id(),
-        DEFAULT_GAME_CODE.to_string(),
-        ProgrammingLanguage::Rust,
-        None,
-        DEFAULT_ROUNDS_PER_MATCH,
-        DEFAULT_REPETITIONS,
-        DEFAULT_TIMEOUT_MS,
-        DEFAULT_CPU_LIMIT,
-        DEFAULT_TURN_TIMEOUT_MS,
-        DEFAULT_MEMORY_LIMIT_MB,
-    )
-    .await
-    .unwrap();
-    let game_id = game.id.unwrap();
-
     // Create tournament
     let tournament = tournament::create_tournament(
         &db,
-        game_id.clone(),
+        TEST_GAME_ID.to_string(),
         common::unique_name("NoSub Tournament "),
         "Test tournament".to_string(),
         2,
@@ -530,32 +394,10 @@ async fn test_start_tournament_without_submissions_fails() {
 async fn test_start_tournament_not_enough_players_fails() {
     let db = setup_test_db().await;
 
-    // Create game
-    let game = game::create_game(
-        &db,
-        common::unique_name("MinPlayers Game "),
-        "Min players test".to_string(),
-        GameType::Automated,
-        vec![ProgrammingLanguage::Rust],
-        default_owner_id(),
-        DEFAULT_GAME_CODE.to_string(),
-        ProgrammingLanguage::Rust,
-        None,
-        DEFAULT_ROUNDS_PER_MATCH,
-        DEFAULT_REPETITIONS,
-        DEFAULT_TIMEOUT_MS,
-        DEFAULT_CPU_LIMIT,
-        DEFAULT_TURN_TIMEOUT_MS,
-        DEFAULT_MEMORY_LIMIT_MB,
-    )
-    .await
-    .unwrap();
-    let game_id = game.id.unwrap();
-
     // Create tournament requiring 5 minimum players
     let tournament = tournament::create_tournament(
         &db,
-        game_id.clone(),
+        TEST_GAME_ID.to_string(),
         common::unique_name("MinPlayers Tournament "),
         "Test tournament".to_string(),
         5,

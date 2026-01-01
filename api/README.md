@@ -1,15 +1,20 @@
-# Axel Tournament
+# Axel Tournament API Server
 
 Backend API for the tournament platform.
 
 ## Features
 - User authentication and access control
 - Player profiles and account management
-- Game catalog and tournament lifecycle
+- Game catalog (games are maintained by developers, not users)
+- Tournament lifecycle management
 - Match scheduling and scoring
 - Code submissions for multiple languages
 - Leaderboards and rankings
 - Admin tools for moderation and management
+
+## Architecture
+
+Games are now hardcoded in the API as static metadata. Game servers (prisoners-dilemma, rock-paper-scissors, tic-tac-toe) are developed and maintained separately by developers. The API provides endpoints to list available games, but game creation/modification is no longer done through the API.
 
 ## Get started
 ```bash

@@ -31,8 +31,6 @@ pub async fn run_match_watcher<G: GameLogic>(config: MatchWatcherConfig) -> Resu
     db.use_ns(&config.db_ns).use_db(&config.db_name).await?;
     info!("Match watcher connected to SurrealDB at {}", config.db_url);
 
-    let db_client = DbClient::new(db.clone());
-
     loop {
         let response = db
             .query(&format!(

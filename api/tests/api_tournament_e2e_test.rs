@@ -3,61 +3,55 @@ mod common;
 use axum::http::{self, StatusCode};
 use serde_json::json;
 
-const RPS_SERVER_CODE: &str = include_str!("../../games/rock_paper_scissor/server.rs");
-const RPS_PLAYER_ROCK: &str = include_str!("../../games/rock_paper_scissor/client_rock.rs");
-const RPS_PLAYER_ALT: &str = include_str!("../../games/rock_paper_scissor/client_cycle.rs");
+// Simple rock-paper-scissors bot that always plays Rock
+const RPS_PLAYER_ROCK: &str = r#"
+fn main() {
+    loop {
+        let mut input = String::new();
+        std::io::stdin().read_line(&mut input).unwrap();
+        println!("rock");
+    }
+}
+"#;
+
+// Simple rock-paper-scissors bot that cycles through moves
+const RPS_PLAYER_CYCLE: &str = r#"
+fn main() {
+    let moves = ["rock", "paper", "scissors"];
+    let mut index = 0;
+    loop {
+        let mut input = String::new();
+        std::io::stdin().read_line(&mut input).unwrap();
+        println!("{}", moves[index % 3]);
+        index += 1;
+    }
+}
+"#;
 
 /// End-to-end test for complete tournament flow with real match execution:
-/// 1. Game setter creates a rock_paper_scissor game
-/// 2. Game setter opens/creates a tournament
-/// 3. Two players join and submit their code
-/// 4. Game setter starts the tournament (triggers match generation)
-/// 5. System executes matchmaking (AllVsAll)
-/// 6. Wait for judge to execute matches in Docker containers
-/// 7. Verify actual scores from real gameplay and leaderboard
+/// 1. Admin creates a tournament for rock-paper-scissors game (hardcoded game)
+/// 2. Two players join and submit their code
+/// 3. Admin starts the tournament (triggers match generation)
+/// 4. System executes matchmaking (AllVsAll)
+/// 5. Wait for game server to execute matches
+/// 6. Verify actual scores from real gameplay and leaderboard
 #[tokio::test]
 async fn complete_tournament_flow_with_two_players() {
     // Setup test app - uses production config from environment
-    // Both test and judge will connect to the same database
     let app = common::setup_app().await;
-    // Get game setter token
-    let game_setter_token = common::game_setter_token(&app).await;
-    // Step 1: Game setter creates a rock_paper_scissor game
-    let (game_status, game_body) = common::json_request(
-        &app,
-        http::Method::POST,
-        "/api/game-setter/games",
-        Some(json!({
-            "name": format!("Rock Paper Scissor {}", common::unique_name("")),
-            "description": "Classic RPS game for e2e test",
-            "supported_languages": ["rust", "go", "c"],
-            "game_code": RPS_SERVER_CODE,
-            "game_language": "rust",
-            "game_type": "automated",
-            "rounds_per_match": 100,
-            "repetitions": 1,
-            "timeout_ms": 2000,
-            "cpu_limit": 1.0,
-            "memory_limit_mb": 2,
-            "turn_timeout_ms": 200,
-        })),
-        Some(&game_setter_token),
-    )
-    .await;
-    assert!(
-        game_status == StatusCode::CREATED || game_status == StatusCode::OK,
-        "Failed to create game: status {}, body {:?}",
-        game_status,
-        game_body
-    );
-    let game_id = common::extract_thing_id(&game_body["id"]);
-    println!("Created game: {}", game_id);
 
-    // Step 2: Game setter creates/opens a tournament
+    // Get admin token for tournament management
+    let admin_token = common::admin_token(&app).await;
+
+    // Use hardcoded rock-paper-scissors game (maintained by developers)
+    let game_id = "rock-paper-scissors";
+    println!("Using hardcoded game: {}", game_id);
+
+    // Step 1: Admin creates a tournament
     let (tournament_status, tournament_body) = common::json_request(
         &app,
         http::Method::POST,
-        "/api/game-setter/tournaments",
+        "/api/admin/tournaments",
         Some(json!({
             "game_id": game_id,
             "name": format!("RPS Championship {}", common::unique_name("")),
@@ -66,7 +60,7 @@ async fn complete_tournament_flow_with_two_players() {
             "max_players": 10,
             "match_generation_type": "all_vs_all"
         })),
-        Some(&game_setter_token),
+        Some(&admin_token),
     )
     .await;
     assert!(
@@ -79,7 +73,7 @@ async fn complete_tournament_flow_with_two_players() {
     assert_eq!(tournament_body["status"], "registration");
     println!("Created tournament: {}", tournament_id);
 
-    // Step 3a: Register player 1 and submit code
+    // Step 2a: Register player 1 and submit code
     let player1_email = format!("{}@test.com", common::unique_name("player1_"));
     let (_, player1_body) = common::json_request(
         &app,
@@ -111,7 +105,6 @@ async fn complete_tournament_flow_with_two_players() {
     println!("Player 1 joined tournament");
 
     // Player 1 submits code (simple rock strategy)
-    let player1_code = RPS_PLAYER_ROCK;
     let (submit1_status, submit1_body) = common::json_request(
         &app,
         http::Method::POST,
@@ -119,7 +112,7 @@ async fn complete_tournament_flow_with_two_players() {
         Some(json!({
             "tournament_id": tournament_id,
             "language": "rust",
-            "code": player1_code
+            "code": RPS_PLAYER_ROCK
         })),
         Some(player1_token),
     )
@@ -133,7 +126,7 @@ async fn complete_tournament_flow_with_two_players() {
     let player1_submission_id = common::extract_thing_id(&submit1_body["id"]);
     println!("Player 1 submitted code: {}", player1_submission_id);
 
-    // Step 3b: Register player 2 and submit code
+    // Step 2b: Register player 2 and submit code
     let player2_email = format!("{}@test.com", common::unique_name("player2_"));
     let (_, player2_body) = common::json_request(
         &app,
@@ -164,8 +157,7 @@ async fn complete_tournament_flow_with_two_players() {
     assert_eq!(join2_status, StatusCode::CREATED);
     println!("Player 2 joined tournament");
 
-    // Player 2 submits code (alternating strategy)
-    let player2_code = RPS_PLAYER_ALT;
+    // Player 2 submits code (cycling strategy)
     let (submit2_status, submit2_body) = common::json_request(
         &app,
         http::Method::POST,
@@ -173,7 +165,7 @@ async fn complete_tournament_flow_with_two_players() {
         Some(json!({
             "tournament_id": tournament_id,
             "language": "rust",
-            "code": player2_code
+            "code": RPS_PLAYER_CYCLE
         })),
         Some(player2_token),
     )
@@ -201,13 +193,13 @@ async fn complete_tournament_flow_with_two_players() {
     assert_eq!(participants.len(), 2, "Should have 2 participants");
     println!("Verified 2 participants in tournament");
 
-    // Step 4: Game setter starts the tournament
+    // Step 3: Admin starts the tournament
     let (start_status, start_body) = common::json_request(
         &app,
         http::Method::POST,
-        &format!("/api/game-setter/tournaments/{}/start", tournament_id),
+        &format!("/api/admin/tournaments/{}/start", tournament_id),
         None,
-        Some(&game_setter_token),
+        Some(&admin_token),
     )
     .await;
     assert!(
@@ -219,7 +211,7 @@ async fn complete_tournament_flow_with_two_players() {
     assert_eq!(start_body["status"], "running");
     println!("Tournament started, status: running");
 
-    // Step 5: Verify matches were generated (AllVsAll: 2x2 = 4 matches)
+    // Step 4: Verify matches were generated (AllVsAll: 2x2 = 4 matches)
     let (matches_status, matches_body) = common::json_request(
         &app,
         http::Method::GET,
@@ -232,7 +224,8 @@ async fn complete_tournament_flow_with_two_players() {
     let matches = matches_body.as_array().unwrap();
     assert_eq!(matches.len(), 4, "Should have 4 matches (2x2 AllVsAll)");
     println!("Generated {} matches", matches.len());
-    // Step 6: Wait for judge to execute matches
+
+    // Step 5: Wait for game server to execute matches
     println!("Waiting for matches to complete...");
 
     let mut completed_count = 0;
@@ -278,7 +271,7 @@ async fn complete_tournament_flow_with_two_players() {
         total_matches
     );
 
-    // Step 7: Verify actual scores from real gameplay
+    // Step 6: Verify actual scores from real gameplay
     println!("Verifying leaderboard with real match scores...");
 
     let (leaderboard_status, leaderboard_body) = common::json_request(

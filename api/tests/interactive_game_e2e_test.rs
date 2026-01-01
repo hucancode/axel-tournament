@@ -1,14 +1,14 @@
 use axel_tournament::{
     db,
-    services::{auth::AuthService, game, room, interactive_match},
-    models::{GameType, ProgrammingLanguage, User, UserRole},
+    services::{auth::AuthService, room, interactive_match},
+    models::{User, UserRole},
 };
 use std::sync::Arc;
 
 mod common;
 
-const INTERACTIVE_GAME_CODE: &str = include_str!("../../games/tic_tac_toe/server.rs");
-const INTERACTIVE_FRONTEND_CODE: &str = include_str!("../../games/tic_tac_toe/client.html");
+// Use hardcoded tic-tac-toe game (maintained by developers)
+const TEST_GAME_ID: &str = "tic-tac-toe";
 
 #[tokio::test]
 async fn test_interactive_game_flow() {
@@ -64,31 +64,11 @@ async fn test_interactive_game_flow() {
     let user1_id = created_user1.unwrap().id.unwrap().to_string();
     let user2_id = created_user2.unwrap().id.unwrap().to_string();
 
-    // Create interactive game
-    let game_name = common::unique_name("Test Interactive Game");
-    let game = game::create_game(
-        &db,
-        game_name,
-        "Test interactive tic-tac-toe game".to_string(),
-        GameType::Interactive,
-        vec![ProgrammingLanguage::Rust],
-        user1_id.clone(),
-        INTERACTIVE_GAME_CODE.to_string(),
-        ProgrammingLanguage::Rust,
-        Some(INTERACTIVE_FRONTEND_CODE.to_string()),
-        1,
-        1,
-        5000,
-        0.5,
-        2000,
-        64,
-    ).await.unwrap();
-
-    // Create room
+    // Use hardcoded tic-tac-toe game (games are now maintained by developers)
     let room_name = common::unique_name("Test Room");
     let room = room::create_room(
         &db,
-        game.id.unwrap().to_string(),
+        TEST_GAME_ID.to_string(),
         user1_id.clone(),
         room_name,
         2,

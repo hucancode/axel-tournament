@@ -1,12 +1,12 @@
 use anyhow::{Result, anyhow};
 use bollard::Docker;
-use bollard::container::{Config, CreateContainerOptions, RemoveContainerOptions, StartContainerOptions, WaitContainerOptions};
+use bollard::container::{Config, CreateContainerOptions, RemoveContainerOptions, WaitContainerOptions};
 use bollard::image::CreateImageOptions;
 use bollard::models::{HostConfig, Mount, MountTypeEnum};
 use futures_util::StreamExt;
 use std::path::PathBuf;
 use tokio::fs;
-use tracing::{info, warn, error};
+use tracing::{info, error};
 
 const COMPILER_IMAGES: &[(&str, &str)] = &[
     ("rust", "rust:1.92-slim"),
@@ -139,7 +139,7 @@ impl Compiler {
                 let mut wait_stream = self.docker.wait_container::<String>(
                     &container.id,
                     Some(WaitContainerOptions {
-                        condition: "not-running",
+                        condition: "not-running".to_string(),
                     }),
                 );
                 wait_stream.next().await

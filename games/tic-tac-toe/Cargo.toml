@@ -3,6 +3,14 @@ name = "tic-tac-toe-server"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+name = "tic_tac_toe"
+path = "src/lib.rs"
+
+[[bin]]
+name = "tic-tac-toe-server"
+path = "src/main.rs"
+
 [dependencies]
 anyhow = "1"
 game-framework = { path = "../game-framework" }

@@ -2,7 +2,7 @@ use anyhow::Result;
 use game_framework::GameLogic;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Move(pub usize); // 0-8 board position
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

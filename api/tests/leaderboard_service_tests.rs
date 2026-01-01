@@ -2,8 +2,7 @@ mod common;
 
 use axel_tournament::{
     db,
-    models::{ProgrammingLanguage, GameType},
-    services::{auth::AuthService, game, leaderboard, tournament, user},
+    services::{auth::AuthService, leaderboard, tournament, user},
 };
 
 async fn setup_test_db() -> axel_tournament::db::Database {
@@ -14,45 +13,17 @@ async fn setup_test_db() -> axel_tournament::db::Database {
         .expect("Failed to connect to test database")
 }
 
-const DEFAULT_GAME_CODE: &str = "fn main() {}";
-const DEFAULT_ROUNDS_PER_MATCH: u32 = 3;
-const DEFAULT_REPETITIONS: u32 = 1;
-const DEFAULT_TIMEOUT_MS: u32 = 2000;
-const DEFAULT_CPU_LIMIT: f64 = 1.0;
-const DEFAULT_TURN_TIMEOUT_MS: u64 = 200;
-const DEFAULT_MEMORY_LIMIT_MB: u64 = 64;
-
-fn default_owner_id() -> String {
-    "user:owner".to_string()
-}
+// Use hardcoded game IDs (games are now maintained by developers)
+const TEST_GAME_ID: &str = "rock-paper-scissors";
 
 #[tokio::test]
 async fn test_leaderboard_ordering_and_limit() {
     let db = setup_test_db().await;
     let auth_service = AuthService::new("secret".to_string(), 3600);
-    let game = game::create_game(
-        &db,
-        common::unique_name("Leaderboard Game "),
-        "Desc".to_string(),
-        GameType::Automated,
-        vec![ProgrammingLanguage::Rust],
-        default_owner_id(),
-        DEFAULT_GAME_CODE.to_string(),
-        ProgrammingLanguage::Rust,
-        None,
-        DEFAULT_ROUNDS_PER_MATCH,
-        DEFAULT_REPETITIONS,
-        DEFAULT_TIMEOUT_MS,
-        DEFAULT_CPU_LIMIT,
-        DEFAULT_TURN_TIMEOUT_MS,
-        DEFAULT_MEMORY_LIMIT_MB,
-    )
-    .await
-    .unwrap();
-    let game_id = game.id.unwrap();
+    // Use hardcoded game (games are now maintained by developers)
     let tournament = tournament::create_tournament(
         &db,
-        game_id,
+        TEST_GAME_ID.to_string(),
         common::unique_name("Leaderboard Tournament "),
         "Test tournament".to_string(),
         2,

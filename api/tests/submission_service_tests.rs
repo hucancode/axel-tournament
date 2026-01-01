@@ -1,8 +1,8 @@
 // Unit tests for submission service logic
 use axel_tournament::{
     db,
-    models::{CreateSubmissionRequest, GameType, ProgrammingLanguage},
-    services::{auth::AuthService, game, submission, tournament},
+    models::{CreateSubmissionRequest, ProgrammingLanguage},
+    services::{auth::AuthService, submission, tournament},
 };
 use validator::Validate;
 
@@ -22,17 +22,8 @@ fn unique_name(prefix: &str) -> String {
     format!("{}{}", prefix, timestamp)
 }
 
-const DEFAULT_GAME_CODE: &str = "fn main() {}";
-const DEFAULT_ROUNDS_PER_MATCH: u32 = 3;
-const DEFAULT_REPETITIONS: u32 = 1;
-const DEFAULT_TIMEOUT_MS: u32 = 2000;
-const DEFAULT_CPU_LIMIT: f64 = 1.0;
-const DEFAULT_TURN_TIMEOUT_MS: u64 = 200;
-const DEFAULT_MEMORY_LIMIT_MB: u64 = 64;
-
-fn default_owner_id() -> String {
-    "user:owner".to_string()
-}
+// Use hardcoded game IDs (games are now maintained by developers)
+const TEST_GAME_ID: &str = "rock-paper-scissors";
 
 #[tokio::test]
 async fn test_submission_create() {
@@ -53,31 +44,11 @@ async fn test_submission_create() {
     .await
     .unwrap();
     let user_id = created_user.id.unwrap();
-    // Create a game
-    let game = game::create_game(
-        &db,
-        unique_name("Game "),
-        "Test game".to_string(),
-        GameType::Automated,
-        vec![ProgrammingLanguage::Rust],
-        default_owner_id(),
-        DEFAULT_GAME_CODE.to_string(),
-        ProgrammingLanguage::Rust,
-        None,
-        DEFAULT_ROUNDS_PER_MATCH,
-        DEFAULT_REPETITIONS,
-        DEFAULT_TIMEOUT_MS,
-        DEFAULT_CPU_LIMIT,
-        DEFAULT_TURN_TIMEOUT_MS,
-        DEFAULT_MEMORY_LIMIT_MB,
-    )
-    .await
-    .unwrap();
-    let game_id = game.id.unwrap();
+    // Use hardcoded game (games are now maintained by developers)
     // Create a tournament
     let tournament_data = tournament::create_tournament(
         &db,
-        game_id.clone(),
+        TEST_GAME_ID.to_string(),
         unique_name("Tournament "),
         "Test tournament".to_string(),
         2,
@@ -99,7 +70,7 @@ async fn test_submission_create() {
         &db,
         user_id.clone(),
         tournament_id.clone(),
-        game_id.clone(),
+        TEST_GAME_ID.to_string(),
         ProgrammingLanguage::Rust,
         code.to_string(),
     )
@@ -112,7 +83,7 @@ async fn test_submission_create() {
 #[tokio::test]
 async fn test_submission_get() {
     let db = setup_test_db().await;
-    // Create user, game, tournament
+    // Create user and tournament
     let auth_service = AuthService::new("test-secret".to_string(), 3600);
     let user_email = unique_name("user") + "@test.com";
     let password_hash = auth_service.hash_password("password123").unwrap();
@@ -128,29 +99,10 @@ async fn test_submission_get() {
     .await
     .unwrap();
     let user_id = created_user.id.unwrap();
-    let game = game::create_game(
-        &db,
-        unique_name("Game "),
-        "Test game".to_string(),
-        GameType::Automated,
-        vec![ProgrammingLanguage::Rust],
-        default_owner_id(),
-        DEFAULT_GAME_CODE.to_string(),
-        ProgrammingLanguage::Rust,
-        None,
-        DEFAULT_ROUNDS_PER_MATCH,
-        DEFAULT_REPETITIONS,
-        DEFAULT_TIMEOUT_MS,
-        DEFAULT_CPU_LIMIT,
-        DEFAULT_TURN_TIMEOUT_MS,
-        DEFAULT_MEMORY_LIMIT_MB,
-    )
-    .await
-    .unwrap();
-    let game_id = game.id.unwrap();
+    // Use hardcoded game (games are now maintained by developers)
     let tournament_data = tournament::create_tournament(
         &db,
-        game_id.clone(),
+        TEST_GAME_ID.to_string(),
         unique_name("Tournament "),
         "Test tournament".to_string(),
         2,
@@ -172,7 +124,7 @@ async fn test_submission_get() {
         &db,
         user_id.clone(),
         tournament_id.clone(),
-        game_id.clone(),
+        TEST_GAME_ID.to_string(),
         ProgrammingLanguage::Rust,
         code.to_string(),
     )
@@ -189,7 +141,7 @@ async fn test_submission_get() {
 #[tokio::test]
 async fn test_submission_list_by_user() {
     let db = setup_test_db().await;
-    // Create user, game, tournament
+    // Create user and tournament
     let auth_service = AuthService::new("test-secret".to_string(), 3600);
     let user_email = unique_name("user") + "@test.com";
     let password_hash = auth_service.hash_password("password123").unwrap();
@@ -205,29 +157,10 @@ async fn test_submission_list_by_user() {
     .await
     .unwrap();
     let user_id = created_user.id.unwrap();
-    let game = game::create_game(
-        &db,
-        unique_name("Game "),
-        "Test game".to_string(),
-        GameType::Automated,
-        vec![ProgrammingLanguage::Rust],
-        default_owner_id(),
-        DEFAULT_GAME_CODE.to_string(),
-        ProgrammingLanguage::Rust,
-        None,
-        DEFAULT_ROUNDS_PER_MATCH,
-        DEFAULT_REPETITIONS,
-        DEFAULT_TIMEOUT_MS,
-        DEFAULT_CPU_LIMIT,
-        DEFAULT_TURN_TIMEOUT_MS,
-        DEFAULT_MEMORY_LIMIT_MB,
-    )
-    .await
-    .unwrap();
-    let game_id = game.id.unwrap();
+    // Use hardcoded game (games are now maintained by developers)
     let tournament_data = tournament::create_tournament(
         &db,
-        game_id.clone(),
+        TEST_GAME_ID.to_string(),
         unique_name("Tournament "),
         "Test tournament".to_string(),
         2,
@@ -248,7 +181,7 @@ async fn test_submission_list_by_user() {
         &db,
         user_id.clone(),
         tournament_id.clone(),
-        game_id.clone(),
+        TEST_GAME_ID.to_string(),
         ProgrammingLanguage::Rust,
         "fn main() { println!(\"1\"); }".to_string(),
     )
@@ -258,7 +191,7 @@ async fn test_submission_list_by_user() {
         &db,
         user_id.clone(),
         tournament_id.clone(),
-        game_id.clone(),
+        TEST_GAME_ID.to_string(),
         ProgrammingLanguage::Rust,
         "fn main() { println!(\"2\"); }".to_string(),
     )

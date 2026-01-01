@@ -2,7 +2,7 @@ use anyhow::Result;
 use game_framework::GameLogic;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum Move {
     Rock,
     Paper,
@@ -78,7 +78,10 @@ impl GameLogic for RockPaperScissorsGame {
             // Draw: no score change
 
             state.round += 1;
-            // Don't clear last moves - they're used for display
+
+            // Clear moves for next round
+            state.last_move_player1 = None;
+            state.last_move_player2 = None;
         }
 
         Ok(())

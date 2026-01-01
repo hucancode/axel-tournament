@@ -3,6 +3,14 @@ name = "rock-paper-scissors-server"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+name = "rock_paper_scissors"
+path = "src/lib.rs"
+
+[[bin]]
+name = "rock-paper-scissors-server"
+path = "src/main.rs"
+
 [dependencies]
 anyhow = "1"
 game-framework = { path = "../game-framework" }

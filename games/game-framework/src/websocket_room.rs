@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{broadcast, RwLock};
-use tracing::{info, warn};
+use tracing::info;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
@@ -53,6 +53,19 @@ pub struct RoomState<G: GameLogic> {
     pub max_rounds: u32,
     pub current_round: Arc<RwLock<u32>>,
     pub tx: broadcast::Sender<GameMessage>,
+}
+
+impl<G: GameLogic> Clone for RoomState<G> {
+    fn clone(&self) -> Self {
+        RoomState {
+            room_id: self.room_id.clone(),
+            players: Arc::clone(&self.players),
+            game_state: Arc::clone(&self.game_state),
+            max_rounds: self.max_rounds,
+            current_round: Arc::clone(&self.current_round),
+            tx: self.tx.clone(),
+        }
+    }
 }
 
 pub type AppState<G> = Arc<RwLock<HashMap<String, RoomState<G>>>>;

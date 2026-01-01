@@ -51,23 +51,6 @@ pub fn unique_name(prefix: &str) -> String {
     format!("{}{}_{}", prefix, timestamp, counter)
 }
 
-pub fn game_payload(name: String, description: &str) -> Value {
-    json!({
-        "name": name,
-        "description": description,
-        "game_type": "automated",
-        "supported_languages": ["rust"],
-        "game_code": "fn main() {}",
-        "game_language": "rust",
-        "frontend_code": null,
-        "rounds_per_match": 3,
-        "repetitions": 1,
-        "timeout_ms": 5000,
-        "cpu_limit": 1.0,
-        "turn_timeout_ms": 200,
-        "memory_limit_mb": 64
-    })
-}
 
 pub async fn setup_app() -> TestApp {
     let config = Config::from_env().expect("Failed to load config from environment");
@@ -141,50 +124,3 @@ pub async fn admin_token(app: &TestApp) -> String {
     body["token"].as_str().unwrap_or_default().to_string()
 }
 
-pub async fn game_setter_token(app: &TestApp) -> String {
-    // Register a game setter user with unique email
-    let unique_email = format!("gamesetter{}@test.com", unique_name(""));
-    let unique_username = format!("gamesetter{}", unique_name(""));
-
-    let (_, body) = json_request(
-        app,
-        http::Method::POST,
-        "/api/auth/register",
-        Some(json!({
-            "email": unique_email,
-            "username": unique_username,
-            "password": "password123",
-            "location": "US"
-        })),
-        None,
-    )
-    .await;
-
-    let user_id_str = body["user"]["id"].as_str().unwrap();
-    let user_id: surrealdb::sql::Thing = user_id_str.parse().unwrap();
-
-    // Update user role to gamesetter via direct DB access
-    // Note: In production, this would be done by admin
-    let _: Result<Option<serde_json::Value>, _> = app
-        .state
-        .db
-        .query("UPDATE $user_id SET role = 'gamesetter'")
-        .bind(("user_id", user_id))
-        .await
-        .and_then(|mut r| r.take(0));
-
-    // Login again to get token with updated role
-    let (_, login_body) = json_request(
-        app,
-        http::Method::POST,
-        "/api/auth/login",
-        Some(json!({
-            "email": unique_email,
-            "password": "password123",
-        })),
-        None,
-    )
-    .await;
-
-    login_body["token"].as_str().unwrap_or_default().to_string()
-}

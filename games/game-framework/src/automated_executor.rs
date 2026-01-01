@@ -1,6 +1,5 @@
 use crate::docker_player::DockerPlayer;
 use crate::game_trait::{GameConfig, GameLogic};
-use anyhow::Result;
 use tokio::time::Duration;
 use tracing::warn;
 
