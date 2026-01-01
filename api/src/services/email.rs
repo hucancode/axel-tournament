@@ -44,15 +44,22 @@ impl EmailService {
             .header(ContentType::TEXT_PLAIN)
             .body(email_body)
             .map_err(|e| ApiError::Internal(format!("Failed to build email: {}", e)))?;
-        let creds = Credentials::new(
-            self.config.smtp_username.clone(),
-            self.config.smtp_password.clone(),
-        );
-        let mailer = SmtpTransport::relay(&self.config.smtp_host)
-            .map_err(|e| ApiError::Internal(format!("Failed to build SMTP transport: {}", e)))?
-            .port(self.config.smtp_port)
-            .credentials(creds)
-            .build();
+        let mailer = if self.config.smtp_use_tls {
+            let creds = Credentials::new(
+                self.config.smtp_username.clone(),
+                self.config.smtp_password.clone(),
+            );
+            SmtpTransport::relay(&self.config.smtp_host)
+                .map_err(|e| ApiError::Internal(format!("Failed to build SMTP transport: {}", e)))?
+                .port(self.config.smtp_port)
+                .credentials(creds)
+                .build()
+        } else {
+            // For non-TLS (test environments like Mailpit), don't use authentication
+            SmtpTransport::builder_dangerous(&self.config.smtp_host)
+                .port(self.config.smtp_port)
+                .build()
+        };
         mailer.send(&email).map_err(|e| {
             ApiError::Internal(format!("Failed to send email: {}", e))
         })?;

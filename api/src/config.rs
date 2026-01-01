@@ -56,6 +56,7 @@ pub struct EmailConfig {
     pub smtp_password: String,
     pub from_address: String,
     pub frontend_url: String,
+    pub smtp_use_tls: bool,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -106,17 +107,21 @@ impl Config {
                     .unwrap_or(300),
             },
             email: EmailConfig {
-                smtp_host: env::var("SMTP_HOST").unwrap_or_else(|_| "smtp.gmail.com".to_string()),
+                smtp_host: env::var("SMTP_HOST").unwrap_or_else(|_| "localhost".to_string()),
                 smtp_port: env::var("SMTP_PORT")
-                    .unwrap_or_else(|_| "587".to_string())
+                    .unwrap_or_else(|_| "1025".to_string())
                     .parse()
                     .unwrap_or(587),
-                smtp_username: env::var("SMTP_USERNAME").unwrap_or_else(|_| "".to_string()),
-                smtp_password: env::var("SMTP_PASSWORD").unwrap_or_else(|_| "".to_string()),
+                smtp_username: env::var("SMTP_USERNAME").unwrap_or_else(|_| "test".to_string()),
+                smtp_password: env::var("SMTP_PASSWORD").unwrap_or_else(|_| "test".to_string()),
                 from_address: env::var("EMAIL_FROM")
-                    .unwrap_or_else(|_| "noreply@axel-tournament.com".to_string()),
+                    .unwrap_or_else(|_| "noreply@domain.com".to_string()),
                 frontend_url: env::var("FRONTEND_URL")
                     .unwrap_or_else(|_| "http://localhost:5173".to_string()),
+                smtp_use_tls: env::var("SMTP_USE_TLS")
+                    .unwrap_or_else(|_| "false".to_string())
+                    .parse()
+                    .unwrap_or(false),
             },
             app: AppConfig {
                 max_code_size_mb: env::var("MAX_CODE_SIZE_MB")

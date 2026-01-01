@@ -47,7 +47,8 @@ async fn register_and_login_flow() {
     assert!(login_body["token"].is_string());
 }
 
-// #[tokio::test]
+#[tokio::test]
+// require a mail server
 async fn password_reset_round_trip() {
     let app = common::setup_app().await;
     let email = format!("{}@test.com", common::unique_name("reset_user"));
