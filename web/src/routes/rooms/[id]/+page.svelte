@@ -4,11 +4,20 @@
   import { page } from '$app/state';
   import { roomService } from '$lib/services/rooms';
   import { gameService } from '$lib/services/games';
-  import TicTacToe from '$lib/components/games/TicTacToe.svelte';
-  import RockPaperScissors from '$lib/components/games/RockPaperScissors.svelte';
-  import PrisonersDilemma from '$lib/components/games/PrisonersDilemma.svelte';
+  import { createGame } from '$lib/games/registry';
+  import type { BasePixiGame } from '$lib/games/BasePixiGame';
   import Alert from '$lib/components/Alert.svelte';
   import type { Room, Game } from '$lib/types';
+
+  const roomId = page.params.id!;
+  let room = $state<Room | null>(null);
+  let game = $state<Game | null>(null);
+  let loading = $state(true);
+  let error = $state<string | null>(null);
+  let ws: WebSocket | null = null;
+  let wsConnected = $state(false);
+  let canvas: HTMLCanvasElement;
+  let pixiGame: BasePixiGame | null = null;
 
   const roomId = page.params.id!;
   let room = $state<Room | null>(null);
@@ -35,11 +44,11 @@
       return;
     }
     loadRoomData().then(() => {
-      // Setup WebSocket after game data is loaded
       setupWebSocket();
     });
 
     return () => {
+      pixiGame?.destroy();
       ws?.close();
     };
   });
@@ -54,12 +63,24 @@
 
       const gameData = await gameService.get(room.game_id);
       game = gameData;
+
+      // Initialize PixiJS game if room is playing
+      if (room.status === 'playing' && canvas) {
+        initializeGame();
+      }
     } catch (err) {
       error = err instanceof Error ? err.message : 'Failed to load room data';
       console.error('Failed to load room data:', err);
     } finally {
       loading = false;
     }
+  }
+
+  function initializeGame() {
+    if (!room || !canvas) return;
+    
+    pixiGame?.destroy();
+    pixiGame = createGame(room.game_id, canvas, ws, wsConnected);
   }
 
   function setupWebSocket() {
@@ -108,12 +129,15 @@
   async function startGame() {
     try {
       error = null;
-      // Update the database via REST API to mark game as started
       await roomService.start(roomId);
       console.log('Game started via API');
 
-      // Reload room data to update UI
       await loadRoomData();
+      
+      // Initialize game after status change
+      if (canvas) {
+        initializeGame();
+      }
     } catch (err) {
       error = err instanceof Error ? err.message : 'Failed to start game';
       console.error('Failed to start game:', err);
@@ -166,23 +190,7 @@
       <div class="game-area">
         {#if room.status === 'playing'}
           <div class="playing-area">
-            {#if room.game_id === 'tic-tac-toe'}
-              <TicTacToe {ws} {wsConnected} />
-            {:else if room.game_id === 'rock-paper-scissors'}
-              <RockPaperScissors {ws} {wsConnected} />
-            {:else if room.game_id === 'prisoners-dilemma'}
-              <PrisonersDilemma {ws} {wsConnected} />
-            {:else}
-              <div class="unsupported-game">
-                <h2>Game: {game?.name || 'Unknown'}</h2>
-                <p>This game is not yet supported for interactive play.</p>
-                {#if wsConnected}
-                  <p class="status-connected">✓ Connected to game server</p>
-                {:else}
-                  <p class="status-disconnected">⚠ Connecting to game server...</p>
-                {/if}
-              </div>
-            {/if}
+            <canvas bind:this={canvas}></canvas>
           </div>
         {:else if room.status === 'waiting'}
           <div class="waiting-area">
@@ -296,9 +304,9 @@
     padding: 2rem;
   }
 
-  .unsupported-game {
-    text-align: center;
-    padding: 2rem;
+  canvas {
+    border: 1px solid #ddd;
+    border-radius: 8px;
   }
 
   .waiting-area, .game-finished {
