@@ -39,7 +39,7 @@ async fn connect_db() -> Result<Surreal<Client>> {
 async fn create_test_submission(db: &Surreal<Client>, tournament_id: &str) -> Result<Thing> {
     // Add a small delay to avoid race conditions when creating multiple submissions
     tokio::time::sleep(tokio::time::Duration::from_millis(1)).await;
-    
+
     // First create a test tournament (use UPSERT to handle existing records)
     let _tournament_result = db.query(
         "UPSERT $tournament_id SET
@@ -202,11 +202,11 @@ async fn test_e2e_judge_workflow() -> Result<()> {
                 capacity_clone,
             ) => {
                 if let Err(e) = result {
-                    eprintln!("Match watcher error: {}", e);
+                    panic!("Match watcher error: {}", e);
                 }
             }
             _ = sleep(Duration::from_secs(30)) => {
-                println!("Match watcher timeout after 30 seconds");
+                panic!("Match watcher timeout after 30 seconds");
             }
         }
     });
@@ -309,7 +309,7 @@ async fn test_judge_on_demand_compilation() -> Result<()> {
                 capacity_clone,
             ) => {
                 if let Err(e) = result {
-                    eprintln!("Match watcher error: {}", e);
+                    panic!("Match watcher error: {}", e);
                 }
             }
             _ = sleep(Duration::from_secs(30)) => {

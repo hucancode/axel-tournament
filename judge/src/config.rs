@@ -3,6 +3,7 @@ use std::env;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
+    pub server_host: String,
     pub server_port: u16,
     pub database_url: String,
     pub database_ns: String,
@@ -16,8 +17,10 @@ pub struct Config {
 impl Config {
     pub fn from_env() -> Result<Self, env::VarError> {
         Ok(Config {
+            server_host: env::var("SERVER_HOST")
+                .unwrap_or_else(|_| "0.0.0.0".to_string()),
             server_port: env::var("SERVER_PORT")
-                .unwrap_or_else(|_| "8080".to_string())
+                .unwrap_or_else(|_| "8081".to_string())
                 .parse()
                 .unwrap_or(8080),
             database_url: env::var("DATABASE_URL")

@@ -4,6 +4,7 @@ use surrealdb::Surreal;
 use surrealdb::engine::remote::ws::{Client, Ws};
 use surrealdb::opt::auth::Root;
 use surrealdb::sql::Datetime;
+use tracing::{info, warn, error};
 
 // Type alias for database connection
 pub type Database = Surreal<Client>;
@@ -28,12 +29,12 @@ pub async fn connect(config: &DatabaseConfig) -> Result<Database, surrealdb::Err
                             .await?;
                         // Initialize schema
                         init_schema(&db).await?;
-                        eprintln!("Successfully connected to database at {}", config.url);
+                        info!("Successfully connected to database at {}", config.url);
                         return Ok(db);
                     }
                     Err(e) if retry_count < max_retries => {
                         retry_count += 1;
-                        eprintln!(
+                        warn!(
                             "Database signin failed (attempt {}/{}): {}. Retrying in 2s...",
                             retry_count, max_retries, e
                         );
@@ -44,7 +45,7 @@ pub async fn connect(config: &DatabaseConfig) -> Result<Database, surrealdb::Err
             }
             Err(e) if retry_count < max_retries => {
                 retry_count += 1;
-                eprintln!(
+                error!(
                     "Database connection failed (attempt {}/{}): {}. Retrying in 2s...",
                     retry_count, max_retries, e
                 );
@@ -194,8 +195,8 @@ pub async fn seed_admin_user(
             password_reset_expires: None,
         };
         let _admin_user: Option<User> = db.create(("user", "admin")).content(admin).await?;
-        eprintln!("Created admin user");
-        
+        info!("Created admin user");
+
         let alice = User {
             id: None,
             email: "alice@example.com".to_string(),
@@ -213,8 +214,8 @@ pub async fn seed_admin_user(
             password_reset_expires: None,
         };
         let _alice_user: Option<User> = db.create(("user", "alice")).content(alice).await?;
-        eprintln!("Created alice user");
-        
+        info!("Created alice user");
+
         let bob = User {
             id: None,
             email: "bob@example.com".to_string(),
@@ -232,7 +233,7 @@ pub async fn seed_admin_user(
             password_reset_expires: None,
         };
         let _bob_user: Option<User> = db.create(("user", "bob")).content(bob).await?;
-        eprintln!("Created bob user");
+        info!("Created bob user");
     }
     Ok(())
 }

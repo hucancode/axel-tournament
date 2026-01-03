@@ -29,7 +29,4 @@ chrono = { version = "0.4", features = ["serde"] }
 dotenv = "0.15"
 bollard = "0.17"
 async-trait = "0.1.89"
-
-[dev-dependencies]
-tokio-test = "0.4"
 tempfile = "3.0"

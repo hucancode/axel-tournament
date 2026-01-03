@@ -120,27 +120,24 @@ async fn main() -> Result<()> {
         .route("/capacity", get(get_capacity))
         // Room management API
         .route("/api/rooms", post(room::create_room::<games::TicTacToe>))
-        .route("/api/rooms/:room_id", get(room::get_room::<games::TicTacToe>))
-        .route("/api/rooms/:room_id/join", post(room::join_room::<games::TicTacToe>))
-        .route("/api/rooms/:room_id/start", post(room::start_game::<games::TicTacToe>))
+        .route("/api/rooms/{room_id}", get(room::get_room::<games::TicTacToe>))
+        .route("/api/rooms/{room_id}/join", post(room::join_room::<games::TicTacToe>))
+        .route("/api/rooms/{room_id}/start", post(room::start_game::<games::TicTacToe>))
         .with_state(tic_tac_toe_state.clone())
         // WebSocket endpoints
-        .route("/room/tic-tac-toe/:room_id", get(websocket_handler::websocket_room_handler::<games::TicTacToe>))
+        .route("/room/tic-tac-toe/{room_id}", get(websocket_handler::websocket_room_handler::<games::TicTacToe>))
         .with_state(tic_tac_toe_state.clone())
-        .route("/room/rock-paper-scissors/:room_id", get(websocket_handler::websocket_room_handler::<games::RockPaperScissors>))
+        .route("/room/rock-paper-scissors/{room_id}", get(websocket_handler::websocket_room_handler::<games::RockPaperScissors>))
         .with_state(rps_state.clone())
-        .route("/room/prisoners-dilemma/:room_id", get(websocket_handler::websocket_room_handler::<games::PrisonersDilemma>))
+        .route("/room/prisoners-dilemma/{room_id}", get(websocket_handler::websocket_room_handler::<games::PrisonersDilemma>))
         .with_state(pd_state.clone())
         .layer(CorsLayer::permissive());
 
     // Start server
-    let addr = format!("0.0.0.0:{}", config.server_port);
+    let addr = format!("{}:{}", config.server_host, config.server_port);
     let listener = tokio::net::TcpListener::bind(&addr).await?;
-
-    tracing::info!("Game server listening on {}", addr);
-
+    tracing::info!("Starting judge server on {}", addr);
     axum::serve(listener, app).await?;
-
     Ok(())
 }
 

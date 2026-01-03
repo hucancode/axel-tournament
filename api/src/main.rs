@@ -8,6 +8,7 @@ use std::sync::Arc;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    tracing_subscriber::fmt::init();
     // Load configuration
     let config = Config::from_env()?;
     // Connect to database
@@ -31,6 +32,7 @@ async fn main() -> anyhow::Result<()> {
     // Start server
     let addr = format!("{}:{}", config.server.host, config.server.port);
     let listener = tokio::net::TcpListener::bind(&addr).await?;
+    tracing::info!("Starting API server on {}", addr);
     axum::serve(listener, app).await?;
     Ok(())
 }
