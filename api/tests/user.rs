@@ -1,5 +1,3 @@
-mod common;
-
 use axel_tournament::{
     db,
     services::{auth::AuthService, user},
@@ -13,6 +11,14 @@ async fn setup_test_db() -> axel_tournament::db::Database {
         .expect("Failed to connect to test database")
 }
 
+fn unique_name(prefix: &str) -> String {
+    let timestamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    format!("{}{}", prefix, timestamp)
+}
+
 #[tokio::test]
 async fn test_ban_and_unban_user() {
     let db = setup_test_db().await;
@@ -20,8 +26,8 @@ async fn test_ban_and_unban_user() {
     let password_hash = auth_service.hash_password("password123").unwrap();
     let created_user = user::create_user(
         &db,
-        format!("{}@test.com", common::unique_name("user")),
-        common::unique_name("user"),
+        format!("{}@test.com", unique_name("user")),
+        unique_name("user"),
         Some(password_hash),
         "US".to_string(),
         None,
@@ -48,8 +54,8 @@ async fn test_list_users() {
         let password_hash = auth_service.hash_password("password123").unwrap();
         user::create_user(
             &db,
-            format!("{}@test.com", common::unique_name("list_user")),
-            common::unique_name("list_user"),
+            format!("{}@test.com", unique_name("list_user")),
+            unique_name("list_user"),
             Some(password_hash),
             "US".to_string(),
             None,
@@ -60,4 +66,36 @@ async fn test_list_users() {
     }
     let users = user::list_users(&db, Some(5), Some(0)).await.unwrap();
     assert!(users.len() >= 3);
+}
+
+#[tokio::test]
+async fn test_user_profile_update() {
+    let db = setup_test_db().await;
+    let auth_service = AuthService::new("test-secret".to_string(), 3600);
+    
+    // Create user
+    let password_hash = auth_service.hash_password("password123").unwrap();
+    let created_user = user::create_user(
+        &db,
+        format!("{}@test.com", unique_name("profile_user")),
+        unique_name("profile_user"),
+        Some(password_hash),
+        "US".to_string(),
+        None,
+        None,
+    )
+    .await
+    .unwrap();
+    
+    let user_id = created_user.id.clone().unwrap();
+    
+    // Update location
+    let mut updated_user = created_user;
+    updated_user.location = "CA".to_string();
+    
+    let result = user::update_user(&db, user_id.clone(), updated_user).await.unwrap();
+    assert_eq!(result.location, "CA");
+    
+    // Verify update persisted by checking the returned result
+    assert_eq!(result.location, "CA");
 }

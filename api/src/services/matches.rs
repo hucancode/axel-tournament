@@ -38,8 +38,8 @@ pub async fn create_match(
             )));
         }
         participants.push(MatchParticipant {
-            user_id: submission.user_id.unwrap(),
-            submission_id: Some(submission.id.unwrap()),
+            user_id: submission.user_id.clone(),
+            submission_id: submission.id.clone(),
             score: None,
         });
     }

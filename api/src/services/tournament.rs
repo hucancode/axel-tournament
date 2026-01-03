@@ -356,12 +356,12 @@ async fn create_match_for_participants(
         status: MatchStatus::Pending,
         participants: vec![
             MatchParticipant {
-                user_id: p1.user_id.clone().unwrap(),
+                user_id: p1.user_id.clone(),
                 submission_id: Some(submission_id_1),
                 score: None,
             },
             MatchParticipant {
-                user_id: p2.user_id.clone().unwrap(),
+                user_id: p2.user_id.clone(),
                 submission_id: Some(submission_id_2),
                 score: None,
             },

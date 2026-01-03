@@ -227,3 +227,71 @@ async fn test_submission_request_validation() {
     };
     assert!(long_code.validate().is_err());
 }
+
+#[tokio::test]
+async fn test_submission_workflow() {
+    let db = setup_test_db().await;
+    let auth_service = AuthService::new("test-secret".to_string(), 3600);
+    
+    // Create user
+    let user_email = unique_name("workflow_user") + "@test.com";
+    let password_hash = auth_service.hash_password("password123").unwrap();
+    let created_user = axel_tournament::services::user::create_user(
+        &db,
+        user_email.clone(),
+        unique_name("workflow_user"),
+        Some(password_hash),
+        "US".to_string(),
+        None,
+        None,
+    )
+    .await
+    .unwrap();
+    let user_id = created_user.id.unwrap();
+    
+    // Create tournament
+    let tournament_data = tournament::create_tournament(
+        &db,
+        TEST_GAME_ID.to_string(),
+        unique_name("Workflow Tournament "),
+        "Test tournament".to_string(),
+        2,
+        100,
+        None,
+        None,
+        None,
+    )
+    .await
+    .unwrap();
+    let tournament_id = tournament_data.id.unwrap();
+    
+    // Join tournament
+    tournament::join_tournament(&db, tournament_id.clone(), user_id.clone())
+        .await
+        .unwrap();
+    
+    // Create submission
+    let code = "fn main() { println!(\"hello\"); }";
+    let created_submission = submission::create_submission(
+        &db,
+        user_id.clone(),
+        tournament_id.clone(),
+        TEST_GAME_ID.to_string(),
+        ProgrammingLanguage::Rust,
+        code.to_string(),
+    )
+    .await
+    .unwrap();
+    
+    let submission_id = created_submission.id.unwrap();
+    
+    // Get single submission
+    let fetched_submission = submission::get_submission(&db, submission_id.clone()).await.unwrap();
+    assert_eq!(fetched_submission.code, code);
+    assert_eq!(fetched_submission.language, ProgrammingLanguage::Rust);
+    
+    // List user submissions
+    let user_submissions = submission::list_user_submissions(&db, user_id, None).await.unwrap();
+    assert!(!user_submissions.is_empty());
+    assert!(user_submissions.iter().any(|s| s.id == Some(submission_id.clone())));
+}

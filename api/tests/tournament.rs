@@ -1,5 +1,3 @@
-mod common;
-
 use axel_tournament::{
     db,
     models::{CreateTournamentRequest, MatchGenerationType, TournamentStatus},
@@ -16,6 +14,14 @@ async fn setup_test_db() -> axel_tournament::db::Database {
         .expect("Failed to connect to test database")
 }
 
+fn unique_name(prefix: &str) -> String {
+    let timestamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    format!("{}{}", prefix, timestamp)
+}
+
 // Use hardcoded game IDs (games are now maintained by developers)
 const TEST_GAME_ID: &str = "rock-paper-scissors";
 
@@ -25,7 +31,7 @@ async fn test_create_and_get_tournament() {
     let tournament = tournament::create_tournament(
         &db,
         TEST_GAME_ID.to_string(),
-        common::unique_name("Tournament "),
+        unique_name("Tournament "),
         "Test tournament".to_string(),
         2,
         16,
@@ -49,7 +55,7 @@ async fn test_update_tournament_status() {
     let tournament = tournament::create_tournament(
         &db,
         TEST_GAME_ID.to_string(),
-        common::unique_name("Status Tournament "),
+        unique_name("Status Tournament "),
         "Test tournament".to_string(),
         2,
         8,
@@ -82,7 +88,7 @@ async fn test_join_and_leave_tournament() {
     let tournament = tournament::create_tournament(
         &db,
         TEST_GAME_ID.to_string(),
-        common::unique_name("Join Tournament "),
+        unique_name("Join Tournament "),
         "Test tournament".to_string(),
         2,
         8,
@@ -96,8 +102,8 @@ async fn test_join_and_leave_tournament() {
     let password_hash = auth_service.hash_password("password123").unwrap();
     let user = user::create_user(
         &db,
-        format!("{}@test.com", common::unique_name("player")),
-        common::unique_name("player"),
+        format!("{}@test.com", unique_name("player")),
+        unique_name("player"),
         Some(password_hash),
         "US".to_string(),
         None,
@@ -186,7 +192,7 @@ async fn test_start_tournament_all_vs_all() {
     let tournament = tournament::create_tournament(
         &db,
         TEST_GAME_ID.to_string(),
-        common::unique_name("AllVsAll Tournament "),
+        unique_name("AllVsAll Tournament "),
         "Test tournament".to_string(),
         2,
         10,
@@ -204,8 +210,8 @@ async fn test_start_tournament_all_vs_all() {
         let password_hash = auth_service.hash_password("password123").unwrap();
         let user = user::create_user(
             &db,
-            format!("{}@test.com", common::unique_name(&format!("player{}_", i))),
-            common::unique_name(&format!("player{}_", i)),
+            format!("{}@test.com", unique_name(&format!("player{}_", i))),
+            unique_name(&format!("player{}_", i)),
             Some(password_hash),
             "US".to_string(),
             None,
@@ -259,7 +265,7 @@ async fn test_start_tournament_round_robin() {
     let tournament = tournament::create_tournament(
         &db,
         TEST_GAME_ID.to_string(),
-        common::unique_name("RoundRobin Tournament "),
+        unique_name("RoundRobin Tournament "),
         "Test tournament".to_string(),
         2,
         10,
@@ -279,9 +285,9 @@ async fn test_start_tournament_round_robin() {
             &db,
             format!(
                 "{}@test.com",
-                common::unique_name(&format!("rrplayer{}_", i))
+                unique_name(&format!("rrplayer{}_", i))
             ),
-            common::unique_name(&format!("rrplayer{}_", i)),
+            unique_name(&format!("rrplayer{}_", i)),
             Some(password_hash),
             "US".to_string(),
             None,
@@ -335,7 +341,7 @@ async fn test_start_tournament_without_submissions_fails() {
     let tournament = tournament::create_tournament(
         &db,
         TEST_GAME_ID.to_string(),
-        common::unique_name("NoSub Tournament "),
+        unique_name("NoSub Tournament "),
         "Test tournament".to_string(),
         2,
         10,
@@ -352,8 +358,8 @@ async fn test_start_tournament_without_submissions_fails() {
         let password_hash = auth_service.hash_password("password123").unwrap();
         let user = user::create_user(
             &db,
-            format!("{}@test.com", common::unique_name(&format!("nosub{}_", i))),
-            common::unique_name(&format!("nosub{}_", i)),
+            format!("{}@test.com", unique_name(&format!("nosub{}_", i))),
+            unique_name(&format!("nosub{}_", i)),
             Some(password_hash),
             "US".to_string(),
             None,
@@ -381,7 +387,7 @@ async fn test_start_tournament_not_enough_players_fails() {
     let tournament = tournament::create_tournament(
         &db,
         TEST_GAME_ID.to_string(),
-        common::unique_name("MinPlayers Tournament "),
+        unique_name("MinPlayers Tournament "),
         "Test tournament".to_string(),
         5,
         10,
@@ -396,4 +402,64 @@ async fn test_start_tournament_not_enough_players_fails() {
     // Try to start with 0 players - should fail
     let result = tournament::start_tournament(&db, tournament_id.clone()).await;
     assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn test_tournament_participant_management() {
+    let db = setup_test_db().await;
+    let auth_service = AuthService::new("test-secret".to_string(), 3600);
+    
+    // Create tournament
+    let tournament = tournament::create_tournament(
+        &db,
+        TEST_GAME_ID.to_string(),
+        unique_name("Participant Tournament "),
+        "Test tournament".to_string(),
+        2,
+        16,
+        None,
+        None,
+        None,
+    )
+    .await
+    .unwrap();
+    let tournament_id = tournament.id.unwrap();
+    
+    // Create user
+    let password_hash = auth_service.hash_password("password123").unwrap();
+    let user = user::create_user(
+        &db,
+        format!("{}@test.com", unique_name("participant")),
+        unique_name("participant"),
+        Some(password_hash),
+        "US".to_string(),
+        None,
+        None,
+    )
+    .await
+    .unwrap();
+    let user_id = user.id.unwrap();
+    
+    // Join tournament
+    let participant = tournament::join_tournament(&db, tournament_id.clone(), user_id.clone())
+        .await
+        .unwrap();
+    assert_eq!(participant.user_id, user_id);
+    
+    // Verify participant count
+    let participants = tournament::get_tournament_participants(&db, tournament_id.clone())
+        .await
+        .unwrap();
+    assert_eq!(participants.len(), 1);
+    
+    // Leave tournament
+    tournament::leave_tournament(&db, tournament_id.clone(), user_id.clone())
+        .await
+        .unwrap();
+    
+    // Verify participant removed
+    let after_leave = tournament::get_tournament_participants(&db, tournament_id)
+        .await
+        .unwrap();
+    assert!(after_leave.is_empty());
 }
