@@ -37,6 +37,7 @@ pub async fn create_room(
         claims.sub,
         payload.name,
         payload.max_players,
+        payload.human_timeout_ms,
     )
     .await?;
 

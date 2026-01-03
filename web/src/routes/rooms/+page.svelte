@@ -17,6 +17,7 @@
     let selectedGameId = $state("");
     let roomName = $state("");
     let maxPlayers = $state(4);
+    let humanTimeoutMs = $state<number | undefined>(undefined);
     let filterGameId = $state<string>("");
 
     onMount(async () => {
@@ -32,7 +33,7 @@
                 gameService.list(),
             ]);
             rooms = roomsData;
-            games = gamesData.filter((g) => g.game_type === "interactive");
+            games = gamesData;
         } catch (err) {
             error = err instanceof Error ? err.message : "Failed to load data";
             console.error("Failed to load data:", err);
@@ -48,6 +49,7 @@
                 game_id: selectedGameId,
                 name: roomName.trim(),
                 max_players: maxPlayers,
+                human_timeout_ms: humanTimeoutMs,
             };
             const newRoom = await roomService.create(request);
             await loadData();
@@ -77,6 +79,7 @@
         roomName = "";
         selectedGameId = "";
         maxPlayers = 4;
+        humanTimeoutMs = undefined;
     }
 
     function closeCreateModal() {
@@ -91,6 +94,10 @@
 
     function getGameName(gameId: string): string {
         return games.find((g) => g.id === gameId)?.name || "Unknown Game";
+    }
+
+    function getSelectedGame(): Game | undefined {
+        return games.find((g) => g.id === selectedGameId);
     }
 </script>
 
@@ -223,6 +230,22 @@
                 max="8"
                 class="w-full p-2 bg-blueprint-paper"
             />
+        </div>
+        <div class="mb-4">
+            <label for="human-timeout" class="block mb-2 font-medium text-blueprint-ink"
+                >Human Timeout (ms)</label
+            >
+            <input
+                id="human-timeout"
+                type="number"
+                bind:value={humanTimeoutMs}
+                placeholder={getSelectedGame()?.human_timeout_ms?.toString() || "Default"}
+                min="1000"
+                class="w-full p-2 bg-blueprint-paper"
+            />
+            <p class="text-sm text-blueprint-ink-light mt-1">
+                Leave empty to use game default ({getSelectedGame()?.human_timeout_ms || 'N/A'}ms)
+            </p>
         </div>
     {/snippet}
 </Dialog>

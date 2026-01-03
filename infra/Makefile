@@ -7,7 +7,6 @@ export
 
 # Default variables
 CLUSTER_NAME ?= axel-eks
-CONTAINER_RUNTIME ?= docker
 SMTP_PORT ?= 587
 DEFAULT_EMAIL_FROM := noreply@axel-tournament.com
 
@@ -15,9 +14,7 @@ DEFAULT_EMAIL_FROM := noreply@axel-tournament.com
 TF_ECR_WEB := $(shell terraform output -raw ecr_web_repository 2>/dev/null)
 TF_ECR_API := $(shell terraform output -raw ecr_api_repository 2>/dev/null)
 TF_ECR_HEALER := $(shell terraform output -raw ecr_healer_repository 2>/dev/null)
-TF_ECR_GAME_RPS := $(shell terraform output -raw ecr_game_rps_repository 2>/dev/null)
-TF_ECR_GAME_PRISONERS_DILEMMA := $(shell terraform output -raw ecr_game_prisoners_dilemma_repository 2>/dev/null)
-TF_ECR_GAME_TIC_TAC_TOE := $(shell terraform output -raw ecr_game_tic_tac_toe_repository 2>/dev/null)
+TF_ECR_JUDGE := $(shell terraform output -raw ecr_judge_repository 2>/dev/null)
 TF_SES_SMTP_HOST := $(shell terraform output -raw ses_smtp_host 2>/dev/null)
 TF_SES_SMTP_USERNAME := $(shell terraform output -raw ses_smtp_username 2>/dev/null)
 TF_SES_SMTP_PASSWORD := $(shell terraform output -raw ses_smtp_password 2>/dev/null)
@@ -30,10 +27,8 @@ TF_ROUTE53_ZONE_ID := $(shell terraform output -raw route53_zone_id 2>/dev/null)
 FRONTEND_IMAGE := $(TF_ECR_WEB):latest
 BACKEND_IMAGE := $(TF_ECR_API):latest
 HEALER_IMAGE := $(TF_ECR_HEALER):latest
-GAME_RPS_IMAGE := $(TF_ECR_GAME_RPS):latest
-GAME_PRISONERS_DILEMMA_IMAGE := $(TF_ECR_GAME_PRISONERS_DILEMMA):latest
-GAME_TIC_TAC_TOE_IMAGE := $(TF_ECR_GAME_TIC_TAC_TOE):latest
-SANDBOX_IMAGE := axel-sandbox
+JUDGE_IMAGE := $(TF_ECR_JUDGE):latest
+SANDBOX_IMAGE := debian:trixie-slim
 SMTP_HOST := $(TF_SES_SMTP_HOST)
 SMTP_USERNAME := $(TF_SES_SMTP_USERNAME)
 SMTP_PASSWORD := $(TF_SES_SMTP_PASSWORD)
@@ -83,9 +78,7 @@ k8s-up: push-images
 	@test -n "$(FRONTEND_IMAGE)" || (echo "FRONTEND_IMAGE is required" && exit 1)
 	@test -n "$(BACKEND_IMAGE)" || (echo "BACKEND_IMAGE is required" && exit 1)
 	@test -n "$(HEALER_IMAGE)" || (echo "HEALER_IMAGE is required" && exit 1)
-	@test -n "$(GAME_RPS_IMAGE)" || (echo "GAME_RPS_IMAGE is required" && exit 1)
-	@test -n "$(GAME_PRISONERS_DILEMMA_IMAGE)" || (echo "GAME_PRISONERS_DILEMMA_IMAGE is required" && exit 1)
-	@test -n "$(GAME_TIC_TAC_TOE_IMAGE)" || (echo "GAME_TIC_TAC_TOE_IMAGE is required" && exit 1)
+	@test -n "$(JUDGE_IMAGE)" || (echo "JUDGE_IMAGE is required" && exit 1)
 	@test -n "$(GOOGLE_CLIENT_ID)" || (echo "GOOGLE_CLIENT_ID is required in .env" && exit 1)
 	@test -n "$(GOOGLE_CLIENT_SECRET)" || (echo "GOOGLE_CLIENT_SECRET is required in .env" && exit 1)
 	@test -n "$(DOMAIN_NAME)" || (echo "DOMAIN_NAME is required" && exit 1)
@@ -113,12 +106,12 @@ k8s-up: push-images
 	export FRONTEND_URL="https://$(DOMAIN_NAME)"; \
 	export GOOGLE_REDIRECT_URI="https://api.$(DOMAIN_NAME)/api/auth/google/callback";
 	@envsubst < k8s/apps/backend.yaml | kubectl apply -f -
-	@envsubst < k8s/apps/game-servers.yaml | kubectl apply -f -
+	@envsubst < k8s/apps/judge.yaml | kubectl apply -f -
 	@envsubst < k8s/apps/healer.yaml | kubectl apply -f -
 	@envsubst < k8s/apps/frontend.yaml | kubectl apply -f -
 	@echo "Deploying ingress resources..."
 	@envsubst < k8s/apps/ingress/backend.yaml | kubectl apply -f -
-	@envsubst < k8s/apps/ingress/game-servers.yaml | kubectl apply -f -
+	@envsubst < k8s/apps/ingress/judge.yaml | kubectl apply -f -
 	@envsubst < k8s/apps/ingress/frontend.yaml | kubectl apply -f -
 	@echo "Waiting for TLS certificates to be issued..."
 	@kubectl -n backend wait --for=condition=Ready certificate/backend-tls-cert --timeout=300s
@@ -167,46 +160,26 @@ push-images: sandbox
 	@test -n "$(TF_ECR_WEB)" || (echo "ECR_WEB_REPO not found. Run 'make aws-up' first." && exit 1)
 	@test -n "$(TF_ECR_API)" || (echo "ECR_API_REPO not found. Run 'make aws-up' first." && exit 1)
 	@test -n "$(TF_ECR_HEALER)" || (echo "ECR_HEALER_REPO not found. Run 'make aws-up' first." && exit 1)
-	@test -n "$(TF_ECR_GAME_RPS)" || (echo "ECR_GAME_RPS_REPO not found. Run 'make aws-up' first." && exit 1)
-	@test -n "$(TF_ECR_GAME_PRISONERS_DILEMMA)" || (echo "ECR_GAME_PRISONERS_DILEMMA_REPO not found. Run 'make aws-up' first." && exit 1)
-	@test -n "$(TF_ECR_GAME_TIC_TAC_TOE)" || (echo "ECR_GAME_TIC_TAC_TOE_REPO not found. Run 'make aws-up' first." && exit 1)
+	@test -n "$(TF_ECR_JUDGE)" || (echo "ECR_JUDGE_REPO not found. Run 'make aws-up' first." && exit 1)
 	@ECR_REGISTRY=$$(echo "$(TF_ECR_WEB)" | cut -d/ -f1); \
 	echo "Logging in to ECR $$ECR_REGISTRY..."; \
-	aws ecr get-login-password | $(CONTAINER_RUNTIME) login --username AWS --password-stdin $$ECR_REGISTRY; \
+	aws ecr get-login-password | docker login --username AWS --password-stdin $$ECR_REGISTRY; \
 	echo "Building and pushing frontend image..."; \
-	$(CONTAINER_RUNTIME) build -t $(FRONTEND_IMAGE) ../web; \
-	$(CONTAINER_RUNTIME) push $(FRONTEND_IMAGE); \
+	docker build -t $(FRONTEND_IMAGE) ../web; \
+	docker push $(FRONTEND_IMAGE); \
 	echo "Building and pushing backend image..."; \
-	$(CONTAINER_RUNTIME) build -t $(BACKEND_IMAGE) ../api; \
-	$(CONTAINER_RUNTIME) push $(BACKEND_IMAGE); \
+	docker build -t $(BACKEND_IMAGE) ../api; \
+	docker push $(BACKEND_IMAGE); \
 	echo "Building and pushing healer image..."; \
-	$(CONTAINER_RUNTIME) build -t $(HEALER_IMAGE) ../healer; \
-	$(CONTAINER_RUNTIME) push $(HEALER_IMAGE); \
-	echo "Building and pushing Rock Paper Scissors game server..."; \
-	$(CONTAINER_RUNTIME) build -t $(GAME_RPS_IMAGE) ../games/rock-paper-scissors; \
-	$(CONTAINER_RUNTIME) push $(GAME_RPS_IMAGE); \
-	echo "Building and pushing Prisoner's Dilemma game server..."; \
-	$(CONTAINER_RUNTIME) build -t $(GAME_PRISONERS_DILEMMA_IMAGE) ../games/prisoners-dilemma; \
-	$(CONTAINER_RUNTIME) push $(GAME_PRISONERS_DILEMMA_IMAGE); \
-	echo "Building and pushing Tic Tac Toe game server..."; \
-	$(CONTAINER_RUNTIME) build -t $(GAME_TIC_TAC_TOE_IMAGE) ../games/tic-tac-toe; \
-	$(CONTAINER_RUNTIME) push $(GAME_TIC_TAC_TOE_IMAGE); \
+	docker build -t $(HEALER_IMAGE) ../healer; \
+	docker push $(HEALER_IMAGE); \
+	echo "Building and pushing unified judge image..."; \
+	docker build -t $(JUDGE_IMAGE) ../judge; \
+	docker push $(JUDGE_IMAGE); \
 	echo "All images built and pushed successfully"
 
 sandbox:
-	@echo "Building runtime sandbox image..."
-	@cd ../games/game-framework && $(CONTAINER_RUNTIME) build -f sandbox.Dockerfile -t axel-sandbox .
-	@mkdir -p ../games/game-framework/target
-	@echo "Pulling standard compiler images..."
-	@$(CONTAINER_RUNTIME) pull rust:1.92-alpine
-	@$(CONTAINER_RUNTIME) pull golang:1.25-alpine
-	@$(CONTAINER_RUNTIME) pull gcc:15-alpine
-	@echo "Creating image tars for game servers..."
-	@$(CONTAINER_RUNTIME) save axel-sandbox -o ../games/game-framework/target/sandbox.tar
-	@$(CONTAINER_RUNTIME) save rust:1.92-alpine -o ../games/game-framework/target/rust-compiler.tar
-	@$(CONTAINER_RUNTIME) save golang:1.25-alpine -o ../games/game-framework/target/go-compiler.tar
-	@$(CONTAINER_RUNTIME) save gcc:15-alpine -o ../games/game-framework/target/c-compiler.tar
-	@echo "All sandbox images created in ../games/game-framework/target/"
+	@$(MAKE) -C ../judge pull-image
 
 k8s-down:
 	@export GOOGLE_CLIENT_ID="$${GOOGLE_CLIENT_ID:-placeholder}"; \
@@ -215,11 +188,11 @@ k8s-down:
 	export PUBLIC_API_URL="placeholder"; \
 	export FRONTEND_URL="placeholder"; \
 	envsubst < k8s/apps/frontend.yaml | kubectl delete -f - --ignore-not-found; \
-	envsubst < k8s/apps/game-servers.yaml | kubectl delete -f - --ignore-not-found; \
+	envsubst < k8s/apps/judge.yaml | kubectl delete -f - --ignore-not-found; \
 	envsubst < k8s/apps/healer.yaml | kubectl delete -f - --ignore-not-found; \
 	envsubst < k8s/apps/backend.yaml | kubectl delete -f - --ignore-not-found
 	@envsubst < k8s/apps/ingress/backend.yaml | kubectl delete -f - --ignore-not-found
-	@envsubst < k8s/apps/ingress/game-servers.yaml | kubectl delete -f - --ignore-not-found
+	@envsubst < k8s/apps/ingress/judge.yaml | kubectl delete -f - --ignore-not-found
 	@envsubst < k8s/apps/ingress/frontend.yaml | kubectl delete -f - --ignore-not-found
 	@kubectl delete -f k8s/apps/surrealdb.yaml --ignore-not-found
 	@kubectl delete -f k8s/addons/gp3-storageclass.yaml --ignore-not-found

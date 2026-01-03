@@ -24,7 +24,7 @@
     ];
 
     const auth = $derived($authStore);
-    const canManageTournaments = $derived(auth.isAuthenticated && (auth.user?.role === "admin" || auth.user?.role === "gamesetter"));
+    const canManageTournaments = $derived(auth.isAuthenticated && auth.user?.role === "admin");
 
     onMount(async () => {
         await loadTournaments();

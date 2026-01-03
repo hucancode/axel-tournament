@@ -1,7 +1,6 @@
 .PHONY: test-db-up test-db-down test-mail-server-up test-mail-server-down
 
 # Container runtime (docker or podman)
-CONTAINER_RUNTIME := docker
 DATABASE_PORT ?= 8000
 DATABASE_URL ?= ws://localhost:$(DATABASE_PORT)
 SMTP_PORT ?= 1025
@@ -10,7 +9,7 @@ SMTP_WEB_PORT ?= 8025
 # Start test database (in-memory SurrealDB)
 test-db-up:
 	@echo "Starting test SurrealDB instance on port $(DATABASE_PORT)..."
-	@$(CONTAINER_RUNTIME) run -d --rm \
+	@docker run -d --rm \
 		--name surrealdb-test \
 		-p $(DATABASE_PORT):8000 \
 		surrealdb/surrealdb:latest \
@@ -22,12 +21,12 @@ test-db-up:
 # Stop test database
 test-db-down:
 	@echo "Stopping test SurrealDB instance..."
-	@$(CONTAINER_RUNTIME) stop surrealdb-test
+	@docker stop surrealdb-test
 
 # Start test mail server (Mailpit)
 test-mail-server-up:
 	@echo "Starting Mailpit instance on SMTP port $(SMTP_PORT) and web UI port $(SMTP_WEB_PORT)..."
-	@$(CONTAINER_RUNTIME) run -d --rm \
+	@docker run -d --rm \
 		--name mailpit-test \
 		-p $(SMTP_PORT):1025 \
 		-p $(SMTP_WEB_PORT):8025 \
@@ -41,4 +40,4 @@ test-mail-server-up:
 # Stop test mail server
 test-mail-server-down:
 	@echo "Stopping Mailpit instance..."
-	@$(CONTAINER_RUNTIME) stop mailpit-test
+	@docker stop mailpit-test

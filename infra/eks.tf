@@ -66,19 +66,19 @@ module "eks" {
     }
 
     # Node group for game servers (CPU-heavy workloads with Docker-in-Docker)
-    game-server = {
-      name           = "game-server"
+    judge = {
+      name           = "judge"
       instance_types = [var.game_server_instance_type]
       desired_size   = var.game_server_desired_size
       min_size       = var.game_server_min_size
       max_size       = var.game_server_max_size
       labels = {
-        role = "game-server"
+        role = "judge"
       }
       taints = {
         dedicated = {
           key    = "dedicated"
-          value  = "game-server"
+          value  = "judge"
           effect = "NO_SCHEDULE"
         }
       }

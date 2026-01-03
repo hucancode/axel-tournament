@@ -1,11 +1,10 @@
 [package]
-name = "axel-healer"
+name = "healer"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 anyhow = "1"
-bollard = "0.16"
 chrono = { version = "0.4", features = ["serde"] }
 futures-util = "0.3"
 serde = { version = "1.0", features = ["derive"] }
@@ -13,3 +12,4 @@ surrealdb = { version = "2.4", features = ["protocol-ws"] }
 tokio = { version = "1", features = ["full"] }
 tracing = "0.1"
 tracing-subscriber = "0.3"
+dotenv = "0.15"

@@ -1,4 +1,4 @@
-FROM rust:1.92-slim AS builder
+FROM rust:slim-trixie AS builder
 
 WORKDIR /app
 
@@ -15,7 +15,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     cargo build --release && \
     cp /app/target/release/axel-tournament axel-tournament
 
-FROM debian:bookworm-slim
+FROM debian:trixie-slim
 
 WORKDIR /app
 

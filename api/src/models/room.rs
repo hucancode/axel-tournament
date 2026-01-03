@@ -11,6 +11,7 @@ pub struct Room {
     pub max_players: u32,
     pub status: RoomStatus,
     pub players: Vec<Thing>, // user IDs
+    pub human_timeout_ms: Option<u64>, // Custom timeout for human players
     pub created_at: Datetime,
     pub updated_at: Datetime,
 }
@@ -36,6 +37,7 @@ pub struct CreateRoomRequest {
     pub name: String,
     #[validate(range(min = 2, max = 8, message = "Max players must be 2-8"))]
     pub max_players: u32,
+    pub human_timeout_ms: Option<u64>,
 }
 
 #[derive(Debug, Deserialize, Validate)]
@@ -45,6 +47,7 @@ pub struct UpdateRoomRequest {
     #[validate(range(min = 2, max = 8, message = "Max players must be 2-8"))]
     pub max_players: Option<u32>,
     pub status: Option<RoomStatus>,
+    pub human_timeout_ms: Option<u64>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -56,6 +59,7 @@ pub struct RoomResponse {
     pub max_players: u32,
     pub status: RoomStatus,
     pub players: Vec<String>,
+    pub human_timeout_ms: Option<u64>,
     pub created_at: Datetime,
     pub updated_at: Datetime,
 }
@@ -70,6 +74,7 @@ impl From<Room> for RoomResponse {
             max_players: room.max_players,
             status: room.status,
             players: room.players.into_iter().map(|p| p.to_string()).collect(),
+            human_timeout_ms: room.human_timeout_ms,
             created_at: room.created_at,
             updated_at: room.updated_at,
         }

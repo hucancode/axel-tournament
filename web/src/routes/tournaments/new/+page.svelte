@@ -44,7 +44,7 @@
             goto("/login");
             return;
         }
-        if (auth.user?.role !== "admin" && auth.user?.role !== "gamesetter") {
+        if (auth.user?.role !== "admin") {
             goto("/tournaments");
             return;
         }

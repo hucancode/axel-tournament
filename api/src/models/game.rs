@@ -1,19 +1,20 @@
 use serde::{Deserialize, Serialize};
 
 // Hardcoded game metadata (only serialized, never deserialized)
+// All games support both automated (bot) and interactive (human) modes
 #[derive(Debug, Clone, Serialize)]
 pub struct GameMetadata {
     pub id: &'static str,
     pub name: &'static str,
     pub description: &'static str,
-    pub game_type: GameType,
     pub supported_languages: &'static [ProgrammingLanguage],
-    pub server_port: u16,
     pub rounds_per_match: u32,
     pub repetitions: u32,
-    pub timeout_ms: u32,
+    pub bot_timeout_ms: u32,
+    pub human_timeout_ms: u32,
     pub cpu_limit: f64,
-    pub turn_timeout_ms: u64,
+    pub bot_turn_timeout_ms: u64,
+    pub human_turn_timeout_ms: u64,
     pub memory_limit_mb: u64,
 }
 
@@ -23,54 +24,54 @@ pub static GAMES: &[GameMetadata] = &[
         id: "rock-paper-scissors",
         name: "Rock Paper Scissors",
         description: "Classic rock-paper-scissors game for 2 players",
-        game_type: GameType::Automated,
         supported_languages: &[
             ProgrammingLanguage::Rust,
             ProgrammingLanguage::Go,
             ProgrammingLanguage::C,
         ],
-        server_port: 8082,
         rounds_per_match: 100,
         repetitions: 1,
-        timeout_ms: 5000,
+        bot_timeout_ms: 5000,
+        human_timeout_ms: 30000,
         cpu_limit: 1.0,
-        turn_timeout_ms: 2000,
+        bot_turn_timeout_ms: 2000,
+        human_turn_timeout_ms: 10000,
         memory_limit_mb: 64,
     },
     GameMetadata {
         id: "prisoners-dilemma",
         name: "Prisoner's Dilemma",
         description: "Classic game theory prisoner's dilemma",
-        game_type: GameType::Automated,
         supported_languages: &[
             ProgrammingLanguage::Rust,
             ProgrammingLanguage::Go,
             ProgrammingLanguage::C,
         ],
-        server_port: 8083,
         rounds_per_match: 100,
         repetitions: 1,
-        timeout_ms: 5000,
+        bot_timeout_ms: 5000,
+        human_timeout_ms: 30000,
         cpu_limit: 1.0,
-        turn_timeout_ms: 2000,
+        bot_turn_timeout_ms: 2000,
+        human_turn_timeout_ms: 10000,
         memory_limit_mb: 64,
     },
     GameMetadata {
         id: "tic-tac-toe",
         name: "Tic Tac Toe",
-        description: "Interactive tic-tac-toe game for 2 players",
-        game_type: GameType::Interactive,
+        description: "Classic tic-tac-toe game for 2 players",
         supported_languages: &[
             ProgrammingLanguage::Rust,
             ProgrammingLanguage::Go,
             ProgrammingLanguage::C,
         ],
-        server_port: 8084,
         rounds_per_match: 1,
         repetitions: 1,
-        timeout_ms: 60000, // 1 minute for interactive game
+        bot_timeout_ms: 60000,
+        human_timeout_ms: 120000,
         cpu_limit: 1.0,
-        turn_timeout_ms: 30000, // 30 seconds per move
+        bot_turn_timeout_ms: 30000,
+        human_turn_timeout_ms: 60000,
         memory_limit_mb: 64,
     },
 ];
@@ -82,19 +83,6 @@ pub fn find_game_by_id(id: &str) -> Option<&'static GameMetadata> {
 
 // Type alias for response (same as metadata)
 pub type GameResponse = GameMetadata;
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(rename_all = "lowercase")]
-pub enum GameType {
-    Automated,
-    Interactive,
-}
-
-impl Default for GameType {
-    fn default() -> Self {
-        GameType::Automated
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
@@ -121,4 +109,3 @@ impl ProgrammingLanguage {
         }
     }
 }
-

@@ -134,8 +134,8 @@ kubectl rollout restart deployment/backend -n backend
 Game servers auto-scale based on CPU, but you can manually adjust:
 
 ```bash
-# Scale a specific game server
-kubectl scale deployment game-rock-paper-scissors -n backend --replicas=3
+# Scale the judge server
+kubectl scale deployment judge -n backend --replicas=3
 
 # View current scaling status
 kubectl get hpa -n backend
@@ -147,9 +147,9 @@ kubectl get hpa -n backend
 # Backend API logs
 kubectl logs -f deployment/backend -n backend
 
-# Game server logs (with Docker-in-Docker sidecar)
-kubectl logs -f deployment/game-rock-paper-scissors -n backend -c game-server
-kubectl logs -f deployment/game-rock-paper-scissors -n backend -c dockerd
+# Judge server logs (with Docker-in-Docker sidecar)
+kubectl logs -f deployment/judge -n backend -c judge
+kubectl logs -f deployment/judge -n backend -c dockerd
 
 # Healer logs
 kubectl logs -f deployment/healer -n healer
@@ -163,9 +163,7 @@ kubectl edit secret backend-secrets -n backend
 
 # After editing, restart deployments to pick up changes
 kubectl rollout restart deployment/backend -n backend
-kubectl rollout restart deployment/game-rock-paper-scissors -n backend
-kubectl rollout restart deployment/game-prisoners-dilemma -n backend
-kubectl rollout restart deployment/game-tic-tac-toe -n backend
+kubectl rollout restart deployment/judge -n backend
 ```
 
 ## Teardown
@@ -198,10 +196,10 @@ Game servers run Docker-in-Docker, which requires privileged containers:
 
 ```bash
 # Check if DinD is running
-kubectl exec -it deployment/game-rock-paper-scissors -n backend -c dockerd -- docker ps
+kubectl exec -it deployment/judge -n backend -c dockerd -- docker ps
 
 # Check sandbox image is loaded
-kubectl exec -it deployment/game-rock-paper-scissors -n backend -c dockerd -- docker images
+kubectl exec -it deployment/judge -n backend -c dockerd -- docker images
 ```
 
 Database connection

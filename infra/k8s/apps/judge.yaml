@@ -1,0 +1,140 @@
+# Unified Judge Server
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: judge
+  namespace: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: judge
+  template:
+    metadata:
+      labels:
+        app: judge
+    spec:
+      nodeSelector:
+        role: judge
+      tolerations:
+        - key: "dedicated"
+          operator: "Equal"
+          value: "judge"
+          effect: "NoSchedule"
+      containers:
+        - name: judge
+          image: ${JUDGE_IMAGE}
+          ports:
+            - containerPort: 8080
+            - containerPort: 8081
+          env:
+            - name: RUST_LOG
+              value: "info"
+            - name: DATABASE_URL
+              value: "surrealdb.db.svc.cluster.local:8000"
+            - name: DATABASE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: db_user
+            - name: DATABASE_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: db_pass
+            - name: DATABASE_NS
+              value: "tournament"
+            - name: DATABASE_DB
+              value: "axel"
+            - name: SANDBOX_IMAGE
+              value: "${SANDBOX_IMAGE}"
+            - name: DOCKER_HOST
+              value: "unix:///var/run/docker.sock"
+            - name: GAME_SERVER_PORT
+              value: "8080"
+            - name: COMPILER_WORKSPACE
+              value: "/artifacts"
+          resources:
+            requests:
+              cpu: "300m"
+              memory: "512Mi"
+            limits:
+              cpu: "2000m"
+              memory: "2Gi"
+          volumeMounts:
+            - name: docker-run
+              mountPath: /var/run
+            - name: workspace
+              mountPath: /workspace
+            - name: artifacts
+              mountPath: /artifacts
+        - name: dockerd
+          image: docker:27-dind
+          args:
+            - --host=unix:///var/run/docker.sock
+          env:
+            - name: DOCKER_TLS_CERTDIR
+              value: ""
+          securityContext:
+            privileged: true
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "2Gi"
+          volumeMounts:
+            - name: docker-run
+              mountPath: /var/run
+            - name: dind-storage
+              mountPath: /var/lib/docker
+            - name: workspace
+              mountPath: /workspace
+      volumes:
+        - name: docker-run
+          emptyDir: {}
+        - name: dind-storage
+          emptyDir: {}
+        - name: workspace
+          emptyDir: {}
+        - name: artifacts
+          persistentVolumeClaim:
+            claimName: compiled-artifacts-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: judge
+  namespace: backend
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+    - name: websocket
+      port: 8081
+      targetPort: 8081
+  selector:
+    app: judge
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: judge
+  namespace: backend
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: judge
+  minReplicas: 2
+  maxReplicas: 8
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70

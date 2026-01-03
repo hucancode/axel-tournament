@@ -11,6 +11,7 @@ pub async fn create_room(
     host_id: String,
     name: String,
     max_players: u32,
+    human_timeout_ms: Option<u64>,
 ) -> ApiResult<Room> {
     // Verify game exists in hardcoded registry
     find_game_by_id(&game_id)
@@ -31,6 +32,7 @@ pub async fn create_room(
         max_players,
         status: RoomStatus::Waiting,
         players: vec![host_thing],
+        human_timeout_ms,
         created_at: Datetime::default(),
         updated_at: Datetime::default(),
     };
@@ -45,13 +47,16 @@ pub async fn get_room(db: &Database, room_id: Thing) -> ApiResult<Room> {
 }
 
 pub async fn list_rooms(db: &Database, game_id: Option<String>) -> ApiResult<Vec<Room>> {
-    let query = if let Some(gid) = game_id {
-        format!("SELECT * FROM room WHERE game_id = {} AND status = 'waiting' ORDER BY created_at DESC", gid)
+    let rooms: Vec<Room> = if let Some(gid) = game_id {
+        db.query("SELECT * FROM room WHERE game_id = $game_id AND status = 'waiting' ORDER BY created_at DESC")
+            .bind(("game_id", gid))
+            .await?
+            .take(0)?
     } else {
-        "SELECT * FROM room WHERE status = 'waiting' ORDER BY created_at DESC".to_string()
+        db.query("SELECT * FROM room WHERE status = 'waiting' ORDER BY created_at DESC")
+            .await?
+            .take(0)?
     };
-    
-    let rooms: Vec<Room> = db.query(query).await?.take(0)?;
     Ok(rooms)
 }
 
@@ -181,12 +186,17 @@ pub async fn get_room_messages(db: &Database, room_id: String, limit: Option<u32
         .parse::<Thing>()
         .map_err(|_| ApiError::BadRequest("Invalid room id".to_string()))?;
 
-    let limit_clause = limit.map(|l| format!(" LIMIT {}", l)).unwrap_or_default();
-    let query = format!(
-        "SELECT * FROM room_message WHERE room_id = {} ORDER BY created_at DESC{}",
-        room_thing, limit_clause
-    );
-
-    let messages: Vec<RoomMessage> = db.query(query).await?.take(0)?;
+    let messages: Vec<RoomMessage> = if let Some(l) = limit {
+        db.query("SELECT * FROM room_message WHERE room_id = $room_id ORDER BY created_at DESC LIMIT $limit")
+            .bind(("room_id", room_thing))
+            .bind(("limit", l))
+            .await?
+            .take(0)?
+    } else {
+        db.query("SELECT * FROM room_message WHERE room_id = $room_id ORDER BY created_at DESC")
+            .bind(("room_id", room_thing))
+            .await?
+            .take(0)?
+    };
     Ok(messages)
 }

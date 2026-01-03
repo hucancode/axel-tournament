@@ -1,5 +1,5 @@
 // User types
-export type UserRole = "admin" | "gamesetter" | "player";
+export type UserRole = "admin" | "player";
 export type OAuthProvider = "google";
 
 export interface User {
@@ -94,28 +94,21 @@ export interface UpdateTournamentRequest {
 
 // Game types
 export type ProgrammingLanguage = "rust" | "go" | "c";
-export type GameType = "automated" | "interactive";
 
 export interface Game {
   id: string;
   name: string;
   description: string;
-  game_type: GameType;
   supported_languages: ProgrammingLanguage[];
-  server_port: number;
   rounds_per_match: number;
   repetitions: number;
-  timeout_ms: number;
+  bot_timeout_ms: number;
+  human_timeout_ms: number;
   cpu_limit: number;
-  turn_timeout_ms: number;
+  bot_turn_timeout_ms: number;
+  human_turn_timeout_ms: number;
   memory_limit_mb: number;
 }
-
-type GameEditableFields = Omit<Game, "id" | "owner_id" | "created_at" | "updated_at">;
-
-export type CreateGameRequest = Omit<GameEditableFields, "is_active">;
-
-export type UpdateGameRequest = Partial<GameEditableFields>;
 
 // Game Template types
 export interface GameTemplate {
@@ -172,18 +165,20 @@ export type MatchStatus =
   | "cancelled";
 
 export interface MatchParticipant {
-  submission_id: string;
+  user_id?: string;
+  submission_id?: string;
   score?: number;
   metadata?: Record<string, any>;
 }
 
 export interface Match {
   id: string;
-  tournament_id: string;
+  tournament_id?: string;
   game_id: string;
   status: MatchStatus;
   participants: MatchParticipant[];
   metadata?: Record<string, any> | null;
+  room_id?: string;
   created_at: string;
   updated_at: string;
   started_at?: string;
@@ -227,6 +222,7 @@ export interface Room {
   max_players: number;
   status: RoomStatus;
   players: string[];
+  human_timeout_ms?: number;
   created_at: string;
   updated_at: string;
 }
@@ -235,12 +231,14 @@ export interface CreateRoomRequest {
   game_id: string;
   name: string;
   max_players: number;
+  human_timeout_ms?: number;
 }
 
 export interface UpdateRoomRequest {
   name?: string;
   max_players?: number;
   status?: RoomStatus;
+  human_timeout_ms?: number;
 }
 
 export interface RoomMessage {

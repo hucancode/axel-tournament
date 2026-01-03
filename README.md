@@ -14,7 +14,9 @@ Tech stack:
 - `make test-db-up`: Start a local in-memory SurrealDB container for testing
 - `make test-db-down`: Stop the local test database container
 
-*You also need to run `make sandbox-image` to build sandbox image on your local machine before running `judge` server*
+*You also need to run `make sandbox-image` to build sandbox image on your local machine before running the `judge` server*
+
+*The judge server now supports all games in a single unified service - no need for individual game servers*
 
 ### api
 Backend service that powers the platform.

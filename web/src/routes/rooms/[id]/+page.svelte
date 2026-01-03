@@ -4,25 +4,30 @@
   import { page } from '$app/state';
   import { roomService } from '$lib/services/rooms';
   import { gameService } from '$lib/services/games';
-  import GameIframe from '$lib/components/GameIframe.svelte';
+  import TicTacToe from '$lib/components/games/TicTacToe.svelte';
+  import RockPaperScissors from '$lib/components/games/RockPaperScissors.svelte';
+  import PrisonersDilemma from '$lib/components/games/PrisonersDilemma.svelte';
   import Alert from '$lib/components/Alert.svelte';
-  import type { Room, Game, RoomMessage, CreateRoomMessageRequest } from '$lib/types';
+  import type { Room, Game } from '$lib/types';
 
   const roomId = page.params.id!;
   let room = $state<Room | null>(null);
   let game = $state<Game | null>(null);
-  let messages = $state<RoomMessage[]>([]);
-  let newMessage = $state('');
   let loading = $state(true);
   let error = $state<string | null>(null);
   let ws: WebSocket | null = null;
   let wsConnected = $state(false);
-  let chatContainer = $state<HTMLDivElement | null>(null);
 
-  // WebSocket URL for interactive-judge (constant for the session)
-  const gameWsUrl = window.location.host.includes('localhost')
-    ? 'http://localhost:8081'
-    : `${window.location.protocol}//${window.location.host}`;
+  function getGameWebSocketPath(gameId: string): string {
+    // Map game IDs to WebSocket paths
+    const gamePathMap: Record<string, string> = {
+      'tic-tac-toe': 'tic-tac-toe',
+      'rock-paper-scissors': 'rock-paper-scissors', 
+      'prisoners-dilemma': 'prisoners-dilemma'
+    };
+    
+    return gamePathMap[gameId] || 'tic-tac-toe'; // fallback to tic-tac-toe
+  }
 
   onMount(() => {
     if (!roomId) {
@@ -49,12 +54,6 @@
 
       const gameData = await gameService.get(room.game_id);
       game = gameData;
-
-      const messagesData = await roomService.getMessages(roomId, 50);
-      messages = messagesData;
-
-      // Scroll to bottom after messages load
-      setTimeout(scrollToBottom, 100);
     } catch (err) {
       error = err instanceof Error ? err.message : 'Failed to load room data';
       console.error('Failed to load room data:', err);
@@ -64,21 +63,20 @@
   }
 
   function setupWebSocket() {
-    if (!game) {
-      console.error('Cannot setup WebSocket: game not loaded');
+    if (!game || !room) {
+      console.error('Cannot setup WebSocket: game or room not loaded');
       return;
     }
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const gamePath = getGameWebSocketPath(room.game_id);
 
-    // Connect to the game server on its dedicated port
-    // In development: localhost:<game_server_port>
-    // In production: same host (ingress routes game server ports)
+    // Connect to the unified judge server with game-specific path
     const host = window.location.host.includes('localhost')
-      ? `localhost:${game.server_port}`
-      : window.location.host;
+      ? 'localhost:8081'
+      : window.location.host; // In production, ingress routes /room to judge:8081
 
-    const wsUrl = `${protocol}//${host}/room/${roomId}`;
+    const wsUrl = `${protocol}//${host}/room/${gamePath}/${roomId}`;
 
     console.log(`Connecting to ${game.name} game server:`, wsUrl);
     ws = new WebSocket(wsUrl);
@@ -86,6 +84,10 @@
     ws.onopen = () => {
       wsConnected = true;
       console.log(`WebSocket connected to ${game?.name} game server`);
+
+      // Send authentication message - simple text-based protocol
+      const userId = 'user_' + Math.random().toString(36).substr(2, 9); // Generate temp user ID
+      ws!.send(userId);
     };
 
     ws.onclose = () => {
@@ -98,95 +100,19 @@
       console.error('WebSocket error:', err);
     };
 
-    ws.onmessage = (event) => {
-      const message = JSON.parse(event.data);
-      handleWebSocketMessage(message);
-    };
+    // Game components will handle their own messages
+    // No need to handle messages here unless we add chat or other room features
   }
 
-  function handleWebSocketMessage(data: any) {
-    switch (data.type) {
-      case 'chat_message':
-        // Interactive-judge sends: { type, user_id, username, message }
-        // Convert to RoomMessage format for display
-        const chatMessage: RoomMessage = {
-          id: Date.now().toString(),
-          room_id: roomId,
-          user_id: data.user_id,
-          message: data.message,
-          created_at: new Date().toISOString()
-        };
-        messages = [...messages, chatMessage];
-        scrollToBottom();
-        break;
-      case 'player_joined':
-        error = null;
-        console.log(`${data.username} joined the room`);
-        // Only reload if game hasn't started yet
-        if (room?.status === 'waiting') {
-          loadRoomData();
-        }
-        break;
-      case 'player_left':
-        console.log(`Player ${data.user_id} left the room`);
-        // Only reload if game hasn't started yet
-        if (room?.status === 'waiting') {
-          loadRoomData();
-        }
-        break;
-      case 'game_started':
-        loadRoomData();
-        break;
-    }
-  }
-
-  function scrollToBottom() {
-    if (chatContainer) {
-      chatContainer.scrollTop = chatContainer.scrollHeight;
-    }
-  }
-
-  async function sendMessage() {
-    if (!newMessage.trim() || !ws || ws.readyState !== WebSocket.OPEN) return;
-
-    try {
-      error = null;
-
-      // Send via WebSocket to interactive-judge for real-time broadcast
-      const wsMessage = {
-        type: 'chat_message',
-        message: newMessage.trim()
-      };
-      ws.send(JSON.stringify(wsMessage));
-
-      // Also save to database via REST API (for message persistence)
-      const request: CreateRoomMessageRequest = {
-        message: newMessage.trim()
-      };
-      await roomService.sendMessage(roomId, request);
-
-      newMessage = '';
-    } catch (err) {
-      error = err instanceof Error ? err.message : 'Failed to send message';
-      console.error('Failed to send message:', err);
-    }
-  }
 
   async function startGame() {
     try {
       error = null;
+      // Update the database via REST API to mark game as started
       await roomService.start(roomId);
-      console.log('Room started via API');
+      console.log('Game started via API');
 
-      // Update the database via REST API
-      await roomService.start(roomId);
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        console.log('Sending start_game WebSocket message');
-        ws.send(JSON.stringify({ type: 'start_game' }));
-      } else {
-        console.error('WebSocket not connected!', ws?.readyState);
-      }
-
+      // Reload room data to update UI
       await loadRoomData();
     } catch (err) {
       error = err instanceof Error ? err.message : 'Failed to start game';
@@ -202,13 +128,6 @@
     } catch (err) {
       error = err instanceof Error ? err.message : 'Failed to leave room';
       console.error('Failed to leave room:', err);
-    }
-  }
-
-  function handleKeyPress(event: KeyboardEvent) {
-    if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault();
-      sendMessage();
     }
   }
 </script>
@@ -247,12 +166,22 @@
       <div class="game-area">
         {#if room.status === 'playing'}
           <div class="playing-area">
-            <h2>Game in progress...</h2>
-            <p>Playing: {game?.name || 'Game'}</p>
-            {#if wsConnected}
-              <p class="status-connected">✓ Connected to game server</p>
+            {#if room.game_id === 'tic-tac-toe'}
+              <TicTacToe {ws} {wsConnected} />
+            {:else if room.game_id === 'rock-paper-scissors'}
+              <RockPaperScissors {ws} {wsConnected} />
+            {:else if room.game_id === 'prisoners-dilemma'}
+              <PrisonersDilemma {ws} {wsConnected} />
             {:else}
-              <p class="status-disconnected">⚠ Connecting to game server...</p>
+              <div class="unsupported-game">
+                <h2>Game: {game?.name || 'Unknown'}</h2>
+                <p>This game is not yet supported for interactive play.</p>
+                {#if wsConnected}
+                  <p class="status-connected">✓ Connected to game server</p>
+                {:else}
+                  <p class="status-disconnected">⚠ Connecting to game server...</p>
+                {/if}
+              </div>
             {/if}
           </div>
         {:else if room.status === 'waiting'}
@@ -273,40 +202,6 @@
             <h2>Game Finished</h2>
           </div>
         {/if}
-      </div>
-
-      <div class="chat-area">
-        <div class="chat-header">
-          <h3>💬 Chat</h3>
-          {#if !wsConnected}
-            <span class="chat-warning">Real-time disabled</span>
-          {/if}
-        </div>
-        <div class="chat-messages" bind:this={chatContainer}>
-          {#if messages.length === 0}
-            <div class="no-messages">No messages yet. Start the conversation!</div>
-          {:else}
-            {#each messages as message}
-              <div class="message">
-                <div class="message-header">
-                  <span class="username">Player {message.user_id.slice(-8)}</span>
-                  <span class="timestamp">{new Date(message.created_at).toLocaleTimeString()}</span>
-                </div>
-                <div class="message-text">{message.message}</div>
-              </div>
-            {/each}
-          {/if}
-        </div>
-        <div class="chat-input">
-          <input
-            type="text"
-            bind:value={newMessage}
-            placeholder="Type a message..."
-            onkeypress={handleKeyPress}
-            maxlength="500"
-          />
-          <button onclick={sendMessage} disabled={!newMessage.trim()}>Send</button>
-        </div>
       </div>
     </div>
   </div>
@@ -391,6 +286,21 @@
     min-height: 0;
   }
 
+  .playing-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    background: #f9f9f9;
+    padding: 2rem;
+  }
+
+  .unsupported-game {
+    text-align: center;
+    padding: 2rem;
+  }
+
   .waiting-area, .game-finished {
     display: flex;
     flex-direction: column;
@@ -412,108 +322,6 @@
     margin: 0.25rem 0;
   }
 
-  .chat-area {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    border: 1px solid #e0e0e0;
-    min-width: 300px;
-  }
-
-  .chat-header {
-    padding: 1rem;
-    border-bottom: 1px solid #e0e0e0;
-    background: #f9f9f9;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .chat-header h3 {
-    margin: 0;
-  }
-
-  .chat-warning {
-    font-size: 0.75rem;
-    color: #f57c00;
-    background: #fff3e0;
-    padding: 0.25rem 0.5rem;
-  }
-
-  .chat-messages {
-    flex: 1;
-    padding: 1rem;
-    overflow-y: auto;
-    min-height: 0;
-    background: #fafafa;
-  }
-
-  .no-messages {
-    text-align: center;
-    color: #999;
-    padding: 2rem;
-    font-style: italic;
-  }
-
-  .message {
-    margin-bottom: 1rem;
-    padding: 0.75rem;
-    background: white;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-  }
-
-  .message-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.5rem;
-  }
-
-  .username {
-    font-weight: 600;
-    color: #1976d2;
-    font-size: 0.9rem;
-  }
-
-  .timestamp {
-    font-size: 0.75rem;
-    color: #999;
-  }
-
-  .message-text {
-    color: #333;
-    line-height: 1.4;
-    word-wrap: break-word;
-  }
-
-  .chat-input {
-    display: flex;
-    padding: 1rem;
-    border-top: 1px solid #e0e0e0;
-  }
-
-  .chat-input input {
-    flex: 1;
-    padding: 0.5rem;
-    border: 1px solid #ddd;
-  }
-
-  .chat-input button {
-    padding: 0.5rem 1rem;
-    background: #1976d2;
-    color: white;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .chat-input button:hover:not(:disabled) {
-    background: #1565c0;
-  }
-
-  .chat-input button:disabled {
-    background: #ccc;
-    cursor: not-allowed;
-  }
 
   .btn-primary, .btn-secondary {
     padding: 0.5rem 1rem;

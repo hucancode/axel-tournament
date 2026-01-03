@@ -2,7 +2,7 @@ mod common;
 
 use axel_tournament::{
     db,
-    models::{CreateTournamentRequest, MatchGenerationType, ProgrammingLanguage, TournamentStatus},
+    models::{CreateTournamentRequest, MatchGenerationType, TournamentStatus},
     services::{auth::AuthService, matches, submission, tournament, user},
 };
 use surrealdb::sql::Thing;
@@ -243,16 +243,10 @@ async fn test_start_tournament_all_vs_all() {
     assert_eq!(started_tournament.status, TournamentStatus::Running);
 
     // Verify matches were created (3 players vs 3 players = 9 matches)
-    let created_matches = matches::list_matches(
-        &db,
-        Some(tournament_id.clone()),
-        None,
-        None,
-        None,
-        None,
-    )
-        .await
-        .unwrap();
+    let created_matches =
+        matches::list_matches(&db, Some(tournament_id.clone()), None, None, None, None)
+            .await
+            .unwrap();
     assert_eq!(created_matches.len(), 9); // 3x3 = 9 matches
 
     // Verify all matches are in pending state
@@ -330,16 +324,10 @@ async fn test_start_tournament_round_robin() {
     assert_eq!(started_tournament.status, TournamentStatus::Running);
 
     // Verify matches were created (4 players, unique pairings = 6 matches)
-    let created_matches = matches::list_matches(
-        &db,
-        Some(tournament_id.clone()),
-        None,
-        None,
-        None,
-        None,
-    )
-        .await
-        .unwrap();
+    let created_matches =
+        matches::list_matches(&db, Some(tournament_id.clone()), None, None, None, None)
+            .await
+            .unwrap();
     assert_eq!(created_matches.len(), 6); // 4 * (4-1) / 2 = 6 matches (no duplicates)
 }
 

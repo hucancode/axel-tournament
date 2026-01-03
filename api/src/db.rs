@@ -9,14 +9,11 @@ use surrealdb::sql::Datetime;
 pub type Database = Surreal<Client>;
 
 pub async fn connect(config: &DatabaseConfig) -> Result<Database, surrealdb::Error> {
-    // Remove ws:// prefix if present, as Surreal::new::<Ws> expects just host:port
-    let endpoint = config.url.trim_start_matches("ws://");
-
     let max_retries = 10;
     let mut retry_count = 0;
 
     loop {
-        match Surreal::new::<Ws>(endpoint).await {
+        match Surreal::new::<Ws>(config.url.clone()).await {
             Ok(db) => {
                 match db
                     .signin(Root {
@@ -196,8 +193,28 @@ pub async fn seed_admin_user(
             password_reset_token: None,
             password_reset_expires: None,
         };
-        let _admin_user: Option<User> = db.create("user").content(admin).await?;
+        let _admin_user: Option<User> = db.create(("user", "admin")).content(admin).await?;
         eprintln!("Created admin user");
+        
+        let alice = User {
+            id: None,
+            email: "alice@example.com".to_string(),
+            username: "alice".to_string(),
+            password_hash: Some(password_hash.clone()),
+            role: UserRole::Player,
+            location: "US".to_string(),
+            oauth_provider: None,
+            oauth_id: None,
+            is_banned: false,
+            ban_reason: None,
+            created_at: Datetime::default(),
+            updated_at: Datetime::default(),
+            password_reset_token: None,
+            password_reset_expires: None,
+        };
+        let _alice_user: Option<User> = db.create(("user", "alice")).content(alice).await?;
+        eprintln!("Created alice user");
+        
         let bob = User {
             id: None,
             email: "bob@example.com".to_string(),
@@ -214,7 +231,8 @@ pub async fn seed_admin_user(
             password_reset_token: None,
             password_reset_expires: None,
         };
-        let _bob_user: Option<User> = db.create("user").content(bob).await?;
+        let _bob_user: Option<User> = db.create(("user", "bob")).content(bob).await?;
+        eprintln!("Created bob user");
     }
     Ok(())
 }
