@@ -141,7 +141,11 @@ pub async fn init_schema(db: &Database) -> Result<(), surrealdb::Error> {
          DEFINE FIELD IF NOT EXISTS game_id ON match TYPE string;
          DEFINE FIELD IF NOT EXISTS room_id ON match TYPE option<record<room>>;
          DEFINE FIELD IF NOT EXISTS status ON match TYPE string;
-         DEFINE FIELD IF NOT EXISTS participants ON match TYPE array;
+         DEFINE FIELD IF NOT EXISTS participants ON match TYPE array<{
+             user_id: record<user>,
+             submission_id: option<record<submission>>,
+             score: option<number>
+         }>;
          DEFINE FIELD IF NOT EXISTS metadata ON match TYPE option<object>;
          DEFINE FIELD IF NOT EXISTS error_message ON match TYPE option<string>;
          DEFINE FIELD IF NOT EXISTS created_at ON match TYPE datetime;

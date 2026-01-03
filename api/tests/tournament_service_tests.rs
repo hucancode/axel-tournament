@@ -241,18 +241,13 @@ async fn test_start_tournament_all_vs_all() {
 
     // Verify tournament status changed
     assert_eq!(started_tournament.status, TournamentStatus::Running);
-
     // Verify matches were created (3 players vs 3 players = 9 matches)
     let created_matches =
         matches::list_matches(&db, Some(tournament_id.clone()), None, None, None, None)
             .await
             .unwrap();
-    assert_eq!(created_matches.len(), 9); // 3x3 = 9 matches
-
-    // Verify all matches are in pending state
-    for m in &created_matches {
-        assert_eq!(m.participants.len(), 2);
-    }
+    assert_eq!(created_matches.len(), 9);
+    assert!(created_matches.iter().all(|m|m.participants.len() == 2));
 }
 
 #[tokio::test]

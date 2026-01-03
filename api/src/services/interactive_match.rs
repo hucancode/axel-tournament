@@ -37,16 +37,14 @@ pub async fn create_interactive_match_from_room(
     // Create match participants
     let participants = vec![
         MatchParticipant {
-            user_id: Some(room.players[0].clone()),
+            user_id: room.players[0].clone(),
             submission_id: None,
             score: None,
-            metadata: None,
         },
         MatchParticipant {
-            user_id: Some(room.players[1].clone()),
+            user_id: room.players[1].clone(),
             submission_id: None,
             score: None,
-            metadata: None,
         },
     ];
 

@@ -38,10 +38,9 @@ pub async fn create_match(
             )));
         }
         participants.push(MatchParticipant {
-            user_id: None,
+            user_id: submission.user_id.unwrap(),
             submission_id: Some(submission.id.unwrap()),
             score: None,
-            metadata: None,
         });
     }
 

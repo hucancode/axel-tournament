@@ -63,27 +63,24 @@ pub enum MatchStatus {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MatchParticipant {
-    pub user_id: Option<Thing>, // For interactive matches
+    pub user_id: Thing,
     pub submission_id: Option<Thing>, // For automated matches
     pub score: Option<f64>,
-    pub metadata: Option<serde_json::Value>, // Player specific stats
 }
 
 #[derive(Debug, Clone, Serialize)]
 pub struct MatchParticipantResponse {
-    pub user_id: Option<String>,
+    pub user_id: String,
     pub submission_id: Option<String>,
     pub score: Option<f64>,
-    pub metadata: Option<serde_json::Value>,
 }
 
 impl From<MatchParticipant> for MatchParticipantResponse {
     fn from(participant: MatchParticipant) -> Self {
         Self {
-            user_id: participant.user_id.map(|t| t.to_string()),
+            user_id: participant.user_id.to_string(),
             submission_id: participant.submission_id.map(|t| t.to_string()),
             score: participant.score,
-            metadata: participant.metadata,
         }
     }
 }
