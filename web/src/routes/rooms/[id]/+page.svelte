@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import { roomService } from '$lib/services/rooms';
@@ -61,10 +61,13 @@
   }
 
   function initializeGame() {
-    if (!room || !canvas) return;
+    if (!room || !canvas || !roomSocket) return;
 
     pixiGame?.destroy();
-    pixiGame = createGame(room.game_id, canvas, null, wsConnected);
+    const sendMove = (message: string) => {
+      roomSocket!.sendMove(message);
+    };
+    pixiGame = createGame(room.game_id, canvas, sendMove, wsConnected);
   }
 
   async function setupWebSocket() {
@@ -110,14 +113,21 @@
         loadRoomData();
       });
 
-      roomSocket.on('game_started', () => {
-        console.log('Game started');
-        // Refresh room data and initialize game
-        loadRoomData().then(() => {
-          if (canvas) {
-            initializeGame();
-          }
-        });
+      roomSocket.on('game_started', async () => {
+        console.log('Game started, game type:', room?.game_id);
+        // Update room status to trigger canvas render
+        if (room) {
+          room.status = 'playing';
+        }
+        // Wait for Svelte to update DOM and render canvas
+        await tick();
+        // Initialize game so it's ready for START message
+        if (canvas && room && !pixiGame) {
+          console.log('Initializing game for:', room.game_id);
+          initializeGame();
+        } else {
+          console.log('Skipping init - canvas:', !!canvas, 'room:', !!room, 'pixiGame already exists:', !!pixiGame);
+        }
       });
 
       roomSocket.on('chat', (data: any) => {
@@ -134,23 +144,58 @@
         wsConnected = false;
       });
 
-      // Game-specific events
+      // Game-specific events - forward to PixiJS game
+      roomSocket.on('game_start', (data) => {
+        console.log('Game START:', data, 'pixiGame exists:', !!pixiGame);
+        if (pixiGame) {
+          const message = data ? `START ${data}` : 'START';
+          console.log('Forwarding to game:', message);
+          pixiGame.handleMessage(message);
+        } else {
+          console.error('pixiGame not initialized yet when START received');
+        }
+      });
+
       roomSocket.on('board_update', (boardData) => {
         console.log('Board update:', boardData);
-        // Forward to PixiJS game if available
         if (pixiGame) {
-          // pixiGame.handleMessage(`BOARD ${boardData}`);
+          pixiGame.handleMessage(`BOARD ${boardData}`);
         }
       });
 
       roomSocket.on('your_turn', () => {
         console.log('Your turn!');
-        // Forward to PixiJS game if available
         if (pixiGame) {
-          // pixiGame.handleMessage('YOUR_TURN');
+          pixiGame.handleMessage('YOUR_TURN');
         }
       });
 
+      roomSocket.on('turn_update', (data) => {
+        console.log('Turn update:', data);
+        if (pixiGame) {
+          pixiGame.handleMessage(`TURN ${data}`);
+        }
+      });
+
+      roomSocket.on('score_update', (data) => {
+        console.log('Score update:', data);
+        if (pixiGame) {
+          pixiGame.handleMessage(`SCORE ${data}`);
+        }
+      });
+
+      roomSocket.on('game_end', () => {
+        console.log('Game ended');
+        if (pixiGame) {
+          pixiGame.handleMessage('END');
+        }
+      });
+      // Handle generic messages (like ROUND, etc.) that fall through
+      roomSocket.on('message', (data) => {
+        if (pixiGame) {
+          pixiGame.handleMessage(data);
+        }
+      });
       // Connect and authenticate
       await roomSocket.connect();
 
@@ -264,7 +309,7 @@
           </div>
         {/if}
       </div>
-      
+
       <!-- Chat Panel -->
       {#if wsConnected}
         <div class="chat-panel">
@@ -279,10 +324,10 @@
             {/each}
           </div>
           <div class="chat-input">
-            <input 
-              type="text" 
-              bind:value={chatInput} 
-              placeholder="Type a message..." 
+            <input
+              type="text"
+              bind:value={chatInput}
+              placeholder="Type a message..."
               onkeydown={(e) => e.key === 'Enter' && sendChat()}
             />
             <button onclick={sendChat}>Send</button>

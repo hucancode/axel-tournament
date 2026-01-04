@@ -9,7 +9,7 @@ export class PrisonersDilemmaGame extends BasePixiGame {
   private opponentChoice: Choice | null = null;
   private scores = { player: 0, opponent: 0 };
 
-  protected handleMessage(data: string): void {
+  public handleMessage(data: string): void {
     const parts = parseMessage(data);
     if (!parts.length) return;
 

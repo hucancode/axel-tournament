@@ -11,6 +11,7 @@ mod players;
 
 use anyhow::Result;
 use axum::{
+    http::{Method, header},
     routing::{delete, get, post},
     Router,
 };
@@ -134,7 +135,27 @@ async fn main() -> Result<()> {
         .with_state(rps_state.clone())
         .route("/ws/prisoners-dilemma/{room_id}", get(room::ws_get_room::<games::PrisonersDilemma>))
         .with_state(pd_state.clone())
-        .layer(CorsLayer::permissive());
+        .layer(
+            CorsLayer::new()
+                .allow_origin(
+                    std::env::var("FRONTEND_URL")
+                        .unwrap_or_else(|_| "http://localhost:5173".to_string())
+                        .parse::<axum::http::HeaderValue>()
+                        .expect("Invalid FRONTEND_URL"),
+                )
+                .allow_methods([
+                    Method::GET,
+                    Method::POST,
+                    Method::PUT,
+                    Method::PATCH,
+                    Method::DELETE,
+                ])
+                .allow_headers([
+                    header::AUTHORIZATION,
+                    header::CONTENT_TYPE,
+                ])
+                .allow_credentials(true)
+        );
 
     // Start server
     let addr = format!("{}:{}", config.server_host, config.server_port);

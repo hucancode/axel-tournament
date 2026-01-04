@@ -1,4 +1,4 @@
-use anyhow::{Result, Context};
+use anyhow::Result;
 use async_trait::async_trait;
 use axum::extract::ws::{Message, WebSocket};
 use futures_util::stream::SplitSink;
@@ -50,30 +50,56 @@ impl Player for HumanPlayer {
     }
 
     async fn send_message(&self, message: &str) -> Result<()> {
+        tracing::debug!("HumanPlayer {}: Sending message: '{}'", self.player_id, message);
+
         if !self.is_alive().await {
+            tracing::warn!("HumanPlayer {}: Attempted to send message to disconnected player", self.player_id);
             return Err(anyhow::anyhow!("Player disconnected"));
         }
 
         let mut sender = self.sender.lock().await;
-        sender.send(Message::Text(message.to_string().into())).await
-            .context("Failed to send message to WebSocket")?;
-        Ok(())
+        match sender.send(Message::Text(message.to_string().into())).await {
+            Ok(_) => {
+                // Flush to prevent buffering that blocks the WebSocket receiver
+                if let Err(e) = sender.flush().await {
+                    tracing::error!("HumanPlayer {}: Failed to flush message: {:?}", self.player_id, e);
+                    return Err(anyhow::anyhow!("Failed to flush message to WebSocket: {}", e));
+                }
+                tracing::debug!("HumanPlayer {}: Successfully sent message", self.player_id);
+                Ok(())
+            },
+            Err(e) => {
+                tracing::error!("HumanPlayer {}: Failed to send message: {:?}", self.player_id, e);
+                Err(anyhow::anyhow!("Failed to send message to WebSocket: {}", e))
+            }
+        }
     }
 
     async fn receive_message(&self) -> Result<String> {
         if !self.is_alive().await {
+            tracing::warn!("HumanPlayer {}: Attempted to receive message from disconnected player", self.player_id);
             return Err(anyhow::anyhow!("Player disconnected"));
         }
 
         let timeout_ms = *self.timeout_ms.lock().await;
+        tracing::debug!("HumanPlayer {}: Waiting for message (timeout: {}ms)", self.player_id, timeout_ms);
+        tracing::debug!("HumanPlayer {}: Player connection status: alive={}", self.player_id, self.is_alive().await);
+        
         let mut receiver = self.move_receiver.lock().await;
         match timeout(Duration::from_millis(timeout_ms), receiver.recv()).await {
-            Ok(Some(move_str)) => Ok(move_str),
+            Ok(Some(move_str)) => {
+                tracing::debug!("HumanPlayer {}: Received message: '{}'", self.player_id, move_str);
+                Ok(move_str)
+            },
             Ok(None) => {
+                tracing::error!("HumanPlayer {}: Move channel closed", self.player_id);
                 self.disconnect().await;
                 Err(anyhow::anyhow!("Move channel closed"))
             }
-            Err(_) => Err(anyhow::anyhow!("Move timeout")),
+            Err(_) => {
+                tracing::error!("HumanPlayer {}: Move timeout after {}ms - no message received on channel", self.player_id, timeout_ms);
+                Err(anyhow::anyhow!("Move timeout"))
+            }
         }
     }
 

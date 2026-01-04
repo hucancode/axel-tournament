@@ -90,6 +90,10 @@ export class RoomSocket {
     return this.authenticated;
   }
 
+  getWebSocket(): WebSocket | null {
+    return this.ws;
+  }
+
   disconnect(): void {
     if (this.ws) {
       this.ws.close();

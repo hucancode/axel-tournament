@@ -17,7 +17,7 @@ export class RockPaperScissorsGame extends BasePixiGame {
     { value: 'SCISSORS' as Choice, emoji: '✂️', x: 320 }
   ];
 
-  protected handleMessage(data: string): void {
+  public handleMessage(data: string): void {
     const parts = parseMessage(data);
     if (!parts.length) return;
 
@@ -49,7 +49,7 @@ export class RockPaperScissorsGame extends BasePixiGame {
             this.opponentChoice = null;
             this.roundResult = null;
             this.render();
-          }, 2000);
+          }, 500);
         }
         break;
       case 'SCORE':
@@ -164,8 +164,11 @@ export class RockPaperScissorsGame extends BasePixiGame {
   }
 
   private makeChoice(choice: Choice): void {
-    if (!this.wsConnected || this.gameState.status !== 'playing' || this.myChoice) return;
-    
+    // Don't allow new choice if still showing result from previous round
+    if (this.gameState.status !== 'playing' || this.roundResult !== null) {
+      return;
+    }
+
     this.myChoice = choice;
     this.sendMessage(choice);
     this.render();

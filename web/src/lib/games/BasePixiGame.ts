@@ -7,18 +7,17 @@ export interface GameState {
 
 export abstract class BasePixiGame {
   protected app!: Application;
-  protected ws: WebSocket | null;
+  protected sendMove: ((message: string) => void) | null;
   protected wsConnected: boolean;
   protected gameState: GameState = { status: 'waiting' };
   protected container: Container;
 
-  constructor(canvas: HTMLCanvasElement, ws: WebSocket | null, wsConnected: boolean) {
-    this.ws = ws;
+  constructor(canvas: HTMLCanvasElement, sendMove: ((message: string) => void) | null, wsConnected: boolean) {
+    this.sendMove = sendMove;
     this.wsConnected = wsConnected;
     this.container = new Container();
-    
+
     this.initApp(canvas);
-    this.setupWebSocket();
   }
 
   private async initApp(canvas: HTMLCanvasElement) {
@@ -29,26 +28,20 @@ export abstract class BasePixiGame {
       height: 400,
       backgroundColor: 0xffffff,
     });
-    
+
     this.app.stage.addChild(this.container);
     this.render();
   }
 
-  private setupWebSocket() {
-    if (this.ws) {
-      this.ws.addEventListener('message', (event) => {
-        this.handleMessage(event.data);
-      });
-    }
-  }
-
   protected sendMessage(message: string) {
-    if (this.ws && this.wsConnected) {
-      this.ws.send(message);
+    if (this.sendMove) {
+      this.sendMove(message);
+    } else {
+      console.error('BasePixiGame: Cannot send message - sendMove callback not available');
     }
   }
 
-  protected abstract handleMessage(data: string): void;
+  public abstract handleMessage(data: string): void;
   protected abstract render(): void;
 
   public destroy() {

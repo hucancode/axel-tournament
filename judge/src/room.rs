@@ -428,8 +428,12 @@ impl RoomManager {
                 // Check if reconnecting
                 let is_reconnecting = room.disconnected_players.remove(player_id);
 
+                tracing::debug!("RoomManager: Connecting player {} to room {} (reconnecting: {})", player_id, room_id, is_reconnecting);
+
                 // Add to room's connected players
                 room.players.push(Arc::clone(player));
+
+                tracing::debug!("RoomManager: Room {} now has {} connected players", room_id, room.players.len());
 
                 // If not reconnecting, broadcast PLAYER_JOINED to other players
                 if !is_reconnecting {
@@ -551,22 +555,30 @@ impl RoomManager {
         host_id: &str,
         game: &G,
     ) -> Result<Vec<crate::games::GameResult>, String> {
-        let rooms = self.rooms.read().await;
-        if let Some(room_arc) = rooms.get(room_id) {
+        tracing::info!("RoomManager: Starting game in room {} by host {}", room_id, host_id);
+
+        // Collect players and setup - release lock before running game
+        let (players, human_timeout) = {
+            let rooms = self.rooms.read().await;
+            let room_arc = rooms.get(room_id).ok_or("Room not found")?;
             let mut room = room_arc.write().await;
 
             if room.host_id != host_id {
+                tracing::warn!("RoomManager: Non-host {} tried to start game in room {}", host_id, room_id);
                 return Err("Only host can start the game".to_string());
             }
 
             if room.status != "waiting" {
+                tracing::warn!("RoomManager: Game already started or finished in room {} (status: {})", room_id, room.status);
                 return Err("Game already started or finished".to_string());
             }
 
             if room.players.len() < 2 {
+                tracing::warn!("RoomManager: Not enough players in room {} ({} players)", room_id, room.players.len());
                 return Err("Need at least 2 connected players to start".to_string());
             }
 
+            tracing::info!("RoomManager: Room {} has {} connected players, starting game", room_id, room.players.len());
             room.status = "playing".to_string();
 
             // Add GAME_STARTED to history
@@ -576,7 +588,9 @@ impl RoomManager {
             });
 
             // Broadcast to all players
-            for player in &room.players {
+            tracing::debug!("RoomManager: Broadcasting GAME_STARTED to {} players", room.players.len());
+            for (i, player) in room.players.iter().enumerate() {
+                tracing::debug!("RoomManager: Sending GAME_STARTED to player {} ({})", i, player.player_id());
                 let _ = player.send_message("GAME_STARTED").await;
             }
 
@@ -588,33 +602,54 @@ impl RoomManager {
                 .human_timeout_ms
                 .unwrap_or(game_metadata.human_turn_timeout_ms);
 
+            tracing::info!("RoomManager: Using timeout {}ms for room {}", human_timeout, room_id);
+
             let players: Vec<Box<dyn crate::players::Player>> = room
                 .players
                 .iter()
-                .map(|p| Box::new(Arc::clone(p)) as Box<dyn crate::players::Player>)
+                .enumerate()
+                .map(|(i, p)| {
+                    tracing::debug!("RoomManager: Game will use player {} with ID: {}", i, p.player_id());
+                    Box::new(Arc::clone(p)) as Box<dyn crate::players::Player>
+                })
                 .collect();
 
-            let results = game.run(players, human_timeout).await;
-            room.status = "finished".to_string();
+            (players, human_timeout)
+        }; // Room write lock is released here!
 
-            // Add GAME_FINISHED to history
-            let results_json = serde_json::to_string(&results).unwrap_or_default();
-            room.message_history.push(HistoryMessage {
-                timestamp: Utc::now(),
-                message: format!("GAME_FINISHED {}", results_json),
-            });
+        // Run game without holding room lock - this allows WebSocket handlers to continue processing messages
+        tracing::info!("RoomManager: Starting game execution with {} players", players.len());
+        let results = game.run(players, human_timeout).await;
+        tracing::info!("RoomManager: Game execution completed with results: {:?}", results);
 
-            // Broadcast game finished
-            for player in &room.players {
-                let _ = player
-                    .send_message(&format!("GAME_FINISHED {}", results_json))
-                    .await;
+        // Re-acquire lock to update status and broadcast results
+        {
+            let rooms = self.rooms.read().await;
+            if let Some(room_arc) = rooms.get(room_id) {
+                let mut room = room_arc.write().await;
+                room.status = "finished".to_string();
+
+                // Add GAME_FINISHED to history
+                let results_json = serde_json::to_string(&results).unwrap_or_default();
+                room.message_history.push(HistoryMessage {
+                    timestamp: Utc::now(),
+                    message: format!("GAME_FINISHED {}", results_json),
+                });
+
+                // Broadcast game finished
+                tracing::debug!("RoomManager: Broadcasting GAME_FINISHED to {} players", room.players.len());
+                for (i, player) in room.players.iter().enumerate() {
+                    tracing::debug!("RoomManager: Sending GAME_FINISHED to player {} ({})", i, player.player_id());
+                    let _ = player
+                        .send_message(&format!("GAME_FINISHED {}", results_json))
+                        .await;
+                }
+
+                tracing::info!("RoomManager: Game in room {} completed successfully", room_id);
             }
-
-            Ok(results)
-        } else {
-            Err("Room not found".to_string())
         }
+
+        Ok(results)
     }
 
     /// Remove player from pending
@@ -826,6 +861,8 @@ async fn handle_websocket<G: Game + Clone + Send + Sync + 'static>(
     let (move_tx, move_rx) = tokio::sync::mpsc::unbounded_channel();
     let player = Arc::new(HumanPlayer::new(player_id.clone(), sender, move_rx));
 
+    tracing::debug!("WebSocket {}: Created new HumanPlayer instance with fresh channels", player_id);
+
     // Add WebSocket player to pending players
     state
         .room_manager
@@ -873,12 +910,15 @@ async fn handle_websocket<G: Game + Clone + Send + Sync + 'static>(
     }
 
     // Handle incoming messages
+    tracing::debug!("WebSocket {}: Starting message handling loop", player_id);
     while let Some(msg) = receiver.next().await {
         match msg {
             Ok(Message::Text(text)) => {
                 let text = text.trim();
+                tracing::debug!("WebSocket {}: Received message: '{}'", player_id, text);
 
                 if text == "LEAVE" {
+                    tracing::info!("WebSocket {}: Player leaving room", player_id);
                     // Leave room gracefully
                     state.room_manager.leave_room(&room_id, &player_id).await;
                     let leave_msg = "LEFT_ROOM";
@@ -888,30 +928,46 @@ async fn handle_websocket<G: Game + Clone + Send + Sync + 'static>(
                     // Chat message - broadcast to other players in room
                     let chat_content = &text[5..]; // Remove "CHAT " prefix
                     let chat_msg = format!("CHAT {} {}", player_id, chat_content);
+                    tracing::debug!("WebSocket {}: Broadcasting chat message", player_id);
                     state
                         .room_manager
                         .broadcast_to_room(&room_id, &chat_msg, true)
                         .await;
                 } else if text == "START" {
-                    // Host is starting the game
-                    match state
-                        .room_manager
-                        .start_game(&room_id, &player_id, &state.game)
-                        .await
-                    {
-                        Ok(_results) => {
-                            // Game results are handled by the game logic itself
+                    tracing::info!("WebSocket {}: Host starting game", player_id);
+                    // Host is starting the game - spawn in separate task to avoid blocking WebSocket handler
+                    let room_id_clone = room_id.clone();
+                    let player_id_clone = player_id.clone();
+                    let state_clone = state.clone();
+                    let player_clone = player.clone();
+                    tokio::spawn(async move {
+                        match state_clone
+                            .room_manager
+                            .start_game(&room_id_clone, &player_id_clone, &state_clone.game)
+                            .await
+                        {
+                            Ok(_results) => {
+                                tracing::info!("WebSocket {}: Game started successfully", player_id_clone);
+                                // Game results are handled by the game logic itself
+                            }
+                            Err(e) => {
+                                tracing::error!("WebSocket {}: Failed to start game: {}", player_id_clone, e);
+                                let error_msg = format!("ERROR {}", e);
+                                let _ = player_clone.send_message(&error_msg).await;
+                            }
                         }
-                        Err(e) => {
-                            let error_msg = format!("ERROR {}", e);
-                            let _ = player.send_message(&error_msg).await;
-                        }
-                    }
+                    });
                 } else {
                     // Forward as game move
-                    if let Err(e) = move_tx.send(text.to_string()) {
-                        tracing::error!("Failed to forward move: {}", e);
-                        break;
+                    tracing::info!("WebSocket {}: Received game move from client: '{}'", player_id, text);
+                    match move_tx.send(text.to_string()) {
+                        Ok(_) => {
+                            tracing::info!("WebSocket {}: Successfully forwarded move to game channel", player_id);
+                        },
+                        Err(e) => {
+                            tracing::error!("WebSocket {}: Failed to forward move to channel: {}", player_id, e);
+                            break;
+                        }
                     }
                 }
             }
@@ -923,10 +979,12 @@ async fn handle_websocket<G: Game + Clone + Send + Sync + 'static>(
                 tracing::error!("WebSocket error for player {}: {}", player_id, e);
                 break;
             }
-            _ => {}
+            _ => {
+                tracing::debug!("WebSocket {}: Received non-text message", player_id);
+            }
         }
     }
-
+    tracing::info!("WebSocket {}: Message handling loop ended", player_id);
     // Cleanup on disconnect - keep player in room but mark as disconnected
     state
         .room_manager

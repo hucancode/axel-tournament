@@ -9,7 +9,7 @@ export class TicTacToeGame extends BasePixiGame {
   private cells: Graphics[] = [];
   private finalScore: string | null = null;
 
-  protected handleMessage(data: string): void {
+  public handleMessage(data: string): void {
     const parts = parseMessage(data);
     if (!parts.length) return;
 
@@ -20,10 +20,19 @@ export class TicTacToeGame extends BasePixiGame {
           this.gameState.status = 'playing';
           this.isMyTurn = this.mySymbol === 'X';
           this.render();
+        } else {
+          console.warn('TicTacToe: START message missing player symbol, waiting for BOARD/YOUR_TURN');
+          this.gameState.status = 'playing';
+          this.render();
         }
         break;
       case 'YOUR_TURN':
         this.isMyTurn = true;
+        // If we don't know our symbol yet, infer it from being first to move
+        if (!this.mySymbol && this.isMyTurn) {
+          this.mySymbol = 'X'; // X always goes first in tic-tac-toe
+          console.log('TicTacToe: Inferred player symbol as X (first mover)');
+        }
         this.render();
         break;
       case 'SCORE':
@@ -108,13 +117,26 @@ export class TicTacToeGame extends BasePixiGame {
   }
 
   private parseBoardState(data: string): void {
-    const lines = data.trim().split('\n');
-    if (lines.length === 3) {
-      for (let row = 0; row < 3; row++) {
-        for (let col = 0; col < 3; col++) {
-          const char = lines[row][col];
-          const index = row * 3 + col;
-          this.board[index] = char === '.' ? null : char;
+    const trimmed = data.trim();
+
+    // Handle board with newlines (3 lines format)
+    if (trimmed.includes('\n')) {
+      const lines = trimmed.split('\n');
+      if (lines.length === 3) {
+        for (let row = 0; row < 3; row++) {
+          for (let col = 0; col < 3; col++) {
+            const char = lines[row][col];
+            const index = row * 3 + col;
+            this.board[index] = char === '.' ? null : char;
+          }
+        }
+      }
+    } else {
+      // Handle single-line board format (9 characters)
+      if (trimmed.length === 9) {
+        for (let i = 0; i < 9; i++) {
+          const char = trimmed[i];
+          this.board[i] = char === '.' ? null : char;
         }
       }
     }
