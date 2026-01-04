@@ -26,6 +26,14 @@ export class TicTacToeGame extends BasePixiGame {
           this.render();
         }
         break;
+      case 'BOARD':
+        // Server sends: "BOARD X.O.X...." (9 characters after BOARD prefix)
+        if (parts.length === 2) {
+          this.parseBoardState(parts[1]);
+          this.isMyTurn = false; // Wait for explicit YOUR_TURN message from server
+          this.render();
+        }
+        break;
       case 'YOUR_TURN':
         this.isMyTurn = true;
         // If we don't know our symbol yet, infer it from being first to move
@@ -46,14 +54,6 @@ export class TicTacToeGame extends BasePixiGame {
       case 'END':
         this.gameState.status = 'finished';
         this.render();
-        break;
-      default:
-        // Handle board state (3 lines of grid)
-        if (data.includes('.') || data.includes('X') || data.includes('O')) {
-          this.parseBoardState(data);
-          this.isMyTurn = false; // Wait for YOUR_TURN message
-          this.render();
-        }
         break;
     }
   }
