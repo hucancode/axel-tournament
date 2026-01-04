@@ -215,7 +215,7 @@ async fn test_e2e_judge_workflow() -> Result<()> {
     // Give the watcher a moment to start
     sleep(Duration::from_millis(100)).await;
 
-    // Step 4: Wait for judge to process match (including on-demand compilation)
+    // Step 4: Wait for judge to process match (including compilation)
     println!("Step 4: Waiting for judge to process match...");
     let completed_match = wait_for_match_completed(&db, match_id.clone()).await?;
 
@@ -258,102 +258,5 @@ async fn test_e2e_judge_workflow() -> Result<()> {
     db.query("DELETE $tournament_id")
         .bind(("tournament_id", Thing::from(("tournament", tournament_id.as_str()))))
         .await?;
-    Ok(())
-}
-
-#[tokio::test]
-async fn test_judge_on_demand_compilation() -> Result<()> {
-    let db = connect_db().await?;
-
-    // Generate unique tournament ID for this test
-    let timestamp = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap()
-        .as_nanos(); // Use nanoseconds for better uniqueness
-    let tournament_id = format!("test_tournament_compilation_{}", timestamp);
-
-    // Create submissions with valid Rust code (not pre-compiled)
-    println!("Creating test submissions...");
-    let submission1_id = create_test_submission(&db, &tournament_id).await?;
-    let submission2_id = create_test_submission(&db, &tournament_id).await?;
-    println!("Created submissions: {} and {}", submission1_id, submission2_id);
-
-    // Verify submissions are initially pending (not compiled)
-    let mut result = db.query("SELECT status, compiled_binary_path FROM $submission_id")
-        .bind(("submission_id", submission1_id.clone()))
-        .await?;
-    let submissions: Vec<SubmissionStatus> = result.take(0)?;
-    let submission = submissions.first().expect("Submission not found");
-    assert_eq!(submission.status, "pending");
-    assert!(submission.compiled_binary_path.is_none());
-
-    // Create match to trigger on-demand compilation
-    println!("Creating match to trigger compilation...");
-    let match_id = create_test_match(&db, submission1_id.clone(), submission2_id.clone(), &tournament_id).await?;
-
-    // Start judge to process the match (which will compile submissions)
-    use judge::games::RockPaperScissors;
-    use judge::match_watcher::start_match_watcher;
-    use judge::capacity::CapacityTracker;
-
-    let capacity = CapacityTracker::new(10, 100);
-    let game = RockPaperScissors::new();
-
-    let judge_db_clone = db.clone();
-    let capacity_clone = capacity.clone();
-    let watcher_handle = tokio::spawn(async move {
-        tokio::select! {
-            result = start_match_watcher(
-                judge_db_clone,
-                game,
-                "rock-paper-scissors".to_string(),
-                capacity_clone,
-            ) => {
-                if let Err(e) = result {
-                    panic!("Match watcher error: {}", e);
-                }
-            }
-            _ = sleep(Duration::from_secs(30)) => {
-                println!("Match watcher timeout after 30 seconds");
-            }
-        }
-    });
-
-    sleep(Duration::from_millis(100)).await;
-
-    // Wait for match completion (which includes compilation)
-    println!("Waiting for match completion with on-demand compilation...");
-    let completed_match = wait_for_match_completed(&db, match_id.clone()).await?;
-    assert_eq!(completed_match.status, "completed");
-
-    // Verify submissions were compiled during match execution
-    let mut result = db.query("SELECT status, compiled_binary_path FROM $submission_id")
-        .bind(("submission_id", submission1_id.clone()))
-        .await?;
-    let submissions: Vec<SubmissionStatus> = result.take(0)?;
-    let submission = submissions.first().expect("Submission not found");
-
-    assert_eq!(submission.status, "accepted");
-    assert!(submission.compiled_binary_path.is_some());
-
-    println!("✅ On-demand compilation successful!");
-    println!("Binary path: {}", submission.compiled_binary_path.as_ref().unwrap());
-
-    watcher_handle.abort();
-
-    // Cleanup
-    db.query("DELETE $submission1_id")
-        .bind(("submission1_id", submission1_id))
-        .await?;
-    db.query("DELETE $submission2_id")
-        .bind(("submission2_id", submission2_id))
-        .await?;
-    db.query("DELETE $match_id")
-        .bind(("match_id", match_id))
-        .await?;
-    db.query("DELETE $tournament_id")
-        .bind(("tournament_id", Thing::from(("tournament", tournament_id.as_str()))))
-        .await?;
-
     Ok(())
 }
