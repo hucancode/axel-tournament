@@ -183,15 +183,31 @@ impl Game for PrisonersDilemma {
         // Determine player number from stored player_ids
         let player_num = state.player_ids.iter().position(|id| id == player_id).unwrap_or(0);
 
-        // Replay all completed rounds
-        for (round_idx, moves) in state.round_history.iter().enumerate() {
-            let choice_str = |c| if c == 0 { "C" } else { "D" };
+        // Replay all completed rounds with RESULT messages (same format as live gameplay)
+        let mut scores = [0, 0];
+        let choice_str = |c| if c == 0 { "C" } else { "D" };
 
-            messages.push(format!("ROUND {} {} {}",
-                round_idx + 1,
-                choice_str(moves[0]),
-                choice_str(moves[1])
-            ));
+        for moves in state.round_history.iter() {
+            // Calculate scores for this round
+            let (score0, score1) = match (moves[0], moves[1]) {
+                (0, 0) => (3, 3), // Both cooperate
+                (0, 1) => (0, 5), // P0 cooperates, P1 defects
+                (1, 0) => (5, 0), // P0 defects, P1 cooperates
+                (1, 1) => (1, 1), // Both defect
+                _ => unreachable!(),
+            };
+
+            scores[0] += score0;
+            scores[1] += score1;
+
+            // Send in player's perspective (opponent_move, your_move, opponent_score, your_score)
+            if player_num == 0 {
+                messages.push(format!("RESULT {} {} {} {}",
+                    choice_str(moves[1]), choice_str(moves[0]), scores[1], scores[0]));
+            } else {
+                messages.push(format!("RESULT {} {} {} {}",
+                    choice_str(moves[0]), choice_str(moves[1]), scores[0], scores[1]));
+            }
         }
 
         // If game is finished, send final score and END

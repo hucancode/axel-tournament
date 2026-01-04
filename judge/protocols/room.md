@@ -88,8 +88,10 @@ await socket.connect();
 
 ### 4. Server Sends Connection Confirmation
 ```
-Server → Client: CONNECTED
+Server → Client: LOGIN_OK {player_id}
 ```
+
+For new connections only (not reconnections).
 
 ### 5. Play Game
 ```typescript
@@ -191,8 +193,8 @@ socket.leave();
 **URL:** `/ws/{game_id}/{room_id}/{player_id}`
 
 **Server → Client:**
-- `CONNECTED` - Successfully connected (new connection)
-- `RECONNECT` - Reconnecting (was disconnected)
+- `LOGIN_OK {player_id}` - Successfully connected (new connection)
+- `LOGIN_OK {player_id} RECONNECT` - Reconnecting (was disconnected)
 - `REPLAY_START` - Start of message replay
 - `REPLAY_END` - End of message replay
 - `PLAYER_JOINED {user_id} {username}` - Player joined

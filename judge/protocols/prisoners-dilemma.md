@@ -68,6 +68,31 @@ END
 - Player with highest total score after all rounds wins
 - Number of rounds is random and unknown to players
 
+## Reconnection
+
+When a player reconnects during an active game, the server sends the complete game history with results in player perspective (opponent_move, your_move, opponent_score, your_score):
+
+```
+START
+RESULT D C 5 0
+RESULT C D 10 0
+RESULT D D 11 1
+RESULT {opponent_move} {your_move} {opponent_cumulative_score} {your_cumulative_score}
+```
+
+This replays all completed rounds with cumulative scores, matching the live gameplay format. The reconnecting player can then continue from the current round.
+
+If the game is finished:
+
+```
+START
+RESULT D C 5 0
+...
+RESULT {opponent_move} {your_move} {final_opponent_score} {final_your_score}
+SCORE {your_final_score}
+END
+```
+
 ## Error Conditions
 - Invalid move (not C/COOPERATE/D/DEFECT) → `WrongAnswer`
 - Timeout → `TimeLimitExceeded`

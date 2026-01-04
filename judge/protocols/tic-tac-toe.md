@@ -18,13 +18,19 @@ START X
 START O
 ```
 
-### 2. Turn Notification
+### 2. Turn Information (broadcast to all)
+**Server → All Players:**
+```
+TURN {turn_number}
+```
+
+### 3. Turn Notification (current player only)
 **Server → Current Player:**
 ```
 YOUR_TURN
 ```
 
-### 3. Move Input
+### 4. Move Input
 **Player → Server:**
 ```
 MOVE {row} {col}
@@ -35,21 +41,21 @@ Example:
 MOVE 1 2
 ```
 
-### 4. Board State (after each move)
+### 5. Board State (after each move)
 **Server → All Players:**
 ```
-X.O
-.X.
-O..
+BOARD X.O.X.O..
 ```
 
-### 5. Game End
+The board is sent as a single-line message with 9 characters representing the 3x3 grid (top-left to bottom-right).
+
+### 6. Game End
 **Server → Player:**
 ```
 SCORE {your_final_score}
 ```
 
-### 6. Graceful Exit
+### 7. Graceful Exit
 **Server → Player:**
 ```
 END
@@ -64,9 +70,32 @@ END
 
 ## Board Representation
 - `X` = Player 1's mark
-- `O` = Player 2's mark  
+- `O` = Player 2's mark
 - `.` = Empty space
-- Each row on a new line
+- 9 characters in grid order: top-left to bottom-right (row 0 col 0, row 0 col 1, ..., row 2 col 2)
+- Single line format in BOARD messages
+
+## Reconnection
+
+When a player reconnects during an active game, the server sends the current game state:
+
+```
+START {X|O}
+BOARD X.O.X.O..
+TURN {current_turn_number}
+YOUR_TURN
+```
+
+Or if the game is finished:
+
+```
+START {X|O}
+BOARD X.O.X.O.O
+SCORE {your_final_score}
+END
+```
+
+The reconnecting player receives their assigned symbol (X or O) and the current board state, allowing them to resume play.
 
 ## Error Conditions
 - Invalid format (not "MOVE row col") → `WrongAnswer`

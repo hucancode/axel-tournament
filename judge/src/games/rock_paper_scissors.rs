@@ -215,21 +215,25 @@ impl Game for RockPaperScissors {
         // Send START message
         messages.push("START".to_string());
 
-        // Replay all completed rounds
-        // Replay completed rounds
+        // Replay all completed rounds with scores (same format as live gameplay)
+        let mut scores = [0, 0];
         for (round_idx, moves) in state.round_history.iter().enumerate() {
-            let move_str = |m| match m {
-                0 => "rock",
-                1 => "paper",
-                2 => "scissors",
-                _ => "unknown"
+            // Determine winner of this round
+            let winner = match (moves[0], moves[1]) {
+                (a, b) if a == b => None, // Draw
+                (0, 2) | (1, 0) | (2, 1) => Some(0), // Player 0 wins
+                _ => Some(1), // Player 1 wins
             };
 
+            if let Some(w) = winner {
+                scores[w] += 1;
+            }
+
             messages.push(format!(
-                "ROUND {} {} {}",
+                "ROUND {} SCORE {} {}",
                 round_idx + 1,
-                move_str(moves[0]),
-                move_str(moves[1])
+                scores[0],
+                scores[1]
             ));
         }
 
@@ -238,7 +242,7 @@ impl Game for RockPaperScissors {
             messages.push(format!("SCORE {}", state.scores[0]));
             messages.push("END".to_string());
         } else if state.current_round > 0 {
-            // Game is in progress, send current round info
+            // Game is in progress, send current round score
             messages.push(format!(
                 "ROUND {} SCORE {} {}",
                 state.current_round,
