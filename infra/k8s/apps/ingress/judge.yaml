@@ -1,33 +1,48 @@
+# Judge WebSocket Ingress - Handles WebSocket connections with sticky sessions
+# HTTPS/WSS with automatic TLS certificates
+# Requires: A domain name pointing to the NGINX Ingress LoadBalancer
+# Access: wss://judge.${DOMAIN_NAME}/ws/{game_id}/{room_id}/{player_id}
+#
+# Routing Strategy:
+# - WebSocket connections are routed by room_id for sticky sessions
+# - All players in same room connect to same Judge instance
+#
+# Deploy with:
+#   export DOMAIN_NAME="yourdomain.com"
+#   envsubst < judge.yaml | kubectl apply -f -
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: judge
+  name: judge-websocket
   namespace: backend
   annotations:
-    kubernetes.io/ingress.class: nginx
-    nginx.ingress.kubernetes.io/websocket-services: "judge"
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
-    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    # WebSocket specific settings
+    nginx.ingress.kubernetes.io/websocket-services: "judge"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "86400"  # 24 hours
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "86400"  # 24 hours
+    # Sticky sessions by room_id
+    nginx.ingress.kubernetes.io/upstream-hash-by: "$room_id"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      # Extract room_id from WebSocket URL: /ws/{game_id}/{room_id}/{player_id}
+      set $room_id "";
+      if ($request_uri ~* "^/ws/[^/]+/([^/]+)/") {
+        set $room_id $1;
+      }
 spec:
+  ingressClassName: nginx
   tls:
     - hosts:
-        - api.${DOMAIN_NAME}
-      secretName: backend-tls-cert
+        - judge.${DOMAIN_NAME}
+      secretName: judge-tls-cert
   rules:
-    - host: api.${DOMAIN_NAME}
+    - host: judge.${DOMAIN_NAME}
       http:
         paths:
-          # Unified Judge Server
-          - path: /judge
-            pathType: Prefix
-            backend:
-              service:
-                name: judge
-                port:
-                  number: 8080
-          # Unified Judge Server - WebSocket endpoints
-          - path: /room
+          # WebSocket endpoints (sticky sessions by room_id)
+          - path: /ws
             pathType: Prefix
             backend:
               service:

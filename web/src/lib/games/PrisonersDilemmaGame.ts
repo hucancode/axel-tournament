@@ -2,13 +2,11 @@ import { Graphics, Text } from 'pixi.js';
 import { BasePixiGame } from './BasePixiGame';
 import { COLORS, parseMessage } from './types';
 
-type Choice = 'COOPERATE' | 'DEFECT';
+type Choice = 'C' | 'D';
 
 export class PrisonersDilemmaGame extends BasePixiGame {
   private myChoice: Choice | null = null;
   private opponentChoice: Choice | null = null;
-  private currentRound = 1;
-  private totalRounds = 10;
   private scores = { player: 0, opponent: 0 };
 
   protected handleMessage(data: string): void {
@@ -17,22 +15,14 @@ export class PrisonersDilemmaGame extends BasePixiGame {
 
     switch (parts[0]) {
       case 'START':
-        if (parts.length === 2) this.totalRounds = parseInt(parts[1]);
         this.gameState.status = 'playing';
         this.render();
         break;
-      case 'ROUND':
-        if (parts.length === 2) {
-          this.currentRound = parseInt(parts[1]);
-          this.myChoice = null;
-          this.opponentChoice = null;
-          this.render();
-        }
-        break;
       case 'RESULT':
         if (parts.length === 5) {
-          this.myChoice = parts[1] as Choice;
-          this.opponentChoice = parts[2] as Choice;
+          this.opponentChoice = parts[1] as Choice;
+          this.myChoice = parts[2] as Choice;
+          this.scores = { opponent: parseInt(parts[3]), player: parseInt(parts[4]) };
           this.render();
           setTimeout(() => {
             this.myChoice = null;
@@ -42,14 +32,14 @@ export class PrisonersDilemmaGame extends BasePixiGame {
         }
         break;
       case 'SCORE':
-        if (parts.length === 3) {
-          this.scores = { player: parseInt(parts[1]), opponent: parseInt(parts[2]) };
+        if (parts.length === 2) {
+          this.gameState.status = 'finished';
+          this.gameState.result = `Final Score: ${parts[1]}`;
           this.render();
         }
         break;
       case 'END':
         this.gameState.status = 'finished';
-        this.gameState.result = `Final: ${this.scores.player} - ${this.scores.opponent}`;
         this.render();
         break;
     }
@@ -81,7 +71,7 @@ export class PrisonersDilemmaGame extends BasePixiGame {
     coopButton.fill(COLORS.GREEN);
     coopButton.interactive = true;
     coopButton.cursor = 'pointer';
-    coopButton.on('pointerdown', () => this.makeChoice('COOPERATE'));
+    coopButton.on('pointerdown', () => this.makeChoice('C'));
     this.container.addChild(coopButton);
 
     const coopText = new Text({
@@ -98,7 +88,7 @@ export class PrisonersDilemmaGame extends BasePixiGame {
     defectButton.fill(COLORS.RED);
     defectButton.interactive = true;
     defectButton.cursor = 'pointer';
-    defectButton.on('pointerdown', () => this.makeChoice('DEFECT'));
+    defectButton.on('pointerdown', () => this.makeChoice('D'));
     this.container.addChild(defectButton);
 
     const defectText = new Text({
@@ -111,8 +101,8 @@ export class PrisonersDilemmaGame extends BasePixiGame {
   }
 
   private renderResult(): void {
-    const myEmoji = this.myChoice === 'COOPERATE' ? '🤝' : '⚔️';
-    const oppEmoji = this.opponentChoice === 'COOPERATE' ? '🤝' : '⚔️';
+    const myEmoji = this.myChoice === 'C' ? '🤝' : '⚔️';
+    const oppEmoji = this.opponentChoice === 'C' ? '🤝' : '⚔️';
 
     const myText = new Text({ text: myEmoji, style: { fontSize: 48 } });
     myText.x = 120;
@@ -130,8 +120,8 @@ export class PrisonersDilemmaGame extends BasePixiGame {
     this.container.addChild(oppText);
 
     const resultText = new Text({
-      text: `Round ${this.currentRound} complete!`,
-      style: { fontSize: 16, fill: COLORS.BLACK }
+      text: `Round complete! Scores: You ${this.scores.player}, Opponent ${this.scores.opponent}`,
+      style: { fontSize: 14, fill: COLORS.BLACK }
     });
     resultText.x = 200 - resultText.width / 2;
     resultText.y = 250;
@@ -149,7 +139,7 @@ export class PrisonersDilemmaGame extends BasePixiGame {
   private getStatusText(): string {
     if (this.gameState.status === 'waiting') return 'Waiting for players...';
     if (this.gameState.status === 'finished') return this.gameState.result || 'Game Over';
-    if (this.myChoice) return 'Waiting for opponent...';
-    return `Round ${this.currentRound}/${this.totalRounds} - Score: ${this.scores.player} - ${this.scores.opponent}`;
+    if (this.myChoice) return 'Waiting for round result...';
+    return `Score: ${this.scores.player} - ${this.scores.opponent}`;
   }
 }

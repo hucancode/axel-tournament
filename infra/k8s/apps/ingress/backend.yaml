@@ -1,6 +1,11 @@
-# Backend Ingress - HTTPS with automatic TLS certificates
+# Unified API Ingress - Routes to Backend API and Judge (for room management)
+# HTTPS with automatic TLS certificates
 # Requires: A domain name pointing to the NGINX Ingress LoadBalancer
 # Access: https://api.${DOMAIN_NAME}
+#
+# Routing Strategy:
+# - /api/rooms → Judge (with sticky sessions by room_id)
+# - /api/* → Backend API
 #
 # Deploy with:
 #   export DOMAIN_NAME="yourdomain.com"
@@ -15,6 +20,14 @@ metadata:
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    # Enable sticky sessions by room_id for room management endpoints
+    nginx.ingress.kubernetes.io/upstream-hash-by: "$room_id"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      # Extract room_id for sticky session hashing
+      set $room_id "";
+      if ($request_uri ~* "^/api/rooms/([^/?\s]+)") {
+        set $room_id $1;
+      }
 spec:
   ingressClassName: nginx
   tls:
@@ -25,10 +38,35 @@ spec:
     - host: api.${DOMAIN_NAME}
       http:
         paths:
-          - path: /
+          # Room management routes → Judge (with sticky sessions)
+          - path: /api/rooms
+            pathType: Prefix
+            backend:
+              service:
+                name: judge
+                port:
+                  number: 8081
+          # All other API routes → Backend
+          - path: /api
             pathType: Prefix
             backend:
               service:
                 name: backend
                 port:
                   number: 8080
+          # Health check
+          - path: /health
+            pathType: Prefix
+            backend:
+              service:
+                name: judge
+                port:
+                  number: 8081
+          # Capacity check
+          - path: /capacity
+            pathType: Prefix
+            backend:
+              service:
+                name: judge
+                port:
+                  number: 8081

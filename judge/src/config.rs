@@ -12,6 +12,7 @@ pub struct Config {
     pub database_pass: String,
     pub max_capacity: usize,
     pub max_claim_delay_ms: u64,
+    pub jwt_secret: String,
 }
 
 impl Config {
@@ -41,6 +42,8 @@ impl Config {
                 .unwrap_or_else(|_| "1000".to_string())
                 .parse()
                 .unwrap_or(1000),
+            jwt_secret: env::var("JWT_SECRET")
+                .unwrap_or_else(|_| "supersecret".to_string()),
         })
     }
 }

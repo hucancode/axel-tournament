@@ -30,6 +30,10 @@ spec:
           env:
             - name: RUST_LOG
               value: "info"
+            - name: SERVER_HOST
+              value: "0.0.0.0"
+            - name: SERVER_PORT
+              value: "8081"
             - name: DATABASE_URL
               value: "surrealdb.db.svc.cluster.local:8000"
             - name: DATABASE_USER
@@ -46,6 +50,15 @@ spec:
               value: "tournament"
             - name: DATABASE_DB
               value: "axel"
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: jwt_secret
+            - name: MAX_CAPACITY
+              value: "100"
+            - name: MAX_CLAIM_DELAY_MS
+              value: "5000"
             - name: SANDBOX_IMAGE
               value: "${SANDBOX_IMAGE}"
             - name: DOCKER_HOST

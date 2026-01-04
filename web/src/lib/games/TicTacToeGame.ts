@@ -7,6 +7,7 @@ export class TicTacToeGame extends BasePixiGame {
   private mySymbol: 'X' | 'O' | null = null;
   private isMyTurn = false;
   private cells: Graphics[] = [];
+  private finalScore: string | null = null;
 
   protected handleMessage(data: string): void {
     const parts = parseMessage(data);
@@ -21,27 +22,29 @@ export class TicTacToeGame extends BasePixiGame {
           this.render();
         }
         break;
-      case 'MOVE':
-        if (parts.length === 3) {
-          const row = parseInt(parts[1]);
-          const col = parseInt(parts[2]);
-          const index = row * 3 + col;
-          this.board[index] = this.mySymbol === 'X' ? 'O' : 'X';
-          this.isMyTurn = true;
+      case 'YOUR_TURN':
+        this.isMyTurn = true;
+        this.render();
+        break;
+      case 'SCORE':
+        if (parts.length === 2) {
+          this.finalScore = parts[1];
+          this.gameState.status = 'finished';
+          this.gameState.result = `Final Score: ${parts[1]}`;
           this.render();
         }
         break;
-      case 'WIN':
-        this.gameState = { status: 'finished', result: 'You Win!' };
+      case 'END':
+        this.gameState.status = 'finished';
         this.render();
         break;
-      case 'LOSE':
-        this.gameState = { status: 'finished', result: 'You Lose!' };
-        this.render();
-        break;
-      case 'DRAW':
-        this.gameState = { status: 'finished', result: 'Draw!' };
-        this.render();
+      default:
+        // Handle board state (3 lines of grid)
+        if (data.includes('.') || data.includes('X') || data.includes('O')) {
+          this.parseBoardState(data);
+          this.isMyTurn = false; // Wait for YOUR_TURN message
+          this.render();
+        }
         break;
     }
   }
@@ -102,6 +105,19 @@ export class TicTacToeGame extends BasePixiGame {
     this.board[index] = this.mySymbol;
     this.isMyTurn = false;
     this.render();
+  }
+
+  private parseBoardState(data: string): void {
+    const lines = data.trim().split('\n');
+    if (lines.length === 3) {
+      for (let row = 0; row < 3; row++) {
+        for (let col = 0; col < 3; col++) {
+          const char = lines[row][col];
+          const index = row * 3 + col;
+          this.board[index] = char === '.' ? null : char;
+        }
+      }
+    }
   }
 
   private getStatusText(): string {

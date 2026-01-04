@@ -7,8 +7,8 @@ use tokio::time::{sleep, Duration};
 
 use crate::capacity::CapacityTracker;
 use crate::compiler::Compiler;
-use crate::game_logic::{GameLogic, GameResult};
-use crate::player::Player;
+use crate::games::{Game, GameResult};
+use crate::players::Player;
 use crate::players::BotPlayer;
 
 type Database = Surreal<Client>;
@@ -61,7 +61,7 @@ pub async fn start_match_watcher<G>(
     capacity: CapacityTracker,
 ) -> Result<()>
 where
-    G: GameLogic + Clone + Send + Sync + 'static,
+    G: Game + Clone + Send + Sync + 'static,
 {
     tracing::info!("Starting match watcher for game: {}", game_id);
 
@@ -141,7 +141,7 @@ where
 
 async fn execute_match<G>(db: Database, game: G, match_record: Match) -> Result<()>
 where
-    G: GameLogic,
+    G: Game,
 {
     let match_id_str = match_record.id.to_string();
 
@@ -151,7 +151,7 @@ where
         .await?;
 
     // Get game metadata for timeouts
-    let game_metadata = crate::game_metadata::find_game_by_id(&match_record.game_id)
+    let game_metadata = crate::games::find_game_by_id(&match_record.game_id)
         .ok_or_else(|| anyhow::anyhow!("Game metadata not found for {}", match_record.game_id))?;
 
     // Initialize compiler
@@ -213,7 +213,7 @@ where
     player1.set_timeout(game_metadata.bot_turn_timeout_ms);
     player2.set_timeout(game_metadata.bot_turn_timeout_ms);
 
-    let players: Vec<Box<dyn crate::player::Player>> = vec![Box::new(player1), Box::new(player2)];
+    let players: Vec<Box<dyn crate::players::Player>> = vec![Box::new(player1), Box::new(player2)];
 
     // Execute the game
     let results = game.run(players, game_metadata.bot_turn_timeout_ms).await;

@@ -21,6 +21,8 @@ spec:
           env:
             - name: PUBLIC_API_URL
               value: "${PUBLIC_API_URL}"
+            - name: PUBLIC_JUDGE_URL
+              value: "https://judge.${DOMAIN_NAME}"
           resources:
             requests:
               cpu: "100m"

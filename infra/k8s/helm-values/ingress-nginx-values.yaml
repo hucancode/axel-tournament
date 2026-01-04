@@ -7,7 +7,7 @@ controller:
       service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
       service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
       service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "tcp"
-  
+
   # Resources
   resources:
     requests:
@@ -16,10 +16,26 @@ controller:
     limits:
       cpu: 1000m
       memory: 512Mi
-  
+
   # Replicas for HA
   replicaCount: 2
-  
+
+  # Enable session affinity (sticky sessions) support
+  config:
+    # Use consistent hashing for sticky sessions
+    upstream-hash-by: "$request_uri"
+    # WebSocket timeout (24 hours for long-lived room connections)
+    proxy-read-timeout: "86400"
+    proxy-send-timeout: "86400"
+    # Enable variable hash for room_id extraction
+    http-snippet: |
+      # Extract room_id from various URL patterns for sticky sessions
+      map $request_uri $room_id {
+        ~^/api/rooms/([^/?\s]+)     $1;
+        ~^/ws/[^/]+/([^/]+)/        $1;
+        default                     "";
+      }
+
   # Metrics
   metrics:
     enabled: true

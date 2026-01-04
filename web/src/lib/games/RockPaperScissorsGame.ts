@@ -7,8 +7,9 @@ type Choice = 'ROCK' | 'PAPER' | 'SCISSORS';
 export class RockPaperScissorsGame extends BasePixiGame {
   private myChoice: Choice | null = null;
   private opponentChoice: Choice | null = null;
+  private roundResult: 'WIN' | 'LOSE' | 'DRAW' | null = null;
   private scores = { player: 0, opponent: 0 };
-  private roundResult: string | null = null;
+  private currentRound = 0;
 
   private choices = [
     { value: 'ROCK' as Choice, emoji: '🪨', x: 80 },
@@ -25,29 +26,41 @@ export class RockPaperScissorsGame extends BasePixiGame {
         this.gameState.status = 'playing';
         this.render();
         break;
-      case 'RESULT':
-        if (parts.length === 4) {
-          this.myChoice = parts[1] as Choice;
-          this.opponentChoice = parts[2] as Choice;
-          this.roundResult = parts[3];
+      case 'ROUND':
+        if (parts.length === 5 && parts[1] && parts[2] === 'SCORE') {
+          this.currentRound = parseInt(parts[1]);
+          const newScores = { player: parseInt(parts[3]), opponent: parseInt(parts[4]) };
+
+          // Determine round result based on score change
+          if (newScores.player > this.scores.player) {
+            this.roundResult = 'WIN';
+          } else if (newScores.opponent > this.scores.opponent) {
+            this.roundResult = 'LOSE';
+          } else {
+            this.roundResult = 'DRAW';
+          }
+
+          this.scores = newScores;
+
+          // Show result briefly, then reset for next round
           this.render();
           setTimeout(() => {
             this.myChoice = null;
             this.opponentChoice = null;
             this.roundResult = null;
             this.render();
-          }, 3000);
+          }, 2000);
         }
         break;
       case 'SCORE':
-        if (parts.length === 3) {
-          this.scores = { player: parseInt(parts[1]), opponent: parseInt(parts[2]) };
+        if (parts.length === 2) {
+          this.gameState.status = 'finished';
+          this.gameState.result = `Final Score: ${parts[1]}`;
           this.render();
         }
         break;
       case 'END':
         this.gameState.status = 'finished';
-        this.gameState.result = `Final: ${this.scores.player} - ${this.scores.opponent}`;
         this.render();
         break;
     }
@@ -65,10 +78,12 @@ export class RockPaperScissorsGame extends BasePixiGame {
     status.y = 20;
     this.container.addChild(status);
 
-    if (this.myChoice && this.opponentChoice) {
-      this.renderResult();
-    } else if (this.gameState.status === 'playing' && !this.myChoice) {
+    if (this.gameState.status === 'playing' && !this.myChoice) {
       this.renderChoices();
+    } else if (this.myChoice && this.roundResult) {
+      this.renderResult();
+    } else if (this.myChoice) {
+      this.renderWaitingState();
     }
   }
 
@@ -95,32 +110,57 @@ export class RockPaperScissorsGame extends BasePixiGame {
 
   private renderResult(): void {
     const myEmoji = this.choices.find(c => c.value === this.myChoice)?.emoji || '';
-    const oppEmoji = this.choices.find(c => c.value === this.opponentChoice)?.emoji || '';
 
-    const myText = new Text({ text: myEmoji, style: { fontSize: 48 } });
-    myText.x = 120;
-    myText.y = 150;
+    const myText = new Text({ text: `Your choice: ${myEmoji}`, style: { fontSize: 32, fill: COLORS.BLACK } });
+    myText.x = 200 - myText.width / 2;
+    myText.y = 120;
     this.container.addChild(myText);
 
-    const vsText = new Text({ text: 'VS', style: { fontSize: 24, fill: COLORS.GRAY } });
-    vsText.x = 200 - vsText.width / 2;
-    vsText.y = 170;
-    this.container.addChild(vsText);
-
-    const oppText = new Text({ text: oppEmoji, style: { fontSize: 48 } });
-    oppText.x = 280;
-    oppText.y = 150;
-    this.container.addChild(oppText);
-
     if (this.roundResult) {
+      const resultText = this.roundResult === 'WIN' ? 'You Win This Round!' :
+                         this.roundResult === 'LOSE' ? 'You Lose This Round!' :
+                         'Draw!';
+      const resultColor = this.roundResult === 'WIN' ? COLORS.GREEN :
+                          this.roundResult === 'LOSE' ? COLORS.RED :
+                          COLORS.GRAY;
+
       const result = new Text({
-        text: this.roundResult === 'WIN' ? 'You Win!' : this.roundResult === 'LOSE' ? 'You Lose!' : 'Draw!',
-        style: { fontSize: 20, fill: this.roundResult === 'WIN' ? COLORS.GREEN : this.roundResult === 'LOSE' ? COLORS.RED : COLORS.GRAY }
+        text: resultText,
+        style: { fontSize: 24, fill: resultColor }
       });
       result.x = 200 - result.width / 2;
-      result.y = 250;
+      result.y = 180;
       this.container.addChild(result);
     }
+
+    // Show current scores
+    const scoreText = new Text({
+      text: `Score: ${this.scores.player} - ${this.scores.opponent}`,
+      style: { fontSize: 18, fill: COLORS.BLACK }
+    });
+    scoreText.x = 200 - scoreText.width / 2;
+    scoreText.y = 230;
+    this.container.addChild(scoreText);
+  }
+
+  private renderWaitingState(): void {
+    const myEmoji = this.choices.find(c => c.value === this.myChoice)?.emoji || '';
+    
+    const choiceText = new Text({
+      text: `Your choice: ${myEmoji}`,
+      style: { fontSize: 24, fill: COLORS.BLACK }
+    });
+    choiceText.x = 200 - choiceText.width / 2;
+    choiceText.y = 150;
+    this.container.addChild(choiceText);
+
+    const waitText = new Text({
+      text: 'Waiting for round result...',
+      style: { fontSize: 16, fill: COLORS.GRAY }
+    });
+    waitText.x = 200 - waitText.width / 2;
+    waitText.y = 200;
+    this.container.addChild(waitText);
   }
 
   private makeChoice(choice: Choice): void {
@@ -134,7 +174,7 @@ export class RockPaperScissorsGame extends BasePixiGame {
   private getStatusText(): string {
     if (this.gameState.status === 'waiting') return 'Waiting for players...';
     if (this.gameState.status === 'finished') return this.gameState.result || 'Game Over';
-    if (this.myChoice) return 'Waiting for opponent...';
-    return `Score: ${this.scores.player} - ${this.scores.opponent}`;
+    if (this.myChoice) return 'Waiting for round result...';
+    return `Round ${this.currentRound} - Score: ${this.scores.player} - ${this.scores.opponent}`;
   }
 }

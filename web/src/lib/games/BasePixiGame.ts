@@ -6,7 +6,7 @@ export interface GameState {
 }
 
 export abstract class BasePixiGame {
-  protected app: Application;
+  protected app!: Application;
   protected ws: WebSocket | null;
   protected wsConnected: boolean;
   protected gameState: GameState = { status: 'waiting' };

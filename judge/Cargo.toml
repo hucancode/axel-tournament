@@ -28,5 +28,7 @@ uuid = { version = "1", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 dotenv = "0.15"
 bollard = "0.17"
+jsonwebtoken = "9"
 async-trait = "0.1.89"
 tempfile = "3.0"
+rand = "0.9"

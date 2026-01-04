@@ -8,6 +8,7 @@
     import Alert from "$lib/components/Alert.svelte";
     import Button from "$lib/components/Button.svelte";
     import LinkButton from "$lib/components/LinkButton.svelte";
+    import { authStore } from "$lib/stores/auth";
 
     let rooms = $state<Room[]>([]);
     let games = $state<Game[]>([]);
@@ -20,7 +21,14 @@
     let humanTimeoutMs = $state<number | undefined>(undefined);
     let filterGameId = $state<string>("");
 
+    // Reactive auth state
+    let authState = $state($authStore);
+
     onMount(async () => {
+        // Subscribe to auth store changes
+        authStore.subscribe(state => {
+            authState = state;
+        });
         await loadData();
     });
 
@@ -64,6 +72,23 @@
     async function joinRoom(roomId: string) {
         try {
             error = null;
+            
+            // Find the room to check if user is already in it
+            const room = rooms.find(r => r.id === roomId);
+            const currentUser = authState.user;
+            
+            if (room && currentUser) {
+                // Check if user is already in the room (as host or player)
+                const isAlreadyInRoom = room.host_id === currentUser.id || room.players.includes(currentUser.id);
+                
+                if (isAlreadyInRoom) {
+                    // User is already in room, navigate directly
+                    goto(`/rooms/${roomId}`);
+                    return;
+                }
+            }
+            
+            // User is not in room, call join API
             await roomService.join(roomId);
             goto(`/rooms/${roomId}`);
         } catch (err) {
@@ -98,6 +123,12 @@
 
     function getSelectedGame(): Game | undefined {
         return games.find((g) => g.id === selectedGameId);
+    }
+
+    function isUserInRoom(room: Room): boolean {
+        const currentUser = authState.user;
+        if (!currentUser) return false;
+        return room.host_id === currentUser.id || room.players.includes(currentUser.id);
     }
 </script>
 
@@ -160,18 +191,26 @@
                             >
                         </div>
                         <div>
-                            {#if room.status === "waiting" && room.players.length < room.max_players}
-                                <Button
-                                    variant="success"
-                                    label="Join Room"
-                                    onclick={() => joinRoom(room.id)}
-                                />
-                            {:else if room.status === "waiting"}
-                                <Button
-                                    variant="secondary"
-                                    label="Full"
-                                    disabled={true}
-                                />
+                            {#if room.status === "waiting"}
+                                {#if isUserInRoom(room)}
+                                    <Button
+                                        variant="primary"
+                                        label="Enter Room"
+                                        onclick={() => joinRoom(room.id)}
+                                    />
+                                {:else if room.players.length < room.max_players}
+                                    <Button
+                                        variant="success"
+                                        label="Join Room"
+                                        onclick={() => joinRoom(room.id)}
+                                    />
+                                {:else}
+                                    <Button
+                                        variant="secondary"
+                                        label="Full"
+                                        disabled={true}
+                                    />
+                                {/if}
                             {:else}
                                 <Button
                                     variant="secondary"

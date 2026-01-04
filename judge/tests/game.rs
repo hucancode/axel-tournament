@@ -1,7 +1,7 @@
 use anyhow::Result;
 use async_trait::async_trait;
-use judge::player::Player;
-use judge::game_logic::GameLogic;
+use judge::players::Player;
+use judge::games::Game;
 use judge::games::{RockPaperScissors, TicTacToe, PrisonersDilemma};
 use judge::capacity::CapacityTracker;
 use std::sync::Arc;

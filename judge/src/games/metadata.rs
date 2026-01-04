@@ -1,7 +1,7 @@
 use serde::Serialize;
 
 #[derive(Debug, Clone, Serialize)]
-pub struct GameMetadata {
+pub struct Metadata {
     pub id: &'static str,
     pub name: &'static str,
     pub description: &'static str,
@@ -17,8 +17,8 @@ pub struct GameMetadata {
 }
 
 // Static game registry matching the API server
-pub static GAMES: &[GameMetadata] = &[
-    GameMetadata {
+pub static GAMES: &[Metadata] = &[
+    Metadata {
         id: "rock-paper-scissors",
         name: "Rock Paper Scissors",
         description: "Classic rock-paper-scissors game for 2 players",
@@ -32,7 +32,7 @@ pub static GAMES: &[GameMetadata] = &[
         human_turn_timeout_ms: 10000,
         memory_limit_mb: 64,
     },
-    GameMetadata {
+    Metadata {
         id: "prisoners-dilemma",
         name: "Prisoner's Dilemma",
         description: "Classic game theory prisoner's dilemma",
@@ -46,7 +46,7 @@ pub static GAMES: &[GameMetadata] = &[
         human_turn_timeout_ms: 10000,
         memory_limit_mb: 64,
     },
-    GameMetadata {
+    Metadata {
         id: "tic-tac-toe",
         name: "Tic Tac Toe",
         description: "Classic tic-tac-toe game for 2 players",
@@ -62,6 +62,6 @@ pub static GAMES: &[GameMetadata] = &[
     },
 ];
 
-pub fn find_game_by_id(id: &str) -> Option<&'static GameMetadata> {
+pub fn find_game_by_id(id: &str) -> Option<&'static Metadata> {
     GAMES.iter().find(|g| g.id == id)
 }

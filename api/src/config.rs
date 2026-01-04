@@ -63,6 +63,7 @@ pub struct EmailConfig {
 pub struct AppConfig {
     pub max_code_size_mb: usize,
     pub default_location: String,
+    pub judge_url: String,
 }
 
 impl Config {
@@ -129,6 +130,7 @@ impl Config {
                     .parse()
                     .unwrap_or(10),
                 default_location: env::var("DEFAULT_LOCATION").unwrap_or_else(|_| "US".to_string()),
+                judge_url: env::var("JUDGE_URL").unwrap_or_else(|_| "http://localhost:8081".to_string()),
             },
             admin: AdminConfig {
                 email: env::var("ADMIN_EMAIL")

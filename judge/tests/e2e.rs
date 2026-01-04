@@ -1,5 +1,6 @@
 use anyhow::Result;
 use judge::config::Config;
+use judge::games::Game;
 use serde::Deserialize;
 use surrealdb::{engine::remote::ws::Client, sql::Thing, Surreal};
 use tokio::time::{sleep, Duration};
@@ -188,7 +189,7 @@ async fn test_e2e_judge_workflow() -> Result<()> {
     use judge::capacity::CapacityTracker;
 
     let capacity = CapacityTracker::new(10, 100);
-    let game = RockPaperScissors;
+    let game = RockPaperScissors::new();
 
     // Start match watcher in background using existing db connection
     let judge_db_clone = db.clone();
@@ -296,7 +297,7 @@ async fn test_judge_on_demand_compilation() -> Result<()> {
     use judge::capacity::CapacityTracker;
 
     let capacity = CapacityTracker::new(10, 100);
-    let game = RockPaperScissors;
+    let game = RockPaperScissors::new();
 
     let judge_db_clone = db.clone();
     let capacity_clone = capacity.clone();

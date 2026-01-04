@@ -10,18 +10,31 @@ The platform consists of the following components:
 - **SurrealDB**: Database for storing users, tournaments, submissions, matches (namespace: `db`)
 - **Healer**: Background service for cleaning up stale matches (namespace: `healer`)
 
-### Game Servers
-All game servers run in the `backend` namespace and include Docker-in-Docker for sandboxed code execution:
+### Judge Server (Unified Game Server)
+The Judge server runs in the `backend` namespace and provides:
 
-- **Rock Paper Scissors** (port 8082): `/game/rock-paper-scissors`
-- **Prisoner's Dilemma** (port 8083): `/game/prisoners-dilemma`
-- **Tic Tac Toe** (port 8084): `/game/tic-tac-toe`
+**Automated Matches (Bot vs Bot):**
+- Runs tournament matches between AI submissions
+- Executes user code in isolated Docker containers
+- Reports results to Backend API
 
-Each game server:
-- Runs automated bot-vs-bot matches from tournament submissions
-- Provides WebSocket endpoints for real-time interactive games
-- Executes user code in isolated Docker containers using the sandbox image
-- Auto-scales based on CPU utilization (1-4 replicas)
+**Interactive Rooms (Human vs Human):**
+- HTTP API for room management (`/api/rooms`)
+- WebSocket connections for real-time gameplay (`/ws/{game}/{room}/{player}`)
+- Sticky sessions ensure all players in same room connect to same pod
+- Support for reconnection with full game state replay
+
+**Games Supported:**
+- Tic Tac Toe
+- Rock Paper Scissors
+- Prisoner's Dilemma
+
+**Deployment:**
+- Auto-scales from 2 to 8 replicas based on CPU
+- Handles 100 concurrent rooms per pod
+- 24-hour WebSocket timeout for long games
+
+> **Note:** For detailed room management architecture, see [CHANGES.md](./CHANGES.md) and [ROOM_MANAGEMENT_DEPLOYMENT.md](./ROOM_MANAGEMENT_DEPLOYMENT.md)
 
 ## Prerequisites
 

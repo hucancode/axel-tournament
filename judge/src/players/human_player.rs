@@ -7,7 +7,7 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio::time::{timeout, Duration};
 
-use crate::player::Player;
+use crate::players::Player;
 
 /// HumanPlayer forwards messages from WebSocket to GameLogic and vice versa
 /// Forwards messages from GameLogic to WebSocket, forwards messages from WebSocket to GameLogic

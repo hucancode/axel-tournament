@@ -8,7 +8,7 @@ use tokio::io::AsyncWriteExt;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-use crate::player::Player;
+use crate::players::Player;
 
 /// BotPlayer spins up a Docker instance and forwards messages
 /// Forwards messages from GameLogic to stdin, forwards messages from stdout to GameLogic

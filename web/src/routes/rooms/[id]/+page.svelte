@@ -4,6 +4,7 @@
   import { page } from '$app/state';
   import { roomService } from '$lib/services/rooms';
   import { gameService } from '$lib/services/games';
+  import { RoomSocket } from '$lib/services/roomSocket';
   import { createGame } from '$lib/games/registry';
   import type { BasePixiGame } from '$lib/games/BasePixiGame';
   import Alert from '$lib/components/Alert.svelte';
@@ -14,29 +15,12 @@
   let game = $state<Game | null>(null);
   let loading = $state(true);
   let error = $state<string | null>(null);
-  let ws: WebSocket | null = null;
+  let roomSocket: RoomSocket | null = null;
   let wsConnected = $state(false);
-  let canvas: HTMLCanvasElement;
+  let canvas = $state<HTMLCanvasElement | undefined>(undefined);
   let pixiGame: BasePixiGame | null = null;
-
-  const roomId = page.params.id!;
-  let room = $state<Room | null>(null);
-  let game = $state<Game | null>(null);
-  let loading = $state(true);
-  let error = $state<string | null>(null);
-  let ws: WebSocket | null = null;
-  let wsConnected = $state(false);
-
-  function getGameWebSocketPath(gameId: string): string {
-    // Map game IDs to WebSocket paths
-    const gamePathMap: Record<string, string> = {
-      'tic-tac-toe': 'tic-tac-toe',
-      'rock-paper-scissors': 'rock-paper-scissors', 
-      'prisoners-dilemma': 'prisoners-dilemma'
-    };
-    
-    return gamePathMap[gameId] || 'tic-tac-toe'; // fallback to tic-tac-toe
-  }
+  let chatMessages = $state<Array<{userId: string, username: string, message: string}>>([]);
+  let chatInput = $state('');
 
   onMount(() => {
     if (!roomId) {
@@ -49,7 +33,7 @@
 
     return () => {
       pixiGame?.destroy();
-      ws?.close();
+      roomSocket?.disconnect();
     };
   });
 
@@ -78,66 +62,119 @@
 
   function initializeGame() {
     if (!room || !canvas) return;
-    
+
     pixiGame?.destroy();
-    pixiGame = createGame(room.game_id, canvas, ws, wsConnected);
+    pixiGame = createGame(room.game_id, canvas, null, wsConnected);
   }
 
-  function setupWebSocket() {
+  async function setupWebSocket() {
     if (!game || !room) {
       console.error('Cannot setup WebSocket: game or room not loaded');
       return;
     }
 
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const gamePath = getGameWebSocketPath(room.game_id);
+    try {
+      roomSocket = new RoomSocket(room.game_id, roomId);
 
-    // Connect to the unified judge server with game-specific path
-    const host = window.location.host.includes('localhost')
-      ? 'localhost:8081'
-      : window.location.host; // In production, ingress routes /room to judge:8081
+      // Set up event handlers
+      roomSocket.on('authenticated', (userId) => {
+        wsConnected = true;
+        console.log('Authenticated as:', userId);
+      });
 
-    const wsUrl = `${protocol}//${host}/room/${gamePath}/${roomId}`;
+      roomSocket.on('reconnect', (userId) => {
+        wsConnected = true;
+        console.log('Reconnected as:', userId);
+      });
 
-    console.log(`Connecting to ${game.name} game server:`, wsUrl);
-    ws = new WebSocket(wsUrl);
+      roomSocket.on('auth_failed', (reason) => {
+        error = `Authentication failed: ${reason}`;
+        wsConnected = false;
+      });
 
-    ws.onopen = () => {
-      wsConnected = true;
-      console.log(`WebSocket connected to ${game?.name} game server`);
+      roomSocket.on('player_joined', (data) => {
+        console.log('Player joined:', data);
+        // Refresh room data
+        loadRoomData();
+      });
 
-      // Send authentication message - simple text-based protocol
-      const userId = 'user_' + Math.random().toString(36).substr(2, 9); // Generate temp user ID
-      ws!.send(userId);
-    };
+      roomSocket.on('player_left', (data) => {
+        console.log('Player left:', data);
+        // Refresh room data
+        loadRoomData();
+      });
 
-    ws.onclose = () => {
-      wsConnected = false;
-      console.log('WebSocket disconnected');
-    };
+      roomSocket.on('host_changed', (data) => {
+        console.log('Host changed:', data);
+        // Refresh room data
+        loadRoomData();
+      });
 
-    ws.onerror = (err) => {
-      wsConnected = false;
-      console.error('WebSocket error:', err);
-    };
+      roomSocket.on('game_started', () => {
+        console.log('Game started');
+        // Refresh room data and initialize game
+        loadRoomData().then(() => {
+          if (canvas) {
+            initializeGame();
+          }
+        });
+      });
 
-    // Game components will handle their own messages
-    // No need to handle messages here unless we add chat or other room features
+      roomSocket.on('chat', (data: any) => {
+        if (typeof data === 'object' && data.userId && data.username && data.message) {
+          chatMessages = [...chatMessages, data as {userId: string, username: string, message: string}];
+        }
+      });
+
+      roomSocket.on('error', (message) => {
+        error = message;
+      });
+
+      roomSocket.on('disconnect', () => {
+        wsConnected = false;
+      });
+
+      // Game-specific events
+      roomSocket.on('board_update', (boardData) => {
+        console.log('Board update:', boardData);
+        // Forward to PixiJS game if available
+        if (pixiGame) {
+          // pixiGame.handleMessage(`BOARD ${boardData}`);
+        }
+      });
+
+      roomSocket.on('your_turn', () => {
+        console.log('Your turn!');
+        // Forward to PixiJS game if available
+        if (pixiGame) {
+          // pixiGame.handleMessage('YOUR_TURN');
+        }
+      });
+
+      // Connect and authenticate
+      await roomSocket.connect();
+
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        error = 'No authentication token found';
+        return;
+      }
+
+      await roomSocket.auth(token);
+    } catch (err) {
+      error = err instanceof Error ? err.message : 'Failed to setup WebSocket';
+      console.error('Failed to setup WebSocket:', err);
+    }
   }
 
-
   async function startGame() {
-    try {
-      error = null;
-      await roomService.start(roomId);
-      console.log('Game started via API');
+    if (!roomSocket || !roomSocket.isAuthenticated()) {
+      error = 'WebSocket not connected';
+      return;
+    }
 
-      await loadRoomData();
-      
-      // Initialize game after status change
-      if (canvas) {
-        initializeGame();
-      }
+    try {
+      roomSocket.startGame();
     } catch (err) {
       error = err instanceof Error ? err.message : 'Failed to start game';
       console.error('Failed to start game:', err);
@@ -146,12 +183,28 @@
 
   async function leaveRoom() {
     try {
-      error = null;
+      if (roomSocket && roomSocket.isAuthenticated()) {
+        roomSocket.leave();
+      }
       await roomService.leave(roomId);
       goto('/rooms');
     } catch (err) {
       error = err instanceof Error ? err.message : 'Failed to leave room';
       console.error('Failed to leave room:', err);
+    }
+  }
+
+  function sendChat() {
+    if (!roomSocket || !roomSocket.isAuthenticated() || !chatInput.trim()) {
+      return;
+    }
+
+    try {
+      roomSocket.chat(chatInput);
+      chatInput = '';
+    } catch (err) {
+      error = err instanceof Error ? err.message : 'Failed to send chat message';
+      console.error('Failed to send chat:', err);
     }
   }
 </script>
@@ -211,6 +264,31 @@
           </div>
         {/if}
       </div>
+      
+      <!-- Chat Panel -->
+      {#if wsConnected}
+        <div class="chat-panel">
+          <div class="chat-header">
+            <h3>Chat</h3>
+          </div>
+          <div class="chat-messages">
+            {#each chatMessages as msg}
+              <div class="chat-message">
+                <strong>{msg.username}:</strong> {msg.message}
+              </div>
+            {/each}
+          </div>
+          <div class="chat-input">
+            <input 
+              type="text" 
+              bind:value={chatInput} 
+              placeholder="Type a message..." 
+              onkeydown={(e) => e.key === 'Enter' && sendChat()}
+            />
+            <button onclick={sendChat}>Send</button>
+          </div>
+        </div>
+      {/if}
     </div>
   </div>
 {/if}
@@ -292,6 +370,67 @@
   .game-area {
     flex: 2;
     min-height: 0;
+  }
+
+  .chat-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    max-width: 300px;
+  }
+
+  .chat-header {
+    padding: 1rem;
+    border-bottom: 1px solid #e0e0e0;
+    background: #f5f5f5;
+    border-radius: 8px 8px 0 0;
+  }
+
+  .chat-header h3 {
+    margin: 0;
+    font-size: 1rem;
+  }
+
+  .chat-messages {
+    flex: 1;
+    padding: 1rem;
+    overflow-y: auto;
+    min-height: 200px;
+    max-height: 400px;
+  }
+
+  .chat-message {
+    margin-bottom: 0.5rem;
+    padding: 0.5rem;
+    background: #f9f9f9;
+    border-radius: 4px;
+    font-size: 0.9rem;
+  }
+
+  .chat-input {
+    display: flex;
+    padding: 1rem;
+    border-top: 1px solid #e0e0e0;
+    gap: 0.5rem;
+  }
+
+  .chat-input input {
+    flex: 1;
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+  }
+
+  .chat-input button {
+    padding: 0.5rem 1rem;
+    background: #1976d2;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
   }
 
   .playing-area {

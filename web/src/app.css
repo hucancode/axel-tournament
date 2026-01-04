@@ -100,7 +100,6 @@ body {
     background-size: 12px 12px;
 }
 
-/* Legacy class support - prefer using new components */
 details + details {
     margin-top: -3px;
 }
