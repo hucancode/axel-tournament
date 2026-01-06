@@ -2,28 +2,25 @@
 
 A single, scalable judge server that executes and validates games (Tic-Tac-Toe, Rock-Paper-Scissors, Prisoner's Dilemma) with both automated (Docker) and interactive (WebSocket) player implementations.
 
+## Sandbox Architecture
+
+The judge uses a **layered security approach** for different execution stages:
+
+### Compilation (Cgroups Only)
+- **Compiler execution**: Trusted, only needs resource limits (CPU/memory via cgroups)
+- **No namespace isolation**: Allows rustup to work normally, simpler setup
+- **Output**: Dynamically linked binaries (system libraries available in execution sandbox)
+- **Prevents**: Resource exhaustion attacks (infinite loops, memory bombs in compiler)
+
+### Bot Execution (Full Isolation)
+- **User code execution**: Untrusted, needs full isolation
+- **Namespace isolation**: PID, Mount, User, IPC, UTS namespaces
+- **Filesystem isolation**: pivot_root with minimal rootfs
+- **Additional security**: Landlock, Seccomp, capability dropping
+- **Resource limits**: Cgroups for CPU/memory/PID limits
+- **Prevents**: Filesystem access, network access, privilege escalation, resource exhaustion
+
 ## Architecture
-
-### Core Design Principles
-
-1. **Game Logic Independence**: Game logic is completely decoupled from player implementation
-   - Games only accept inputs and return results
-   - Same game code works for both Docker-based bots and human WebSocket players
-
-2. **Horizontal Scalability**: Multiple game server instances can run in parallel
-   - Each instance independently claims rooms and matches from the database
-   - No coordination needed between servers
-
-3. **Capacity-Based Claiming**: Fair load distribution across servers
-   - Idle servers (0% load) claim immediately (0ms delay)
-   - Busy servers (90% load) wait 1 second before claiming
-   - At capacity servers don't claim new work
-
-4. **Atomic Database Operations**: Race-free claiming via status updates
-   - To claim a match: `UPDATE match SET status='queued' WHERE status='pending'`
-   - If update returns empty, another server already claimed it
-
-### Game Flow
 
 #### Automated Matches (Tournament Bots)
 
@@ -85,85 +82,13 @@ MAX_CAPACITY=100                    # Max concurrent rooms + matches
 MAX_CLAIM_DELAY_MS=1000            # Max delay at 100% capacity
 ```
 
-## API Endpoints
+## Useful Commands
 
-- `GET /health` - Health check
-- `GET /capacity` - Current server load statistics
-- `GET /room/:room_id` - WebSocket upgrade for interactive games
-
-## Running
-
-```bash
-cargo build --release
-./target/release/judge
+Cleanup leaked user submission process (they are not supposed to be leaked but things happens while testing)
 ```
-
-## Key Features
-
-### Capacity Tracking
-
-The server tracks active rooms and matches to calculate load:
-
-- Load = (active_rooms + active_matches) / MAX_CAPACITY
-- Claim delay = Load × MAX_CLAIM_DELAY_MS
-- Ensures idle servers pick up work faster than busy servers
-
-### Atomic Claiming
-
-Uses database atomic operations to prevent duplicate execution:
-
-```rust
-// Try to claim match
-let result = db.query(
-    "UPDATE $match_id SET status='queued' WHERE status='pending' RETURN AFTER"
-).await?;
-
-if result.is_empty() {
-    // Another server already claimed it
-    continue;
-}
-
-// Successfully claimed - execute match
-execute_match(match_record).await?;
+sudo pkill -9 -f "test_submission"
 ```
-
-### Generic Game Execution
-
-The same `execute_game` function works for all player types:
-
-```rust
-async fn execute_game<G: Game>(
-    game: &G,
-    players: Vec<Box<dyn Player>>,  // Can be Docker or WebSocket
-) -> GameResult {
-    let mut state = game.initial_state();
-
-    for round in 0..game.num_rounds() {
-        // Collect moves from all players
-        for (idx, player) in players.iter_mut().enumerate() {
-            let state_str = game.encode_state_for_player(&state, idx);
-            player.send_state(&state_str).await?;
-
-            let move_str = player.receive_move(timeout_ms).await?;
-            let parsed_move = game.parse_move(&move_str)?;
-
-            state = game.apply_move(&state, idx, &parsed_move)?;
-        }
-
-        if game.is_game_over(&state) {
-            break;
-        }
-    }
-
-    GameResult { scores: game.get_scores(&state) }
-}
+Check for leaked cgroup
 ```
-
-## Future Work
-
-- Implement WebSocket player fully (currently has TODO placeholders)
-- Support for spectators
-- Real-time match progress updates
-- Game replay storage
-- Multi-game server instances (currently only supports tic-tac-toe)
-- Graceful shutdown (finish active games before stopping)
+sudo find /sys/fs/cgroup/judge -type d
+```

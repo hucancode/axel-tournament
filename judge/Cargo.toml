@@ -27,8 +27,16 @@ thiserror = "1"
 uuid = { version = "1", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 dotenv = "0.15"
-bollard = "0.17"
 jsonwebtoken = "9"
 async-trait = "0.1.89"
 tempfile = "3.0"
 rand = "0.9"
+# Linux primitives for sandboxing
+nix = { version = "0.29", features = ["user", "mount", "sched", "process", "signal", "resource", "fs"] }
+landlock = "0.4"
+cgroups-rs = "0.3"
+tokio-pipe = "0.2"
+tokio-util = { version = "0.7", features = ["codec"] }
+caps = "0.5"
+seccompiler = "0.4"
+libc = "0.2"

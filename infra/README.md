@@ -91,12 +91,11 @@ make k8s-up
 ```
 
 This will:
-- Build the sandbox image for code execution
 - Build and push all application images to ECR:
   - Frontend (web)
   - Backend API
   - Healer
-  - Game servers (multiple images)
+  - Judge servers
 - Deploy all Kubernetes resources
 - Configure ingress with TLS certificates
 - Set up DNS records pointing to the load balancer
@@ -203,16 +202,6 @@ kubectl describe pod <pod-name> -n <namespace>
 
 # Check events
 kubectl get events -n <namespace> --sort-by='.lastTimestamp'
-```
-
-Game servers run Docker-in-Docker, which requires privileged containers:
-
-```bash
-# Check if DinD is running
-kubectl exec -it deployment/judge -n backend -c dockerd -- docker ps
-
-# Check sandbox image is loaded
-kubectl exec -it deployment/judge -n backend -c dockerd -- docker images
 ```
 
 Database connection

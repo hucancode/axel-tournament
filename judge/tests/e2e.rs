@@ -37,7 +37,7 @@ async fn connect_db() -> Result<Surreal<Client>> {
     ).await
 }
 
-async fn create_test_submission(db: &Surreal<Client>, tournament_id: &str) -> Result<Thing> {
+async fn create_test_submission(db: &Surreal<Client>, tournament_id: &str, code: String) -> Result<Thing> {
     // Add a small delay to avoid race conditions when creating multiple submissions
     tokio::time::sleep(tokio::time::Duration::from_millis(1)).await;
 
@@ -56,30 +56,6 @@ async fn create_test_submission(db: &Surreal<Client>, tournament_id: &str) -> Re
     )
     .bind(("tournament_id", Thing::from(("tournament", tournament_id))))
     .await?;
-
-    let code = r#"
-use std::io::{self, BufRead, Write};
-
-fn main() {
-    let stdin = io::stdin();
-    let mut stdout = io::stdout();
-    for line in stdin.lock().lines() {
-        let line = line.unwrap();
-        let line = line.trim();
-        // Respond to MOVE with our choice
-        if line == "MOVE" {
-            println!("rock");
-            stdout.flush().unwrap();
-        } else if line.starts_with("OPP_MOVE") {
-            // Just acknowledge opponent's move, no response needed
-            continue;
-        } else if line == "END" {
-            // Game is over, exit gracefully
-            break;
-        }
-    }
-}
-"#;
 
     // Generate a unique submission ID
     let timestamp = std::time::SystemTime::now()
@@ -171,8 +147,10 @@ async fn test_e2e_judge_workflow() -> Result<()> {
 
     // Step 1: Create mock code submissions
     println!("Step 1: Creating test submissions...");
-    let submission1_id = create_test_submission(&db, &tournament_id).await?;
-    let submission2_id = create_test_submission(&db, &tournament_id).await?;
+    let rock_bot_code = include_str!("bots/rps_rock.rs");
+    let paper_bot_code = include_str!("bots/rps_paper.rs");
+    let submission1_id = create_test_submission(&db, &tournament_id, rock_bot_code.to_string()).await?;
+    let submission2_id = create_test_submission(&db, &tournament_id, paper_bot_code.to_string()).await?;
     println!("Created submissions: {} and {}", submission1_id, submission2_id);
 
     // Step 2: Create match request (submissions will be compiled on-demand by judge)
@@ -258,5 +236,280 @@ async fn test_e2e_judge_workflow() -> Result<()> {
     db.query("DELETE $tournament_id")
         .bind(("tournament_id", Thing::from(("tournament", tournament_id.as_str()))))
         .await?;
+    Ok(())
+}
+
+#[tokio::test]
+#[ignore]
+async fn test_e2e_c_compilation() -> Result<()> {
+    let db = connect_db().await?;
+
+    let timestamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let tournament_id = format!("test_tournament_c_{}", timestamp);
+
+    println!("Step 1: Creating C test submissions...");
+    let rock_bot_code = include_str!("bots/rps_rock.c");
+    let paper_bot_code = include_str!("bots/rps_paper.c");
+
+    let submission1_thing = {
+        let submission_id = format!("test_c_submission_{}_{}", timestamp, 1);
+        let thing = Thing::from(("submission", submission_id.as_str()));
+        db.query(
+            "CREATE $submission_id SET
+                user_id = user:alice,
+                tournament_id = $tournament_id,
+                game_id = 'rock-paper-scissors',
+                language = 'c',
+                code = $code,
+                status = 'pending',
+                created_at = time::now(),
+                updated_at = time::now()"
+        )
+        .bind(("submission_id", thing.clone()))
+        .bind(("tournament_id", Thing::from(("tournament", tournament_id.as_str()))))
+        .bind(("code", rock_bot_code.to_string()))
+        .await?;
+        thing
+    };
+
+    let submission2_thing = {
+        let submission_id = format!("test_c_submission_{}_{}", timestamp, 2);
+        let thing = Thing::from(("submission", submission_id.as_str()));
+        db.query(
+            "CREATE $submission_id SET
+                user_id = user:bob,
+                tournament_id = $tournament_id,
+                game_id = 'rock-paper-scissors',
+                language = 'c',
+                code = $code,
+                status = 'pending',
+                created_at = time::now(),
+                updated_at = time::now()"
+        )
+        .bind(("submission_id", thing.clone()))
+        .bind(("tournament_id", Thing::from(("tournament", tournament_id.as_str()))))
+        .bind(("code", paper_bot_code.to_string()))
+        .await?;
+        thing
+    };
+
+    println!("Created C submissions: {} and {}", submission1_thing, submission2_thing);
+
+    println!("Step 2: Creating match request...");
+    let match_id = create_test_match(&db, submission1_thing.clone(), submission2_thing.clone(), &tournament_id).await?;
+    println!("Created match: {}", match_id);
+
+    println!("Step 3: Starting judge server...");
+    use judge::games::RockPaperScissors;
+    use judge::match_watcher::start_match_watcher;
+    use judge::capacity::CapacityTracker;
+
+    let capacity = CapacityTracker::new(10, 100);
+    let game = RockPaperScissors::new();
+    let judge_db_clone = db.clone();
+    let capacity_clone = capacity.clone();
+
+    let watcher_handle = tokio::spawn(async move {
+        tokio::select! {
+            result = start_match_watcher(
+                judge_db_clone,
+                game,
+                "rock-paper-scissors".to_string(),
+                capacity_clone,
+            ) => {
+                if let Err(e) = result {
+                    panic!("Match watcher error: {}", e);
+                }
+            }
+            _ = sleep(Duration::from_secs(30)) => {
+                panic!("Match watcher timeout after 30 seconds");
+            }
+        }
+    });
+
+    sleep(Duration::from_millis(100)).await;
+
+    println!("Step 4: Waiting for judge to process match...");
+    let completed_match = wait_for_match_completed(&db, match_id.clone()).await?;
+
+    println!("Step 5: Verifying C compilation and match results...");
+    assert_eq!(completed_match.status, "completed");
+
+    let participants = completed_match.participants.as_ref().unwrap();
+    assert_eq!(participants.len(), 2);
+    assert!(participants.iter().all(|it| it.score.is_some()));
+
+    let mut result1 = db.query("SELECT status, compiled_binary_path FROM $submission_id")
+        .bind(("submission_id", submission1_thing.clone()))
+        .await?;
+    let submissions1: Vec<SubmissionStatus> = result1.take(0)?;
+    let sub1 = submissions1.first().expect("C submission 1 not found");
+    assert_eq!(sub1.status, "accepted");
+    assert!(sub1.compiled_binary_path.is_some());
+
+    let mut result2 = db.query("SELECT status, compiled_binary_path FROM $submission_id")
+        .bind(("submission_id", submission2_thing.clone()))
+        .await?;
+    let submissions2: Vec<SubmissionStatus> = result2.take(0)?;
+    let sub2 = submissions2.first().expect("C submission 2 not found");
+    assert_eq!(sub2.status, "accepted");
+    assert!(sub2.compiled_binary_path.is_some());
+
+    println!("C compilation and match completed successfully!");
+    watcher_handle.abort();
+
+    db.query("DELETE $submission1_id")
+        .bind(("submission1_id", submission1_thing))
+        .await?;
+    db.query("DELETE $submission2_id")
+        .bind(("submission2_id", submission2_thing))
+        .await?;
+    db.query("DELETE $match_id")
+        .bind(("match_id", match_id))
+        .await?;
+    db.query("DELETE $tournament_id")
+        .bind(("tournament_id", Thing::from(("tournament", tournament_id.as_str()))))
+        .await?;
+
+    Ok(())
+}
+
+#[tokio::test]
+#[ignore]
+async fn test_e2e_go_compilation() -> Result<()> {
+    let db = connect_db().await?;
+    let timestamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let tournament_id = format!("test_tournament_go_{}", timestamp);
+
+    println!("Step 1: Creating Go test submissions...");
+    let rock_bot_code = include_str!("bots/rps_rock.go");
+    let paper_bot_code = include_str!("bots/rps_paper.go");
+
+    let submission1_thing = {
+        let submission_id = format!("test_go_submission_{}_{}", timestamp, 1);
+        let thing = Thing::from(("submission", submission_id.as_str()));
+        db.query(
+            "CREATE $submission_id SET
+                user_id = user:alice,
+                tournament_id = $tournament_id,
+                game_id = 'rock-paper-scissors',
+                language = 'go',
+                code = $code,
+                status = 'pending',
+                created_at = time::now(),
+                updated_at = time::now()"
+        )
+        .bind(("submission_id", thing.clone()))
+        .bind(("tournament_id", Thing::from(("tournament", tournament_id.as_str()))))
+        .bind(("code", rock_bot_code.to_string()))
+        .await?;
+        thing
+    };
+
+    let submission2_thing = {
+        let submission_id = format!("test_go_submission_{}_{}", timestamp, 2);
+        let thing = Thing::from(("submission", submission_id.as_str()));
+        db.query(
+            "CREATE $submission_id SET
+                user_id = user:bob,
+                tournament_id = $tournament_id,
+                game_id = 'rock-paper-scissors',
+                language = 'go',
+                code = $code,
+                status = 'pending',
+                created_at = time::now(),
+                updated_at = time::now()"
+        )
+        .bind(("submission_id", thing.clone()))
+        .bind(("tournament_id", Thing::from(("tournament", tournament_id.as_str()))))
+        .bind(("code", paper_bot_code.to_string()))
+        .await?;
+        thing
+    };
+
+    println!("Created Go submissions: {} and {}", submission1_thing, submission2_thing);
+
+    println!("Step 2: Creating match request...");
+    let match_id = create_test_match(&db, submission1_thing.clone(), submission2_thing.clone(), &tournament_id).await?;
+    println!("Created match: {}", match_id);
+
+    println!("Step 3: Starting judge server...");
+    use judge::games::RockPaperScissors;
+    use judge::match_watcher::start_match_watcher;
+    use judge::capacity::CapacityTracker;
+
+    let capacity = CapacityTracker::new(10, 100);
+    let game = RockPaperScissors::new();
+    let judge_db_clone = db.clone();
+    let capacity_clone = capacity.clone();
+
+    let watcher_handle = tokio::spawn(async move {
+        tokio::select! {
+            result = start_match_watcher(
+                judge_db_clone,
+                game,
+                "rock-paper-scissors".to_string(),
+                capacity_clone,
+            ) => {
+                if let Err(e) = result {
+                    panic!("Match watcher error: {}", e);
+                }
+            }
+            _ = sleep(Duration::from_secs(30)) => {
+                panic!("Match watcher timeout after 30 seconds");
+            }
+        }
+    });
+
+    sleep(Duration::from_millis(100)).await;
+
+    println!("Step 4: Waiting for judge to process match...");
+    let completed_match = wait_for_match_completed(&db, match_id.clone()).await?;
+
+    println!("Step 5: Verifying Go compilation and match results...");
+    assert_eq!(completed_match.status, "completed");
+
+    let participants = completed_match.participants.as_ref().unwrap();
+    assert_eq!(participants.len(), 2);
+    assert!(participants.iter().all(|it| it.score.is_some()));
+
+    let mut result1 = db.query("SELECT status, compiled_binary_path FROM $submission_id")
+        .bind(("submission_id", submission1_thing.clone()))
+        .await?;
+    let submissions1: Vec<SubmissionStatus> = result1.take(0)?;
+    let sub1 = submissions1.first().expect("Go submission 1 not found");
+    assert_eq!(sub1.status, "accepted");
+    assert!(sub1.compiled_binary_path.is_some());
+
+    let mut result2 = db.query("SELECT status, compiled_binary_path FROM $submission_id")
+        .bind(("submission_id", submission2_thing.clone()))
+        .await?;
+    let submissions2: Vec<SubmissionStatus> = result2.take(0)?;
+    let sub2 = submissions2.first().expect("Go submission 2 not found");
+    assert_eq!(sub2.status, "accepted");
+    assert!(sub2.compiled_binary_path.is_some());
+
+    println!("Go compilation and match completed successfully!");
+    watcher_handle.abort();
+
+    db.query("DELETE $submission1_id")
+        .bind(("submission1_id", submission1_thing))
+        .await?;
+    db.query("DELETE $submission2_id")
+        .bind(("submission2_id", submission2_thing))
+        .await?;
+    db.query("DELETE $match_id")
+        .bind(("match_id", match_id))
+        .await?;
+    db.query("DELETE $tournament_id")
+        .bind(("tournament_id", Thing::from(("tournament", tournament_id.as_str()))))
+        .await?;
+
     Ok(())
 }

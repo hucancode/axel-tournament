@@ -59,61 +59,38 @@ spec:
               value: "100"
             - name: MAX_CLAIM_DELAY_MS
               value: "5000"
-            - name: SANDBOX_IMAGE
-              value: "${SANDBOX_IMAGE}"
-            - name: DOCKER_HOST
-              value: "unix:///var/run/docker.sock"
             - name: GAME_SERVER_PORT
               value: "8080"
             - name: COMPILER_WORKSPACE
               value: "/artifacts"
+          securityContext:
+            capabilities:
+              add:
+                - SYS_ADMIN      # Required for unshare() namespaces, pivot_root, mount
+                - SYS_RESOURCE   # Required for cgroup operations
+                - SETUID         # Required for UID mapping in user namespaces
+                - SETGID         # Required for GID mapping in user namespaces
           resources:
             requests:
-              cpu: "300m"
-              memory: "512Mi"
+              cpu: "500m"
+              memory: "1Gi"
             limits:
               cpu: "2000m"
-              memory: "2Gi"
+              memory: "4Gi"
           volumeMounts:
-            - name: docker-run
-              mountPath: /var/run
-            - name: workspace
-              mountPath: /workspace
             - name: artifacts
               mountPath: /artifacts
-        - name: dockerd
-          image: docker:27-dind
-          args:
-            - --host=unix:///var/run/docker.sock
-          env:
-            - name: DOCKER_TLS_CERTDIR
-              value: ""
-          securityContext:
-            privileged: true
-          resources:
-            requests:
-              cpu: "200m"
-              memory: "512Mi"
-            limits:
-              cpu: "1000m"
-              memory: "2Gi"
-          volumeMounts:
-            - name: docker-run
-              mountPath: /var/run
-            - name: dind-storage
-              mountPath: /var/lib/docker
-            - name: workspace
-              mountPath: /workspace
+            - name: cgroup
+              mountPath: /sys/fs/cgroup
+              readOnly: false
       volumes:
-        - name: docker-run
-          emptyDir: {}
-        - name: dind-storage
-          emptyDir: {}
-        - name: workspace
-          emptyDir: {}
         - name: artifacts
           persistentVolumeClaim:
             claimName: compiled-artifacts-pvc
+        - name: cgroup
+          hostPath:
+            path: /sys/fs/cgroup
+            type: Directory
 ---
 apiVersion: v1
 kind: Service

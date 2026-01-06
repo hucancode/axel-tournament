@@ -14,9 +14,6 @@ Tech stack:
 - `make test-db-up`: Start a local in-memory SurrealDB container for testing
 - `make test-db-down`: Stop the local test database container
 
-*You also need to run `make sandbox-image` to build sandbox image on your local machine before running the `judge` server*
-
-*The judge server now supports all games in a single unified service - no need for individual game servers*
 
 ### api
 Backend service that powers the platform.
@@ -41,5 +38,5 @@ Background service to trigger match runner.
 Match runner and results reporter.
 - Listens for pending matches and claims them atomically
 - Builds a workspace with game server code + player submissions
-- Executes matches inside a sandboxed Docker container (CPU/memory/network limits)
+- Executes matches inside a sandboxed environment (CPU/memory/network limits)
 - Parses results, reports scores/errors, and updates tournament totals

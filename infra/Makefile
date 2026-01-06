@@ -28,7 +28,6 @@ FRONTEND_IMAGE := $(TF_ECR_WEB):latest
 BACKEND_IMAGE := $(TF_ECR_API):latest
 HEALER_IMAGE := $(TF_ECR_HEALER):latest
 JUDGE_IMAGE := $(TF_ECR_JUDGE):latest
-SANDBOX_IMAGE := debian:trixie-slim
 SMTP_HOST := $(TF_SES_SMTP_HOST)
 SMTP_USERNAME := $(TF_SES_SMTP_USERNAME)
 SMTP_PASSWORD := $(TF_SES_SMTP_PASSWORD)
@@ -156,7 +155,7 @@ url:
 		echo "For your domain/subdomain $$domain"; \
 	fi
 
-push-images: sandbox
+push-images:
 	@test -n "$(TF_ECR_WEB)" || (echo "ECR_WEB_REPO not found. Run 'make aws-up' first." && exit 1)
 	@test -n "$(TF_ECR_API)" || (echo "ECR_API_REPO not found. Run 'make aws-up' first." && exit 1)
 	@test -n "$(TF_ECR_HEALER)" || (echo "ECR_HEALER_REPO not found. Run 'make aws-up' first." && exit 1)
@@ -177,9 +176,6 @@ push-images: sandbox
 	docker build -t $(JUDGE_IMAGE) ../judge; \
 	docker push $(JUDGE_IMAGE); \
 	echo "All images built and pushed successfully"
-
-sandbox:
-	@$(MAKE) -C ../judge pull-image
 
 k8s-down:
 	@export GOOGLE_CLIENT_ID="$${GOOGLE_CLIENT_ID:-placeholder}"; \

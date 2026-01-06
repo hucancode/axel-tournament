@@ -1,88 +1,60 @@
 use anyhow::{Result, Context};
 use async_trait::async_trait;
-use bollard::container::{Config, CreateContainerOptions, RemoveContainerOptions, StartContainerOptions, AttachContainerOptions, LogOutput};
-use bollard::Docker;
-use futures_util::StreamExt;
+use nix::sys::signal::{kill, Signal};
+use nix::unistd::Pid;
 use tokio::time::{timeout, Duration};
-use tokio::io::AsyncWriteExt;
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::fs::File as TokioFile;
+use std::path::Path;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
 use crate::players::Player;
+use crate::sandbox::executor::{spawn_sandboxed, fd_to_file};
+use crate::sandbox::cgroup::CgroupHandle;
 
-/// BotPlayer spins up a Docker instance and forwards messages
-/// Forwards messages from GameLogic to stdin, forwards messages from stdout to GameLogic
+/// BotPlayer runs player code in an isolated sandbox using Linux primitives
 pub struct BotPlayer {
-    container_id: String,
-    docker: Docker,
-    attach_stream: Arc<Mutex<Option<bollard::container::AttachContainerResults>>>,
+    id: String,
+    pid: Option<Pid>,
+    stdin: Arc<Mutex<TokioFile>>,
+    stdout: Arc<Mutex<BufReader<TokioFile>>>,
     timeout_ms: u64,
+    _cgroup: CgroupHandle, // Kept alive to enforce limits and cleanup on drop
 }
 
 impl BotPlayer {
     pub async fn new(player_id: String, binary_path: &str) -> Result<Self> {
-        let docker = Docker::connect_with_local_defaults()?;
+        // Spawn the sandboxed process
+        let process = tokio::task::spawn_blocking({
+            let binary_path = binary_path.to_string();
+            let player_id = player_id.clone();
+            move || {
+                spawn_sandboxed(&player_id, Path::new(&binary_path))
+            }
+        })
+        .await
+        .context("Failed to spawn sandboxed process task")??;
 
-        let sandbox_image = std::env::var("SANDBOX_IMAGE")
-            .unwrap_or_else(|_| "debian:trixie-slim".to_string());
+        // Convert file descriptors to tokio Files
+        let stdin_file = TokioFile::from_std(fd_to_file(process.stdin_fd));
+        let stdout_file = TokioFile::from_std(fd_to_file(process.stdout_fd));
+        let stdout_reader = BufReader::new(stdout_file);
 
-        // Create container configuration
-        let config = Config {
-            image: Some(sandbox_image),
-            cmd: Some(vec!["/player".to_string()]),
-            host_config: Some(bollard::models::HostConfig {
-                memory: Some(64 * 1024 * 1024), // 64MB
-                cpu_quota: Some(100000), // 1.0 CPU
-                network_mode: Some("none".to_string()),
-                mounts: Some(vec![bollard::models::Mount {
-                    target: Some("/player".to_string()),
-                    source: Some(binary_path.to_string()),
-                    typ: Some(bollard::models::MountTypeEnum::BIND),
-                    read_only: Some(true),
-                    ..Default::default()
-                }]),
-                ..Default::default()
-            }),
-            attach_stdin: Some(true),
-            attach_stdout: Some(true),
-            attach_stderr: Some(true),
-            open_stdin: Some(true),
-            stdin_once: Some(false),
-            tty: Some(false),
-            ..Default::default()
-        };
-
-        let container_name = format!("player-{}-{}", player_id, uuid::Uuid::new_v4());
-        let create_options = Some(CreateContainerOptions {
-            name: container_name.as_str(),
-            ..Default::default()
-        });
-
-        let container = docker.create_container(create_options, config).await?;
-        let container_id = container.id;
-
-        // Start container
-        docker.start_container(&container_id, None::<StartContainerOptions<String>>).await?;
-
-        // Attach to container for stdin/stdout communication
-        let attach_options: AttachContainerOptions<String> = AttachContainerOptions {
-            stdin: Some(true),
-            stdout: Some(true),
-            stderr: Some(false),
-            stream: Some(true),
-            logs: Some(false),
-            detach_keys: None,
-        };
-
-        let attach_stream = docker.attach_container(&container_id, Some(attach_options)).await?;
-
-        tracing::info!("Created Docker container {} for bot player {}", container_id, player_id);
+        tracing::info!(
+            player_id = %player_id,
+            pid = %process.pid,
+            binary = %binary_path,
+            "Created sandboxed player"
+        );
 
         Ok(Self {
-            container_id,
-            docker,
-            attach_stream: Arc::new(Mutex::new(Some(attach_stream))),
+            id: player_id,
+            pid: Some(process.pid),
+            stdin: Arc::new(Mutex::new(stdin_file)),
+            stdout: Arc::new(Mutex::new(stdout_reader)),
             timeout_ms: 5000, // Default timeout
+            _cgroup: process.cgroup, // Keep cgroup alive for resource limits and cleanup
         })
     }
 }
@@ -90,88 +62,65 @@ impl BotPlayer {
 #[async_trait]
 impl Player for BotPlayer {
     async fn send_message(&self, message: &str) -> Result<()> {
-        let mut stream_guard = self.attach_stream.lock().await;
-        if let Some(ref mut stream) = *stream_guard {
-            let message_with_newline = format!("{}\n", message);
-            stream.input.write_all(message_with_newline.as_bytes()).await
-                .context("Failed to send message to container stdin")?;
-            stream.input.flush().await
-                .context("Failed to flush container stdin")?;
+        let mut stdin_guard = self.stdin.lock().await;
+        let message_with_newline = format!("{}\n", message);
+        stdin_guard
+            .write_all(message_with_newline.as_bytes())
+            .await
+            .context("Failed to write to player stdin")?;
+        stdin_guard
+            .flush()
+            .await
+            .context("Failed to flush player stdin")?;
 
-            tracing::debug!("Sent message to container: {}", message);
-        }
+        tracing::debug!(player_id = %self.id, message = %message, "Sent message to player");
         Ok(())
     }
 
     async fn receive_message(&self) -> Result<String> {
-        let mut stream_guard = self.attach_stream.lock().await;
-        if let Some(ref mut stream) = *stream_guard {
-            tracing::debug!("Waiting for move from container {} (timeout: {}ms)", self.container_id, self.timeout_ms);
+        let timeout_duration = Duration::from_millis(self.timeout_ms);
 
-            let move_str = timeout(Duration::from_millis(self.timeout_ms), async {
-                while let Some(output_result) = stream.output.next().await {
-                    match output_result {
-                        Ok(LogOutput::StdOut { message }) => {
-                            let line = String::from_utf8_lossy(&message).trim().to_string();
-                            tracing::debug!("Received stdout from container {}: '{}'", self.container_id, line);
-                            if !line.is_empty() {
-                                return line;
-                            }
-                        }
-                        Ok(LogOutput::StdErr { message }) => {
-                            let stderr_msg = String::from_utf8_lossy(&message);
-                            tracing::warn!("Container {} stderr: {}", self.container_id, stderr_msg.trim());
-                        }
-                        Ok(LogOutput::Console { message }) => {
-                            let console_msg = String::from_utf8_lossy(&message);
-                            tracing::debug!("Container {} console: {}", self.container_id, console_msg.trim());
-                        }
-                        Err(e) => {
-                            tracing::error!("Docker stream error for container {}: {}", self.container_id, e);
-                            return String::new();
-                        }
-                        _ => {
-                            tracing::trace!("Container {} other log output received", self.container_id);
-                        }
-                    }
-                }
-                tracing::warn!("No more output from container {}", self.container_id);
-                String::new()
-            })
-            .await
-            .context(format!("Timeout waiting for move from container {}", self.container_id))?;
+        tracing::debug!(
+            player_id = %self.id,
+            timeout_ms = %self.timeout_ms,
+            "Waiting for message from player"
+        );
 
-            tracing::debug!("Final move from container {}: '{}'", self.container_id, move_str);
-            Ok(move_str)
-        } else {
-            anyhow::bail!("No attach stream available for container {}", self.container_id)
-        }
+        let message = timeout(timeout_duration, async {
+            let mut stdout_guard = self.stdout.lock().await;
+            let mut line = String::new();
+            stdout_guard
+                .read_line(&mut line)
+                .await
+                .context("Failed to read from player stdout")?;
+
+            let trimmed = line.trim().to_string();
+            tracing::debug!(
+                player_id = %self.id,
+                message = %trimmed,
+                "Received message from player"
+            );
+            Ok::<String, anyhow::Error>(trimmed)
+        })
+        .await
+        .context(format!("Timeout waiting for message from player {}", self.id))??;
+
+        Ok(message)
     }
 
     fn player_id(&self) -> &str {
-        &self.container_id
+        &self.id
     }
 
     async fn is_alive(&self) -> bool {
-        match self.docker.inspect_container(&self.container_id, None).await {
-            Ok(details) => {
-                if let Some(state) = details.state {
-                    let running = state.running.unwrap_or(false);
-                    let exit_code = state.exit_code.unwrap_or(0);
-
-                    if !running && exit_code != 0 {
-                        tracing::warn!("Container {} exited with code {}", self.container_id, exit_code);
-                    }
-
-                    running
-                } else {
-                    false
-                }
+        if let Some(pid) = self.pid {
+            // Check if process exists via kill with signal 0
+            // Signal 0 doesn't actually send a signal, just checks if process exists
+            unsafe {
+                libc::kill(pid.as_raw(), 0) == 0
             }
-            Err(e) => {
-                tracing::error!("Failed to inspect container {}: {}", self.container_id, e);
-                false
-            }
+        } else {
+            false
         }
     }
 
@@ -182,15 +131,17 @@ impl Player for BotPlayer {
 
 impl Drop for BotPlayer {
     fn drop(&mut self) {
-        let docker = self.docker.clone();
-        let container_id = self.container_id.clone();
-        tokio::spawn(async move {
-            let options = RemoveContainerOptions {
-                force: true,
-                ..Default::default()
-            };
-            let _ = docker.remove_container(&container_id, Some(options)).await;
-            tracing::debug!("Cleaned up container {} on drop", container_id);
-        });
+        if let Some(pid) = self.pid {
+            tracing::debug!(player_id = %self.id, pid = %pid, "Cleaning up sandboxed player");
+
+            // Send SIGTERM
+            let _ = kill(pid, Signal::SIGTERM);
+
+            // Wait briefly then SIGKILL
+            std::thread::sleep(std::time::Duration::from_secs(1));
+            let _ = kill(pid, Signal::SIGKILL);
+
+            // Cgroup cleanup happens automatically via Drop
+        }
     }
 }

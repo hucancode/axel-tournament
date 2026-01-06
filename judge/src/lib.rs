@@ -8,3 +8,4 @@ pub mod games;
 pub mod match_watcher;
 pub mod players;
 pub mod room;
+pub mod sandbox;

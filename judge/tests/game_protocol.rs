@@ -86,6 +86,14 @@ impl Player for TestPlayer {
 
 #[tokio::test]
 async fn test_automated_rock_paper_scissors() -> Result<()> {
+    // Use unique IDs to avoid collisions between test runs
+    let timestamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let bot1_id = format!("test_rps_bot1_{}", timestamp);
+    let bot2_id = format!("test_rps_bot2_{}", timestamp);
+
     // Load bot code from files
     let bot1_code = std::fs::read_to_string("tests/bots/rps_rock.rs")?;
     let bot2_code = std::fs::read_to_string("tests/bots/rps_paper.rs")?;
@@ -93,10 +101,10 @@ async fn test_automated_rock_paper_scissors() -> Result<()> {
     // Compile both bots
     let compiler = Compiler::new()?;
     println!("Compiling bot 1...");
-    let binary_path1 = compiler.compile_submission("test_rps_bot1", "rust", &bot1_code).await?;
+    let binary_path1 = compiler.compile_submission(&bot1_id, "rust", &bot1_code).await?;
 
     println!("Compiling bot 2...");
-    let binary_path2 = compiler.compile_submission("test_rps_bot2", "rust", &bot2_code).await?;
+    let binary_path2 = compiler.compile_submission(&bot2_id, "rust", &bot2_code).await?;
 
     // Create BotPlayers
     println!("Creating bot players...");
@@ -132,14 +140,22 @@ async fn test_automated_rock_paper_scissors() -> Result<()> {
 
 #[tokio::test]
 async fn test_automated_tic_tac_toe() -> Result<()> {
+    // Use unique IDs to avoid collisions between test runs
+    let timestamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let bot1_id = format!("test_ttt_bot1_{}", timestamp);
+    let bot2_id = format!("test_ttt_bot2_{}", timestamp);
+
     // Load bot code from files
     let bot1_code = std::fs::read_to_string("tests/bots/ttt_top_row.rs")?;
     let bot2_code = std::fs::read_to_string("tests/bots/ttt_middle_col.rs")?;
 
     let compiler = Compiler::new()?;
     println!("Compiling Tic-Tac-Toe bots...");
-    let binary_path1 = compiler.compile_submission("test_ttt_bot1", "rust", &bot1_code).await?;
-    let binary_path2 = compiler.compile_submission("test_ttt_bot2", "rust", &bot2_code).await?;
+    let binary_path1 = compiler.compile_submission(&bot1_id, "rust", &bot1_code).await?;
+    let binary_path2 = compiler.compile_submission(&bot2_id, "rust", &bot2_code).await?;
 
     println!("Creating bot players...");
     let bot1 = BotPlayer::new("bot1".to_string(), &binary_path1).await?;
@@ -169,14 +185,22 @@ async fn test_automated_tic_tac_toe() -> Result<()> {
 
 #[tokio::test]
 async fn test_automated_prisoners_dilemma() -> Result<()> {
+    // Use unique IDs to avoid collisions between test runs
+    let timestamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let bot1_id = format!("test_pd_bot1_{}", timestamp);
+    let bot2_id = format!("test_pd_bot2_{}", timestamp);
+
     // Load bot code from files
     let bot1_code = std::fs::read_to_string("tests/bots/pd_cooperate.rs")?;
     let bot2_code = std::fs::read_to_string("tests/bots/pd_defect.rs")?;
 
     let compiler = Compiler::new()?;
     println!("Compiling Prisoner's Dilemma bots...");
-    let binary_path1 = compiler.compile_submission("test_pd_bot1", "rust", &bot1_code).await?;
-    let binary_path2 = compiler.compile_submission("test_pd_bot2", "rust", &bot2_code).await?;
+    let binary_path1 = compiler.compile_submission(&bot1_id, "rust", &bot1_code).await?;
+    let binary_path2 = compiler.compile_submission(&bot2_id, "rust", &bot2_code).await?;
 
     println!("Creating bot players...");
     let bot1 = BotPlayer::new("bot1".to_string(), &binary_path1).await?;

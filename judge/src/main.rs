@@ -8,6 +8,7 @@ mod games;
 mod match_watcher;
 mod room;
 mod players;
+mod sandbox;
 
 use anyhow::Result;
 use axum::{
