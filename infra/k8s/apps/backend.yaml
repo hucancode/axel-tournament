@@ -118,11 +118,11 @@ spec:
               value: "${FRONTEND_URL}"
           resources:
             requests:
-              cpu: "200m"
+              cpu: "150m"
               memory: "256Mi"
             limits:
-              cpu: "1000m"
-              memory: "512Mi"
+              cpu: "500m"
+              memory: "400Mi"
 ---
 apiVersion: v1
 kind: Service

@@ -43,6 +43,21 @@ module "eks" {
     aws-efs-csi-driver = {
       most_recent = true
       service_account_role_arn = aws_iam_role.efs_csi.arn
+      configuration_values = jsonencode({
+        controller = {
+          replicaCount = 1
+          resources = {
+            requests = {
+              cpu    = "110m"
+              memory = "320Mi"
+            }
+            limits = {
+              cpu    = "250m"
+              memory = "640Mi"
+            }
+          }
+        }
+      })
     }
   }
 
