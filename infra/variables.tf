@@ -43,7 +43,7 @@ variable "cluster_private_access_enabled" {
 variable "app_instance_type" {
   type        = string
   description = "Instance type for the shared app node group."
-  default     = "t3.small"
+  default     = "t3.medium"
 }
 
 variable "game_server_instance_type" {
@@ -79,7 +79,7 @@ variable "app_max_size" {
 variable "game_server_desired_size" {
   type        = number
   description = "Desired size for the game server node group."
-  default     = 2
+  default     = 1
 }
 
 variable "game_server_min_size" {

@@ -64,6 +64,20 @@ aws-up:
 		--namespace kube-system \
 		--set args={--kubelet-insecure-tls} \
 		--wait
+	@echo "Installing EFS CSI driver..."
+	@helm repo add aws-efs-csi-driver https://kubernetes-sigs.github.io/aws-efs-csi-driver/
+	@helm repo update
+	@helm upgrade --install aws-efs-csi-driver aws-efs-csi-driver/aws-efs-csi-driver \
+		--namespace kube-system \
+		--set image.repository=602401143452.dkr.ecr.$(shell terraform output -raw aws_region 2>/dev/null || echo "us-east-1").amazonaws.com/eks/aws-efs-csi-driver \
+		--wait
+	@echo "Creating EFS storage class..."
+	@export EFS_FILE_SYSTEM_ID=$$(terraform output -raw efs_file_system_id 2>/dev/null || echo ""); \
+	if [ -z "$$EFS_FILE_SYSTEM_ID" ]; then \
+		echo "Warning: EFS filesystem not found. Skipping storage class creation."; \
+	else \
+		envsubst < k8s/addons/efs-storageclass.yaml | kubectl apply -f -; \
+	fi
 	@echo ""
 	@echo "========================================="
 	@echo "Infrastructure ready!"
@@ -82,6 +96,7 @@ k8s-up: push-images
 	@test -n "$(GOOGLE_CLIENT_SECRET)" || (echo "GOOGLE_CLIENT_SECRET is required in .env" && exit 1)
 	@test -n "$(DOMAIN_NAME)" || (echo "DOMAIN_NAME is required" && exit 1)
 	@test -n "$(LETSENCRYPT_EMAIL)" || (echo "LETSENCRYPT_EMAIL is required in .env" && exit 1)
+	@test -n "$(CERT_ISSUER)" || (echo "CERT_ISSUER is required in .env (use 'staging' or 'prod')" && exit 1)
 	@echo "Configuring cert-manager ClusterIssuer..."
 	@envsubst < k8s/addons/cert-manager.yaml | kubectl apply -f -
 	@kubectl apply -f k8s/namespaces.yaml
@@ -147,7 +162,7 @@ url:
 	domain=$$(terraform output -raw domain_name 2>/dev/null); \
 	if [ -n "$$domain" ]; then \
 		echo ""; \
-		echo "📋 DNS Configuration:"; \
+		echo "DNS Configuration:"; \
 		echo "At your domain registrar, add these NS records if you haven't done so:"; \
 		echo ""; \
 		terraform output -json route53_zone_name_servers 2>/dev/null | jq -r '.[] | "  - " + .' || true; \

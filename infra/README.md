@@ -196,6 +196,12 @@ make aws-down
 
 ### Useful Debug Informations
 
+Download staging certificates for HTTPS testing locally
+```bash
+curl -o letsencrypt-staging-root.pem https://letsencrypt.org/certs/staging/letsencrypt-stg-root-x1.pem
+# import the newly downloaded certificate to your favorite browser
+```
+
 ```bash
 # Check pod status
 kubectl describe pod <pod-name> -n <namespace>

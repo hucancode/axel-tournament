@@ -18,19 +18,14 @@ metadata:
   annotations:
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    cert-manager.io/cluster-issuer: "letsencrypt-${CERT_ISSUER}"
     # WebSocket specific settings
     nginx.ingress.kubernetes.io/websocket-services: "judge"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "86400"  # 24 hours
     nginx.ingress.kubernetes.io/proxy-send-timeout: "86400"  # 24 hours
     # Sticky sessions by room_id
+    # room_id is extracted globally in ingress-nginx-values.yaml http-snippet
     nginx.ingress.kubernetes.io/upstream-hash-by: "$room_id"
-    nginx.ingress.kubernetes.io/configuration-snippet: |
-      # Extract room_id from WebSocket URL: /ws/{game_id}/{room_id}/{player_id}
-      set $room_id "";
-      if ($request_uri ~* "^/ws/[^/]+/([^/]+)/") {
-        set $room_id $1;
-      }
 spec:
   ingressClassName: nginx
   tls:

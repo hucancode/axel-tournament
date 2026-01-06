@@ -11,7 +11,6 @@ FROM docker.io/oven/bun:1-slim
 WORKDIR /app
 COPY --from=builder /app/build ./build
 COPY --from=builder /app/package.json ./
-RUN bun install --production --frozen-lockfile
 EXPOSE 3000
 ENV NODE_ENV=production
 ENV PORT=3000

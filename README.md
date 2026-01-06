@@ -3,24 +3,12 @@
 A tournament system where users submit code to play a multiplayer game to compete with other players.
 
 Tech stack:
-- SurrealDB
-- Rust, Axum, Docker
 - TypeScript, Svelte, Storybook
+- Rust, Axum, cgroup, namespace
+- SurrealDB
 - Terraform, Kubernetes, AWS
 
 ## Services
-
-*Use the following script to quickly spin up test DB on your local machine*
-- `make test-db-up`: Start a local in-memory SurrealDB container for testing
-- `make test-db-down`: Stop the local test database container
-
-
-### api
-Backend service that powers the platform.
-- Authentication with JWT + Google OAuth, password reset, and role-based access
-- Game, tournament, match, and leaderboard management
-- Code submission handling
-- Admin endpoints for moderation
 
 ### web
 Web frontend for the players
@@ -28,6 +16,13 @@ Web frontend for the players
 - Tournament browsing, registration, and submissions
 - Leaderboards
 - Admin dashboard
+
+### api
+Backend service that powers the platform.
+- Authentication with JWT + Google OAuth, password reset, and role-based access
+- Game, tournament, match, and leaderboard management
+- Code submission handling
+- Admin endpoints for moderation
 
 ### healer
 Background service to trigger match runner.
@@ -37,6 +32,12 @@ Background service to trigger match runner.
 ### judge
 Match runner and results reporter.
 - Listens for pending matches and claims them atomically
-- Builds a workspace with game server code + player submissions
+- Compile user submissions
 - Executes matches inside a sandboxed environment (CPU/memory/network limits)
 - Parses results, reports scores/errors, and updates tournament totals
+
+## Useful commands
+
+*Use the following script to quickly spin up test DB on your local machine*
+- `make test-db-up`: Start a local in-memory SurrealDB container for testing
+- `make test-db-down`: Stop the local test database container

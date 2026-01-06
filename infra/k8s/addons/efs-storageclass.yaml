@@ -1,0 +1,23 @@
+# EFS Storage Class for shared ReadWriteMany volumes
+# Used by judge pods to share compiled artifacts
+#
+# Prerequisites:
+# 1. EFS filesystem created via Terraform
+# 2. EFS CSI driver installed (see Makefile aws-up target)
+#
+# Deploy with:
+#   export EFS_FILE_SYSTEM_ID="fs-xxxxx"
+#   envsubst < efs-storageclass.yaml | kubectl apply -f -
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: efs-sc
+provisioner: efs.csi.aws.com
+parameters:
+  provisioningMode: efs-ap
+  fileSystemId: ${EFS_FILE_SYSTEM_ID}
+  directoryPerms: "700"
+  gidRangeStart: "1000"
+  gidRangeEnd: "2000"
+  basePath: "/artifacts"

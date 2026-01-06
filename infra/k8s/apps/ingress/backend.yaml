@@ -19,15 +19,10 @@ metadata:
     nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    cert-manager.io/cluster-issuer: "letsencrypt-${CERT_ISSUER}"
     # Enable sticky sessions by room_id for room management endpoints
+    # room_id is extracted globally in ingress-nginx-values.yaml http-snippet
     nginx.ingress.kubernetes.io/upstream-hash-by: "$room_id"
-    nginx.ingress.kubernetes.io/configuration-snippet: |
-      # Extract room_id for sticky session hashing
-      set $room_id "";
-      if ($request_uri ~* "^/api/rooms/([^/?\s]+)") {
-        set $room_id $1;
-      }
 spec:
   ingressClassName: nginx
   tls:

@@ -18,7 +18,7 @@ controller:
       memory: 512Mi
 
   # Replicas for HA
-  replicaCount: 2
+  replicaCount: 1
 
   # Enable session affinity (sticky sessions) support
   config:
@@ -41,3 +41,10 @@ controller:
     enabled: true
     serviceMonitor:
       enabled: false  # Set to true if using Prometheus Operator
+
+  # Admission webhook configuration
+  admissionWebhooks:
+    patch:
+      # Allow the admission webhook patch job to run on any node
+      tolerations:
+        - operator: Exists

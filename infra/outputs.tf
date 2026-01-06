@@ -92,3 +92,13 @@ output "aws_region" {
 output "vpc_id" {
   value = module.vpc.vpc_id
 }
+
+output "efs_file_system_id" {
+  description = "EFS filesystem ID for artifacts storage"
+  value       = aws_efs_file_system.artifacts.id
+}
+
+output "efs_file_system_dns_name" {
+  description = "EFS filesystem DNS name"
+  value       = aws_efs_file_system.artifacts.dns_name
+}

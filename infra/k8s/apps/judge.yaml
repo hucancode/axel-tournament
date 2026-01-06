@@ -63,6 +63,8 @@ spec:
               value: "8080"
             - name: COMPILER_WORKSPACE
               value: "/artifacts"
+            - name: FRONTEND_URL
+              value: "${FRONTEND_URL}"
           securityContext:
             capabilities:
               add:
@@ -72,11 +74,11 @@ spec:
                 - SETGID         # Required for GID mapping in user namespaces
           resources:
             requests:
-              cpu: "500m"
-              memory: "1Gi"
+              cpu: "250m"
+              memory: "512Mi"
             limits:
-              cpu: "2000m"
-              memory: "4Gi"
+              cpu: "1000m"
+              memory: "2Gi"
           volumeMounts:
             - name: artifacts
               mountPath: /artifacts
@@ -128,3 +130,30 @@ spec:
         target:
           type: Utilization
           averageUtilization: 70
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: judge-api
+  namespace: backend
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-staging"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - judge.${DOMAIN_NAME}
+      secretName: judge-tls-cert
+  rules:
+    - host: judge.${DOMAIN_NAME}
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: judge
+                port:
+                  number: 8081
