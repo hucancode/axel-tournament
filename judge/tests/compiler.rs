@@ -78,9 +78,12 @@ mod compiler_tests {
         "#;
 
         let result = sandbox.compile("test_valid_rust", "rust", valid_code).await;
+        if let Err(e) = &result {
+            eprintln!("Compilation error: {:?}", e);
+        }
         assert!(
             result.is_ok(),
-            "compilation of a valid code should be success"
+            "compilation of a valid code should be success: {:?}", result.err()
         );
         let binary_path = result.unwrap();
         assert!(Path::new(&binary_path).exists(), "binary should exist");

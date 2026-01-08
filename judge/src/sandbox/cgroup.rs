@@ -25,6 +25,10 @@ impl CgroupHandle {
     fn new(cgroup_name: &str, limits: ResourceLimits) -> Result<Self> {
         let hierarchy = cgroups_rs::hierarchies::auto();
 
+        // Try to delete existing cgroup first
+        let existing = Cgroup::load(hierarchy, cgroup_name);
+        let _ = existing.delete();
+
         let cgroup: Cgroup = CgroupBuilder::new(cgroup_name)
             .memory()
                 .memory_hard_limit(limits.memory_bytes)
@@ -36,7 +40,7 @@ impl CgroupHandle {
             .pid()
                 .maximum_number_of_processes(MaxValue::Value(limits.max_pids))
                 .done()
-            .build(hierarchy)
+            .build(cgroups_rs::hierarchies::auto())
             .map_err(|e| SandboxError::CgroupError(format!("Failed to create cgroup: {}", e)))?;
 
         Ok(Self { cgroup })

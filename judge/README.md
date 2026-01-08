@@ -91,4 +91,6 @@ sudo pkill -9 -f "test_submission"
 Check for leaked cgroup
 ```
 sudo find /sys/fs/cgroup/judge -type d
+# delete them with
+sudo find /sys/fs/cgroup/judge -depth -type d -exec rmdir {} \;
 ```
