@@ -2,7 +2,7 @@ use api::{
     config::Config,
     db,
     models::{CreateTournamentRequest, MatchGenerationType, TournamentStatus},
-    services::{auth::AuthService, matches, submission, tournament, user},
+    services::{matches, submission, tournament, auth},
 };
 use surrealdb::sql::Thing;
 use validator::Validate;
@@ -24,6 +24,22 @@ fn unique_name(prefix: &str) -> String {
 
 // Use hardcoded game IDs (games are now maintained by developers)
 const TEST_GAME_ID: &str = "rock-paper-scissors";
+
+async fn get_bob_user(db: &api::db::Database) -> api::models::User {
+    let config = Config::from_env();
+    auth::get_user_by_email(db, &config.bob.email)
+        .await
+        .unwrap()
+        .expect("Bob user should exist")
+}
+
+async fn get_alice_user(db: &api::db::Database) -> api::models::User {
+    let config = Config::from_env();
+    auth::get_user_by_email(db, &config.alice.email)
+        .await
+        .unwrap()
+        .expect("Alice user should exist")
+}
 
 #[tokio::test]
 async fn test_create_and_get_tournament() {
@@ -84,7 +100,6 @@ async fn test_update_tournament_status() {
 #[tokio::test]
 async fn test_join_and_leave_tournament() {
     let db = setup_test_db().await;
-    let auth_service = AuthService::new("test-secret".to_string(), 3600);
     let tournament = tournament::create_tournament(
         &db,
         TEST_GAME_ID.to_string(),
@@ -99,23 +114,15 @@ async fn test_join_and_leave_tournament() {
     .await
     .unwrap();
     let tournament_id = tournament.id.unwrap();
-    let password_hash = auth_service.hash_password("password123").unwrap();
-    let user = user::create_user(
-        &db,
-        format!("{}@test.com", unique_name("player")),
-        unique_name("player"),
-        Some(password_hash),
-        "US".to_string(),
-        None,
-        None,
-    )
-    .await
-    .unwrap();
-    let user_id = user.id.unwrap();
+    
+    let bob_user = get_bob_user(&db).await;
+    let user_id = bob_user.id.unwrap();
+    
     let participant = tournament::join_tournament(&db, tournament_id.clone(), user_id.clone())
         .await
         .unwrap();
     assert_eq!(participant.user_id, user_id);
+    
     let participants = tournament::get_tournament_participants(&db, tournament_id.clone())
         .await
         .unwrap();
@@ -186,7 +193,6 @@ async fn test_tournament_status_serialization() {
 #[tokio::test]
 async fn test_start_tournament_all_vs_all() {
     let db = setup_test_db().await;
-    let auth_service = AuthService::new("test-secret".to_string(), 3600);
 
     // Create tournament with AllVsAll match generation (default)
     let tournament = tournament::create_tournament(
@@ -204,23 +210,10 @@ async fn test_start_tournament_all_vs_all() {
     .unwrap();
     let tournament_id = tournament.id.clone().unwrap();
 
-    // Create 3 users
-    let mut user_ids: Vec<Thing> = Vec::new();
-    for i in 0..3 {
-        let password_hash = auth_service.hash_password("password123").unwrap();
-        let user = user::create_user(
-            &db,
-            format!("{}@test.com", unique_name(&format!("player{}_", i))),
-            unique_name(&format!("player{}_", i)),
-            Some(password_hash),
-            "US".to_string(),
-            None,
-            None,
-        )
-        .await
-        .unwrap();
-        user_ids.push(user.id.unwrap());
-    }
+    // Use Bob and Alice users
+    let bob_user = get_bob_user(&db).await;
+    let alice_user = get_alice_user(&db).await;
+    let user_ids: Vec<Thing> = vec![bob_user.id.unwrap(), alice_user.id.unwrap()];
 
     // Join tournament and create submissions
     for user_id in &user_ids {
@@ -247,19 +240,18 @@ async fn test_start_tournament_all_vs_all() {
 
     // Verify tournament status changed
     assert_eq!(started_tournament.status, TournamentStatus::Running);
-    // Verify matches were created (3 players vs 3 players = 9 matches)
+    // Verify matches were created (2 players vs 2 players = 4 matches)
     let created_matches =
         matches::list_matches(&db, Some(tournament_id.clone()), None, None, None, None)
             .await
             .unwrap();
-    assert_eq!(created_matches.len(), 9);
+    assert_eq!(created_matches.len(), 4);
     assert!(created_matches.iter().all(|m| m.participants.len() == 2));
 }
 
 #[tokio::test]
 async fn test_start_tournament_round_robin() {
     let db = setup_test_db().await;
-    let auth_service = AuthService::new("test-secret".to_string(), 3600);
 
     // Create tournament with RoundRobin match generation
     let tournament = tournament::create_tournament(
@@ -277,23 +269,10 @@ async fn test_start_tournament_round_robin() {
     .unwrap();
     let tournament_id = tournament.id.clone().unwrap();
 
-    // Create 4 users
-    let mut user_ids: Vec<Thing> = Vec::new();
-    for i in 0..4 {
-        let password_hash = auth_service.hash_password("password123").unwrap();
-        let user = user::create_user(
-            &db,
-            format!("{}@test.com", unique_name(&format!("rrplayer{}_", i))),
-            unique_name(&format!("rrplayer{}_", i)),
-            Some(password_hash),
-            "US".to_string(),
-            None,
-            None,
-        )
-        .await
-        .unwrap();
-        user_ids.push(user.id.unwrap());
-    }
+    // Use Bob and Alice users
+    let bob_user = get_bob_user(&db).await;
+    let alice_user = get_alice_user(&db).await;
+    let user_ids: Vec<Thing> = vec![bob_user.id.unwrap(), alice_user.id.unwrap()];
 
     // Join tournament and create submissions
     for user_id in &user_ids {
@@ -321,18 +300,17 @@ async fn test_start_tournament_round_robin() {
     // Verify tournament status changed
     assert_eq!(started_tournament.status, TournamentStatus::Running);
 
-    // Verify matches were created (4 players, unique pairings = 6 matches)
+    // Verify matches were created (2 players, unique pairings = 1 match)
     let created_matches =
         matches::list_matches(&db, Some(tournament_id.clone()), None, None, None, None)
             .await
             .unwrap();
-    assert_eq!(created_matches.len(), 6); // 4 * (4-1) / 2 = 6 matches (no duplicates)
+    assert_eq!(created_matches.len(), 1); // 2 * (2-1) / 2 = 1 match (no duplicates)
 }
 
 #[tokio::test]
 async fn test_start_tournament_without_submissions_fails() {
     let db = setup_test_db().await;
-    let auth_service = AuthService::new("test-secret".to_string(), 3600);
 
     // Create tournament
     let tournament = tournament::create_tournament(
@@ -350,22 +328,13 @@ async fn test_start_tournament_without_submissions_fails() {
     .unwrap();
     let tournament_id = tournament.id.clone().unwrap();
 
-    // Create and join users but don't submit code
-    for i in 0..2 {
-        let password_hash = auth_service.hash_password("password123").unwrap();
-        let user = user::create_user(
-            &db,
-            format!("{}@test.com", unique_name(&format!("nosub{}_", i))),
-            unique_name(&format!("nosub{}_", i)),
-            Some(password_hash),
-            "US".to_string(),
-            None,
-            None,
-        )
-        .await
-        .unwrap();
+    // Use Bob and Alice but don't submit code
+    let bob_user = get_bob_user(&db).await;
+    let alice_user = get_alice_user(&db).await;
+    let users = vec![bob_user, alice_user];
+    
+    for user in users {
         let user_id = user.id.unwrap();
-
         tournament::join_tournament(&db, tournament_id.clone(), user_id.clone())
             .await
             .unwrap();
@@ -404,7 +373,6 @@ async fn test_start_tournament_not_enough_players_fails() {
 #[tokio::test]
 async fn test_tournament_participant_management() {
     let db = setup_test_db().await;
-    let auth_service = AuthService::new("test-secret".to_string(), 3600);
 
     // Create tournament
     let tournament = tournament::create_tournament(
@@ -422,20 +390,9 @@ async fn test_tournament_participant_management() {
     .unwrap();
     let tournament_id = tournament.id.unwrap();
 
-    // Create user
-    let password_hash = auth_service.hash_password("password123").unwrap();
-    let user = user::create_user(
-        &db,
-        format!("{}@test.com", unique_name("participant")),
-        unique_name("participant"),
-        Some(password_hash),
-        "US".to_string(),
-        None,
-        None,
-    )
-    .await
-    .unwrap();
-    let user_id = user.id.unwrap();
+    // Use Bob user
+    let bob_user = get_bob_user(&db).await;
+    let user_id = bob_user.id.unwrap();
 
     // Join tournament
     let participant = tournament::join_tournament(&db, tournament_id.clone(), user_id.clone())

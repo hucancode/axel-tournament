@@ -3,7 +3,7 @@ use api::{
     config::Config,
     db,
     models::{CreateSubmissionRequest, ProgrammingLanguage},
-    services::{auth::AuthService, submission, tournament},
+    services::{submission, tournament, auth},
 };
 use validator::Validate;
 
@@ -25,26 +25,30 @@ fn unique_name(prefix: &str) -> String {
 // Use hardcoded game IDs (games are now maintained by developers)
 const TEST_GAME_ID: &str = "rock-paper-scissors";
 
+async fn get_bob_user(db: &api::db::Database) -> api::models::User {
+    let config = Config::from_env();
+    auth::get_user_by_email(db, &config.bob.email)
+        .await
+        .unwrap()
+        .expect("Bob user should exist")
+}
+
+async fn get_alice_user(db: &api::db::Database) -> api::models::User {
+    let config = Config::from_env();
+    auth::get_user_by_email(db, &config.alice.email)
+        .await
+        .unwrap()
+        .expect("Alice user should exist")
+}
+
 #[tokio::test]
 async fn test_submission_create() {
     let db = setup_test_db().await;
-    // Create a user first
-    let auth_service = AuthService::new("test-secret".to_string(), 3600);
-    let user_email = unique_name("user") + "@test.com";
-    let password_hash = auth_service.hash_password("password123").unwrap();
-    let created_user = api::services::user::create_user(
-        &db,
-        user_email.clone(),
-        unique_name("user"),
-        Some(password_hash),
-        "US".to_string(),
-        None,
-        None,
-    )
-    .await
-    .unwrap();
-    let user_id = created_user.id.unwrap();
-    // Use hardcoded game (games are now maintained by developers)
+    
+    // Use Bob user
+    let bob_user = get_bob_user(&db).await;
+    let user_id = bob_user.id.unwrap();
+    
     // Create a tournament
     let tournament_data = tournament::create_tournament(
         &db,
@@ -83,23 +87,12 @@ async fn test_submission_create() {
 #[tokio::test]
 async fn test_submission_get() {
     let db = setup_test_db().await;
-    // Create user and tournament
-    let auth_service = AuthService::new("test-secret".to_string(), 3600);
-    let user_email = unique_name("user") + "@test.com";
-    let password_hash = auth_service.hash_password("password123").unwrap();
-    let created_user = api::services::user::create_user(
-        &db,
-        user_email.clone(),
-        unique_name("user"),
-        Some(password_hash),
-        "US".to_string(),
-        None,
-        None,
-    )
-    .await
-    .unwrap();
-    let user_id = created_user.id.unwrap();
-    // Use hardcoded game (games are now maintained by developers)
+    
+    // Use Bob user
+    let bob_user = get_bob_user(&db).await;
+    let user_id = bob_user.id.unwrap();
+    
+    // Create tournament
     let tournament_data = tournament::create_tournament(
         &db,
         TEST_GAME_ID.to_string(),
@@ -141,23 +134,12 @@ async fn test_submission_get() {
 #[tokio::test]
 async fn test_submission_list_by_user() {
     let db = setup_test_db().await;
-    // Create user and tournament
-    let auth_service = AuthService::new("test-secret".to_string(), 3600);
-    let user_email = unique_name("user") + "@test.com";
-    let password_hash = auth_service.hash_password("password123").unwrap();
-    let created_user = api::services::user::create_user(
-        &db,
-        user_email.clone(),
-        unique_name("user"),
-        Some(password_hash),
-        "US".to_string(),
-        None,
-        None,
-    )
-    .await
-    .unwrap();
-    let user_id = created_user.id.unwrap();
-    // Use hardcoded game (games are now maintained by developers)
+    
+    // Use Bob user
+    let bob_user = get_bob_user(&db).await;
+    let user_id = bob_user.id.unwrap();
+    
+    // Create tournament
     let tournament_data = tournament::create_tournament(
         &db,
         TEST_GAME_ID.to_string(),
@@ -231,23 +213,10 @@ async fn test_submission_request_validation() {
 #[tokio::test]
 async fn test_submission_workflow() {
     let db = setup_test_db().await;
-    let auth_service = AuthService::new("test-secret".to_string(), 3600);
 
-    // Create user
-    let user_email = unique_name("workflow_user") + "@test.com";
-    let password_hash = auth_service.hash_password("password123").unwrap();
-    let created_user = api::services::user::create_user(
-        &db,
-        user_email.clone(),
-        unique_name("workflow_user"),
-        Some(password_hash),
-        "US".to_string(),
-        None,
-        None,
-    )
-    .await
-    .unwrap();
-    let user_id = created_user.id.unwrap();
+    // Use Bob user
+    let bob_user = get_bob_user(&db).await;
+    let user_id = bob_user.id.unwrap();
 
     // Create tournament
     let tournament_data = tournament::create_tournament(

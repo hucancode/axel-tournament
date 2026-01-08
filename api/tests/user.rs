@@ -1,7 +1,7 @@
 use api::{
     config::Config,
     db,
-    services::{auth::AuthService, user},
+    services::{user, auth},
 };
 
 async fn setup_test_db() -> api::db::Database {
@@ -11,36 +11,34 @@ async fn setup_test_db() -> api::db::Database {
         .expect("Failed to connect to test database")
 }
 
-fn unique_name(prefix: &str) -> String {
-    let timestamp = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
+async fn get_bob_user(db: &api::db::Database) -> api::models::User {
+    let config = Config::from_env();
+    auth::get_user_by_email(db, &config.bob.email)
+        .await
         .unwrap()
-        .as_nanos();
-    format!("{}{}", prefix, timestamp)
+        .expect("Bob user should exist")
+}
+
+async fn get_alice_user(db: &api::db::Database) -> api::models::User {
+    let config = Config::from_env();
+    auth::get_user_by_email(db, &config.alice.email)
+        .await
+        .unwrap()
+        .expect("Alice user should exist")
 }
 
 #[tokio::test]
 async fn test_ban_and_unban_user() {
     let db = setup_test_db().await;
-    let auth_service = AuthService::new("test-secret".to_string(), 3600);
-    let password_hash = auth_service.hash_password("password123").unwrap();
-    let created_user = user::create_user(
-        &db,
-        format!("{}@test.com", unique_name("user")),
-        unique_name("user"),
-        Some(password_hash),
-        "US".to_string(),
-        None,
-        None,
-    )
-    .await
-    .unwrap();
-    let user_id = created_user.id.unwrap();
+    let bob_user = get_bob_user(&db).await;
+    let user_id = bob_user.id.unwrap();
+
     let banned = user::ban_user(&db, user_id.clone(), "Violation".to_string())
         .await
         .unwrap();
     assert!(banned.is_banned);
     assert_eq!(banned.ban_reason.unwrap(), "Violation");
+
     let unbanned = user::unban_user(&db, user_id).await.unwrap();
     assert!(!unbanned.is_banned);
     assert!(unbanned.ban_reason.is_none());
@@ -49,55 +47,27 @@ async fn test_ban_and_unban_user() {
 #[tokio::test]
 async fn test_list_users() {
     let db = setup_test_db().await;
-    let auth_service = AuthService::new("test-secret".to_string(), 3600);
-    for _ in 0..3 {
-        let password_hash = auth_service.hash_password("password123").unwrap();
-        user::create_user(
-            &db,
-            format!("{}@test.com", unique_name("list_user")),
-            unique_name("list_user"),
-            Some(password_hash),
-            "US".to_string(),
-            None,
-            None,
-        )
-        .await
-        .unwrap();
-    }
     let users = user::list_users(&db, Some(5), Some(0)).await.unwrap();
+    // Should have at least admin, bob, and alice
     assert!(users.len() >= 3);
 }
 
 #[tokio::test]
 async fn test_user_profile_update() {
     let db = setup_test_db().await;
-    let auth_service = AuthService::new("test-secret".to_string(), 3600);
-
-    // Create user
-    let password_hash = auth_service.hash_password("password123").unwrap();
-    let created_user = user::create_user(
-        &db,
-        format!("{}@test.com", unique_name("profile_user")),
-        unique_name("profile_user"),
-        Some(password_hash),
-        "US".to_string(),
-        None,
-        None,
-    )
-    .await
-    .unwrap();
-
-    let user_id = created_user.id.clone().unwrap();
+    let mut alice_user = get_alice_user(&db).await;
+    let user_id = alice_user.id.clone().unwrap();
 
     // Update location
-    let mut updated_user = created_user;
-    updated_user.location = "CA".to_string();
+    alice_user.location = "CA".to_string();
 
-    let result = user::update_user(&db, user_id.clone(), updated_user)
+    let result = user::update_user(&db, user_id.clone(), alice_user)
         .await
         .unwrap();
     assert_eq!(result.location, "CA");
 
-    // Verify update persisted by checking the returned result
-    assert_eq!(result.location, "CA");
+    // Reset location back to original for other tests
+    let mut reset_user = result;
+    reset_user.location = "US".to_string();
+    user::update_user(&db, user_id, reset_user).await.unwrap();
 }

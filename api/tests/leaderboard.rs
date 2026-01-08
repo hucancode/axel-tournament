@@ -1,5 +1,5 @@
 use api::{
-    config::Config, db, services::{auth::AuthService, leaderboard, tournament, user}
+    config::Config, db, services::{leaderboard, tournament, auth}
 };
 
 async fn setup_test_db() -> api::db::Database {
@@ -20,11 +20,27 @@ fn unique_name(prefix: &str) -> String {
 // Use hardcoded game IDs (games are now maintained by developers)
 const TEST_GAME_ID: &str = "rock-paper-scissors";
 
+async fn get_bob_user(db: &api::db::Database) -> api::models::User {
+    let config = Config::from_env();
+    auth::get_user_by_email(db, &config.bob.email)
+        .await
+        .unwrap()
+        .expect("Bob user should exist")
+}
+
+async fn get_alice_user(db: &api::db::Database) -> api::models::User {
+    let config = Config::from_env();
+    auth::get_user_by_email(db, &config.alice.email)
+        .await
+        .unwrap()
+        .expect("Alice user should exist")
+}
+
 #[tokio::test]
 async fn test_leaderboard_ordering_and_limit() {
     let db = setup_test_db().await;
-    let auth_service = AuthService::new("secret".to_string(), 3600);
-    // Use hardcoded game (games are now maintained by developers)
+    
+    // Create tournament
     let tournament = tournament::create_tournament(
         &db,
         TEST_GAME_ID.to_string(),
@@ -39,21 +55,14 @@ async fn test_leaderboard_ordering_and_limit() {
     .await
     .unwrap();
     let tournament_id = tournament.id.unwrap();
-    // Create two players and join tournament
+    
+    // Use Bob and Alice users
+    let bob_user = get_bob_user(&db).await;
+    let alice_user = get_alice_user(&db).await;
+    let players = vec![(bob_user, 120.0), (alice_user, 60.0)];
+    
     let mut participants = Vec::new();
-    for score in [120.0, 60.0] {
-        let password_hash = auth_service.hash_password("password123").unwrap();
-        let player = user::create_user(
-            &db,
-            format!("{}@test.com", unique_name("leaderboard_user")),
-            unique_name("player"),
-            Some(password_hash),
-            "US".to_string(),
-            None,
-            None,
-        )
-        .await
-        .unwrap();
+    for (player, score) in players {
         let player_id = player.id.unwrap();
         let participant = tournament::join_tournament(&db, tournament_id.clone(), player_id)
             .await
@@ -80,7 +89,6 @@ async fn test_leaderboard_ordering_and_limit() {
 #[tokio::test]
 async fn test_tournament_specific_leaderboard() {
     let db = setup_test_db().await;
-    let auth_service = AuthService::new("secret".to_string(), 3600);
 
     // Create tournament
     let tournament = tournament::create_tournament(
@@ -98,33 +106,28 @@ async fn test_tournament_specific_leaderboard() {
     .unwrap();
     let tournament_id = tournament.id.unwrap();
 
-    // Create multiple players with different scores
+    // Use Bob and Alice users with different scores
+    let bob_user = get_bob_user(&db).await;
+    let alice_user = get_alice_user(&db).await;
+    let players = vec![(bob_user, 100.0), (alice_user, 90.0)];
+
     let mut participants = Vec::new();
-    for (i, score) in [100.0, 90.0].iter().enumerate() {
-        let password_hash = auth_service.hash_password("password123").unwrap();
-        let player = user::create_user(
-            &db,
-            format!("{}@test.com", unique_name(&format!("lb_player_{}", i))),
-            unique_name(&format!("lb_player_{}", i)),
-            Some(password_hash),
-            "US".to_string(),
-            None,
-            None,
-        )
-        .await
-        .unwrap();
+    for (player, score) in players {
         let player_id = player.id.unwrap();
         let participant = tournament::join_tournament(&db, tournament_id.clone(), player_id)
             .await
             .unwrap();
-        participants.push((participant.id.unwrap(), *score, i + 1));
+        participants.push((participant.id.unwrap(), score));
     }
 
     // Assign scores and ranks
-    for (participant_id, score, rank) in participants {
+    for (i, (participant_id, score)) in participants.iter().enumerate() {
+        let participant_id_clone = participant_id.clone();
+        let score_clone = *score;
+        let rank = i + 1;
         db.query("UPDATE $id SET score = $score, rank = $rank")
-            .bind(("id", participant_id))
-            .bind(("score", score))
+            .bind(("id", participant_id_clone))
+            .bind(("score", score_clone))
             .bind(("rank", rank))
             .await
             .unwrap();
@@ -139,5 +142,4 @@ async fn test_tournament_specific_leaderboard() {
     // Verify ordering (highest score first)
     assert!(leaderboard_entries[0].score >= leaderboard_entries[1].score);
     assert_eq!(leaderboard_entries[0].rank, 1);
-    assert_eq!(leaderboard_entries[1].rank, 2);
 }

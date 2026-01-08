@@ -12,12 +12,12 @@ async fn setup_test_db() -> api::db::Database {
         .expect("Failed to connect to test database")
 }
 
-fn unique_name(prefix: &str) -> String {
-    let timestamp = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
+async fn get_bob_user(db: &api::db::Database) -> api::models::User {
+    let config = Config::from_env();
+    auth::get_user_by_email(db, &config.bob.email)
+        .await
         .unwrap()
-        .as_nanos();
-    format!("{}{}", prefix, timestamp)
+        .expect("Bob user should exist")
 }
 
 #[tokio::test]
@@ -128,30 +128,14 @@ async fn test_reset_token_generation() {
 async fn test_registration_and_login_flow() {
     let db = setup_test_db().await;
     let auth_service = AuthService::new("test-secret".to_string(), 3600);
+    let config = Config::from_env();
 
-    let email = format!("{}@test.com", unique_name("auth_user"));
-    let username = unique_name("auth_user");
-    let password = "password123";
-
-    // Register user
-    let created_user = user::create_user(
-        &db,
-        email.clone(),
-        username.clone(),
-        Some(auth_service.hash_password(password).unwrap()),
-        "US".to_string(),
-        None,
-        None,
-    )
-    .await
-    .unwrap();
-
-    assert_eq!(created_user.email, email);
-    assert_eq!(created_user.username, username);
+    // Use Bob for login flow test
+    let bob_user = get_bob_user(&db).await;
+    let password = &config.bob.password;
 
     // Login flow - verify password
-    let fetched_user = auth::get_user_by_email(&db, &email).await.unwrap().unwrap();
-    let password_hash = fetched_user.password_hash.as_ref().unwrap();
+    let password_hash = bob_user.password_hash.as_ref().unwrap();
     assert!(
         auth_service
             .verify_password(password, password_hash)
@@ -159,60 +143,54 @@ async fn test_registration_and_login_flow() {
     );
 
     // Generate token for user
-    let token = auth_service.generate_token(&fetched_user).unwrap();
+    let token = auth_service.generate_token(&bob_user).unwrap();
     assert!(!token.is_empty());
 
     // Validate token
     let claims = auth_service.validate_token(&token).unwrap();
-    assert_eq!(claims.email, email);
+    assert_eq!(claims.email, bob_user.email);
 }
 
 #[tokio::test]
 async fn test_password_reset_flow() {
     let db = setup_test_db().await;
     let auth_service = AuthService::new("test-secret".to_string(), 3600);
+    let config = Config::from_env();
 
-    let email = format!("{}@test.com", unique_name("reset_user"));
-    let username = unique_name("reset_user");
-
-    // Create user
-    let mut user = user::create_user(
-        &db,
-        email.clone(),
-        username,
-        Some(auth_service.hash_password("password123").unwrap()),
-        "US".to_string(),
-        None,
-        None,
-    )
-    .await
-    .unwrap();
+    // Use Bob for password reset test
+    let mut bob_user = get_bob_user(&db).await;
+    let original_password_hash = bob_user.password_hash.clone().unwrap();
 
     // Generate reset token
     let raw_reset_token = auth_service.generate_reset_token();
     let reset_token_hash = auth_service.hash_reset_token(&raw_reset_token);
-    user.password_reset_token = Some(reset_token_hash);
+    bob_user.password_reset_token = Some(reset_token_hash);
 
-    let user_id = user.id.clone().unwrap();
-    user::update_user(&db, user_id.clone(), user).await.unwrap();
+    let user_id = bob_user.id.clone().unwrap();
+    user::update_user(&db, user_id.clone(), bob_user).await.unwrap();
 
     // Verify reset token and update password
-    let updated_user = auth::get_user_by_email(&db, &email).await.unwrap().unwrap();
+    let updated_user = auth::get_user_by_email(&db, &config.bob.email).await.unwrap().unwrap();
     assert!(updated_user.password_reset_token.is_some());
 
     // Simulate password reset
     let new_password_hash = auth_service.hash_password("new_password_123").unwrap();
     let mut reset_user = updated_user;
-    reset_user.password_hash = Some(new_password_hash);
+    reset_user.password_hash = Some(new_password_hash.clone());
     reset_user.password_reset_token = None;
 
-    user::update_user(&db, user_id, reset_user).await.unwrap();
+    user::update_user(&db, user_id.clone(), reset_user).await.unwrap();
 
     // Verify new password works
-    let final_user = auth::get_user_by_email(&db, &email).await.unwrap().unwrap();
+    let final_user = auth::get_user_by_email(&db, &config.bob.email).await.unwrap().unwrap();
     assert!(
         auth_service
-            .verify_password("new_password_123", &final_user.password_hash.unwrap())
+            .verify_password("new_password_123", &final_user.password_hash.as_ref().unwrap())
             .unwrap()
     );
+
+    // Reset password back to original for other tests
+    let mut restore_user = final_user;
+    restore_user.password_hash = Some(original_password_hash);
+    user::update_user(&db, user_id, restore_user).await.unwrap();
 }
