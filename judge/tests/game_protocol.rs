@@ -110,8 +110,8 @@ async fn test_automated_rock_paper_scissors() -> Result<()> {
 
     // Create BotPlayers
     println!("Creating bot players...");
-    let bot1 = BotPlayer::new("user:bot1".parse().unwrap(), &binary_path1).await?;
-    let bot2 = BotPlayer::new("user:bot2".parse().unwrap(), &binary_path2).await?;
+    let bot1 = BotPlayer::new("user:alice".parse().unwrap(), &binary_path1).await?;
+    let bot2 = BotPlayer::new("user:bob".parse().unwrap(), &binary_path2).await?;
 
     let players: Vec<Box<dyn Player>> = vec![Box::new(bot1), Box::new(bot2)];
 
@@ -161,8 +161,8 @@ async fn test_automated_tic_tac_toe() -> Result<()> {
     let binary_path2 = compiler.compile_submission(&bot2_id, "rust", &bot2_code).await?;
 
     println!("Creating bot players...");
-    let bot1 = BotPlayer::new("user:bot1".parse().unwrap(), &binary_path1).await?;
-    let bot2 = BotPlayer::new("user:bot2".parse().unwrap(), &binary_path2).await?;
+    let bot1 = BotPlayer::new("user:alice".parse().unwrap(), &binary_path1).await?;
+    let bot2 = BotPlayer::new("user:bob".parse().unwrap(), &binary_path2).await?;
 
     let players: Vec<Box<dyn Player>> = vec![Box::new(bot1), Box::new(bot2)];
 
@@ -207,8 +207,8 @@ async fn test_automated_prisoners_dilemma() -> Result<()> {
     let binary_path2 = compiler.compile_submission(&bot2_id, "rust", &bot2_code).await?;
 
     println!("Creating bot players...");
-    let bot1 = BotPlayer::new("user:bot1".parse().unwrap(), &binary_path1).await?;
-    let bot2 = BotPlayer::new("user:bot2".parse().unwrap(), &binary_path2).await?;
+    let bot1 = BotPlayer::new("user:alice".parse().unwrap(), &binary_path1).await?;
+    let bot2 = BotPlayer::new("user:bob".parse().unwrap(), &binary_path2).await?;
 
     let players: Vec<Box<dyn Player>> = vec![Box::new(bot1), Box::new(bot2)];
 

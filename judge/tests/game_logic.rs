@@ -56,8 +56,8 @@ impl Player for MockPlayer {
 async fn test_rock_paper_scissors_basic() {
     let moves1: Vec<&str> = vec!["ROCK", "ROCK", "ROCK", "ROCK", "ROCK"];
     let moves2: Vec<&str> = vec!["PAPER", "PAPER", "PAPER", "PAPER", "PAPER"];
-    let player1 = MockPlayer::new("p1", moves1);
-    let player2 = MockPlayer::new("p2", moves2);
+    let player1 = MockPlayer::new("alice", moves1);
+    let player2 = MockPlayer::new("bob", moves2);
     let players: Vec<Box<dyn Player>> = vec![Box::new(player1), Box::new(player2)];
 
     let game = RockPaperScissors::new();
@@ -70,8 +70,8 @@ async fn test_rock_paper_scissors_basic() {
 
 #[tokio::test]
 async fn test_tic_tac_toe_win() {
-    let player1 = MockPlayer::new("p1", vec!["MOVE 0 0", "MOVE 0 1", "MOVE 0 2"]);
-    let player2 = MockPlayer::new("p2", vec!["MOVE 1 0", "MOVE 1 1"]);
+    let player1 = MockPlayer::new("alice", vec!["MOVE 0 0", "MOVE 0 1", "MOVE 0 2"]);
+    let player2 = MockPlayer::new("bob", vec!["MOVE 1 0", "MOVE 1 1"]);
     let players: Vec<Box<dyn Player>> = vec![Box::new(player1), Box::new(player2)];
 
     let game = TicTacToe::new();
@@ -86,8 +86,8 @@ async fn test_tic_tac_toe_win() {
 async fn test_prisoners_dilemma_scoring() {
     let moves1: Vec<&str> = vec!["COOPERATE", "COOPERATE", "COOPERATE", "COOPERATE", "COOPERATE", "DEFECT", "DEFECT", "DEFECT", "DEFECT", "DEFECT"];
     let moves2: Vec<&str> = vec!["DEFECT", "DEFECT", "DEFECT", "COOPERATE", "COOPERATE", "COOPERATE", "COOPERATE", "COOPERATE", "COOPERATE", "COOPERATE"];
-    let player1 = MockPlayer::new("p1", moves1);
-    let player2 = MockPlayer::new("p2", moves2);
+    let player1 = MockPlayer::new("alice", moves1);
+    let player2 = MockPlayer::new("bob", moves2);
     let players: Vec<Box<dyn Player>> = vec![Box::new(player1), Box::new(player2)];
 
     let game = PrisonersDilemma::new();
@@ -115,8 +115,8 @@ async fn test_capacity_tracker_basic() {
 
 #[tokio::test]
 async fn test_invalid_move_handling() {
-    let player1 = MockPlayer::new("p1", vec!["invalid_move"]);
-    let player2 = MockPlayer::new("p2", vec!["ROCK"]);
+    let player1 = MockPlayer::new("alice", vec!["invalid_move"]);
+    let player2 = MockPlayer::new("bob", vec!["ROCK"]);
     let players: Vec<Box<dyn Player>> = vec![Box::new(player1), Box::new(player2)];
 
     let game = RockPaperScissors::new();
@@ -129,8 +129,8 @@ async fn test_invalid_move_handling() {
 
 #[tokio::test]
 async fn test_player_timeout_simulation() {
-    let player1 = MockPlayer::new("p1", vec![]); // No moves (simulates timeout)
-    let player2 = MockPlayer::new("p2", vec!["ROCK"]);
+    let player1 = MockPlayer::new("alice", vec![]); // No moves (simulates timeout)
+    let player2 = MockPlayer::new("bob", vec!["ROCK"]);
     let players: Vec<Box<dyn Player>> = vec![Box::new(player1), Box::new(player2)];
 
     let game = RockPaperScissors::new();
