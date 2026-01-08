@@ -178,9 +178,17 @@ impl CompilerSandbox {
             }
             Ok(ForkResult::Child) => {
                 // Child process: redirect stdout and stderr to log file
-                nix::unistd::dup2(log_fd, 1).ok();
-                nix::unistd::dup2(log_fd, 2).ok();
-                nix::unistd::close(log_fd).ok();
+                use std::os::fd::{FromRawFd, OwnedFd};
+                unsafe {
+                    let log_owned = OwnedFd::from_raw_fd(log_fd);
+                    let mut stdout = OwnedFd::from_raw_fd(1);
+                    let mut stderr = OwnedFd::from_raw_fd(2);
+                    nix::unistd::dup2(&log_owned, &mut stdout).ok();
+                    nix::unistd::dup2(&log_owned, &mut stderr).ok();
+                    std::mem::forget(stdout);
+                    std::mem::forget(stderr);
+                    // log_owned will be closed when dropped
+                }
 
                 // Change to workspace directory
                 std::env::set_current_dir(workspace).ok();

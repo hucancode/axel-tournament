@@ -10,8 +10,8 @@ edition = "2024"
 # Web framework
 axum = { version = "0.8" }
 tokio = { version = "1", features = ["full"] }
-tower = { version = "0.4", features = ["util"] }
-tower-http = { version = "0.5", features = ["fs", "cors"] }
+tower = { version = "0.5", features = ["util"] }
+tower-http = { version = "0.6", features = ["fs", "cors"] }
 
 # Database
 surrealdb = { version = "2.4", features = ["protocol-ws"] }
@@ -29,7 +29,7 @@ uuid = { version = "1.6", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 rand = "0.9"
 anyhow = "1"
-thiserror = "1"
+thiserror = "2"
 dotenv = "0.15"
 
 # Logging

@@ -45,7 +45,7 @@ pub enum SandboxError {
     NixError(#[from] nix::Error),
 
     #[error("Cgroups error: {0}")]
-    CgroupsError(#[from] cgroups_rs::error::Error),
+    CgroupsError(#[from] cgroups_rs::fs::error::Error),
 
     #[error("Invalid UTF-8: {0}")]
     Utf8Error(#[from] std::string::FromUtf8Error),

@@ -1,7 +1,7 @@
 use std::path::Path;
 use std::os::unix::io::{FromRawFd, IntoRawFd, AsRawFd};
 use caps::{CapSet, clear};
-use nix::unistd::{fork, ForkResult, execv, Pid, pipe, dup2, close};
+use nix::unistd::{fork, ForkResult, execv, Pid, pipe, dup2};
 use std::ffi::CString;
 use std::fs::File;
 use crate::sandbox::{Result, SandboxError};
@@ -91,14 +91,20 @@ fn child_setup_and_exec(
 ) -> Result<()> {
     // 1. Dup pipes to stdin/stdout
     // Keep stderr (fd 2) pointing to parent's stderr for error messages
-    dup2(stdin_fd, 0)
-        .map_err(|e| SandboxError::ProcessError(format!("Failed to dup2 stdin: {}", e)))?;
-    dup2(stdout_fd, 1)
-        .map_err(|e| SandboxError::ProcessError(format!("Failed to dup2 stdout: {}", e)))?;
-
-    // Close original pipe fds
-    close(stdin_fd).ok();
-    close(stdout_fd).ok();
+    use std::os::fd::{FromRawFd, OwnedFd};
+    unsafe {
+        let stdin_owned = OwnedFd::from_raw_fd(stdin_fd);
+        let stdout_owned = OwnedFd::from_raw_fd(stdout_fd);
+        let mut stdin = OwnedFd::from_raw_fd(0);
+        let mut stdout = OwnedFd::from_raw_fd(1);
+        dup2(&stdin_owned, &mut stdin)
+            .map_err(|e| SandboxError::ProcessError(format!("Failed to dup2 stdin: {}", e)))?;
+        dup2(&stdout_owned, &mut stdout)
+            .map_err(|e| SandboxError::ProcessError(format!("Failed to dup2 stdout: {}", e)))?;
+        std::mem::forget(stdin);
+        std::mem::forget(stdout);
+        // stdin_owned and stdout_owned will be closed when dropped
+    }
 
     let (host_uid, host_gid) = create_namespaces(false)?;
     setup_self_uid_mapping(host_uid, host_gid)?;

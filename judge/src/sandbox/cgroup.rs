@@ -1,6 +1,5 @@
 use cgroups_rs::*;
-use cgroups_rs::cgroup_builder::CgroupBuilder;
-use cgroups_rs::MaxValue;
+use cgroups_rs::fs::{cgroup_builder::CgroupBuilder, MaxValue, Cgroup, hierarchies};
 use nix::unistd::Pid;
 use crate::sandbox::{Result, SandboxError, ResourceLimits};
 
@@ -23,7 +22,7 @@ impl CgroupHandle {
 
     /// Create a cgroup with custom resource limits
     fn new(cgroup_name: &str, limits: ResourceLimits) -> Result<Self> {
-        let hierarchy = cgroups_rs::hierarchies::auto();
+        let hierarchy = hierarchies::auto();
 
         // Try to delete existing cgroup first
         let existing = Cgroup::load(hierarchy, cgroup_name);
@@ -40,7 +39,7 @@ impl CgroupHandle {
             .pid()
                 .maximum_number_of_processes(MaxValue::Value(limits.max_pids))
                 .done()
-            .build(cgroups_rs::hierarchies::auto())
+            .build(hierarchies::auto())
             .map_err(|e| SandboxError::CgroupError(format!("Failed to create cgroup: {}", e)))?;
 
         Ok(Self { cgroup })
