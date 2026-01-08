@@ -67,9 +67,9 @@ pub struct AppConfig {
 }
 
 impl Config {
-    pub fn from_env() -> Result<Self, config::ConfigError> {
+    pub fn from_env() -> Self {
         dotenv::dotenv().ok();
-        Ok(Config {
+        Config {
             server: ServerConfig {
                 host: env::var("SERVER_HOST").unwrap_or_else(|_| "0.0.0.0".to_string()),
                 port: env::var("SERVER_PORT")
@@ -137,6 +137,6 @@ impl Config {
                     .unwrap_or_else(|_| "admin@axel-tournament.com".to_string()),
                 password: env::var("ADMIN_PASSWORD").unwrap_or_else(|_| "123456".to_string()),
             },
-        })
+        }
     }
 }

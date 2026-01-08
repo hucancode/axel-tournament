@@ -1,4 +1,5 @@
-use axel_tournament::{
+use api::{
+    config::Config,
     db,
     models::{CreateTournamentRequest, MatchGenerationType, TournamentStatus},
     services::{auth::AuthService, matches, submission, tournament, user},
@@ -6,9 +7,8 @@ use axel_tournament::{
 use surrealdb::sql::Thing;
 use validator::Validate;
 
-async fn setup_test_db() -> axel_tournament::db::Database {
-    let config = axel_tournament::config::Config::from_env()
-        .expect("Failed to load config from environment");
+async fn setup_test_db() -> api::db::Database {
+    let config = Config::from_env();
     db::connect(&config.database)
         .await
         .expect("Failed to connect to test database")
@@ -233,7 +233,7 @@ async fn test_start_tournament_all_vs_all() {
             user_id.clone(),
             tournament_id.clone(),
             TEST_GAME_ID.to_string(),
-            axel_tournament::models::ProgrammingLanguage::Rust,
+            api::models::ProgrammingLanguage::Rust,
             "fn main() {}".to_string(),
         )
         .await
@@ -253,7 +253,7 @@ async fn test_start_tournament_all_vs_all() {
             .await
             .unwrap();
     assert_eq!(created_matches.len(), 9);
-    assert!(created_matches.iter().all(|m|m.participants.len() == 2));
+    assert!(created_matches.iter().all(|m| m.participants.len() == 2));
 }
 
 #[tokio::test]
@@ -283,10 +283,7 @@ async fn test_start_tournament_round_robin() {
         let password_hash = auth_service.hash_password("password123").unwrap();
         let user = user::create_user(
             &db,
-            format!(
-                "{}@test.com",
-                unique_name(&format!("rrplayer{}_", i))
-            ),
+            format!("{}@test.com", unique_name(&format!("rrplayer{}_", i))),
             unique_name(&format!("rrplayer{}_", i)),
             Some(password_hash),
             "US".to_string(),
@@ -309,7 +306,7 @@ async fn test_start_tournament_round_robin() {
             user_id.clone(),
             tournament_id.clone(),
             TEST_GAME_ID.to_string(),
-            axel_tournament::models::ProgrammingLanguage::Rust,
+            api::models::ProgrammingLanguage::Rust,
             "fn main() {}".to_string(),
         )
         .await
@@ -408,7 +405,7 @@ async fn test_start_tournament_not_enough_players_fails() {
 async fn test_tournament_participant_management() {
     let db = setup_test_db().await;
     let auth_service = AuthService::new("test-secret".to_string(), 3600);
-    
+
     // Create tournament
     let tournament = tournament::create_tournament(
         &db,
@@ -424,7 +421,7 @@ async fn test_tournament_participant_management() {
     .await
     .unwrap();
     let tournament_id = tournament.id.unwrap();
-    
+
     // Create user
     let password_hash = auth_service.hash_password("password123").unwrap();
     let user = user::create_user(
@@ -439,24 +436,24 @@ async fn test_tournament_participant_management() {
     .await
     .unwrap();
     let user_id = user.id.unwrap();
-    
+
     // Join tournament
     let participant = tournament::join_tournament(&db, tournament_id.clone(), user_id.clone())
         .await
         .unwrap();
     assert_eq!(participant.user_id, user_id);
-    
+
     // Verify participant count
     let participants = tournament::get_tournament_participants(&db, tournament_id.clone())
         .await
         .unwrap();
     assert_eq!(participants.len(), 1);
-    
+
     // Leave tournament
     tournament::leave_tournament(&db, tournament_id.clone(), user_id.clone())
         .await
         .unwrap();
-    
+
     // Verify participant removed
     let after_leave = tournament::get_tournament_participants(&db, tournament_id)
         .await

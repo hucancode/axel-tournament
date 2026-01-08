@@ -1,11 +1,11 @@
-use axel_tournament::{
+use api::{
+    config::Config,
     db,
     services::{auth::AuthService, user},
 };
 
-async fn setup_test_db() -> axel_tournament::db::Database {
-    let config = axel_tournament::config::Config::from_env()
-        .expect("Failed to load config from environment");
+async fn setup_test_db() -> api::db::Database {
+    let config = Config::from_env();
     db::connect(&config.database)
         .await
         .expect("Failed to connect to test database")
@@ -72,7 +72,7 @@ async fn test_list_users() {
 async fn test_user_profile_update() {
     let db = setup_test_db().await;
     let auth_service = AuthService::new("test-secret".to_string(), 3600);
-    
+
     // Create user
     let password_hash = auth_service.hash_password("password123").unwrap();
     let created_user = user::create_user(
@@ -86,16 +86,18 @@ async fn test_user_profile_update() {
     )
     .await
     .unwrap();
-    
+
     let user_id = created_user.id.clone().unwrap();
-    
+
     // Update location
     let mut updated_user = created_user;
     updated_user.location = "CA".to_string();
-    
-    let result = user::update_user(&db, user_id.clone(), updated_user).await.unwrap();
+
+    let result = user::update_user(&db, user_id.clone(), updated_user)
+        .await
+        .unwrap();
     assert_eq!(result.location, "CA");
-    
+
     // Verify update persisted by checking the returned result
     assert_eq!(result.location, "CA");
 }

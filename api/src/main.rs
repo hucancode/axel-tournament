@@ -10,7 +10,7 @@ use std::sync::Arc;
 async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt::init();
     // Load configuration
-    let config = Config::from_env()?;
+    let config = Config::from_env();
     // Connect to database
     let db = db::connect(&config.database).await?;
     // Initialize services

@@ -14,18 +14,13 @@ use std::sync::Arc;
 async fn main() -> anyhow::Result<()> {
     // Initialize tracing
     tracing_subscriber::fmt::init();
-
-    // Load configuration
-    dotenv::dotenv().ok();
-    let config = Config::from_env()?;
-
+    let config = Config::from_env();
     tracing::info!("Starting game server on port {}", config.server_port);
     tracing::info!(
         "Max capacity: {}, Max claim delay: {}ms",
         config.max_capacity,
         config.max_claim_delay_ms
     );
-
     // Connect to database
     let db = db::connect(
         &config.database_url,
@@ -35,7 +30,6 @@ async fn main() -> anyhow::Result<()> {
         &config.database_pass,
     )
     .await?;
-
     // Initialize capacity tracker
     let capacity = CapacityTracker::new(config.max_capacity, config.max_claim_delay_ms);
 
@@ -72,10 +66,8 @@ async fn main() -> anyhow::Result<()> {
         room_manager: shared_room_manager.clone(),
         jwt_secret: config.jwt_secret.clone(),
     });
-
     // Create router
-    let app = router::create_router(tic_tac_toe_state, rps_state, pd_state);
-
+    let app = router::create_router(&config, tic_tac_toe_state, rps_state, pd_state);
     // Start server
     let addr = format!("{}:{}", config.server_host, config.server_port);
     let listener = tokio::net::TcpListener::bind(&addr).await?;

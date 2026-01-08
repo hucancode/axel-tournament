@@ -1,5 +1,5 @@
+mod common;
 use anyhow::Result;
-use judge::config::Config;
 use judge::games::Game;
 use serde::Deserialize;
 use surrealdb::{engine::remote::ws::Client, sql::Thing, Surreal};
@@ -21,20 +21,6 @@ struct MatchStatus {
     status: String,
     participants: Option<Vec<Participant>>,
     error_message: Option<String>,
-}
-
-async fn connect_db() -> Result<Surreal<Client>> {
-    dotenv::dotenv().ok();
-    let config = Config::from_env()?;
-
-    use judge::db::connect;
-    connect(
-        &config.database_url,
-        &config.database_ns,
-        &config.database_db,
-        &config.database_user,
-        &config.database_pass,
-    ).await
 }
 
 async fn create_test_submission(db: &Surreal<Client>, tournament_id: &str, code: String) -> Result<Thing> {
@@ -136,7 +122,7 @@ async fn wait_for_match_completed(db: &Surreal<Client>, match_id: Thing) -> Resu
 #[tokio::test]
 async fn test_e2e_judge_workflow() -> Result<()> {
     // Connect to database
-    let db = connect_db().await?;
+    let db = common::setup_test_db().await;
 
     // Generate unique tournament ID for this test
     let timestamp = std::time::SystemTime::now()
@@ -242,7 +228,7 @@ async fn test_e2e_judge_workflow() -> Result<()> {
 #[tokio::test]
 #[ignore]
 async fn test_e2e_c_compilation() -> Result<()> {
-    let db = connect_db().await?;
+    let db = common::setup_test_db().await;
 
     let timestamp = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -380,7 +366,7 @@ async fn test_e2e_c_compilation() -> Result<()> {
 #[tokio::test]
 #[ignore]
 async fn test_e2e_go_compilation() -> Result<()> {
-    let db = connect_db().await?;
+    let db = common::setup_test_db().await;
     let timestamp = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap()

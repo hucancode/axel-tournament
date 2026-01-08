@@ -1,11 +1,9 @@
-use axel_tournament::{
-    db,
-    services::{auth::AuthService, leaderboard, tournament, user},
+use api::{
+    config::Config, db, services::{auth::AuthService, leaderboard, tournament, user}
 };
 
-async fn setup_test_db() -> axel_tournament::db::Database {
-    let config = axel_tournament::config::Config::from_env()
-        .expect("Failed to load config from environment");
+async fn setup_test_db() -> api::db::Database {
+    let config = Config::from_env();
     db::connect(&config.database)
         .await
         .expect("Failed to connect to test database")
@@ -83,7 +81,7 @@ async fn test_leaderboard_ordering_and_limit() {
 async fn test_tournament_specific_leaderboard() {
     let db = setup_test_db().await;
     let auth_service = AuthService::new("secret".to_string(), 3600);
-    
+
     // Create tournament
     let tournament = tournament::create_tournament(
         &db,
@@ -99,7 +97,7 @@ async fn test_tournament_specific_leaderboard() {
     .await
     .unwrap();
     let tournament_id = tournament.id.unwrap();
-    
+
     // Create multiple players with different scores
     let mut participants = Vec::new();
     for (i, score) in [100.0, 90.0].iter().enumerate() {
@@ -121,7 +119,7 @@ async fn test_tournament_specific_leaderboard() {
             .unwrap();
         participants.push((participant.id.unwrap(), *score, i + 1));
     }
-    
+
     // Assign scores and ranks
     for (participant_id, score, rank) in participants {
         db.query("UPDATE $id SET score = $score, rank = $rank")
@@ -131,12 +129,12 @@ async fn test_tournament_specific_leaderboard() {
             .await
             .unwrap();
     }
-    
+
     // Get leaderboard for specific tournament
     let leaderboard_entries = leaderboard::get_leaderboard(&db, 10, Some(tournament_id.clone()), None)
         .await
         .unwrap();
-    
+
     assert_eq!(leaderboard_entries.len(), 2);
     // Verify ordering (highest score first)
     assert!(leaderboard_entries[0].score >= leaderboard_entries[1].score);

@@ -30,7 +30,6 @@ rand.workspace = true
 anyhow.workspace = true
 thiserror.workspace = true
 dotenv.workspace = true
-config = "0.14"
 validator = { version = "0.20", features = ["derive"] }
 sha2 = "0.10"
 

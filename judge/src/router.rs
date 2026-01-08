@@ -1,4 +1,5 @@
 use crate::app_state::AppState;
+use crate::config::Config;
 use crate::games;
 use crate::handlers;
 use crate::room;
@@ -9,14 +10,12 @@ use std::sync::Arc;
 use tower_http::cors::CorsLayer;
 
 pub fn create_router(
+    config: &Config,
     tic_tac_toe_state: Arc<AppState<games::TicTacToe>>,
     rps_state: Arc<AppState<games::RockPaperScissors>>,
     pd_state: Arc<AppState<games::PrisonersDilemma>>,
 ) -> Router {
-    let frontend_url =
-        std::env::var("FRONTEND_URL").unwrap_or_else(|_| "http://localhost:5173".to_string());
-
-    tracing::info!("CORS: Allowing origin: {}", frontend_url);
+    tracing::info!("CORS: Allowing origin: {}", config.frontend_url);
 
     Router::new()
         .route("/health", get(handlers::health))
@@ -54,7 +53,7 @@ pub fn create_router(
         .layer(
             CorsLayer::new()
                 .allow_origin(
-                    frontend_url
+                    config.frontend_url
                         .parse::<axum::http::HeaderValue>()
                         .expect("Invalid FRONTEND_URL"),
                 )

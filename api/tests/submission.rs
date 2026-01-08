@@ -1,14 +1,14 @@
 // Unit tests for submission service logic
-use axel_tournament::{
+use api::{
+    config::Config,
     db,
     models::{CreateSubmissionRequest, ProgrammingLanguage},
     services::{auth::AuthService, submission, tournament},
 };
 use validator::Validate;
 
-async fn setup_test_db() -> axel_tournament::db::Database {
-    let config = axel_tournament::config::Config::from_env()
-        .expect("Failed to load config from environment");
+async fn setup_test_db() -> api::db::Database {
+    let config = Config::from_env();
     db::connect(&config.database)
         .await
         .expect("Failed to connect to test database")
@@ -32,7 +32,7 @@ async fn test_submission_create() {
     let auth_service = AuthService::new("test-secret".to_string(), 3600);
     let user_email = unique_name("user") + "@test.com";
     let password_hash = auth_service.hash_password("password123").unwrap();
-    let created_user = axel_tournament::services::user::create_user(
+    let created_user = api::services::user::create_user(
         &db,
         user_email.clone(),
         unique_name("user"),
@@ -87,7 +87,7 @@ async fn test_submission_get() {
     let auth_service = AuthService::new("test-secret".to_string(), 3600);
     let user_email = unique_name("user") + "@test.com";
     let password_hash = auth_service.hash_password("password123").unwrap();
-    let created_user = axel_tournament::services::user::create_user(
+    let created_user = api::services::user::create_user(
         &db,
         user_email.clone(),
         unique_name("user"),
@@ -145,7 +145,7 @@ async fn test_submission_list_by_user() {
     let auth_service = AuthService::new("test-secret".to_string(), 3600);
     let user_email = unique_name("user") + "@test.com";
     let password_hash = auth_service.hash_password("password123").unwrap();
-    let created_user = axel_tournament::services::user::create_user(
+    let created_user = api::services::user::create_user(
         &db,
         user_email.clone(),
         unique_name("user"),
@@ -232,11 +232,11 @@ async fn test_submission_request_validation() {
 async fn test_submission_workflow() {
     let db = setup_test_db().await;
     let auth_service = AuthService::new("test-secret".to_string(), 3600);
-    
+
     // Create user
     let user_email = unique_name("workflow_user") + "@test.com";
     let password_hash = auth_service.hash_password("password123").unwrap();
-    let created_user = axel_tournament::services::user::create_user(
+    let created_user = api::services::user::create_user(
         &db,
         user_email.clone(),
         unique_name("workflow_user"),
@@ -248,7 +248,7 @@ async fn test_submission_workflow() {
     .await
     .unwrap();
     let user_id = created_user.id.unwrap();
-    
+
     // Create tournament
     let tournament_data = tournament::create_tournament(
         &db,
@@ -264,12 +264,12 @@ async fn test_submission_workflow() {
     .await
     .unwrap();
     let tournament_id = tournament_data.id.unwrap();
-    
+
     // Join tournament
     tournament::join_tournament(&db, tournament_id.clone(), user_id.clone())
         .await
         .unwrap();
-    
+
     // Create submission
     let code = "fn main() { println!(\"hello\"); }";
     let created_submission = submission::create_submission(
@@ -282,16 +282,24 @@ async fn test_submission_workflow() {
     )
     .await
     .unwrap();
-    
+
     let submission_id = created_submission.id.unwrap();
-    
+
     // Get single submission
-    let fetched_submission = submission::get_submission(&db, submission_id.clone()).await.unwrap();
+    let fetched_submission = submission::get_submission(&db, submission_id.clone())
+        .await
+        .unwrap();
     assert_eq!(fetched_submission.code, code);
     assert_eq!(fetched_submission.language, ProgrammingLanguage::Rust);
-    
+
     // List user submissions
-    let user_submissions = submission::list_user_submissions(&db, user_id, None).await.unwrap();
+    let user_submissions = submission::list_user_submissions(&db, user_id, None)
+        .await
+        .unwrap();
     assert!(!user_submissions.is_empty());
-    assert!(user_submissions.iter().any(|s| s.id == Some(submission_id.clone())));
+    assert!(
+        user_submissions
+            .iter()
+            .any(|s| s.id == Some(submission_id.clone()))
+    );
 }
