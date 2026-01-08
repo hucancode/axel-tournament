@@ -1,4 +1,4 @@
-use axel_tournament::{
+use api::{
     AppState,
     config::Config,
     db, router,
