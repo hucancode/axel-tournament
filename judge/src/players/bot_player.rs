@@ -117,9 +117,7 @@ impl Player for BotPlayer {
         if let Some(pid) = self.pid {
             // Check if process exists via kill with signal 0
             // Signal 0 doesn't actually send a signal, just checks if process exists
-            unsafe {
-                libc::kill(pid.as_raw(), 0) == 0
-            }
+            kill(pid, None).is_ok()
         } else {
             false
         }
