@@ -19,9 +19,20 @@ async fn main() -> anyhow::Result<()> {
         config.jwt.expiration,
     ));
     let email_service = Arc::new(EmailService::new(config.email.clone()));
-    // Create seed admin user if user table is empty
+    // Create seed users if user table is empty
     let admin_password_hash = auth_service.hash_password(&config.admin.password)?;
-    db::seed_admin_user(&db, &config.admin.email, admin_password_hash).await?;
+    let bob_password_hash = auth_service.hash_password(&config.bob.password)?;
+    let alice_password_hash = auth_service.hash_password(&config.alice.password)?;
+    db::seed_users(
+        &db,
+        &config.admin.email,
+        admin_password_hash,
+        &config.bob.email,
+        bob_password_hash,
+        &config.alice.email,
+        alice_password_hash,
+    )
+    .await?;
 
     // Start healer service as background task
     let healer = HealerService::new(db.clone());

@@ -9,11 +9,13 @@ pub struct Config {
     pub oauth: OAuthConfig,
     pub email: EmailConfig,
     pub app: AppConfig,
-    pub admin: AdminConfig,
+    pub admin: UserConfig,
+    pub bob: UserConfig,
+    pub alice: UserConfig,
 }
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct AdminConfig {
+pub struct UserConfig {
     pub email: String,
     pub password: String,
 }
@@ -132,10 +134,18 @@ impl Config {
                 default_location: env::var("DEFAULT_LOCATION").unwrap_or_else(|_| "US".to_string()),
                 judge_url: env::var("JUDGE_URL").unwrap_or_else(|_| "http://localhost:8081".to_string()),
             },
-            admin: AdminConfig {
+            admin: UserConfig {
                 email: env::var("ADMIN_EMAIL")
                     .unwrap_or_else(|_| "admin@axel-tournament.com".to_string()),
                 password: env::var("ADMIN_PASSWORD").unwrap_or_else(|_| "123456".to_string()),
+            },
+            bob: UserConfig {
+                email: env::var("BOB_EMAIL").unwrap_or_else(|_| "bob@example.com".to_string()),
+                password: env::var("BOB_PASSWORD").unwrap_or_else(|_| "123456".to_string()),
+            },
+            alice: UserConfig {
+                email: env::var("ALICE_EMAIL").unwrap_or_else(|_| "alice@example.com".to_string()),
+                password: env::var("ALICE_PASSWORD").unwrap_or_else(|_| "123456".to_string()),
             },
         }
     }

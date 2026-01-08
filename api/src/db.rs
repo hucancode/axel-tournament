@@ -177,10 +177,14 @@ pub async fn init_schema(db: &Database) -> Result<(), surrealdb::Error> {
 }
 
 /// Create admin user if user table is empty (seed user)
-pub async fn seed_admin_user(
+pub async fn seed_users(
     db: &Database,
-    email: &str,
-    password_hash: String,
+    admin_email: &str,
+    admin_password_hash: String,
+    bob_email: &str,
+    bob_password_hash: String,
+    alice_email: &str,
+    alice_password_hash: String,
 ) -> Result<(), surrealdb::Error> {
     // Check if any users exist
     let existing: Vec<User> = db.query("SELECT * FROM user LIMIT 1").await?.take(0)?;
@@ -188,9 +192,9 @@ pub async fn seed_admin_user(
         // Create admin user (seed user only if table is empty)
         let admin = User {
             id: None,
-            email: email.to_string(),
+            email: admin_email.to_string(),
             username: "admin".to_string(),
-            password_hash: Some(password_hash.clone()),
+            password_hash: Some(admin_password_hash),
             role: UserRole::Admin,
             location: "US".to_string(),
             oauth_provider: None,
@@ -207,9 +211,9 @@ pub async fn seed_admin_user(
 
         let alice = User {
             id: None,
-            email: "alice@example.com".to_string(),
+            email: alice_email.to_string(),
             username: "alice".to_string(),
-            password_hash: Some(password_hash.clone()),
+            password_hash: Some(alice_password_hash),
             role: UserRole::Player,
             location: "US".to_string(),
             oauth_provider: None,
@@ -226,9 +230,9 @@ pub async fn seed_admin_user(
 
         let bob = User {
             id: None,
-            email: "bob@example.com".to_string(),
+            email: bob_email.to_string(),
             username: "bob".to_string(),
-            password_hash: Some(password_hash),
+            password_hash: Some(bob_password_hash),
             role: UserRole::Player,
             location: "US".to_string(),
             oauth_provider: None,

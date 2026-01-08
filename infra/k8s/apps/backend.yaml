@@ -4,10 +4,14 @@ metadata:
   name: backend-secrets
   namespace: backend
 stringData:
-  jwt_secret: "change-me"
-  admin_password: "change-me"
-  db_user: "root"
-  db_pass: "change-me"
+  jwt_secret: "${JWT_SECRET}"
+  admin_password: "${ADMIN_PASSWORD}"
+  bob_email: "${BOB_EMAIL}"
+  bob_password: "${BOB_PASSWORD}"
+  alice_email: "${ALICE_EMAIL}"
+  alice_password: "${ALICE_PASSWORD}"
+  db_user: "${DATABASE_USER}"
+  db_pass: "${DATABASE_PASS}"
   google_client_id: "${GOOGLE_CLIENT_ID}"
   google_client_secret: "${GOOGLE_CLIENT_SECRET}"
   google_redirect_uri: "${GOOGLE_REDIRECT_URI}"
@@ -70,6 +74,26 @@ spec:
                 secretKeyRef:
                   name: backend-secrets
                   key: admin_password
+            - name: BOB_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: bob_email
+            - name: BOB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: bob_password
+            - name: ALICE_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: alice_email
+            - name: ALICE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: alice_password
             - name: OAUTH_COOKIE_SECURE
               value: "false"
             - name: OAUTH_STATE_TTL_SECONDS
