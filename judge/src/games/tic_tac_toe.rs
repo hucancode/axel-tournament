@@ -32,7 +32,7 @@ impl Game for TicTacToe {
         }
     }
 
-    async fn run(&self, mut players: Vec<Box<dyn Player>>, timeout_ms: u64) -> Vec<GameResult> {
+    async fn run(&self, mut players: Vec<Box<dyn Player>>, timeout_ms: u64, game_context: crate::room::GameContext) -> Vec<GameResult> {
         if players.len() != 2 {
             return vec![GameResult::RuntimeError; players.len()];
         }
@@ -43,7 +43,7 @@ impl Game for TicTacToe {
         }
 
         // Initialize game state
-        {
+        let player_ids: Vec<String> = {
             let mut state = self.state.lock().unwrap();
             state.board = vec![None; 9];
             state.current_turn = 0;
@@ -51,7 +51,11 @@ impl Game for TicTacToe {
             state.game_finished = false;
             state.winner = None;
             state.player_ids = players.iter().map(|p| p.player_id().to_string()).collect();
-        }
+            state.player_ids.clone()
+        };
+
+        // Write game initialization to history
+        game_context.write_event(&format!("GAME_INIT {} {}", player_ids[0], player_ids[1])).await;
 
         // Send start messages
         let _ = players[0].send_message("START X").await;
@@ -152,12 +156,18 @@ impl Game for TicTacToe {
                 (winner, self.format_board_message_internal(&state.board))
             };
 
+            // Write move to history
+            game_context.write_event(&format!("MOVE {} {} {}", current_turn, row, col)).await;
+
             // Send updated board state
             let _ = players[0].send_message(&board_msg).await;
             let _ = players[1].send_message(&board_msg).await;
 
             // Check winner
             if let Some(winner) = winner {
+                // Write winner to history
+                game_context.write_event(&format!("WINNER {}", winner)).await;
+
                 let _ = players[0].send_message(&format!("SCORE {}", if winner == 0 { 1 } else { 0 })).await;
                 let _ = players[1].send_message(&format!("SCORE {}", if winner == 1 { 1 } else { 0 })).await;
                 let _ = players[0].send_message("END").await;
@@ -175,6 +185,10 @@ impl Game for TicTacToe {
             let mut state = self.state.lock().unwrap();
             state.game_finished = true;
         }
+
+        // Write draw to history
+        game_context.write_event("DRAW").await;
+
         let _ = players[0].send_message("SCORE 0").await;
         let _ = players[1].send_message("SCORE 0").await;
         let _ = players[0].send_message("END").await;
@@ -182,15 +196,12 @@ impl Game for TicTacToe {
         vec![GameResult::Accepted(0), GameResult::Accepted(0)]
     }
 
-    fn game_id(&self) -> &'static str {
-        "tic-tac-toe"
-    }
 
     fn max_players(&self) -> usize {
         2
     }
 
-    fn get_reconnect_state(&self, player_id: &str) -> Vec<String> {
+    fn get_event_source(&self, player_id: &str) -> Vec<String> {
         let state = self.state.lock().unwrap();
 
         if !state.game_started {
@@ -227,6 +238,56 @@ impl Game for TicTacToe {
         }
 
         messages
+    }
+
+    fn restore_from_events(&self, events: &[String]) {
+        let mut state = self.state.lock().unwrap();
+
+        // Reset state
+        state.board = vec![None; 9];
+        state.current_turn = 0;
+        state.game_started = false;
+        state.game_finished = false;
+        state.winner = None;
+        state.player_ids.clear();
+
+        for event in events {
+            let parts: Vec<&str> = event.trim().split_whitespace().collect();
+            if parts.is_empty() {
+                continue;
+            }
+
+            match parts[0] {
+                "GAME_INIT" if parts.len() >= 3 => {
+                    state.player_ids = vec![parts[1].to_string(), parts[2].to_string()];
+                    state.game_started = true;
+                }
+                "MOVE" if parts.len() >= 4 => {
+                    if let (Ok(player_num), Ok(row), Ok(col)) = (
+                        parts[1].parse::<usize>(),
+                        parts[2].parse::<usize>(),
+                        parts[3].parse::<usize>(),
+                    ) {
+                        let pos = row * 3 + col;
+                        if pos < 9 {
+                            state.board[pos] = Some(player_num);
+                            state.current_turn = 1 - player_num;
+                        }
+                    }
+                }
+                "WINNER" if parts.len() >= 2 => {
+                    if let Ok(winner) = parts[1].parse::<usize>() {
+                        state.winner = Some(winner);
+                        state.game_finished = true;
+                    }
+                }
+                "DRAW" => {
+                    state.game_finished = true;
+                    state.winner = None;
+                }
+                _ => {}
+            }
+        }
     }
 }
 

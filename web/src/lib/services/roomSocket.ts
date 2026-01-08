@@ -159,68 +159,73 @@ export class RoomSocket {
       case 'REPLAY_START':
         this.emit('replay_start', '');
         break;
-        
+
       case 'REPLAY_END':
         this.emit('replay_end', '');
         break;
-        
+
+      case 'GAME_EVENT':
+        // Forward game event for state restoration
+        this.emit('game_event', parts.slice(1).join(' '));
+        break;
+
       case 'PLAYER_JOINED':
-        this.emit('player_joined', { userId: parts[1], username: parts[2] });
+        this.emit('player_joined', { userId: parts[1] });
         break;
-        
+
       case 'PLAYER_LEFT':
-        this.emit('player_left', { userId: parts[1], username: parts[2] });
+        this.emit('player_left', { userId: parts[1] });
         break;
-        
+
       case 'HOST_CHANGED':
-        this.emit('host_changed', { userId: parts[1], username: parts[2] });
+        this.emit('host_changed', { userId: parts[1] });
         break;
-        
+
       case 'ROOM_CLOSED':
         this.emit('room_closed', '');
         break;
-        
+
       case 'GAME_STARTED':
         this.emit('game_started', '');
         break;
-        
+
       case 'GAME_FINISHED':
         this.emit('game_finished', parts.slice(1).join(' '));
         break;
-        
+
       case 'CHAT':
-        this.emit('chat', { userId: parts[1], username: parts[2], message: parts.slice(3).join(' ') });
+        this.emit('chat', { userId: parts[1], message: parts.slice(2).join(' ') });
         break;
-        
+
       case 'ERROR':
         this.emit('error', parts.slice(1).join(' '));
         break;
-        
+
       // Game-specific messages
       case 'START':
         this.emit('game_start', parts.slice(1).join(' '));
         break;
-        
+
       case 'BOARD':
         this.emit('board_update', parts[1]);
         break;
-        
+
       case 'TURN':
         this.emit('turn_update', parts[1]);
         break;
-        
+
       case 'YOUR_TURN':
         this.emit('your_turn', '');
         break;
-        
+
       case 'SCORE':
         this.emit('score_update', parts[1]);
         break;
-        
+
       case 'END':
         this.emit('game_end', '');
         break;
-        
+
       default:
         // Forward unknown messages as raw data
         this.emit('message', data);

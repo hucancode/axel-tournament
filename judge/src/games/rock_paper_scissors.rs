@@ -37,9 +37,9 @@ impl Game for RockPaperScissors {
         }
     }
 
-    async fn run(&self, mut players: Vec<Box<dyn Player>>, timeout_ms: u64) -> Vec<GameResult> {
+    async fn run(&self, mut players: Vec<Box<dyn Player>>, timeout_ms: u64, game_context: crate::room::GameContext) -> Vec<GameResult> {
         tracing::info!("RPS: Starting game with {} players, timeout: {}ms", players.len(), timeout_ms);
-        
+
         if players.len() != 2 {
             tracing::error!("RPS: Invalid player count: {}", players.len());
             return vec![GameResult::RuntimeError; players.len()];
@@ -55,7 +55,7 @@ impl Game for RockPaperScissors {
         tracing::info!("RPS: Game will have {} rounds", rounds);
 
         // Initialize game state
-        {
+        let player_ids: Vec<String> = {
             let mut state = self.state.lock().unwrap();
             state.game_started = true;
             state.current_round = 0;
@@ -65,7 +65,11 @@ impl Game for RockPaperScissors {
             state.round_history.clear();
             state.player_ids = players.iter().map(|p| p.player_id().to_string()).collect();
             tracing::debug!("RPS: Initialized game state - players: {:?}", state.player_ids);
-        }
+            state.player_ids.clone()
+        };
+
+        // Write game initialization to history
+        game_context.write_event(&format!("GAME_INIT {} {} {}", player_ids[0], player_ids[1], rounds)).await;
 
         // Send start messages
         tracing::debug!("RPS: Sending START messages to both players");
@@ -153,6 +157,9 @@ impl Game for RockPaperScissors {
                 state.round_history.push([moves[0], moves[1]]);
             }
 
+            // Write round result to history
+            game_context.write_event(&format!("ROUND_RESULT {} {} {}", round, moves[0], moves[1])).await;
+
             let scores = {
                 let state = self.state.lock().unwrap();
                 state.scores
@@ -173,6 +180,9 @@ impl Game for RockPaperScissors {
             tracing::info!("RPS: Game finished, final scores: {:?}", state.scores);
             state.scores
         };
+
+        // Write game end to history
+        game_context.write_event(&format!("GAME_END {} {}", final_scores[0], final_scores[1])).await;
 
         // Send final results
         tracing::debug!("RPS: Sending final scores to players");
@@ -195,15 +205,11 @@ impl Game for RockPaperScissors {
         final_msg
     }
 
-    fn game_id(&self) -> &'static str {
-        "rock-paper-scissors"
-    }
-
     fn max_players(&self) -> usize {
         2
     }
 
-    fn get_reconnect_state(&self, _player_id: &str) -> Vec<String> {
+    fn get_event_source(&self, _player_id: &str) -> Vec<String> {
         let state = self.state.lock().unwrap();
 
         if !state.game_started {
@@ -252,5 +258,69 @@ impl Game for RockPaperScissors {
         }
 
         messages
+    }
+
+    fn restore_from_events(&self, events: &[String]) {
+        let mut state = self.state.lock().unwrap();
+
+        // Reset state
+        state.game_started = false;
+        state.current_round = 0;
+        state.total_rounds = 0;
+        state.scores = [0, 0];
+        state.game_finished = false;
+        state.round_history.clear();
+        state.player_ids.clear();
+
+        for event in events {
+            let parts: Vec<&str> = event.trim().split_whitespace().collect();
+            if parts.is_empty() {
+                continue;
+            }
+
+            match parts[0] {
+                "GAME_INIT" if parts.len() >= 4 => {
+                    state.player_ids = vec![parts[1].to_string(), parts[2].to_string()];
+                    if let Ok(total_rounds) = parts[3].parse::<u32>() {
+                        state.total_rounds = total_rounds;
+                    }
+                    state.game_started = true;
+                }
+                "ROUND_RESULT" if parts.len() >= 4 => {
+                    if let (Ok(round_num), Ok(move0), Ok(move1)) = (
+                        parts[1].parse::<u32>(),
+                        parts[2].parse::<u8>(),
+                        parts[3].parse::<u8>(),
+                    ) {
+                        state.current_round = round_num;
+                        state.round_history.push([move0, move1]);
+
+                        // Recalculate scores from round history
+                        state.scores = [0, 0];
+                        let history_clone = state.round_history.clone();
+                        for moves in &history_clone {
+                            let winner = match (moves[0], moves[1]) {
+                                (a, b) if a == b => None,
+                                (0, 2) | (1, 0) | (2, 1) => Some(0),
+                                _ => Some(1),
+                            };
+                            if let Some(w) = winner {
+                                state.scores[w as usize] += 1;
+                            }
+                        }
+                    }
+                }
+                "GAME_END" if parts.len() >= 3 => {
+                    if let (Ok(score0), Ok(score1)) = (
+                        parts[1].parse::<i32>(),
+                        parts[2].parse::<i32>(),
+                    ) {
+                        state.scores = [score0, score1];
+                        state.game_finished = true;
+                    }
+                }
+                _ => {}
+            }
+        }
     }
 }

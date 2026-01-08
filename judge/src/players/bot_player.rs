@@ -8,6 +8,7 @@ use tokio::fs::File as TokioFile;
 use std::path::Path;
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use surrealdb::sql::Thing;
 
 use crate::players::Player;
 use crate::sandbox::executor::{spawn_sandboxed, fd_to_file};
@@ -15,7 +16,7 @@ use crate::sandbox::cgroup::CgroupHandle;
 
 /// BotPlayer runs player code in an isolated sandbox using Linux primitives
 pub struct BotPlayer {
-    id: String,
+    id: Thing,
     pid: Option<Pid>,
     stdin: Arc<Mutex<TokioFile>>,
     stdout: Arc<Mutex<BufReader<TokioFile>>>,
@@ -24,13 +25,13 @@ pub struct BotPlayer {
 }
 
 impl BotPlayer {
-    pub async fn new(player_id: String, binary_path: &str) -> Result<Self> {
+    pub async fn new(player_id: Thing, binary_path: &str) -> Result<Self> {
         // Spawn the sandboxed process
         let process = tokio::task::spawn_blocking({
             let binary_path = binary_path.to_string();
-            let player_id = player_id.clone();
+            let player_id_str = player_id.to_string();
             move || {
-                spawn_sandboxed(&player_id, Path::new(&binary_path))
+                spawn_sandboxed(&player_id_str, Path::new(&binary_path))
             }
         })
         .await
@@ -108,7 +109,7 @@ impl Player for BotPlayer {
         Ok(message)
     }
 
-    fn player_id(&self) -> &str {
+    fn player_id(&self) -> &Thing {
         &self.id
     }
 

@@ -1,11 +1,12 @@
 # Judge WebSocket Ingress - Handles WebSocket connections with sticky sessions
 # HTTPS/WSS with automatic TLS certificates
 # Requires: A domain name pointing to the NGINX Ingress LoadBalancer
-# Access: wss://judge.${DOMAIN_NAME}/ws/{game_id}/{room_id}/{player_id}
+# Access: wss://judge.${DOMAIN_NAME}/ws/{game_id}/{room_id}
 #
 # Routing Strategy:
 # - WebSocket connections are routed by room_id for sticky sessions
 # - All players in same room connect to same Judge instance
+# - room_id is extracted from URL path and used for consistent hashing
 #
 # Deploy with:
 #   export DOMAIN_NAME="yourdomain.com"
@@ -23,8 +24,7 @@ metadata:
     nginx.ingress.kubernetes.io/websocket-services: "judge"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "86400"  # 24 hours
     nginx.ingress.kubernetes.io/proxy-send-timeout: "86400"  # 24 hours
-    # Sticky sessions by room_id
-    # room_id is extracted globally in ingress-nginx-values.yaml http-snippet
+    # Sticky sessions by room_id (configured globally in ingress-nginx-values.yaml)
     nginx.ingress.kubernetes.io/upstream-hash-by: "$room_id"
 spec:
   ingressClassName: nginx

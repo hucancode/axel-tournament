@@ -1,5 +1,5 @@
 locals {
-  ecr_repos = ["web", "api", "healer", "judge"]
+  ecr_repos = ["web", "api", "judge"]
 }
 
 resource "aws_ecr_repository" "repos" {

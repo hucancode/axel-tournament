@@ -69,7 +69,7 @@ module "eks" {
   }
 
   eks_managed_node_groups = {
-    # Node group for frontend, API server, and healer (balanced/lightweight workloads)
+    # Node group for frontend and API server (balanced/lightweight workloads)
     app = {
       name           = "app"
       instance_types = [var.app_instance_type]

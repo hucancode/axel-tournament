@@ -11,6 +11,8 @@ pub struct Match {
     pub participants: Vec<MatchParticipant>,
     pub metadata: Option<serde_json::Value>, // For game-specific replay data or logs
     pub room_id: Option<Thing>, // For interactive matches
+    pub game_event_source: Option<String>, // Game state history for reconnection
+    pub judge_server_name: Option<String>, // Which judge server claimed this match
     pub created_at: Datetime,
     pub updated_at: Datetime,
     pub started_at: Option<Datetime>,
@@ -26,6 +28,8 @@ pub struct MatchResponse {
     pub participants: Vec<MatchParticipantResponse>,
     pub metadata: Option<serde_json::Value>,
     pub room_id: Option<String>,
+    pub game_event_source: Option<String>,
+    pub judge_server_name: Option<String>,
     pub created_at: Datetime,
     pub updated_at: Datetime,
     pub started_at: Option<Datetime>,
@@ -42,6 +46,8 @@ impl From<Match> for MatchResponse {
             participants: match_data.participants.into_iter().map(Into::into).collect(),
             metadata: match_data.metadata,
             room_id: match_data.room_id.map(|t| t.to_string()),
+            game_event_source: match_data.game_event_source,
+            judge_server_name: match_data.judge_server_name,
             created_at: match_data.created_at,
             updated_at: match_data.updated_at,
             started_at: match_data.started_at,

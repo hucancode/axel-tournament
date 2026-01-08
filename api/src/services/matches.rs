@@ -53,6 +53,8 @@ pub async fn create_match(
         participants,
         metadata: None,
         room_id: None,
+        game_event_source: None,
+        judge_server_name: None,
         created_at: Datetime::default(),
         updated_at: Datetime::default(),
         started_at: None,

@@ -22,8 +22,8 @@ controller:
 
   # Enable session affinity (sticky sessions) support
   config:
-    # Use consistent hashing for sticky sessions
-    upstream-hash-by: "$request_uri"
+    # Use consistent hashing for sticky sessions based on room_id
+    upstream-hash-by: "$room_id"
     # WebSocket timeout (24 hours for long-lived room connections)
     proxy-read-timeout: "86400"
     proxy-send-timeout: "86400"
@@ -31,9 +31,13 @@ controller:
     http-snippet: |
       # Extract room_id from various URL patterns for sticky sessions
       map $request_uri $room_id {
-        ~^/api/rooms/([^/?\s]+)     $1;
-        ~^/ws/[^/]+/([^/]+)/        $1;
-        default                     "";
+        # WebSocket connections: /ws/{game_id}/{room_id}
+        ~^/ws/[^/]+/([^/?\s]+)              $1;
+        # Room API endpoints: /api/rooms/{room_id}
+        ~^/api/rooms/([^/?\s]+)             $1;
+        # Join room: /api/rooms/{room_id}/join
+        ~^/api/rooms/([^/?\s]+)/join        $1;
+        default                             "";
       }
 
   # Metrics

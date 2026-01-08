@@ -65,6 +65,10 @@ spec:
               value: "/artifacts"
             - name: FRONTEND_URL
               value: "${FRONTEND_URL}"
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
           securityContext:
             capabilities:
               add:

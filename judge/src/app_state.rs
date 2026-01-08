@@ -6,7 +6,6 @@ use crate::games::Game;
 use crate::room::RoomManager;
 
 pub struct AppState<G: Game> {
-    #[allow(dead_code)]
     pub db: Database,
     pub game: G,
     pub capacity: CapacityTracker,

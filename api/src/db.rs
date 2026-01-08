@@ -128,8 +128,10 @@ pub async fn init_schema(db: &Database) -> Result<(), surrealdb::Error> {
          DEFINE FIELD IF NOT EXISTS max_players ON room TYPE number;
          DEFINE FIELD IF NOT EXISTS status ON room TYPE string;
          DEFINE FIELD IF NOT EXISTS players ON room TYPE array<record<user>>;
+         DEFINE FIELD IF NOT EXISTS human_timeout_ms ON room TYPE option<number>;
          DEFINE FIELD IF NOT EXISTS created_at ON room TYPE datetime;
          DEFINE FIELD IF NOT EXISTS updated_at ON room TYPE datetime;
+         DEFINE FIELD IF NOT EXISTS event_history ON room TYPE array<string>;
          DEFINE INDEX IF NOT EXISTS idx_room_game ON room COLUMNS game_id;
          DEFINE INDEX IF NOT EXISTS idx_room_status ON room COLUMNS status;",
     )
@@ -148,6 +150,8 @@ pub async fn init_schema(db: &Database) -> Result<(), surrealdb::Error> {
          }>;
          DEFINE FIELD IF NOT EXISTS metadata ON match TYPE option<object>;
          DEFINE FIELD IF NOT EXISTS error_message ON match TYPE option<string>;
+         DEFINE FIELD IF NOT EXISTS game_event_source ON match TYPE option<string>;
+         DEFINE FIELD IF NOT EXISTS judge_server_name ON match TYPE option<string>;
          DEFINE FIELD IF NOT EXISTS created_at ON match TYPE datetime;
          DEFINE FIELD IF NOT EXISTS updated_at ON match TYPE datetime;
          DEFINE FIELD IF NOT EXISTS started_at ON match TYPE option<datetime>;

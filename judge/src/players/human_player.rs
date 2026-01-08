@@ -8,20 +8,33 @@ use tokio::sync::Mutex;
 use tokio::time::{timeout, Duration};
 
 use crate::players::Player;
+use surrealdb::sql::Thing;
 
 /// HumanPlayer forwards messages from WebSocket to GameLogic and vice versa
 /// Forwards messages from GameLogic to WebSocket, forwards messages from WebSocket to GameLogic
 pub struct HumanPlayer {
-    player_id: String,
+    player_id: Thing,
     sender: Arc<Mutex<SplitSink<WebSocket, Message>>>,
     move_receiver: Arc<Mutex<tokio::sync::mpsc::UnboundedReceiver<String>>>,
     is_connected: Arc<Mutex<bool>>,
     timeout_ms: Arc<Mutex<u64>>,
 }
 
+impl Clone for HumanPlayer {
+    fn clone(&self) -> Self {
+        Self {
+            player_id: self.player_id.clone(),
+            sender: Arc::clone(&self.sender),
+            move_receiver: Arc::clone(&self.move_receiver),
+            is_connected: Arc::clone(&self.is_connected),
+            timeout_ms: Arc::clone(&self.timeout_ms),
+        }
+    }
+}
+
 impl HumanPlayer {
     pub fn new(
-        player_id: String,
+        player_id: Thing,
         sender: SplitSink<WebSocket, Message>,
         move_receiver: tokio::sync::mpsc::UnboundedReceiver<String>,
     ) -> Self {
@@ -41,7 +54,7 @@ impl HumanPlayer {
 
 #[async_trait]
 impl Player for HumanPlayer {
-    fn player_id(&self) -> &str {
+    fn player_id(&self) -> &Thing {
         &self.player_id
     }
 
@@ -117,7 +130,7 @@ impl Player for HumanPlayer {
 // Implement Player for Arc<HumanPlayer> to allow using Arc<HumanPlayer> as Player
 #[async_trait]
 impl Player for Arc<HumanPlayer> {
-    fn player_id(&self) -> &str {
+    fn player_id(&self) -> &Thing {
         self.as_ref().player_id()
     }
 

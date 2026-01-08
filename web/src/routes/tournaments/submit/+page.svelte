@@ -19,7 +19,7 @@
     let error = $state("");
     let isParticipant = $state(false);
     let validationErrors = $state<{ language?: string; code?: string }>({});
-    const tournamentId = $derived(page.params.id!);
+    const tournamentId = $derived(page.url.searchParams.get('id') || '');
     const auth = $derived($authStore);
     onMount(async () => {
         // Redirect if not authenticated
@@ -88,7 +88,7 @@
                 code,
             });
             // Redirect to tournament page on success
-            goto(`/tournaments/${tournamentId}`);
+            goto(`/tournaments/tournament?id=${tournamentId}`);
         } catch (err) {
             error =
                 err instanceof Error ? err.message : "Failed to submit code";
@@ -124,7 +124,7 @@
                 >
                     You must join this tournament before submitting code.
                     <a
-                        href="/tournaments/{tournamentId}"
+                        href="/tournaments/tournament?id={tournamentId}"
                         class="ml-1 text-primary-600"
                     >
                         Go back
@@ -174,7 +174,7 @@
                         disabled={loading || !isParticipant}
                     />
                     <LinkButton
-                        href="/tournaments/{tournamentId}"
+                        href="/tournaments/tournament?id={tournamentId}"
                         variant="secondary"
                         label="Cancel"
                     />

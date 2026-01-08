@@ -22,10 +22,6 @@ output "ecr_api_repository" {
   value = try(aws_ecr_repository.repos["api"].repository_url, "")
 }
 
-output "ecr_healer_repository" {
-  value = try(aws_ecr_repository.repos["healer"].repository_url, "")
-}
-
 output "ecr_judge_repository" {
   value = try(aws_ecr_repository.repos["judge"].repository_url, "")
 }

@@ -1,3 +1,5 @@
+mod common;
+
 use anyhow::Result;
 use async_trait::async_trait;
 use judge::players::Player;
@@ -10,14 +12,14 @@ use tokio::sync::Mutex;
 // Mock player for testing
 #[derive(Clone)]
 struct MockPlayer {
-    id: String,
+    id: surrealdb::sql::Thing,
     moves: Arc<Mutex<Vec<String>>>,
 }
 
 impl MockPlayer {
     fn new(id: &str, moves: Vec<&str>) -> Self {
         Self {
-            id: id.to_string(),
+            id: format!("user:{}", id).parse().unwrap(),
             moves: Arc::new(Mutex::new(moves.iter().map(|s| s.to_string()).collect())),
         }
     }
@@ -37,7 +39,7 @@ impl Player for MockPlayer {
         Ok(moves.remove(0))
     }
 
-    fn player_id(&self) -> &str {
+    fn player_id(&self) -> &surrealdb::sql::Thing {
         &self.id
     }
 
@@ -59,7 +61,8 @@ async fn test_rock_paper_scissors_basic() {
     let players: Vec<Box<dyn Player>> = vec![Box::new(player1), Box::new(player2)];
 
     let game = RockPaperScissors::new();
-    let results = game.run(players, 5000).await;
+    let game_context = common::setup_test_game_context().await;
+    let results = game.run(players, 5000, game_context).await;
 
     // Check that we got results for both players
     assert_eq!(results.len(), 2);
@@ -72,7 +75,8 @@ async fn test_tic_tac_toe_win() {
     let players: Vec<Box<dyn Player>> = vec![Box::new(player1), Box::new(player2)];
 
     let game = TicTacToe::new();
-    let results = game.run(players, 5000).await;
+    let game_context = common::setup_test_game_context().await;
+    let results = game.run(players, 5000, game_context).await;
 
     // Check that we got results for both players
     assert_eq!(results.len(), 2);
@@ -87,7 +91,8 @@ async fn test_prisoners_dilemma_scoring() {
     let players: Vec<Box<dyn Player>> = vec![Box::new(player1), Box::new(player2)];
 
     let game = PrisonersDilemma::new();
-    let results = game.run(players, 5000).await;
+    let game_context = common::setup_test_game_context().await;
+    let results = game.run(players, 5000, game_context).await;
 
     // Check that we got results for both players
     assert_eq!(results.len(), 2);
@@ -115,7 +120,8 @@ async fn test_invalid_move_handling() {
     let players: Vec<Box<dyn Player>> = vec![Box::new(player1), Box::new(player2)];
 
     let game = RockPaperScissors::new();
-    let results = game.run(players, 5000).await;
+    let game_context = common::setup_test_game_context().await;
+    let results = game.run(players, 5000, game_context).await;
 
     // Should handle invalid moves gracefully
     assert_eq!(results.len(), 2);
@@ -128,7 +134,8 @@ async fn test_player_timeout_simulation() {
     let players: Vec<Box<dyn Player>> = vec![Box::new(player1), Box::new(player2)];
 
     let game = RockPaperScissors::new();
-    let results = game.run(players, 5000).await;
+    let game_context = common::setup_test_game_context().await;
+    let results = game.run(players, 5000, game_context).await;
 
     // Should handle timeout gracefully
     assert_eq!(results.len(), 2);

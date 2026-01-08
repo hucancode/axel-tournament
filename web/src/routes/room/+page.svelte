@@ -10,7 +10,7 @@
   import Alert from '$lib/components/Alert.svelte';
   import type { Room, Game } from '$lib/types';
 
-  const roomId = page.params.id!;
+  const roomId = $derived(page.url.searchParams.get('id') || '');
   let room = $state<Room | null>(null);
   let game = $state<Game | null>(null);
   let loading = $state(true);

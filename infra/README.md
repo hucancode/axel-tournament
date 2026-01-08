@@ -6,9 +6,8 @@ The platform consists of the following components:
 
 ### Core Services
 - **Frontend**: SvelteKit web application (namespace: `frontend`)
-- **Backend API**: Rust/Axum API server (namespace: `backend`)
+- **Backend API**: Rust/Axum API server with integrated background healer service for cleaning up stale matches (namespace: `backend`)
 - **SurrealDB**: Database for storing users, tournaments, submissions, matches (namespace: `db`)
-- **Healer**: Background service for cleaning up stale matches (namespace: `healer`)
 
 ### Judge Server (Unified Game Server)
 The Judge server runs in the `backend` namespace and provides:
@@ -19,10 +18,13 @@ The Judge server runs in the `backend` namespace and provides:
 - Reports results to Backend API
 
 **Interactive Rooms (Human vs Human):**
-- HTTP API for room management (`/api/rooms`)
-- WebSocket connections for real-time gameplay (`/ws/{game}/{room}/{player}`)
-- Sticky sessions ensure all players in same room connect to same pod
-- Support for reconnection with full game state replay
+- HTTP API for room management (`/api/rooms` - create, list, get, join)
+- WebSocket connections for real-time gameplay (`/ws/{game_id}/{room_id}`)
+- Leave and start operations via WebSocket messages (`LEAVE`, `START`)
+- **Sticky sessions** ensure all players in same room connect to same judge pod
+- Room data persisted in SurrealDB with on-demand in-memory creation
+- Support for reconnection with full game state replay from match history
+- Automatic room cleanup via healer service
 
 **Games Supported:**
 - Tic Tac Toe
@@ -33,6 +35,33 @@ The Judge server runs in the `backend` namespace and provides:
 - Auto-scales from 2 to 8 replicas based on CPU
 - Handles 100 concurrent rooms per pod
 - 24-hour WebSocket timeout for long games
+
+### Sticky Sessions Architecture
+
+The judge servers implement sticky sessions to ensure all players in the same room connect to the same pod:
+
+**How it works:**
+1. **Room ID Extraction**: NGINX ingress extracts `room_id` from URL paths:
+   - `/ws/{game_id}/{room_id}` → room_id used for hashing
+   - `/api/rooms/{room_id}/*` → room_id used for hashing
+
+2. **Consistent Hashing**: NGINX uses `upstream-hash-by: "$room_id"` to route requests
+
+3. **On-Demand Room Creation**: 
+   - First player connection to a room triggers in-memory room creation
+   - Room data loaded from SurrealDB if not in memory
+   - Subsequent players with same room_id route to same pod
+
+4. **State Persistence**:
+   - Room metadata stored in SurrealDB
+   - Game state history stored in match records
+   - Automatic cleanup of stale rooms (30+ minutes inactive)
+
+**Benefits:**
+- Players in same room always connect to same judge instance
+- Game state maintained in memory for performance
+- Automatic failover and state restoration on reconnection
+- Horizontal scaling while maintaining room consistency
 
 > **Note:** For detailed room management architecture, see [CHANGES.md](./CHANGES.md) and [ROOM_MANAGEMENT_DEPLOYMENT.md](./ROOM_MANAGEMENT_DEPLOYMENT.md)
 
@@ -94,7 +123,6 @@ This will:
 - Build and push all application images to ECR:
   - Frontend (web)
   - Backend API
-  - Healer
   - Judge servers
 - Deploy all Kubernetes resources
 - Configure ingress with TLS certificates
@@ -114,6 +142,12 @@ Get your application URLs:
 
 ```bash
 make url
+```
+
+Test sticky sessions are working:
+
+```bash
+make test-sticky-sessions
 ```
 
 ### 5. Update Google OAuth Configuration
@@ -162,9 +196,6 @@ kubectl logs -f deployment/backend -n backend
 # Judge server logs (with Docker-in-Docker sidecar)
 kubectl logs -f deployment/judge -n backend -c judge
 kubectl logs -f deployment/judge -n backend -c dockerd
-
-# Healer logs
-kubectl logs -f deployment/healer -n healer
 ```
 
 ### Update Secrets
@@ -195,6 +226,21 @@ make aws-down
 ```
 
 ### Useful Debug Informations
+
+**Sticky Sessions Debugging:**
+```bash
+# Test sticky sessions
+make test-sticky-sessions
+
+# Check NGINX ingress configuration
+kubectl get configmap ingress-nginx-controller -n ingress-nginx -o yaml
+
+# View NGINX access logs to verify room_id routing
+kubectl logs -f deployment/ingress-nginx-controller -n ingress-nginx
+
+# Check judge pod distribution
+kubectl get pods -n backend -o wide
+```
 
 Download staging certificates for HTTPS testing locally
 ```bash

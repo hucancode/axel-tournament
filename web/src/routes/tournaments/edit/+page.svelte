@@ -8,7 +8,7 @@
     import { Button, LinkButton, LoadingCard } from "$lib/components";
     import type { Tournament, Game, UpdateTournamentRequest, TournamentStatus } from "$lib/types";
 
-    let tournamentId = page.params.id!;
+    let tournamentId = $derived(page.url.searchParams.get('id') || '');
     let tournament = $state<Tournament | null>(null);
     let games = $state<Game[]>([]);
     let loading = $state(true);
@@ -84,7 +84,7 @@
 
         try {
             await tournamentService.update(tournamentId, formData);
-            goto(`/tournaments/${tournamentId}`);
+            goto(`/tournaments/tournament?id=${tournamentId}`);
         } catch (err) {
             formError = err instanceof Error ? err.message : "Failed to update tournament";
         } finally {
@@ -97,7 +97,7 @@
         formError = "";
         try {
             await tournamentService.start(tournamentId);
-            goto(`/tournaments/${tournamentId}`);
+            goto(`/tournaments/tournament?id=${tournamentId}`);
         } catch (err) {
             formError = err instanceof Error ? err.message : "Failed to start tournament";
         } finally {
@@ -113,7 +113,7 @@
                 <h1 class="page-title">Edit Tournament</h1>
                 <p class="text-gray-500">Update tournament settings</p>
             </div>
-            <LinkButton variant="secondary" href="/tournaments/{tournamentId}" label="Back to Tournament" />
+            <LinkButton variant="secondary" href="/tournaments/tournament?id={tournamentId}" label="Back to Tournament" />
         </div>
     </div>
 
@@ -211,7 +211,7 @@
                     />
                 {/if}
                 <LinkButton
-                    href="/tournaments/{tournamentId}"
+                    href="/tournaments/tournament?id={tournamentId}"
                     variant="secondary"
                     label="Cancel"
                 />

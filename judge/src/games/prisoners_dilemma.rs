@@ -34,7 +34,7 @@ impl Game for PrisonersDilemma {
         }
     }
 
-    async fn run(&self, mut players: Vec<Box<dyn Player>>, timeout_ms: u64) -> Vec<GameResult> {
+    async fn run(&self, mut players: Vec<Box<dyn Player>>, timeout_ms: u64, game_context: crate::room::GameContext) -> Vec<GameResult> {
         const ROUNDS: u32 = 10;
         const ROUND_VAR: u32 = 3;
 
@@ -50,7 +50,7 @@ impl Game for PrisonersDilemma {
         let rounds = rand::rng().random_range((ROUNDS - ROUND_VAR)..=(ROUNDS + ROUND_VAR));
 
         // Initialize game state
-        {
+        let player_ids: Vec<String> = {
             let mut state = self.state.lock().unwrap();
             state.game_started = true;
             state.current_round = 0;
@@ -59,7 +59,11 @@ impl Game for PrisonersDilemma {
             state.game_finished = false;
             state.round_history.clear();
             state.player_ids = players.iter().map(|p| p.player_id().to_string()).collect();
-        }
+            state.player_ids.clone()
+        };
+
+        // Write game initialization to history
+        game_context.write_event(&format!("GAME_INIT {} {} {}", player_ids[0], player_ids[1], rounds)).await;
 
         // Send start messages
         let _ = players[0].send_message("START").await;
@@ -126,6 +130,9 @@ impl Game for PrisonersDilemma {
                 state.round_history.push([moves[0], moves[1]]);
             }
 
+            // Write round result to history
+            game_context.write_event(&format!("ROUND_RESULT {} {} {}", round, moves[0], moves[1])).await;
+
             let scores = {
                 let state = self.state.lock().unwrap();
                 state.scores
@@ -149,6 +156,9 @@ impl Game for PrisonersDilemma {
             state.scores
         };
 
+        // Write game end to history
+        game_context.write_event(&format!("GAME_END {} {}", final_scores[0], final_scores[1])).await;
+
         // Send final results
         let _ = players[0].send_message(&format!("SCORE {}", final_scores[0])).await;
         let _ = players[1].send_message(&format!("SCORE {}", final_scores[1])).await;
@@ -162,15 +172,11 @@ impl Game for PrisonersDilemma {
         final_msg
     }
 
-    fn game_id(&self) -> &'static str {
-        "prisoners-dilemma"
-    }
-
     fn max_players(&self) -> usize {
         2
     }
 
-    fn get_reconnect_state(&self, player_id: &str) -> Vec<String> {
+    fn get_event_source(&self, player_id: &str) -> Vec<String> {
         let state = self.state.lock().unwrap();
 
         if !state.game_started {
@@ -217,5 +223,70 @@ impl Game for PrisonersDilemma {
         }
 
         messages
+    }
+
+    fn restore_from_events(&self, events: &[String]) {
+        let mut state = self.state.lock().unwrap();
+
+        // Reset state
+        state.game_started = false;
+        state.current_round = 0;
+        state.total_rounds = 0;
+        state.scores = [0, 0];
+        state.game_finished = false;
+        state.round_history.clear();
+        state.player_ids.clear();
+
+        for event in events {
+            let parts: Vec<&str> = event.trim().split_whitespace().collect();
+            if parts.is_empty() {
+                continue;
+            }
+
+            match parts[0] {
+                "GAME_INIT" if parts.len() >= 4 => {
+                    state.player_ids = vec![parts[1].to_string(), parts[2].to_string()];
+                    if let Ok(total_rounds) = parts[3].parse::<u32>() {
+                        state.total_rounds = total_rounds;
+                    }
+                    state.game_started = true;
+                }
+                "ROUND_RESULT" if parts.len() >= 4 => {
+                    if let (Ok(round_num), Ok(move0), Ok(move1)) = (
+                        parts[1].parse::<u32>(),
+                        parts[2].parse::<u8>(),
+                        parts[3].parse::<u8>(),
+                    ) {
+                        state.current_round = round_num;
+                        state.round_history.push([move0, move1]);
+
+                        // Recalculate scores from round history
+                        state.scores = [0, 0];
+                        let history_clone = state.round_history.clone();
+                        for moves in &history_clone {
+                            let (score0, score1) = match (moves[0], moves[1]) {
+                                (0, 0) => (3, 3),
+                                (0, 1) => (0, 5),
+                                (1, 0) => (5, 0),
+                                (1, 1) => (1, 1),
+                                _ => (0, 0),
+                            };
+                            state.scores[0] += score0;
+                            state.scores[1] += score1;
+                        }
+                    }
+                }
+                "GAME_END" if parts.len() >= 3 => {
+                    if let (Ok(score0), Ok(score1)) = (
+                        parts[1].parse::<i32>(),
+                        parts[2].parse::<i32>(),
+                    ) {
+                        state.scores = [score0, score1];
+                        state.game_finished = true;
+                    }
+                }
+                _ => {}
+            }
+        }
     }
 }

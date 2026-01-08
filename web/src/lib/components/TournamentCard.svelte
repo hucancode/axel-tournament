@@ -12,7 +12,7 @@
     href?: string;
     class?: string;
   }>();
-  let link = $derived(href ?? `/tournaments/${tournament.id}`);
+  let link = $derived(href ?? `/tournaments/tournament?id=${tournament.id}`);
 </script>
 
 <a href={link} class={`block border border-gray-800 p-6 bg-hatch no-underline transition-all duration-150 hover:border-border-strong ${className}`}>

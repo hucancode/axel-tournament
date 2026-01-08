@@ -1,5 +1,6 @@
 use anyhow::Result;
 use async_trait::async_trait;
+use surrealdb::sql::Thing;
 
 /// Player trait - interface to communicate between server and client
 /// Abstracts where player inputs come from and where outputs go to
@@ -12,7 +13,7 @@ pub trait Player: Send + Sync {
     async fn receive_message(&self) -> Result<String>;
 
     /// Get player identifier for logging
-    fn player_id(&self) -> &str;
+    fn player_id(&self) -> &Thing;
 
     /// Check if player is still connected/alive
     async fn is_alive(&self) -> bool;

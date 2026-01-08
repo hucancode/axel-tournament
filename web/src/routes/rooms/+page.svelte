@@ -62,7 +62,7 @@
             const newRoom = await roomService.create(request);
             await loadData();
             closeCreateModal();
-            goto(`/rooms/${newRoom.id}`);
+            goto(`/room?id=${newRoom.id}`);
         } catch (err) {
             error = err instanceof Error ? err.message : "";
             console.error("Failed to create room:", err);
@@ -72,25 +72,25 @@
     async function joinRoom(roomId: string) {
         try {
             error = null;
-            
+
             // Find the room to check if user is already in it
             const room = rooms.find(r => r.id === roomId);
             const currentUser = authState.user;
-            
+
             if (room && currentUser) {
                 // Check if user is already in the room (as host or player)
                 const isAlreadyInRoom = room.host_id === currentUser.id || room.players.includes(currentUser.id);
-                
+
                 if (isAlreadyInRoom) {
                     // User is already in room, navigate directly
-                    goto(`/rooms/${roomId}`);
+                    goto(`/room?id=${roomId}`);
                     return;
                 }
             }
-            
+
             // User is not in room, call join API
             await roomService.join(roomId);
-            goto(`/rooms/${roomId}`);
+            goto(`/room?id=${roomId}`);
         } catch (err) {
             error = err instanceof Error ? err.message : "Failed to join room";
             console.error("Failed to join room:", err);

@@ -13,7 +13,7 @@ mod sandbox;
 use anyhow::Result;
 use axum::{
     http::{Method, header},
-    routing::{delete, get, post},
+    routing::{get, post},
     Router,
 };
 use std::sync::Arc;
@@ -91,7 +91,12 @@ async fn main() -> Result<()> {
     });
 
     // Create a shared RoomManager for all game types
-    let shared_room_manager = Arc::new(RoomManager::new());
+    let shared_room_manager = Arc::new(RoomManager::new(db.clone()));
+
+    // Recover orphaned rooms from previous server crashes
+    if let Err(e) = shared_room_manager.recover_orphaned_rooms().await {
+        tracing::error!("Failed to recover orphaned rooms: {}", e);
+    }
 
     // Create app state for each game type (sharing the same RoomManager)
     let tic_tac_toe_state = Arc::new(AppState {
@@ -126,8 +131,6 @@ async fn main() -> Result<()> {
         .route("/api/rooms", get(room::list_rooms::<games::TicTacToe>).post(room::create_room::<games::TicTacToe>))
         .route("/api/rooms/{room_id}", get(room::get_room::<games::TicTacToe>))
         .route("/api/rooms/{room_id}/join", post(room::join_room::<games::TicTacToe>))
-        .route("/api/rooms/{room_id}/leave", delete(room::leave_room::<games::TicTacToe>))
-        .route("/api/rooms/{room_id}/start", post(room::start_game::<games::TicTacToe>))
         .with_state(tic_tac_toe_state.clone())
         // WebSocket endpoints
         .route("/ws/tic-tac-toe/{room_id}", get(room::ws_get_room::<games::TicTacToe>))
@@ -136,11 +139,15 @@ async fn main() -> Result<()> {
         .with_state(rps_state.clone())
         .route("/ws/prisoners-dilemma/{room_id}", get(room::ws_get_room::<games::PrisonersDilemma>))
         .with_state(pd_state.clone())
-        .layer(
+        .layer({
+            let frontend_url = std::env::var("FRONTEND_URL")
+                .unwrap_or_else(|_| "http://localhost:5173".to_string());
+
+            tracing::info!("CORS: Allowing origin: {}", frontend_url);
+
             CorsLayer::new()
                 .allow_origin(
-                    std::env::var("FRONTEND_URL")
-                        .unwrap_or_else(|_| "http://localhost:5173".to_string())
+                    frontend_url
                         .parse::<axum::http::HeaderValue>()
                         .expect("Invalid FRONTEND_URL"),
                 )
@@ -150,13 +157,15 @@ async fn main() -> Result<()> {
                     Method::PUT,
                     Method::PATCH,
                     Method::DELETE,
+                    Method::OPTIONS,
                 ])
                 .allow_headers([
                     header::AUTHORIZATION,
                     header::CONTENT_TYPE,
+                    header::ACCEPT,
                 ])
                 .allow_credentials(true)
-        );
+        });
 
     // Start server
     let addr = format!("{}:{}", config.server_host, config.server_port);

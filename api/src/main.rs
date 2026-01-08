@@ -2,7 +2,7 @@ use axel_tournament::{
     AppState,
     config::Config,
     db, router,
-    services::{AuthService, EmailService},
+    services::{AuthService, EmailService, HealerService},
 };
 use std::sync::Arc;
 
@@ -22,6 +22,13 @@ async fn main() -> anyhow::Result<()> {
     // Create seed admin user if user table is empty
     let admin_password_hash = auth_service.hash_password(&config.admin.password)?;
     db::seed_admin_user(&db, &config.admin.email, admin_password_hash).await?;
+
+    // Start healer service as background task
+    let healer = HealerService::new(db.clone());
+    tokio::spawn(async move {
+        healer.run().await;
+    });
+
     let state = AppState {
         db,
         auth_service,

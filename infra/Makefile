@@ -13,7 +13,6 @@ DEFAULT_EMAIL_FROM := noreply@axel-tournament.com
 # Terraform outputs (cached during make execution)
 TF_ECR_WEB := $(shell terraform output -raw ecr_web_repository 2>/dev/null)
 TF_ECR_API := $(shell terraform output -raw ecr_api_repository 2>/dev/null)
-TF_ECR_HEALER := $(shell terraform output -raw ecr_healer_repository 2>/dev/null)
 TF_ECR_JUDGE := $(shell terraform output -raw ecr_judge_repository 2>/dev/null)
 TF_SES_SMTP_HOST := $(shell terraform output -raw ses_smtp_host 2>/dev/null)
 TF_SES_SMTP_USERNAME := $(shell terraform output -raw ses_smtp_username 2>/dev/null)
@@ -26,7 +25,6 @@ TF_ROUTE53_ZONE_ID := $(shell terraform output -raw route53_zone_id 2>/dev/null)
 # Computed variables
 FRONTEND_IMAGE := $(TF_ECR_WEB):latest
 BACKEND_IMAGE := $(TF_ECR_API):latest
-HEALER_IMAGE := $(TF_ECR_HEALER):latest
 JUDGE_IMAGE := $(TF_ECR_JUDGE):latest
 SMTP_HOST := $(TF_SES_SMTP_HOST)
 SMTP_USERNAME := $(TF_SES_SMTP_USERNAME)
@@ -90,7 +88,6 @@ aws-up:
 k8s-up: push-images
 	@test -n "$(FRONTEND_IMAGE)" || (echo "FRONTEND_IMAGE is required" && exit 1)
 	@test -n "$(BACKEND_IMAGE)" || (echo "BACKEND_IMAGE is required" && exit 1)
-	@test -n "$(HEALER_IMAGE)" || (echo "HEALER_IMAGE is required" && exit 1)
 	@test -n "$(JUDGE_IMAGE)" || (echo "JUDGE_IMAGE is required" && exit 1)
 	@test -n "$(GOOGLE_CLIENT_ID)" || (echo "GOOGLE_CLIENT_ID is required in .env" && exit 1)
 	@test -n "$(GOOGLE_CLIENT_SECRET)" || (echo "GOOGLE_CLIENT_SECRET is required in .env" && exit 1)
@@ -112,7 +109,7 @@ k8s-up: push-images
 	@nlb_zone_id=$$(aws elbv2 describe-load-balancers --query "LoadBalancers[?DNSName=='$$nginx_lb'].CanonicalHostedZoneId" --output text)
 	aws route53 change-resource-record-sets \
 		--hosted-zone-id $(ROUTE53_ZONE_ID) \
-		--change-batch '{"Changes":[{"Action":"UPSERT","ResourceRecordSet":{"Name":"api.$(DOMAIN_NAME)","Type":"CNAME","TTL":300,"ResourceRecords":[{"Value":"'$$nginx_lb'"}]}},{"Action":"UPSERT","ResourceRecordSet":{"Name":"$(DOMAIN_NAME)","Type":"A","AliasTarget":{"HostedZoneId":"'$$nlb_zone_id'","DNSName":"'$$nginx_lb'","EvaluateTargetHealth":false}}}]}'
+		--change-batch '{"Changes":[{"Action":"UPSERT","ResourceRecordSet":{"Name":"api.$(DOMAIN_NAME)","Type":"CNAME","TTL":300,"ResourceRecords":[{"Value":"'$$nginx_lb'"}]}},{"Action":"UPSERT","ResourceRecordSet":{"Name":"judge.$(DOMAIN_NAME)","Type":"CNAME","TTL":300,"ResourceRecords":[{"Value":"'$$nginx_lb'"}]}},{"Action":"UPSERT","ResourceRecordSet":{"Name":"$(DOMAIN_NAME)","Type":"A","AliasTarget":{"HostedZoneId":"'$$nlb_zone_id'","DNSName":"'$$nginx_lb'","EvaluateTargetHealth":false}}}]}'
 	@echo "DNS records created. Waiting 30s for propagation..."
 	@sleep 30
 	@echo "Deploying applications..."
@@ -121,7 +118,6 @@ k8s-up: push-images
 	export GOOGLE_REDIRECT_URI="https://api.$(DOMAIN_NAME)/api/auth/google/callback";
 	@envsubst < k8s/apps/backend.yaml | kubectl apply -f -
 	@envsubst < k8s/apps/judge.yaml | kubectl apply -f -
-	@envsubst < k8s/apps/healer.yaml | kubectl apply -f -
 	@envsubst < k8s/apps/frontend.yaml | kubectl apply -f -
 	@echo "Deploying ingress resources..."
 	@envsubst < k8s/apps/ingress/backend.yaml | kubectl apply -f -
@@ -129,6 +125,7 @@ k8s-up: push-images
 	@envsubst < k8s/apps/ingress/frontend.yaml | kubectl apply -f -
 	@echo "Waiting for TLS certificates to be issued..."
 	@kubectl -n backend wait --for=condition=Ready certificate/backend-tls-cert --timeout=300s
+	@kubectl -n backend wait --for=condition=Ready certificate/judge-tls-cert --timeout=300s
 	@kubectl -n frontend wait --for=condition=Ready certificate/frontend-tls-cert --timeout=300s
 	@echo "TLS certificates issued successfully"
 	@echo "Waiting for backend pods to be ready..."
@@ -173,20 +170,20 @@ url:
 push-images:
 	@test -n "$(TF_ECR_WEB)" || (echo "ECR_WEB_REPO not found. Run 'make aws-up' first." && exit 1)
 	@test -n "$(TF_ECR_API)" || (echo "ECR_API_REPO not found. Run 'make aws-up' first." && exit 1)
-	@test -n "$(TF_ECR_HEALER)" || (echo "ECR_HEALER_REPO not found. Run 'make aws-up' first." && exit 1)
 	@test -n "$(TF_ECR_JUDGE)" || (echo "ECR_JUDGE_REPO not found. Run 'make aws-up' first." && exit 1)
+	@test -n "$(DOMAIN_NAME)" || (echo "DOMAIN_NAME not found" && exit 1)
 	@ECR_REGISTRY=$$(echo "$(TF_ECR_WEB)" | cut -d/ -f1); \
 	echo "Logging in to ECR $$ECR_REGISTRY..."; \
 	aws ecr get-login-password | docker login --username AWS --password-stdin $$ECR_REGISTRY; \
 	echo "Building and pushing frontend image..."; \
-	docker build -t $(FRONTEND_IMAGE) ../web; \
+	docker build \
+		--build-arg PUBLIC_API_URL=https://api.$(DOMAIN_NAME) \
+		--build-arg PUBLIC_JUDGE_URL=https://judge.$(DOMAIN_NAME) \
+		-t $(FRONTEND_IMAGE) ../web; \
 	docker push $(FRONTEND_IMAGE); \
 	echo "Building and pushing backend image..."; \
 	docker build -t $(BACKEND_IMAGE) ../api; \
 	docker push $(BACKEND_IMAGE); \
-	echo "Building and pushing healer image..."; \
-	docker build -t $(HEALER_IMAGE) ../healer; \
-	docker push $(HEALER_IMAGE); \
 	echo "Building and pushing unified judge image..."; \
 	docker build -t $(JUDGE_IMAGE) ../judge; \
 	docker push $(JUDGE_IMAGE); \
@@ -200,7 +197,6 @@ k8s-down:
 	export FRONTEND_URL="placeholder"; \
 	envsubst < k8s/apps/frontend.yaml | kubectl delete -f - --ignore-not-found; \
 	envsubst < k8s/apps/judge.yaml | kubectl delete -f - --ignore-not-found; \
-	envsubst < k8s/apps/healer.yaml | kubectl delete -f - --ignore-not-found; \
 	envsubst < k8s/apps/backend.yaml | kubectl delete -f - --ignore-not-found
 	@envsubst < k8s/apps/ingress/backend.yaml | kubectl delete -f - --ignore-not-found
 	@envsubst < k8s/apps/ingress/judge.yaml | kubectl delete -f - --ignore-not-found

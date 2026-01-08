@@ -13,7 +13,7 @@
         Game,
         Submission,
     } from "$lib/types";
-    const tournamentId = $derived(page.params.id!);
+    const tournamentId = $derived(page.url.searchParams.get('id') || '');
     let tournament = $state<Tournament | null>(null);
     let game = $state<Game | null>(null);
     let participants = $state<TournamentParticipant[]>([]);
@@ -322,7 +322,7 @@
                             </h2>
                             {#if canSubmit()}
                                 <LinkButton
-                                    href="/tournaments/{tournamentId}/submit"
+                                    href="/tournaments/submit?id={tournamentId}"
                                     variant="primary"
                                     label="New Submission"
                                 />
@@ -421,7 +421,7 @@
                             {/if}
                             {#if canSubmit()}
                                 <LinkButton
-                                    href="/tournaments/{tournamentId}/submit"
+                                    href="/tournaments/submit?id={tournamentId}"
                                     variant="primary"
                                     label="Submit Code"
                                 />

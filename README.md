@@ -1,6 +1,6 @@
 # Axel Tournament
 
-A tournament system where users submit code to play a multiplayer game to compete with other players.
+A tournament system where users play multiplayer games to compete with other players.
 
 Tech stack:
 - TypeScript, Svelte, Storybook
@@ -23,11 +23,7 @@ Backend service that powers the platform.
 - Game, tournament, match, and leaderboard management
 - Code submission handling
 - Admin endpoints for moderation
-
-### healer
-Background service to trigger match runner.
-- Refreshes stale pending matches
-- Re-queues stale running matches back to pending
+- Background healer service that refreshes stale pending matches and re-queues stale running matches
 
 ### judge
 Match runner and results reporter.

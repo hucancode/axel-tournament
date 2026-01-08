@@ -66,10 +66,6 @@ const room = await roomService.join(roomId);
 
 // Request: POST /api/rooms/{room_id}/join
 // Headers: Authorization: Bearer <jwt>
-// Body: {
-//   "player_id": "user:def",
-//   "player_username": "Bob"
-// }
 
 // Response: Same as create, with updated players list
 ```
@@ -135,7 +131,7 @@ socket.chat("Good luck!");
 **Player disconnects:**
 ```
 Server detects disconnect
-Server → Remaining: PLAYER_LEFT user:def Bob
+Server → Remaining: PLAYER_LEFT user:def
 Server marks user:def as disconnected (stays in player_ids)
 ```
 
@@ -153,9 +149,9 @@ Server → Player: RECONNECT
 Server → Player: REPLAY_START
 
 // 4. Server replays room history
-Server → Player: PLAYER_JOINED user:abc Alice
+Server → Player: PLAYER_JOINED user:abc
 Server → Player: GAME_STARTED
-Server → Player: CHAT user:abc Alice Hello
+Server → Player: CHAT user:abc Hello
 
 // 5. Server replays game state
 Server → Player: START O
@@ -197,9 +193,9 @@ socket.leave();
 - `LOGIN_OK {player_id} RECONNECT` - Reconnecting (was disconnected)
 - `REPLAY_START` - Start of message replay
 - `REPLAY_END` - End of message replay
-- `PLAYER_JOINED {user_id} {username}` - Player joined
-- `PLAYER_LEFT {user_id} {username}` - Player left
-- `HOST_CHANGED {user_id} {username}` - New host
+- `PLAYER_JOINED {user_id}` - Player joined
+- `PLAYER_LEFT {user_id}` - Player left
+- `HOST_CHANGED {user_id}` - New host
 - `GAME_STARTED` - Game started
 - `GAME_FINISHED {results_json}` - Game finished
 - `CHAT {user_id} {username} {message}` - Chat message
@@ -220,9 +216,9 @@ socket.leave();
 - `finished` - Game completed
 
 ### Player States
-- In `player_ids` + in `players` = Connected
-- In `player_ids` + in `disconnected_players` = Disconnected (can reconnect)
-- Not in `player_ids` = Left permanently
+- In `players` and `websocket_players[i] == Some(HumanPlayer)` = Connected
+- In `players` and `websocket_players[i] == None` = Disconnected temporarily
+- Not in `players` = Left permanently
 
 ## Host Transfer Rules
 

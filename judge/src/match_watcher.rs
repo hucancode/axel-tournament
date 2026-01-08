@@ -206,8 +206,8 @@ where
 
     tracing::info!("Executing match {} with binaries: {:?}", match_id_str, binary_paths);
 
-    let mut player1 = BotPlayer::new("p1".to_string(), &binary_paths[0]).await?;
-    let mut player2 = BotPlayer::new("p2".to_string(), &binary_paths[1]).await?;
+    let mut player1 = BotPlayer::new(Thing::from(("user", "p1")), &binary_paths[0]).await?;
+    let mut player2 = BotPlayer::new(Thing::from(("user", "p2")), &binary_paths[1]).await?;
 
     // Set bot timeouts
     player1.set_timeout(game_metadata.bot_turn_timeout_ms);
@@ -215,8 +215,11 @@ where
 
     let players: Vec<Box<dyn crate::players::Player>> = vec![Box::new(player1), Box::new(player2)];
 
+    // Create GameContext for automated matches
+    let game_context = crate::room::GameContext::new(match_record.id.clone(), db.clone());
+
     // Execute the game
-    let results = game.run(players, game_metadata.bot_turn_timeout_ms).await;
+    let results = game.run(players, game_metadata.bot_turn_timeout_ms, game_context).await;
 
     // Convert GameResult enum to scores
     let score0 = match results[0] {

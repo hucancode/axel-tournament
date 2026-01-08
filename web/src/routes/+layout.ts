@@ -1,6 +1,7 @@
 import { authStore } from "$lib/stores/auth";
 import { browser } from "$app/environment";
 
+export const prerender = true;
 export const ssr = false;
 
 export function load() {
