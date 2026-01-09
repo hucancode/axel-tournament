@@ -67,7 +67,6 @@ aws-up:
 	@helm repo update
 	@helm upgrade --install aws-efs-csi-driver aws-efs-csi-driver/aws-efs-csi-driver \
 		--namespace kube-system \
-		--set image.repository=602401143452.dkr.ecr.$(shell terraform output -raw aws_region 2>/dev/null || echo "us-east-1").amazonaws.com/eks/aws-efs-csi-driver \
 		--wait
 	@echo "Creating EFS storage class..."
 	@export EFS_FILE_SYSTEM_ID=$$(terraform output -raw efs_file_system_id 2>/dev/null || echo ""); \
