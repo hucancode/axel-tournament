@@ -6,7 +6,7 @@ pub trait Game: Send + Sync + Clone + 'static {
 
     /// Run the game with players and return results
     /// The game_context parameter allows games to write state changes to persistent history
-    fn run(&self, players: Vec<Box<dyn crate::players::Player>>, timeout_ms: u64, game_context: crate::room::GameContext) -> impl std::future::Future<Output = Vec<GameResult>> + Send;
+    fn run(&self, players: Vec<Box<dyn crate::models::players::Player>>, timeout_ms: u64, game_context: crate::services::room::GameContext) -> impl std::future::Future<Output = Vec<GameResult>> + Send;
 
     /// Get the maximum number of players for this game
     fn max_players(&self) -> usize;

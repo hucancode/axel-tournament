@@ -1,18 +1,11 @@
+mod db;
 use api::{
     config::Config,
-    db,
     models::{CreateTournamentRequest, MatchGenerationType, TournamentStatus},
     services::{matches, submission, tournament, auth},
 };
 use surrealdb::sql::Thing;
 use validator::Validate;
-
-async fn setup_test_db() -> api::db::Database {
-    let config = Config::from_env();
-    db::connect(&config.database)
-        .await
-        .expect("Failed to connect to test database")
-}
 
 fn unique_name(prefix: &str) -> String {
     let timestamp = std::time::SystemTime::now()
@@ -43,7 +36,7 @@ async fn get_alice_user(db: &api::db::Database) -> api::models::User {
 
 #[tokio::test]
 async fn test_create_and_get_tournament() {
-    let db = setup_test_db().await;
+    let db = db::setup_test_db().await;
     let tournament = tournament::create_tournament(
         &db,
         TEST_GAME_ID.to_string(),
@@ -67,7 +60,7 @@ async fn test_create_and_get_tournament() {
 
 #[tokio::test]
 async fn test_update_tournament_status() {
-    let db = setup_test_db().await;
+    let db = db::setup_test_db().await;
     let tournament = tournament::create_tournament(
         &db,
         TEST_GAME_ID.to_string(),
@@ -99,7 +92,7 @@ async fn test_update_tournament_status() {
 
 #[tokio::test]
 async fn test_join_and_leave_tournament() {
-    let db = setup_test_db().await;
+    let db = db::setup_test_db().await;
     let tournament = tournament::create_tournament(
         &db,
         TEST_GAME_ID.to_string(),
@@ -114,15 +107,15 @@ async fn test_join_and_leave_tournament() {
     .await
     .unwrap();
     let tournament_id = tournament.id.unwrap();
-    
+
     let bob_user = get_bob_user(&db).await;
     let user_id = bob_user.id.unwrap();
-    
+
     let participant = tournament::join_tournament(&db, tournament_id.clone(), user_id.clone())
         .await
         .unwrap();
     assert_eq!(participant.user_id, user_id);
-    
+
     let participants = tournament::get_tournament_participants(&db, tournament_id.clone())
         .await
         .unwrap();
@@ -192,7 +185,7 @@ async fn test_tournament_status_serialization() {
 
 #[tokio::test]
 async fn test_start_tournament_all_vs_all() {
-    let db = setup_test_db().await;
+    let db = db::setup_test_db().await;
 
     // Create tournament with AllVsAll match generation (default)
     let tournament = tournament::create_tournament(
@@ -251,7 +244,7 @@ async fn test_start_tournament_all_vs_all() {
 
 #[tokio::test]
 async fn test_start_tournament_round_robin() {
-    let db = setup_test_db().await;
+    let db = db::setup_test_db().await;
 
     // Create tournament with RoundRobin match generation
     let tournament = tournament::create_tournament(
@@ -310,7 +303,7 @@ async fn test_start_tournament_round_robin() {
 
 #[tokio::test]
 async fn test_start_tournament_without_submissions_fails() {
-    let db = setup_test_db().await;
+    let db = db::setup_test_db().await;
 
     // Create tournament
     let tournament = tournament::create_tournament(
@@ -332,7 +325,7 @@ async fn test_start_tournament_without_submissions_fails() {
     let bob_user = get_bob_user(&db).await;
     let alice_user = get_alice_user(&db).await;
     let users = vec![bob_user, alice_user];
-    
+
     for user in users {
         let user_id = user.id.unwrap();
         tournament::join_tournament(&db, tournament_id.clone(), user_id.clone())
@@ -347,7 +340,7 @@ async fn test_start_tournament_without_submissions_fails() {
 
 #[tokio::test]
 async fn test_start_tournament_not_enough_players_fails() {
-    let db = setup_test_db().await;
+    let db = db::setup_test_db().await;
 
     // Create tournament requiring 5 minimum players
     let tournament = tournament::create_tournament(
@@ -372,7 +365,7 @@ async fn test_start_tournament_not_enough_players_fails() {
 
 #[tokio::test]
 async fn test_tournament_participant_management() {
-    let db = setup_test_db().await;
+    let db = db::setup_test_db().await;
 
     // Create tournament
     let tournament = tournament::create_tournament(

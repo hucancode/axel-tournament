@@ -6,7 +6,7 @@ mod compiler_tests {
     use std::fs;
 
     use super::*;
-    use judge::sandbox::compiler::CompilerSandbox;
+    use judge::services::sandbox::compiler::CompilerSandbox;
 
     #[tokio::test]
     async fn test_compiler_sandbox_creation() {

@@ -1,18 +1,10 @@
-// Unit tests for submission service logic
+mod db;
 use api::{
     config::Config,
-    db,
     models::{CreateSubmissionRequest, ProgrammingLanguage},
     services::{submission, tournament, auth},
 };
 use validator::Validate;
-
-async fn setup_test_db() -> api::db::Database {
-    let config = Config::from_env();
-    db::connect(&config.database)
-        .await
-        .expect("Failed to connect to test database")
-}
 
 fn unique_name(prefix: &str) -> String {
     let timestamp = std::time::SystemTime::now()
@@ -33,7 +25,7 @@ async fn get_bob_user(db: &api::db::Database) -> api::models::User {
         .expect("Bob user should exist")
 }
 
-async fn get_alice_user(db: &api::db::Database) -> api::models::User {
+async fn _get_alice_user(db: &api::db::Database) -> api::models::User {
     let config = Config::from_env();
     auth::get_user_by_email(db, &config.alice.email)
         .await
@@ -43,12 +35,12 @@ async fn get_alice_user(db: &api::db::Database) -> api::models::User {
 
 #[tokio::test]
 async fn test_submission_create() {
-    let db = setup_test_db().await;
-    
+    let db = db::setup_test_db().await;
+
     // Use Bob user
     let bob_user = get_bob_user(&db).await;
     let user_id = bob_user.id.unwrap();
-    
+
     // Create a tournament
     let tournament_data = tournament::create_tournament(
         &db,
@@ -86,12 +78,12 @@ async fn test_submission_create() {
 
 #[tokio::test]
 async fn test_submission_get() {
-    let db = setup_test_db().await;
-    
+    let db = db::setup_test_db().await;
+
     // Use Bob user
     let bob_user = get_bob_user(&db).await;
     let user_id = bob_user.id.unwrap();
-    
+
     // Create tournament
     let tournament_data = tournament::create_tournament(
         &db,
@@ -133,12 +125,12 @@ async fn test_submission_get() {
 
 #[tokio::test]
 async fn test_submission_list_by_user() {
-    let db = setup_test_db().await;
-    
+    let db = db::setup_test_db().await;
+
     // Use Bob user
     let bob_user = get_bob_user(&db).await;
     let user_id = bob_user.id.unwrap();
-    
+
     // Create tournament
     let tournament_data = tournament::create_tournament(
         &db,
@@ -212,7 +204,7 @@ async fn test_submission_request_validation() {
 
 #[tokio::test]
 async fn test_submission_workflow() {
-    let db = setup_test_db().await;
+    let db = db::setup_test_db().await;
 
     // Use Bob user
     let bob_user = get_bob_user(&db).await;

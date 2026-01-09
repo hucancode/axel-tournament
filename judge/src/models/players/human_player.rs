@@ -7,7 +7,7 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio::time::{timeout, Duration};
 
-use crate::players::Player;
+use crate::models::players::Player;
 use surrealdb::sql::Thing;
 
 /// HumanPlayer forwards messages from WebSocket to GameLogic and vice versa

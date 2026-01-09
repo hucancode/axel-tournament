@@ -1,16 +1,10 @@
+mod db;
+
 use api::{
     config::Config,
-    db,
     models::{LoginRequest, RegisterRequest, User, UserRole},
     services::{AuthService, auth, user},
 };
-
-async fn setup_test_db() -> api::db::Database {
-    let config = Config::from_env();
-    db::connect(&config.database)
-        .await
-        .expect("Failed to connect to test database")
-}
 
 async fn get_bob_user(db: &api::db::Database) -> api::models::User {
     let config = Config::from_env();
@@ -126,7 +120,7 @@ async fn test_reset_token_generation() {
 
 #[tokio::test]
 async fn test_registration_and_login_flow() {
-    let db = setup_test_db().await;
+    let db = db::setup_test_db().await;
     let auth_service = AuthService::new("test-secret".to_string(), 3600);
     let config = Config::from_env();
 
@@ -153,7 +147,7 @@ async fn test_registration_and_login_flow() {
 
 #[tokio::test]
 async fn test_password_reset_flow() {
-    let db = setup_test_db().await;
+    let db = db::setup_test_db().await;
     let auth_service = AuthService::new("test-secret".to_string(), 3600);
     let config = Config::from_env();
 

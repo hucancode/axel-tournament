@@ -4,12 +4,12 @@ use caps::{CapSet, clear};
 use nix::unistd::{fork, ForkResult, execv, Pid, pipe, dup2};
 use std::ffi::CString;
 use std::fs::File;
-use crate::sandbox::{Result, SandboxError};
-use crate::sandbox::namespace::{create_namespaces, setup_mount_namespace, setup_self_uid_mapping};
-use crate::sandbox::cgroup::CgroupHandle;
-use crate::sandbox::landlock::apply_execution_rules;
-use crate::sandbox::seccomp::apply_execution_filter;
-use crate::sandbox::rootfs::setup_execution_rootfs;
+use crate::services::sandbox::{Result, SandboxError};
+use crate::services::sandbox::namespace::{create_namespaces, setup_mount_namespace, setup_self_uid_mapping};
+use crate::services::sandbox::cgroup::CgroupHandle;
+use crate::services::sandbox::landlock::apply_execution_rules;
+use crate::services::sandbox::seccomp::apply_execution_filter;
+use crate::services::sandbox::rootfs::setup_execution_rootfs;
 
 /// Result of spawning a sandboxed process
 pub struct SandboxedProcess {
@@ -115,7 +115,7 @@ fn child_setup_and_exec(
 
     let binary_in_sandbox = setup_execution_rootfs(binary_path, tmp_root.path())?;
 
-    if crate::sandbox::landlock::is_supported() {
+    if crate::services::sandbox::landlock::is_supported() {
         apply_execution_rules(&binary_in_sandbox)?;
     }
 

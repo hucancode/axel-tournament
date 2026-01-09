@@ -1,13 +1,20 @@
-mod common;
+mod db;
 
 use anyhow::Result;
 use async_trait::async_trait;
-use judge::compiler::Compiler;
-use judge::players::{BotPlayer, Player};
+use judge::services::room::GameContext;
+use judge::services::compiler::Compiler;
+use judge::models::players::{BotPlayer, Player};
 use judge::games::{Game, GameResult, RockPaperScissors, TicTacToe, PrisonersDilemma};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
+/// Create a test GameContext
+pub async fn setup_test_game_context() -> GameContext {
+    let db = db::setup_test_db().await;
+    let match_id: surrealdb::sql::Thing = "match:test".parse().unwrap();
+    GameContext::new(match_id, db)
+}
 // ============================================================================
 // Helper functions for GameResult
 // ============================================================================
@@ -103,10 +110,10 @@ async fn test_automated_rock_paper_scissors() -> Result<()> {
     // Compile both bots
     let compiler = Compiler::new()?;
     println!("Compiling bot 1...");
-    let binary_path1 = compiler.compile_submission(&bot1_id, "rust", &bot1_code).await?;
+    let binary_path1: String = compiler.compile_submission(&bot1_id, "rust", &bot1_code).await?;
 
     println!("Compiling bot 2...");
-    let binary_path2 = compiler.compile_submission(&bot2_id, "rust", &bot2_code).await?;
+    let binary_path2: String = compiler.compile_submission(&bot2_id, "rust", &bot2_code).await?;
 
     // Create BotPlayers
     println!("Creating bot players...");
@@ -118,7 +125,7 @@ async fn test_automated_rock_paper_scissors() -> Result<()> {
     // Run the game
     println!("Running Rock-Paper-Scissors game...");
     let game = RockPaperScissors::new();
-    let game_context = common::setup_test_game_context().await;
+    let game_context = setup_test_game_context().await;
     let results = game.run(players, 5000, game_context).await;
 
     // Verify results
@@ -157,8 +164,8 @@ async fn test_automated_tic_tac_toe() -> Result<()> {
 
     let compiler = Compiler::new()?;
     println!("Compiling Tic-Tac-Toe bots...");
-    let binary_path1 = compiler.compile_submission(&bot1_id, "rust", &bot1_code).await?;
-    let binary_path2 = compiler.compile_submission(&bot2_id, "rust", &bot2_code).await?;
+    let binary_path1: String = compiler.compile_submission(&bot1_id, "rust", &bot1_code).await?;
+    let binary_path2: String = compiler.compile_submission(&bot2_id, "rust", &bot2_code).await?;
 
     println!("Creating bot players...");
     let bot1 = BotPlayer::new("user:alice".parse().unwrap(), &binary_path1).await?;
@@ -168,7 +175,7 @@ async fn test_automated_tic_tac_toe() -> Result<()> {
 
     println!("Running Tic-Tac-Toe game...");
     let game = TicTacToe::new();
-    let game_context = common::setup_test_game_context().await;
+    let game_context = setup_test_game_context().await;
     let results = game.run(players, 30000, game_context).await;
 
     assert_eq!(results.len(), 2, "Should have results for both players");
@@ -203,8 +210,8 @@ async fn test_automated_prisoners_dilemma() -> Result<()> {
 
     let compiler = Compiler::new()?;
     println!("Compiling Prisoner's Dilemma bots...");
-    let binary_path1 = compiler.compile_submission(&bot1_id, "rust", &bot1_code).await?;
-    let binary_path2 = compiler.compile_submission(&bot2_id, "rust", &bot2_code).await?;
+    let binary_path1: String = compiler.compile_submission(&bot1_id, "rust", &bot1_code).await?;
+    let binary_path2: String = compiler.compile_submission(&bot2_id, "rust", &bot2_code).await?;
 
     println!("Creating bot players...");
     let bot1 = BotPlayer::new("user:alice".parse().unwrap(), &binary_path1).await?;
@@ -214,7 +221,7 @@ async fn test_automated_prisoners_dilemma() -> Result<()> {
 
     println!("Running Prisoner's Dilemma game...");
     let game = PrisonersDilemma::new();
-    let game_context = common::setup_test_game_context().await;
+    let game_context = setup_test_game_context().await;
     let results = game.run(players, 5000, game_context).await;
 
     assert_eq!(results.len(), 2, "Should have results for both players");
@@ -251,7 +258,7 @@ async fn test_interactive_rock_paper_scissors() {
     let players: Vec<Box<dyn Player>> = vec![Box::new(player1.clone()), Box::new(player2.clone())];
 
     let game = RockPaperScissors::new();
-    let game_context = common::setup_test_game_context().await;
+    let game_context = setup_test_game_context().await;
     let results = game.run(players, 5000, game_context).await;
 
     // Verify results
@@ -298,7 +305,7 @@ async fn test_interactive_tic_tac_toe() {
     let players: Vec<Box<dyn Player>> = vec![Box::new(player_x.clone()), Box::new(player_o.clone())];
 
     let game = TicTacToe::new();
-    let game_context = common::setup_test_game_context().await;
+    let game_context = setup_test_game_context().await;
     let results = game.run(players, 30000, game_context).await;
 
     assert_eq!(results.len(), 2);
@@ -354,7 +361,7 @@ async fn test_interactive_prisoners_dilemma() {
     let players: Vec<Box<dyn Player>> = vec![Box::new(player1.clone()), Box::new(player2.clone())];
 
     let game = PrisonersDilemma::new();
-    let game_context = common::setup_test_game_context().await;
+    let game_context = setup_test_game_context().await;
     let results = game.run(players, 5000, game_context).await;
 
     assert_eq!(results.len(), 2);

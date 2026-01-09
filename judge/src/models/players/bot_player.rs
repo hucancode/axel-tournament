@@ -10,9 +10,9 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use surrealdb::sql::Thing;
 
-use crate::players::Player;
-use crate::sandbox::executor::{spawn_sandboxed, fd_to_file};
-use crate::sandbox::cgroup::CgroupHandle;
+use crate::models::players::Player;
+use crate::services::sandbox::executor::{spawn_sandboxed, fd_to_file};
+use crate::services::sandbox::cgroup::CgroupHandle;
 
 /// BotPlayer runs player code in an isolated sandbox using Linux primitives
 pub struct BotPlayer {

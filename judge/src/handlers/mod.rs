@@ -1,6 +1,8 @@
+pub mod room;
+
 use crate::app_state::AppState;
-use crate::capacity::CapacityStats;
-use crate::games::Game;
+use crate::services::capacity::CapacityStats;
+use crate::models::game::Game;
 use axum::extract::State;
 use axum::Json;
 use std::sync::Arc;

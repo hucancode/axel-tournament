@@ -1,11 +1,9 @@
 pub mod tic_tac_toe;
 pub mod rock_paper_scissors;
 pub mod prisoners_dilemma;
-pub mod game;
-pub mod metadata;
+
 pub use tic_tac_toe::TicTacToe;
 pub use rock_paper_scissors::RockPaperScissors;
 pub use prisoners_dilemma::PrisonersDilemma;
-pub use game::Game;
-pub use game::GameResult;
-pub use metadata::find_game_by_id;
+pub use crate::models::game::{Game, GameResult};
+pub use crate::models::game_metadata::find_game_by_id;

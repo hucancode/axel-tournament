@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
-use crate::capacity::CapacityTracker;
+use crate::services::capacity::CapacityTracker;
 use crate::db::Database;
-use crate::games::Game;
-use crate::room::RoomManager;
+use crate::models::game::Game;
+use crate::services::room::RoomManager;
 
 pub struct AppState<G: Game> {
     pub db: Database,

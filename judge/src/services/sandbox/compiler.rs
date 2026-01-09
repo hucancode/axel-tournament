@@ -7,8 +7,8 @@ use nix::unistd::{fork, ForkResult, execvp, Pid};
 use std::os::unix::io::IntoRawFd;
 use std::ffi::CString;
 use std::time::Duration;
-use crate::sandbox::{Result, SandboxError};
-use crate::sandbox::cgroup::CgroupHandle;
+use crate::services::sandbox::{Result, SandboxError};
+use crate::services::sandbox::cgroup::CgroupHandle;
 
 /// Compiler sandbox for secure code compilation
 pub struct CompilerSandbox {

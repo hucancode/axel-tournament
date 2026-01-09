@@ -1,15 +1,8 @@
+mod db;
 use api::{
     config::Config,
-    db,
-    services::{user, auth},
+    services::{auth, user},
 };
-
-async fn setup_test_db() -> api::db::Database {
-    let config = Config::from_env();
-    db::connect(&config.database)
-        .await
-        .expect("Failed to connect to test database")
-}
 
 async fn get_bob_user(db: &api::db::Database) -> api::models::User {
     let config = Config::from_env();
@@ -29,7 +22,7 @@ async fn get_alice_user(db: &api::db::Database) -> api::models::User {
 
 #[tokio::test]
 async fn test_ban_and_unban_user() {
-    let db = setup_test_db().await;
+    let db = db::setup_test_db().await;
     let bob_user = get_bob_user(&db).await;
     let user_id = bob_user.id.unwrap();
 
@@ -46,7 +39,7 @@ async fn test_ban_and_unban_user() {
 
 #[tokio::test]
 async fn test_list_users() {
-    let db = setup_test_db().await;
+    let db = db::setup_test_db().await;
     let users = user::list_users(&db, Some(5), Some(0)).await.unwrap();
     // Should have at least admin, bob, and alice
     assert!(users.len() >= 3);
@@ -54,7 +47,7 @@ async fn test_list_users() {
 
 #[tokio::test]
 async fn test_user_profile_update() {
-    let db = setup_test_db().await;
+    let db = db::setup_test_db().await;
     let mut alice_user = get_alice_user(&db).await;
     let user_id = alice_user.id.clone().unwrap();
 

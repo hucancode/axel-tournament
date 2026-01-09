@@ -1,4 +1,4 @@
-use judge::capacity::CapacityTracker;
+use judge::services::capacity::CapacityTracker;
 
 #[tokio::test]
 async fn test_capacity_tracker_initialization() {

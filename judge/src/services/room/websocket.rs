@@ -1,7 +1,7 @@
 use crate::app_state::AppState;
-use crate::auth::validate_jwt;
-use crate::games::Game;
-use crate::players::{HumanPlayer, Player};
+use crate::middleware::auth::validate_jwt;
+use crate::models::game::Game;
+use crate::models::players::{HumanPlayer, Player};
 use axum::{
     extract::{
         Path, State,
@@ -51,9 +51,9 @@ async fn handle_websocket<G: Game + Clone + Send + Sync + 'static>(
 
                 let token = &text[6..]; // Remove "LOGIN " prefix
                 match validate_jwt(token, &state.jwt_secret) {
-                    Ok(user_id) => {
+                    Ok(claims) => {
                         // Validation will be done in connect_player_to_room after loading room from DB if needed
-                        user_id
+                        claims.sub
                     }
                     Err(e) => {
                         let msg = format!("LOGIN_FAILED {}", e);
@@ -114,7 +114,7 @@ async fn handle_websocket<G: Game + Clone + Send + Sync + 'static>(
                 let _ = player.send_message("REPLAY_START").await;
 
                 // Fetch both room and match history atomically to ensure consistency
-                match crate::room::db::get_room_and_match_history_atomic(&state.db, &room_id).await {
+                match crate::services::room::db::get_room_and_match_history_atomic(&state.db, &room_id).await {
                     Ok((room_history, match_history)) => {
                         // Send room-level message history first (before game events)
                         for msg in room_history {
@@ -148,8 +148,8 @@ async fn handle_websocket<G: Game + Clone + Send + Sync + 'static>(
                     .await;
 
                 // Then send info about existing players
-                let websocket_players = state.room_manager.get_websocket_players(&room_id).await;
-                for p in websocket_players.iter() {
+                let connected_players = state.room_manager.get_connected_players(&room_id).await;
+                for p in connected_players.iter() {
                     if let Some(p) = p {
                         let msg = format!("PLAYER_JOINED {}", p.player_id());
                         let _ = p.send_message(&msg).await;

@@ -1,7 +1,7 @@
 use cgroups_rs::*;
 use cgroups_rs::fs::{cgroup_builder::CgroupBuilder, MaxValue, Cgroup, hierarchies};
 use nix::unistd::Pid;
-use crate::sandbox::{Result, SandboxError, ResourceLimits};
+use crate::services::sandbox::{Result, SandboxError, ResourceLimits};
 
 pub struct CgroupHandle {
     cgroup: Cgroup,

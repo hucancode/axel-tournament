@@ -2,7 +2,7 @@ use nix::sched::{unshare, CloneFlags};
 use nix::mount::{mount, MsFlags};
 use nix::unistd::{Uid, Gid};
 use std::fs;
-use crate::sandbox::{Result, SandboxError};
+use crate::services::sandbox::{Result, SandboxError};
 
 pub fn create_namespaces(include_network: bool) -> Result<(u32, u32)> {
     let host_uid = Uid::current().as_raw();

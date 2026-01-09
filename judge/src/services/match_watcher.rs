@@ -5,11 +5,11 @@ use surrealdb::Surreal;
 use surrealdb::engine::remote::ws::Client;
 use tokio::time::{sleep, Duration};
 
-use crate::capacity::CapacityTracker;
-use crate::compiler::Compiler;
-use crate::games::{Game, GameResult};
-use crate::players::Player;
-use crate::players::BotPlayer;
+use crate::services::capacity::CapacityTracker;
+use crate::services::compiler::Compiler;
+use crate::models::game::{Game, GameResult};
+use crate::models::players::Player;
+use crate::models::players::BotPlayer;
 
 type Database = Surreal<Client>;
 
@@ -213,10 +213,10 @@ where
     player1.set_timeout(game_metadata.bot_turn_timeout_ms);
     player2.set_timeout(game_metadata.bot_turn_timeout_ms);
 
-    let players: Vec<Box<dyn crate::players::Player>> = vec![Box::new(player1), Box::new(player2)];
+    let players: Vec<Box<dyn crate::models::players::Player>> = vec![Box::new(player1), Box::new(player2)];
 
     // Create GameContext for automated matches
-    let game_context = crate::room::GameContext::new(match_record.id.clone(), db.clone());
+    let game_context = crate::services::room::GameContext::new(match_record.id.clone(), db.clone());
 
     // Execute the game
     let results = game.run(players, game_metadata.bot_turn_timeout_ms, game_context).await;

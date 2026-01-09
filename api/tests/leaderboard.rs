@@ -1,13 +1,8 @@
-use api::{
-    config::Config, db, services::{leaderboard, tournament, auth}
-};
+mod db;
 
-async fn setup_test_db() -> api::db::Database {
-    let config = Config::from_env();
-    db::connect(&config.database)
-        .await
-        .expect("Failed to connect to test database")
-}
+use api::{
+    config::Config, services::{leaderboard, tournament, auth}
+};
 
 fn unique_name(prefix: &str) -> String {
     let timestamp = std::time::SystemTime::now()
@@ -38,8 +33,7 @@ async fn get_alice_user(db: &api::db::Database) -> api::models::User {
 
 #[tokio::test]
 async fn test_leaderboard_ordering_and_limit() {
-    let db = setup_test_db().await;
-    
+    let db = db::setup_test_db().await;
     // Create tournament
     let tournament = tournament::create_tournament(
         &db,
@@ -55,12 +49,12 @@ async fn test_leaderboard_ordering_and_limit() {
     .await
     .unwrap();
     let tournament_id = tournament.id.unwrap();
-    
+
     // Use Bob and Alice users
     let bob_user = get_bob_user(&db).await;
     let alice_user = get_alice_user(&db).await;
     let players = vec![(bob_user, 120.0), (alice_user, 60.0)];
-    
+
     let mut participants = Vec::new();
     for (player, score) in players {
         let player_id = player.id.unwrap();
@@ -88,7 +82,7 @@ async fn test_leaderboard_ordering_and_limit() {
 
 #[tokio::test]
 async fn test_tournament_specific_leaderboard() {
-    let db = setup_test_db().await;
+    let db = db::setup_test_db().await;
 
     // Create tournament
     let tournament = tournament::create_tournament(

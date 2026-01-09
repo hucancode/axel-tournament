@@ -1,6 +1,5 @@
-// Import all models from the room module
-mod models;
-pub use models::*;
+// Re-export models from the new location
+pub use crate::models::room::*;
 
 // Database operations
 pub mod db;
@@ -12,7 +11,3 @@ pub use websocket::ws_get_room;
 // Room manager
 pub mod manager;
 pub use manager::RoomManager;
-
-// HTTP handlers
-pub mod handlers;
-pub use handlers::*;

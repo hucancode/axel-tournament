@@ -1,6 +1,6 @@
 use seccompiler::*;
 use std::collections::BTreeMap;
-use crate::sandbox::{Result, SandboxError};
+use crate::services::sandbox::{Result, SandboxError};
 
 pub fn apply_execution_filter() -> Result<()> {
     let filter = execution_filter()?;

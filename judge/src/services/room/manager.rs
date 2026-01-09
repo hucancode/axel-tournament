@@ -2,10 +2,10 @@
 // Manages in-memory room state, lazy loading from database, and crash recovery
 
 use super::db;
-use super::models::*;
+use crate::models::room::*;
 use crate::db::Database;
-use crate::games::Game;
-use crate::players::{HumanPlayer, Player};
+use crate::models::game::Game;
+use crate::models::players::{HumanPlayer, Player};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use surrealdb::sql::Thing;
@@ -86,7 +86,7 @@ impl RoomManager {
             game_id,
             host_id: host_id.clone(),
             players: vec![host_thing],
-            websocket_players: vec![None], // Host is in room but not yet connected via WebSocket
+            connected_players: vec![None], // Host is in room but not yet connected via WebSocket
             max_players,
             status: "waiting".to_string(),
             human_timeout_ms,
@@ -152,7 +152,7 @@ impl RoomManager {
             if let Some(player_index) = room.players.iter().position(|p| p == &player_thing) {
                 // Player is already in room - this is a reconnection
                 let is_reconnecting = room
-                    .websocket_players
+                    .connected_players
                     .get(player_index)
                     .and_then(|p| p.as_ref())
                     .is_none();
@@ -163,7 +163,7 @@ impl RoomManager {
 
             // Check if room is full (count only online players)
             let active_players = room
-                .websocket_players
+                .connected_players
                 .iter()
                 .filter(|p| p.is_some())
                 .count();
@@ -193,7 +193,7 @@ impl RoomManager {
                 .parse()
                 .map_err(|_| "Invalid player_id format".to_string())?;
             room.players.push(player_thing.clone());
-            room.websocket_players.push(None); // Player starts offline until WebSocket connects
+            room.connected_players.push(None); // Player starts offline until WebSocket connects
 
             // Sync with database - add player to room
             if let Err(e) = db::add_player(&self.db, room_id, player_thing).await {
@@ -229,7 +229,7 @@ impl RoomManager {
 
             // Remove player from all arrays
             room.players.remove(player_index);
-            room.websocket_players.remove(player_index);
+            room.connected_players.remove(player_index);
 
             // Sync with database - remove player from room
             if let Err(e) = db::remove_player(&self.db, room_id, player_thing.clone()).await {
@@ -261,7 +261,7 @@ impl RoomManager {
 
                     // Broadcast to connected players
                     let broadcast_msg = format!("HOST_CHANGED {}", new_host_id);
-                    for player in &room.websocket_players {
+                    for player in &room.connected_players {
                         if let Some(p) = player {
                             let _ = p.send_message(&broadcast_msg).await;
                         }
@@ -279,7 +279,7 @@ impl RoomManager {
 
             // Broadcast player left to remaining players
             let broadcast_msg = format!("PLAYER_LEFT {}", player_id);
-            for player in &room.websocket_players {
+            for player in &room.connected_players {
                 if let Some(p) = player {
                     let _ = p.send_message(&broadcast_msg).await;
                 }
@@ -510,7 +510,7 @@ impl RoomManager {
                 let player_joined_msg = format!("PLAYER_JOINED {}", player_id);
                 let is_reconnecting = room.message_history.iter().any(|msg| msg == &player_joined_msg);
 
-                room.websocket_players[player_index] = Some(player.clone());
+                room.connected_players[player_index] = Some(player.clone());
                 tracing::info!(
                     "PLAYER_CONNECTED room_id={} player_id={} reconnecting={}",
                     room_id,
@@ -537,7 +537,7 @@ impl RoomManager {
                 }
 
                 // Broadcast to all connected players (including the connecting one)
-                for p in room.websocket_players.iter() {
+                for p in room.connected_players.iter() {
                     if let Some(p) = p {
                         let _ = p.send_message(&msg).await;
                     }
@@ -568,7 +568,7 @@ impl RoomManager {
 
             // Find player index and mark as offline
             if let Some(player_index) = room.players.iter().position(|p| p == &player_thing) {
-                room.websocket_players[player_index] = None;
+                room.connected_players[player_index] = None;
 
                 tracing::info!(
                     "PLAYER_DISCONNECTED room_id={} player={}",
@@ -603,7 +603,7 @@ impl RoomManager {
             });
 
             // Broadcast to remaining connected players
-            for player_opt in &room.websocket_players {
+            for player_opt in &room.connected_players {
                 if let Some(player) = player_opt {
                     let _ = player.send_message(&msg).await;
                 }
@@ -613,7 +613,7 @@ impl RoomManager {
             if room.host_id == player_id {
                 // Find first connected player to be new host
                 if let Some(new_host) = room
-                    .websocket_players
+                    .connected_players
                     .iter()
                     .filter_map(|p| p.as_ref())
                     .next()
@@ -623,7 +623,7 @@ impl RoomManager {
                     // Add to history
                     let host_msg = format!("HOST_CHANGED {}", new_host_id);
                     room.message_history.push(host_msg.clone());
-                    for p in room.websocket_players.iter() {
+                    for p in room.connected_players.iter() {
                         if let Some(p) = p {
                             let _ = p.send_message(&host_msg).await;
                         }
@@ -658,7 +658,7 @@ impl RoomManager {
                 });
             }
 
-            for player_opt in &room.websocket_players {
+            for player_opt in &room.connected_players {
                 if let Some(player) = player_opt {
                     let _ = player.send_message(message).await;
                 }
@@ -704,7 +704,7 @@ impl RoomManager {
             }
 
             let online_count = room
-                .websocket_players
+                .connected_players
                 .iter()
                 .filter(|p| p.is_some())
                 .count();
@@ -744,7 +744,7 @@ impl RoomManager {
                 "RoomManager: Broadcasting GAME_STARTED to {} players",
                 room.players.len()
             );
-            for (i, p) in room.websocket_players.iter().enumerate() {
+            for (i, p) in room.connected_players.iter().enumerate() {
                 if let Some(p) = p {
                     tracing::debug!(
                         "RoomManager: Sending GAME_STARTED to player {} ({})",
@@ -770,7 +770,7 @@ impl RoomManager {
             );
 
             let players: Vec<Box<dyn Player>> = room
-                .websocket_players
+                .connected_players
                 .iter()
                 .enumerate()
                 .filter_map(|(i, p)| {
@@ -861,7 +861,7 @@ impl RoomManager {
                     "RoomManager: Broadcasting GAME_FINISHED to {} players",
                     room.players.len()
                 );
-                for (i, p) in room.websocket_players.iter().enumerate() {
+                for (i, p) in room.connected_players.iter().enumerate() {
                     if let Some(p) = p {
                         tracing::debug!(
                             "RoomManager: Sending GAME_FINISHED to player {} ({})",
@@ -940,7 +940,7 @@ impl RoomManager {
             host_id,
             players: record.players.clone(),
             max_players: record.max_players as usize,
-            websocket_players: Vec::new(),
+            connected_players: Vec::new(),
             status: record.status,
             human_timeout_ms: record.human_timeout_ms,
             message_history,
@@ -967,11 +967,11 @@ impl RoomManager {
     }
 
     /// Get websocket players for a room
-    pub async fn get_websocket_players(&self, room_id: &str) -> Vec<Option<Arc<crate::players::HumanPlayer>>> {
+    pub async fn get_connected_players(&self, room_id: &str) -> Vec<Option<Arc<crate::models::players::HumanPlayer>>> {
         let rooms = self.rooms.read().await;
         if let Some(room_arc) = rooms.get(room_id) {
             let room = room_arc.read().await;
-            return room.websocket_players.clone();
+            return room.connected_players.clone();
         }
         Vec::new()
     }

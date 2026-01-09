@@ -1,10 +1,10 @@
 use judge::{
     app_state::AppState,
-    capacity::CapacityTracker,
+    services::capacity::CapacityTracker,
     config::Config,
     db,
     games::{self, Game},
-    room::RoomManager,
+    services::room::RoomManager,
     router,
     services,
 };

@@ -1,8 +1,13 @@
-use crate::capacity::CapacityTracker;
+pub mod match_watcher;
+pub mod compiler;
+pub mod capacity;
+pub mod sandbox;
+pub mod room;
+
+use crate::services::capacity::CapacityTracker;
 use crate::db::Database;
 use crate::games::{self, Game};
-use crate::match_watcher;
-use crate::room::RoomManager;
+use crate::services::room::RoomManager;
 use std::sync::Arc;
 
 /// Start all match watchers for automated games (AI vs AI)

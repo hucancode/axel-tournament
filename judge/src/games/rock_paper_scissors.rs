@@ -1,5 +1,5 @@
-use crate::games::{Game, GameResult};
-use crate::players::Player;
+use crate::models::game::{Game, GameResult};
+use crate::models::players::Player;
 use rand::Rng;
 use std::sync::{Arc, Mutex};
 
@@ -37,7 +37,7 @@ impl Game for RockPaperScissors {
         }
     }
 
-    async fn run(&self, mut players: Vec<Box<dyn Player>>, timeout_ms: u64, game_context: crate::room::GameContext) -> Vec<GameResult> {
+    async fn run(&self, mut players: Vec<Box<dyn Player>>, timeout_ms: u64, game_context: crate::services::room::GameContext) -> Vec<GameResult> {
         tracing::info!("RPS: Starting game with {} players, timeout: {}ms", players.len(), timeout_ms);
 
         if players.len() != 2 {

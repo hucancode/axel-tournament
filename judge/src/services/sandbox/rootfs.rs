@@ -3,7 +3,7 @@ use nix::unistd::{pivot_root, chdir};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::io::Read;
-use crate::sandbox::{Result, SandboxError};
+use crate::services::sandbox::{Result, SandboxError};
 
 fn check_if_dynamic_binary(binary: &Path) -> Result<bool> {
     let mut file = fs::File::open(binary)

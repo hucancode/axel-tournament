@@ -1,4 +1,4 @@
-mod common;
+mod db;
 use anyhow::Result;
 use judge::games::Game;
 use serde::Deserialize;
@@ -122,7 +122,7 @@ async fn wait_for_match_completed(db: &Surreal<Client>, match_id: Thing) -> Resu
 #[tokio::test]
 async fn test_e2e_judge_workflow() -> Result<()> {
     // Connect to database
-    let db = common::setup_test_db().await;
+    let db = db::setup_test_db().await;
 
     // Generate unique tournament ID for this test
     let timestamp = std::time::SystemTime::now()
@@ -149,8 +149,8 @@ async fn test_e2e_judge_workflow() -> Result<()> {
 
     // Import and use judge's match watcher directly
     use judge::games::RockPaperScissors;
-    use judge::match_watcher::start_match_watcher;
-    use judge::capacity::CapacityTracker;
+    use judge::services::match_watcher::start_match_watcher;
+    use judge::services::capacity::CapacityTracker;
 
     let capacity = CapacityTracker::new(10, 100);
     let game = RockPaperScissors::new();
@@ -228,7 +228,7 @@ async fn test_e2e_judge_workflow() -> Result<()> {
 #[tokio::test]
 #[ignore]
 async fn test_e2e_c_compilation() -> Result<()> {
-    let db = common::setup_test_db().await;
+    let db = db::setup_test_db().await;
 
     let timestamp = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -290,8 +290,8 @@ async fn test_e2e_c_compilation() -> Result<()> {
 
     println!("Step 3: Starting judge server...");
     use judge::games::RockPaperScissors;
-    use judge::match_watcher::start_match_watcher;
-    use judge::capacity::CapacityTracker;
+    use judge::services::match_watcher::start_match_watcher;
+    use judge::services::capacity::CapacityTracker;
 
     let capacity = CapacityTracker::new(10, 100);
     let game = RockPaperScissors::new();
@@ -366,7 +366,7 @@ async fn test_e2e_c_compilation() -> Result<()> {
 #[tokio::test]
 #[ignore]
 async fn test_e2e_go_compilation() -> Result<()> {
-    let db = common::setup_test_db().await;
+    let db = db::setup_test_db().await;
     let timestamp = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap()
@@ -427,8 +427,8 @@ async fn test_e2e_go_compilation() -> Result<()> {
 
     println!("Step 3: Starting judge server...");
     use judge::games::RockPaperScissors;
-    use judge::match_watcher::start_match_watcher;
-    use judge::capacity::CapacityTracker;
+    use judge::services::match_watcher::start_match_watcher;
+    use judge::services::capacity::CapacityTracker;
 
     let capacity = CapacityTracker::new(10, 100);
     let game = RockPaperScissors::new();

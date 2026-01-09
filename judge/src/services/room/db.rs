@@ -1,5 +1,5 @@
 use crate::db::Database;
-use super::models::{MatchRecord, RoomRecord};
+use crate::models::room::{MatchRecord, RoomRecord};
 use serde::{Deserialize};
 use serde_json;
 use std::collections::HashMap;
@@ -286,7 +286,7 @@ pub async fn create_match(
     game_id: &str,
     players: Vec<Thing>,
 ) -> Result<Thing, String> {
-    use super::models::MatchParticipant;
+    use crate::models::room::MatchParticipant;
     // Get hostname for judge_server_name
     let hostname = std::env::var("HOSTNAME").unwrap_or_else(|_| "unknown".to_string());
 

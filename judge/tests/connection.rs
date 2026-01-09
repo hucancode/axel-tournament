@@ -1,13 +1,13 @@
-mod common;
+mod db;
 
 use std::sync::Arc;
-use judge::room::RoomManager;
+use judge::services::room::RoomManager;
 use judge::games::TicTacToe;
 use judge::games::Game;
 
 #[tokio::test]
 async fn test_room_creation_and_joining() {
-    let db = common::setup_test_db().await;
+    let db = db::setup_test_db().await;
     let room_manager = Arc::new(RoomManager::new(db));
 
     // Create a room
@@ -51,7 +51,7 @@ async fn test_game_reconnection_state_basic() {
 #[tokio::test]
 async fn test_jwt_validation() {
     use jsonwebtoken::{encode, EncodingKey, Header};
-    use judge::auth::{Claims, validate_jwt};
+    use judge::middleware::auth::{Claims, validate_jwt};
 
     let secret = "test_secret_key";
     let user_id = "user:test123";
@@ -71,7 +71,7 @@ async fn test_jwt_validation() {
     // Test valid token
     let result = validate_jwt(&token, secret);
     assert!(result.is_ok());
-    assert_eq!(result.unwrap(), user_id);
+    assert_eq!(result.unwrap().sub, user_id);
 
     // Test invalid token
     let invalid_result = validate_jwt("invalid.token.here", secret);
@@ -84,7 +84,7 @@ async fn test_jwt_validation() {
 
 #[tokio::test]
 async fn test_room_leave_functionality() {
-    let db = common::setup_test_db().await;
+    let db = db::setup_test_db().await;
     let room_manager = Arc::new(RoomManager::new(db));
 
     // Create room and join players
@@ -102,5 +102,5 @@ async fn test_room_leave_functionality() {
 
     // Bob leaves explicitly
     let leave_result = room_manager.leave_room(&room_id, "user:bob").await;
-    assert!(matches!(leave_result, judge::room::LeaveResult::Left));
+    assert!(matches!(leave_result, judge::services::room::LeaveResult::Left));
 }

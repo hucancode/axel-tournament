@@ -1,7 +1,7 @@
 use anyhow::Result;
 use std::path::PathBuf;
 use std::sync::Arc;
-use crate::sandbox::compiler::CompilerSandbox;
+use crate::services::sandbox::compiler::CompilerSandbox;
 
 pub struct Compiler {
     sandbox: Arc<CompilerSandbox>,

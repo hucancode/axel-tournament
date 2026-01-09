@@ -1,13 +1,21 @@
-mod common;
+mod db;
 
 use anyhow::Result;
 use async_trait::async_trait;
-use judge::players::Player;
+use judge::models::players::Player;
 use judge::games::Game;
 use judge::games::{RockPaperScissors, TicTacToe, PrisonersDilemma};
-use judge::capacity::CapacityTracker;
+use judge::services::room::GameContext;
+use judge::services::capacity::CapacityTracker;
 use std::sync::Arc;
 use tokio::sync::Mutex;
+
+/// Create a test GameContext
+pub async fn setup_test_game_context() -> GameContext {
+    let db = db::setup_test_db().await;
+    let match_id: surrealdb::sql::Thing = "match:test".parse().unwrap();
+    GameContext::new(match_id, db)
+}
 
 // Mock player for testing
 #[derive(Clone)]
@@ -61,7 +69,7 @@ async fn test_rock_paper_scissors_basic() {
     let players: Vec<Box<dyn Player>> = vec![Box::new(player1), Box::new(player2)];
 
     let game = RockPaperScissors::new();
-    let game_context = common::setup_test_game_context().await;
+    let game_context = setup_test_game_context().await;
     let results = game.run(players, 5000, game_context).await;
 
     // Check that we got results for both players
@@ -75,7 +83,7 @@ async fn test_tic_tac_toe_win() {
     let players: Vec<Box<dyn Player>> = vec![Box::new(player1), Box::new(player2)];
 
     let game = TicTacToe::new();
-    let game_context = common::setup_test_game_context().await;
+    let game_context = setup_test_game_context().await;
     let results = game.run(players, 5000, game_context).await;
 
     // Check that we got results for both players
@@ -91,7 +99,7 @@ async fn test_prisoners_dilemma_scoring() {
     let players: Vec<Box<dyn Player>> = vec![Box::new(player1), Box::new(player2)];
 
     let game = PrisonersDilemma::new();
-    let game_context = common::setup_test_game_context().await;
+    let game_context = setup_test_game_context().await;
     let results = game.run(players, 5000, game_context).await;
 
     // Check that we got results for both players
@@ -120,7 +128,7 @@ async fn test_invalid_move_handling() {
     let players: Vec<Box<dyn Player>> = vec![Box::new(player1), Box::new(player2)];
 
     let game = RockPaperScissors::new();
-    let game_context = common::setup_test_game_context().await;
+    let game_context = setup_test_game_context().await;
     let results = game.run(players, 5000, game_context).await;
 
     // Should handle invalid moves gracefully
@@ -134,7 +142,7 @@ async fn test_player_timeout_simulation() {
     let players: Vec<Box<dyn Player>> = vec![Box::new(player1), Box::new(player2)];
 
     let game = RockPaperScissors::new();
-    let game_context = common::setup_test_game_context().await;
+    let game_context = setup_test_game_context().await;
     let results = game.run(players, 5000, game_context).await;
 
     // Should handle timeout gracefully

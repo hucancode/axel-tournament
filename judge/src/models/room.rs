@@ -1,5 +1,5 @@
 use crate::db::Database;
-use crate::players::HumanPlayer;
+use crate::models::players::HumanPlayer;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use surrealdb::sql::{Datetime, Thing};
@@ -129,7 +129,7 @@ pub struct Room {
     pub game_id: String,
     pub host_id: String,
     pub players: Vec<Thing>,            // All players who have joined the room
-    pub websocket_players: Vec<Option<Arc<HumanPlayer>>>, // WebSocket connections (None if offline)
+    pub connected_players: Vec<Option<Arc<HumanPlayer>>>, // WebSocket connections (None if offline)
     pub max_players: usize,
     pub status: String, // "waiting" | "playing" | "finished"
     pub human_timeout_ms: Option<u64>,
@@ -145,7 +145,7 @@ impl Room {
             .filter_map(|(i, id)| {
                 let id_str = id.to_string();
                 let username = id_str.strip_prefix("user:").unwrap_or(&id_str).to_string();
-                let connected = self.websocket_players.get(i).and_then(|p| p.as_ref()).is_some();
+                let connected = self.connected_players.get(i).and_then(|p| p.as_ref()).is_some();
 
                 // Only include connected players in the response
                 if connected {
@@ -181,7 +181,7 @@ impl Room {
             .unwrap_or_else(|| format!("room_{}", uuid::Uuid::new_v4()));
 
         let player_count = record.players.len();
-        let websocket_players = vec![None; player_count];
+        let connected_players = vec![None; player_count];
 
         Room {
             id: room_id,
@@ -189,7 +189,7 @@ impl Room {
             game_id: record.game_id,
             host_id: record.host_id.to_string(),
             players: record.players,
-            websocket_players,
+            connected_players,
             max_players: record.max_players as usize,
             status: record.status,
             human_timeout_ms: record.human_timeout_ms,

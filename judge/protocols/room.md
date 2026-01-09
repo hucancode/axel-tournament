@@ -216,22 +216,22 @@ socket.leave();
 - `finished` - Game completed
 
 ### Player States
-- In `players` and `websocket_players[i] == Some(HumanPlayer)` = Connected
-- In `players` and `websocket_players[i] == None` = Disconnected temporarily
+- In `players` and `connected_players[i] == Some(HumanPlayer)` = Connected
+- In `players` and `connected_players[i] == None` = Disconnected temporarily
 - Not in `players` = Left permanently
 
 ## Host Transfer Rules
 
 1. **Host disconnects:** Transfers to next connected player immediately
-2. **Host leaves (explicit LEAVE):** Transfers to next player in player_ids
+2. **Host leaves (explicit LEAVE):** Transfers to next connected player immediately
 3. **Reconnecting original host:** Does NOT regain host status
-4. **Last player leaves:** Room is deleted
+4. **All players explicit LEAVE:** Room is deleted immediately
 
 ## Bot Players vs Human Players
 
 ### Human Players (Interactive Rooms)
 - Join via HTTP with JWT auth
-- Connect via WebSocket with player_id in URL
+- Connect via WebSocket
 - Receive all room messages (PLAYER_JOINED, CHAT, etc.)
 - Can reconnect after disconnect
 
