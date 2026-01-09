@@ -13,5 +13,10 @@ This directory contains the communication protocol specifications for each game 
 ## Available Games
 
 - [Rock Paper Scissors](rock-paper-scissors.md)
-- [Prisoners Dilemma](prisoners-dilemma.md) 
+- [Prisoners Dilemma](prisoners-dilemma.md)
 - [Tic Tac Toe](tic-tac-toe.md)
+
+## Room Management
+
+For human vs human games using the interactive room system:
+- [Room Management Protocol](room.md) - WebSocket room management, chat, reconnection

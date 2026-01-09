@@ -72,24 +72,47 @@ const room = await roomService.join(roomId);
 
 ### 3. Connect WebSocket
 ```typescript
-// Client gets player_id from JWT
+// Client gets player_id and JWT token
 const playerId = getCurrentUser().id;  // e.g., "user:def"
+const token = getAuthToken();  // JWT token
 
-const socket = new RoomSocket(room.game_id, room.id, playerId);
+const socket = new RoomSocket(room.game_id, room.id);
 await socket.connect();
 
-// WebSocket URL: ws://judge/ws/tic-tac-toe/room_xyz/user:def
-// No auth needed - player already joined via HTTP
+// WebSocket URL: ws://judge/ws/tic-tac-toe/room_xyz
 ```
 
-### 4. Server Sends Connection Confirmation
+### 4. Client Authenticates
+```
+Client → Server: LOGIN {jwt_token}
+```
+
+Client must send LOGIN message with JWT token as the first message after WebSocket connection (within 10 second timeout).
+
+### 5. Server Sends Connection Confirmation
+
+**For new connections:**
 ```
 Server → Client: LOGIN_OK {player_id}
 ```
 
-For new connections only (not reconnections).
+**For reconnections:**
+```
+Server → Client: LOGIN_OK {player_id} RECONNECT
+```
 
-### 5. Play Game
+**On authentication failure:**
+```
+Server → Client: LOGIN_FAILED {error_message}
+```
+
+Possible error messages:
+- `LOGIN_FAILED Login timeout` - Client didn't send LOGIN within 10 seconds
+- `LOGIN_FAILED Missing LOGIN command` - First message wasn't LOGIN
+- `LOGIN_FAILED {jwt_error}` - JWT validation failed
+- `LOGIN_FAILED Invalid player_id format` - player_id from JWT is malformed
+
+### 6. Play Game
 ```typescript
 // Host starts game
 socket.on('connected', () => {
@@ -118,15 +141,17 @@ Server → All: BOARD ...X.....
 Server → All: TURN 1
 ```
 
-### 6. Chat
+### 7. Chat
 ```typescript
 socket.chat("Good luck!");
 
 // Client → Server: CHAT Good luck!
-// Server → All: CHAT user:def Bob Good luck!
+// Server → All: CHAT user:def Good luck!
 ```
 
-### 7. Disconnection & Reconnection
+Note: The server broadcasts chat messages with the player_id only (no username). Clients should look up the username from the player_id.
+
+### 8. Disconnection & Reconnection
 
 **Player disconnects:**
 ```
@@ -140,12 +165,13 @@ Server marks user:def as disconnected (stays in player_ids)
 // 1. Join again via HTTP
 const room = await roomService.join(roomId);  // Same room
 
-// 2. Connect WebSocket
-const socket = new RoomSocket(room.game_id, room.id, playerId);
+// 2. Connect WebSocket and authenticate
+const socket = new RoomSocket(room.game_id, room.id);
 await socket.connect();
+Client → Server: LOGIN {jwt_token}
 
-// 3. Server detects reconnection
-Server → Player: RECONNECT
+// 3. Server detects reconnection and sends combined LOGIN_OK
+Server → Player: LOGIN_OK user:def RECONNECT
 Server → Player: REPLAY_START
 
 // 4. Server replays room history
@@ -162,14 +188,15 @@ Server → Player: YOUR_TURN
 Server → Player: REPLAY_END
 ```
 
-### 8. Leave Room
+### 9. Leave Room
 ```typescript
 socket.leave();
 
 // Client → Server: LEAVE
+// Server → Client: LEFT_ROOM
 // Server removes player from player_ids permanently
-// Server → All: PLAYER_LEFT user:def Bob
-// If host left: HOST_CHANGED user:abc Alice
+// Server → Remaining Players: PLAYER_LEFT user:def
+// If host left: HOST_CHANGED user:abc
 ```
 
 ## Protocol Reference
@@ -186,27 +213,35 @@ socket.leave();
 
 ### WebSocket Messages
 
-**URL:** `/ws/{game_id}/{room_id}/{player_id}`
+**URL:** `/ws/{game_id}/{room_id}`
 
-**Server → Client:**
-- `LOGIN_OK {player_id}` - Successfully connected (new connection)
-- `LOGIN_OK {player_id} RECONNECT` - Reconnecting (was disconnected)
-- `REPLAY_START` - Start of message replay
-- `REPLAY_END` - End of message replay
-- `PLAYER_JOINED {user_id}` - Player joined
-- `PLAYER_LEFT {user_id}` - Player left
-- `HOST_CHANGED {user_id}` - New host
-- `GAME_STARTED` - Game started
-- `GAME_FINISHED {results_json}` - Game finished
-- `CHAT {user_id} {username} {message}` - Chat message
-- `ERROR {message}` - Error occurred
-- Game-specific messages (START, BOARD, TURN, YOUR_TURN, SCORE, END, etc.)
+Examples:
+- `/ws/tic-tac-toe/room_xyz`
+- `/ws/rock-paper-scissors/room_xyz`
+- `/ws/prisoners-dilemma/room_xyz`
 
 **Client → Server:**
+- `LOGIN {jwt_token}` - Authenticate (must be first message within 10 seconds)
 - `START` - Start game (host only)
 - `CHAT {message}` - Send chat
 - `LEAVE` - Leave room
 - Game-specific moves
+
+**Server → Client:**
+- `LOGIN_OK {player_id}` - Successfully connected (new connection)
+- `LOGIN_OK {player_id} RECONNECT` - Reconnecting (was disconnected)
+- `LOGIN_FAILED {error_message}` - Authentication failed
+- `REPLAY_START` - Start of message replay (reconnection only)
+- `REPLAY_END` - End of message replay (reconnection only)
+- `PLAYER_JOINED {user_id}` - Player joined
+- `PLAYER_LEFT {user_id}` - Player left
+- `LEFT_ROOM` - Confirmation of successful leave
+- `HOST_CHANGED {user_id}` - New host assigned
+- `GAME_STARTED` - Game started
+- `GAME_FINISHED {results_json}` - Game finished
+- `CHAT {user_id} {message}` - Chat message (no username, clients should look it up)
+- `ERROR {message}` - Error occurred
+- Game-specific messages (START, BOARD, TURN, YOUR_TURN, SCORE, END, etc.)
 
 ## State Management
 
@@ -267,16 +302,32 @@ const room = await roomService.create({
 // OR
 const room = await roomService.join(roomId);
 
-// 2. Connect WebSocket
+// 2. Connect WebSocket and authenticate
 const playerId = roomService.getCurrentUser().id;
-const socket = new RoomSocket(room.game_id, room.id, playerId);
+const token = roomService.getAuthToken();
+const socket = new RoomSocket(room.game_id, room.id);
 
-socket.on('connected', () => {
-  console.log('Connected to room');
+// Connect to WebSocket
+await socket.connect();
+
+// Send LOGIN message with JWT (must be first message within 10 seconds)
+await socket.send(`LOGIN ${token}`);
+
+// Handle connection confirmation
+socket.on('login_ok', (playerId, isReconnecting) => {
+  console.log('Connected to room:', playerId);
+  if (isReconnecting) {
+    console.log('Reconnecting...');
+  }
 });
 
-socket.on('player_joined', (data) => {
-  console.log('Player joined:', data.username);
+socket.on('login_failed', (error) => {
+  console.error('Login failed:', error);
+});
+
+socket.on('player_joined', (userId) => {
+  console.log('Player joined:', userId);
+  // Look up username from userId
 });
 
 socket.on('game_started', () => {
@@ -288,11 +339,10 @@ socket.on('your_turn', () => {
   socket.sendMove('MOVE 1 1');
 });
 
-socket.on('chat', (data) => {
-  console.log(`${data.username}: ${data.message}`);
+socket.on('chat', (userId, message) => {
+  console.log(`${userId}: ${message}`);
+  // Look up username from userId for display
 });
-
-await socket.connect();
 
 // 3. Start game (if host)
 if (room.host_id === playerId) {
@@ -304,15 +354,20 @@ socket.chat('Hello everyone!');
 
 // 5. Leave
 socket.leave();
-socket.disconnect();
+socket.on('left_room', () => {
+  console.log('Successfully left room');
+  socket.disconnect();
+});
 ```
 
 ## Security
 
-1. **JWT Authentication:** All HTTP endpoints that modify state require JWT
-2. **Player Verification:** WebSocket checks player is in room's `player_ids` list
+1. **JWT Authentication:**
+   - All HTTP endpoints that modify state require JWT in Authorization header
+   - WebSocket connections require JWT via LOGIN message (not in URL)
+2. **Player Verification:** WebSocket validates JWT and checks player is authorized to join room
 3. **Host Validation:** Only host can start game
-4. **No Token in URL:** Player ID is not sensitive, JWT stays in HTTP headers
+4. **Token Security:** JWT never appears in URLs, only in HTTP headers or WebSocket messages
 
 ## Reconnection Guarantees
 
