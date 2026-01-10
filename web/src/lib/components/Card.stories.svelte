@@ -12,27 +12,53 @@
 <Story name="Basic Card" args={{ title: 'Card Title', content: 'This is a basic card with neubrutalism styling featuring thick borders and hard shadows.' }} />
 
 <Story name="Card with Content">
-  <div class="max-w-md">
+  <section class="card-container">
     <Card>
-      <h3 class="mb-4 text-2xl">Tournament Details</h3>
-      <div class="mb-3">
+      <h3>Tournament Details</h3>
+      <div class="detail">
         <strong>Name:</strong> Spring Championship 2024
       </div>
-      <div class="mb-3">
+      <div class="detail">
         <strong>Date:</strong> March 15, 2024
       </div>
-      <div class="mb-4">
+      <div class="detail">
         <strong>Players:</strong> 16/32
       </div>
       <Button variant="primary" label="Register Now" />
     </Card>
-  </div>
+  </section>
 </Story>
 
 <Story name="Multiple Cards">
-  <div class="grid grid-2">
+  <section class="cards-grid">
     <Card title="Card 1" content="First card in a grid layout" />
     <Card title="Card 2" content="Second card in a grid layout" />
     <Card title="Card 3" content="Third card in a grid layout" />
-  </div>
+  </section>
 </Story>
+
+<style>
+  .card-container {
+    max-width: 28rem;
+  }
+
+  h3 {
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+    line-height: 2rem;
+  }
+
+  .detail {
+    margin-bottom: 0.75rem;
+  }
+
+  .detail:last-of-type {
+    margin-bottom: 1rem;
+  }
+
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+</style>

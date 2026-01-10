@@ -29,15 +29,15 @@
   let activeComponent = $derived(items.find(item => item.value === activeTab)?.component);
 </script>
 
-<div class="w-full {className}">
-  <div role="tablist" class="inline-flex items-center gap-0 p-0 bg-blueprint-paper border border-blueprint-line-light">
+<section class={className}>
+  <div role="tablist">
     {#each items as item}
       <button
-        class="inline-flex items-center justify-center px-6 py-3 font-semibold text-sm border-0 border-r border-blueprint-line-faint bg-transparent cursor-pointer transition-all whitespace-nowrap last:border-r-0 hover:bg-blueprint-line-faint focus:outline-2 focus:outline-primary focus:-outline-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none {activeTab === item.value ? 'bg-primary text-white border-primary hover:bg-primary' : ''}"
         onclick={() => setActiveTab(item.value)}
         role="tab"
         aria-selected={activeTab === item.value}
         tabindex={activeTab === item.value ? 0 : -1}
+        data-active={activeTab === item.value}
       >
         {item.label}
       </button>
@@ -46,8 +46,87 @@
 
   {#if activeComponent}
     {@const Component = activeComponent}
-    <div role="tabpanel" class="-mt-px p-6 bg-blueprint-paper focus:outline-2 focus:outline-primary focus:outline-offset-2">
+    <div role="tabpanel">
       <Component />
     </div>
   {/if}
-</div>
+</section>
+
+<style>
+  section {
+    width: 100%;
+  }
+
+  div[role="tablist"] {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    padding: 0;
+    background: var(--blueprint-paper);
+    border: 1px solid var(--blueprint-line-light);
+  }
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    border: none;
+    border-right: 1px solid var(--blueprint-line-faint);
+    background: transparent;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+    white-space: nowrap;
+  }
+
+  button:last-child {
+    border-right: none;
+  }
+
+  button:hover {
+    background: var(--blueprint-line-faint);
+  }
+
+  button:focus {
+    outline: 2px solid var(--primary);
+    outline-offset: -2px;
+  }
+
+  button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  button[data-active="true"] {
+    background: var(--primary);
+    color: var(--color-blueprint-paper);
+    border-color: var(--primary);
+  }
+
+  button[data-active="true"]:hover {
+    background: var(--primary);
+  }
+
+  div[role="tablist"] {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    padding: 0;
+    background: var(--blueprint-paper);
+    border: 1px solid var(--blueprint-line-light);
+  }
+
+  div[role="tabpanel"] {
+    margin-top: -1px;
+    padding: 1.5rem;
+    background: var(--blueprint-paper);
+  }
+
+  div[role="tabpanel"]:focus {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+</style>

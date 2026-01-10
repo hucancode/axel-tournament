@@ -177,7 +177,7 @@
     justify-content: space-between;
     padding: 0.75rem 1rem;
     border: 3px solid var(--black);
-    background: var(--white);
+    background: var(--color-blueprint-paper);
     font-size: 1rem;
     cursor: pointer;
     transition: none;
@@ -204,7 +204,7 @@
   }
 
   .datetime-placeholder {
-    color: var(--gray-medium);
+    color: var(--color-gray-medium);
   }
 
   .datetime-icon {
@@ -217,7 +217,7 @@
     top: calc(100% + 0.5rem);
     left: 0;
     z-index: 50;
-    background: var(--white);
+    background: var(--color-blueprint-paper);
     border: 3px solid var(--black);
     box-shadow: 6px 6px 0 0 var(--black);
     padding: 1rem;
@@ -241,7 +241,7 @@
     width: 100%;
     padding: 0.75rem 1rem;
     border: 3px solid var(--black);
-    background: var(--white);
+    background: var(--color-blueprint-paper);
     font-size: 1rem;
     transition: none;
     box-shadow: none;

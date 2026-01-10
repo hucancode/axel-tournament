@@ -152,7 +152,7 @@
 <style>
   .calendar {
     border: 1px solid var(--border-color-strong);
-    background: var(--white);
+    background: var(--color-blueprint-paper);
     padding: 0.75rem;
     width: fit-content;
   }
@@ -175,7 +175,7 @@
     width: 1.75rem;
     height: 1.75rem;
     border: 1px solid var(--border-color-strong);
-    background: var(--white);
+    background: var(--color-blueprint-paper);
     cursor: pointer;
     font-size: 1rem;
     display: flex;
@@ -220,7 +220,7 @@
     width: 2.25rem;
     height: 2.25rem;
     border: 1px solid transparent;
-    background: var(--white);
+    background: var(--color-blueprint-paper);
     cursor: pointer;
     font-size: 0.875rem;
     display: flex;
@@ -236,13 +236,13 @@
   }
 
   .calendar-day-today {
-    background: var(--gray-light);
+    background: var(--color-gray-light);
     font-weight: 600;
   }
 
   .calendar-day-selected {
     background: var(--primary);
-    color: var(--white);
+    color: var(--color-blueprint-paper);
     font-weight: 600;
   }
 

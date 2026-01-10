@@ -23,22 +23,53 @@
     }: Props = $props();
 </script>
 
-<article class="border border-gray-800 p-6 bg-hatch text-center" role="status" aria-live="polite">
+<article role="status" aria-live="polite" class="bg-hatch">
     {#if illustration}
-        <div class="mb-4">
+        <figure>
             {@render illustration()}
-        </div>
+        </figure>
     {:else if illustrationSrc}
-        <div class="mb-4 flex justify-center">
-            <img src={illustrationSrc} alt={illustrationAlt} class="max-w-48 max-h-48 opacity-50" />
-        </div>
+        <figure>
+            <img src={illustrationSrc} alt={illustrationAlt} />
+        </figure>
     {/if}
 
-    <p class="text-gray-500 mb-4">{message}</p>
+    <p>{message}</p>
 
     {#if actionLabel && onAction}
-        <div class="flex gap-2 justify-center">
-            <Button label={actionLabel} variant={actionVariant} onclick={onAction} />
-        </div>
+        <footer>
+            <button onclick={onAction}>{actionLabel}</button>
+        </footer>
     {/if}
 </article>
+
+<style>
+    article {
+        border: 1px solid var(--color-gray-800);
+        padding: 1.5rem;
+        text-align: center;
+    }
+
+    figure {
+        margin: 0 0 1rem 0;
+        display: flex;
+        justify-content: center;
+    }
+
+    img {
+        max-width: 12rem;
+        max-height: 12rem;
+        opacity: 0.5;
+    }
+
+    p {
+        color: var(--color-gray-500);
+        margin: 0 0 1rem 0;
+    }
+
+    footer {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: center;
+    }
+</style>

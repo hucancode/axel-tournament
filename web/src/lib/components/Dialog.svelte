@@ -16,31 +16,22 @@
     }: Props = $props();
 </script>
 
-<dialog
-    bind:this={dialog}
-    {onclose}
-    class="max-w-125 w-[90%] bg-blueprint-paper fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 backdrop:bg-slate-900/60"
->
+<dialog bind:this={dialog} {onclose}>
     <form method="dialog">
-        <header
-            class="flex justify-between items-center p-6 border-b border-blueprint-line-faint"
-        >
-            <h2 class="text-xl font-semibold">{title}</h2>
+        <header>
+            <h2>{title}</h2>
             <button
                 type="button"
                 onclick={() => dialog?.close()}
                 aria-label="Close"
-                class="text-2xl cursor-pointer hover:text-primary">×</button
-            >
+            >×</button>
         </header>
         {#if children}
-            <div class="p-6">
+            <div class="dialog-content">
                 {@render children()}
             </div>
         {/if}
-        <footer
-            class="flex justify-end gap-4 p-6 border-t border-blueprint-line-faint"
-        >
+        <footer>
             <Button
                 variant="secondary"
                 type="button"
@@ -51,3 +42,67 @@
         </footer>
     </form>
 </dialog>
+
+<style>
+    dialog {
+        max-width: 31.25rem;
+        width: 90%;
+        background-color: var(--color-blueprint-paper);
+        color: var(--color-fg);
+        border: 1px solid var(--color-border-strong);
+        padding: 0;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
+
+    dialog::backdrop {
+        background-color: rgb(15 23 42 / 0.6);
+    }
+
+    form {
+        display: flex;
+        flex-direction: column;
+    }
+
+    header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--color-blueprint-line-faint);
+    }
+
+    h2 {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+    }
+
+    button {
+        background: transparent;
+        border: 0;
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 0;
+        line-height: 1;
+        transition: color var(--transition-fast);
+    }
+
+    button:hover {
+        color: var(--color-primary);
+    }
+
+    .dialog-content {
+        padding: 1.5rem;
+    }
+
+    footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
+        padding: 1.5rem;
+        border-top: 1px solid var(--color-blueprint-line-faint);
+    }
+</style>

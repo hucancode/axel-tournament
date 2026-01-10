@@ -1,12 +1,37 @@
-<h3 class="mb-4 text-xl font-bold">Match Schedule</h3>
-<div class="flex flex-col gap-3">
-  <div class="p-4 bg-(--gray-light) border-2 border-black">
-    <strong>Round 1:</strong> Player A vs Player B - 3:00 PM
-  </div>
-  <div class="p-4 bg-(--gray-light) border-2 border-black">
-    <strong>Round 2:</strong> Player C vs Player D - 4:00 PM
-  </div>
-  <div class="p-4 bg-(--gray-light) border-2 border-black">
-    <strong>Round 3:</strong> Player E vs Player F - 5:00 PM
-  </div>
-</div>
+<section>
+  <h3>Match Schedule</h3>
+  <ol>
+    <li>
+      <strong>Round 1:</strong> Player A vs Player B - 3:00 PM
+    </li>
+    <li>
+      <strong>Round 2:</strong> Player C vs Player D - 4:00 PM
+    </li>
+    <li>
+      <strong>Round 3:</strong> Player E vs Player F - 5:00 PM
+    </li>
+  </ol>
+</section>
+
+<style>
+  h3 {
+    margin-bottom: 1rem;
+    font-size: 1.25rem;
+    font-weight: bold;
+  }
+
+  ol {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  li {
+    padding: 1rem;
+    background: var(--color-gray-light);
+    border: 2px solid var(--black);
+  }
+</style>

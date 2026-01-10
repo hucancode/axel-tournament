@@ -70,7 +70,7 @@
         align-items: center;
         justify-content: center;
         pointer-events: none;
-        color: var(--white);
+        color: var(--color-blueprint-paper);
         mix-blend-mode: difference;
     }
 
@@ -83,7 +83,7 @@
     }
 
     progress::-webkit-progress-bar {
-        background-color: var(--gray-light);
+        background-color: var(--color-gray-light);
     }
 
     progress::-webkit-progress-value,
@@ -224,7 +224,7 @@
     }
 
     div[data-position="middle"] span[data-complete]::before {
-        color: var(--white);
+        color: var(--color-blueprint-paper);
     }
 
     /* Bubble */
@@ -239,7 +239,7 @@
     }
 
     div[data-position="middle"] span[data-complete]::after {
-        border-color: var(--white);
+        border-color: var(--color-blueprint-paper);
     }
 
     @keyframes pop-in {

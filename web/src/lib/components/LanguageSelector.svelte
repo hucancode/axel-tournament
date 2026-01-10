@@ -10,11 +10,11 @@
   let { languages, selected, onToggle }: Props = $props();
 </script>
 
-<fieldset class="mb-4 border-0 p-0">
-  <legend class="block mb-2 font-medium p-0">Supported Languages</legend>
-  <div class="flex gap-4">
+<fieldset>
+  <legend>Supported Languages</legend>
+  <div>
     {#each languages as lang}
-      <label class="flex items-center gap-2 font-normal">
+      <label>
         <input
           type="checkbox"
           checked={selected.includes(lang)}
@@ -25,3 +25,30 @@
     {/each}
   </div>
 </fieldset>
+
+<style>
+  fieldset {
+    margin-bottom: 1rem;
+    border: none;
+    padding: 0;
+  }
+
+  legend {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    padding: 0;
+  }
+
+  fieldset > div {
+    display: flex;
+    gap: 1rem;
+  }
+
+  label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: normal;
+  }
+</style>

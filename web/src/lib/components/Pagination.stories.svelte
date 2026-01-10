@@ -28,14 +28,30 @@
 <Story name="Many Pages" args={{ currentPage: 15, totalPages: 50 }} />
 
 <Story name="Interactive">
-  <div class="flex flex-col gap-4">
-    <div class="text-center">
-      <p class="mb-2">Current Page: <strong>{currentPage}</strong></p>
+  <section class="interactive-demo">
+    <div class="status">
+      <p>Current Page: <strong>{currentPage}</strong></p>
     </div>
     <Pagination
       currentPage={currentPage}
       totalPages={20}
       onPageChange={handlePageChange}
     />
-  </div>
+  </section>
 </Story>
+
+<style>
+  .interactive-demo {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .status {
+    text-align: center;
+  }
+
+  .status p {
+    margin-bottom: 0.5rem;
+  }
+</style>

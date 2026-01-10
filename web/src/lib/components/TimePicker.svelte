@@ -227,7 +227,7 @@
     justify-content: space-between;
     padding: 0.75rem 1rem;
     border: 1px solid var(--border-color-strong);
-    background: var(--white);
+    background: var(--color-blueprint-paper);
     font-size: 1rem;
     cursor: pointer;
     transition: border-color 0.15s ease;
@@ -268,7 +268,7 @@
     top: calc(100% + 0.5rem);
     left: 0;
     z-index: 50;
-    background: var(--white);
+    background: var(--color-blueprint-paper);
     border: 1px solid var(--border-color-strong);
     padding: 1rem;
   }
@@ -290,7 +290,7 @@
     width: 2.5rem;
     height: 2rem;
     border: 1px solid var(--border-color-strong);
-    background: var(--white);
+    background: var(--color-blueprint-paper);
     cursor: pointer;
     font-size: 0.875rem;
     transition: border-color 0.15s ease, background-color 0.15s ease;
@@ -311,7 +311,7 @@
     width: 2.5rem;
     padding: 0.5rem;
     border: 1px solid var(--border-color-strong);
-    background: var(--white);
+    background: var(--color-blueprint-paper);
     text-align: center;
     font-size: 1.25rem;
     font-weight: 600;
@@ -329,7 +329,7 @@
     width: 3rem;
     height: 100%;
     border: 1px solid var(--border-color-strong);
-    background: var(--gray-light);
+    background: var(--color-gray-light);
     color: var(--text);
     cursor: pointer;
     font-size: 0.875rem;

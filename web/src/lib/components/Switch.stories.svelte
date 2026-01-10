@@ -19,11 +19,19 @@
 <Story name="Without Label" args={{ checked: false }} />
 
 <Story name="All States">
-  <div class="flex flex-col gap-4">
+  <section class="states-demo">
     <Switch label="Unchecked" checked={false} />
     <Switch label="Checked" checked={true} />
     <Switch label="Disabled" disabled={true} />
     <Switch label="Disabled Checked" disabled={true} checked={true} />
     <Switch checked={false} />
-  </div>
+  </section>
 </Story>
+
+<style>
+  .states-demo {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+</style>

@@ -72,7 +72,7 @@
 
   output {
     background: var(--color-primary);
-    color: var(--white);
+    color: var(--color-blueprint-paper);
     border: 1px solid var(--blueprint-line);
     padding: 0.25rem 0.75rem;
     font-weight: 600;
@@ -166,26 +166,26 @@
   input:disabled::-webkit-slider-runnable-track {
     background: linear-gradient(
       to right,
-      var(--gray-medium) 0%,
-      var(--gray-medium) var(--percentage),
-      var(--white) var(--percentage),
-      var(--white) 100%
+      var(--color-gray-medium) 0%,
+      var(--color-gray-medium) var(--percentage),
+      var(--color-blueprint-paper) var(--percentage),
+      var(--color-blueprint-paper) 100%
     );
   }
 
   input:disabled::-moz-range-progress {
-    background: var(--gray-medium);
+    background: var(--color-gray-medium);
   }
 
   input:disabled::-webkit-slider-thumb {
     cursor: not-allowed;
-    background: var(--gray-medium);
-    border-color: var(--gray-medium);
+    background: var(--color-gray-medium);
+    border-color: var(--color-gray-medium);
   }
 
   input:disabled::-moz-range-thumb {
     cursor: not-allowed;
-    background: var(--gray-medium);
-    border-color: var(--gray-medium);
+    background: var(--color-gray-medium);
+    border-color: var(--color-gray-medium);
   }
 </style>

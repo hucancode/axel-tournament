@@ -96,7 +96,7 @@
     align-items: center;
     gap: 0.75rem;
     padding: 1rem;
-    background-color: var(--white);
+    background-color: var(--color-blueprint-paper);
     border: 1px solid var(--blueprint-line-light);
     cursor: default;
     transition: border-color 0.15s ease;
@@ -127,7 +127,7 @@
   button[data-status="current"] {
     background-color: var(--primary);
     border-color: var(--primary);
-    color: var(--white);
+    color: var(--color-blueprint-paper);
   }
 
   button[data-status="upcoming"] {
@@ -144,7 +144,7 @@
     height: 2rem;
     flex-shrink: 0;
     border: 1px solid var(--blueprint-line-light);
-    background-color: var(--white);
+    background-color: var(--color-blueprint-paper);
     font-weight: 600;
     font-size: 0.875rem;
     color: var(--text);
@@ -154,12 +154,12 @@
   button[data-status="completed"] > div:first-child {
     background-color: var(--success);
     border-color: var(--success);
-    color: var(--white);
+    color: var(--color-blueprint-paper);
   }
 
   button[data-status="current"] > div:first-child {
-    background-color: var(--white);
-    border-color: var(--white);
+    background-color: var(--color-blueprint-paper);
+    border-color: var(--color-blueprint-paper);
     color: var(--primary);
   }
 
@@ -200,7 +200,7 @@
   }
 
   button[data-status="current"] > div:last-child > div:first-child {
-    color: var(--white);
+    color: var(--color-blueprint-paper);
   }
 
   /* Step description - second div in content */

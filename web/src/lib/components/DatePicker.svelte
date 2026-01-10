@@ -147,7 +147,7 @@
     justify-content: space-between;
     padding: 0.75rem 1rem;
     border: 1px solid var(--border-color-strong);
-    background: var(--white);
+    background: var(--color-blueprint-paper);
     font-size: 1rem;
     cursor: pointer;
     transition: border-color 0.15s ease;

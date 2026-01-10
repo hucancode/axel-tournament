@@ -10,17 +10,37 @@
   let { title, open = false, children }: Props = $props();
 </script>
 
-<details {open} class="bg-blueprint-paper">
-  <summary class="p-4 font-semibold cursor-pointer bg-hatch border-b-2 border-transparent hover:border-primary">
+<details {open}>
+  <summary class="bg-hatch">
     {title}
   </summary>
-  <div class="p-4">
+  <div>
     {@render children()}
   </div>
 </details>
 
 <style>
+  details {
+    background: var(--blueprint-paper);
+  }
+
+  summary {
+    padding: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: border-color 0.15s ease;
+  }
+
+  summary:hover {
+    border-bottom-color: var(--primary);
+  }
+
   details[open] summary {
     border-bottom-color: var(--blueprint-line-faint);
+  }
+
+  details > div {
+    padding: 1rem;
   }
 </style>

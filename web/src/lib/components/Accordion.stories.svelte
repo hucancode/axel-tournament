@@ -48,22 +48,22 @@
     name="With Rich Content"
     args={{ title: "FAQ: How do I use this component?" }}
 >
-    <div class="flex flex-col gap-3">
+    <section>
         <p><strong>Q: Can I nest other components inside?</strong></p>
         <p>A: Yes! You can include any content in the accordion body.</p>
-        <div class="p-4">
-            <p class="font-bold">Example nested content</p>
-            <ul class="list-disc list-inside mt-2">
+        <aside>
+            <p><strong>Example nested content</strong></p>
+            <ul>
                 <li>Lists work great</li>
                 <li>So do styled boxes</li>
                 <li>And any other HTML elements</li>
             </ul>
-        </div>
-    </div>
+        </aside>
+    </section>
 </Story>
 
 <Story name="Long Content" args={{ title: "Terms and Conditions" }}>
-    <div class="flex flex-col gap-4">
+    <section>
         <p>
             Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do
             eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim
@@ -82,5 +82,27 @@
             quae ab illo inventore veritatis et quasi architecto beatae vitae
             dicta sunt explicabo.
         </p>
-    </div>
+    </section>
 </Story>
+
+<style>
+    section {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    aside {
+        padding: 1rem;
+    }
+
+    aside p {
+        font-weight: bold;
+    }
+
+    ul {
+        list-style-type: disc;
+        list-style-position: inside;
+        margin-top: 0.5rem;
+    }
+</style>

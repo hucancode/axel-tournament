@@ -16,7 +16,7 @@
           Click me
       {/snippet}
       {#snippet children()}
-        <div class="p-2 min-w-50">
+        <div class="popover-content">
           <h3>Popover Content</h3>
           <p>This is the content inside the popover.</p>
         </div>
@@ -32,18 +32,51 @@
         Open Menu
       {/snippet}
       {#snippet children()}
-        <div class="min-w-50">
-          <button class="block w-full py-3 px-4 border-none border-b-2 border-black bg-white text-left cursor-pointer">
+        <menu class="popover-menu">
+          <button class="menu-item">
             Option 1
           </button>
-          <button class="block w-full py-3 px-4 border-none border-b-2 border-black bg-white text-left cursor-pointer">
+          <button class="menu-item">
             Option 2
           </button>
-          <button class="block w-full py-3 px-4 border-none bg-white text-left cursor-pointer">
+          <button class="menu-item last">
             Option 3
           </button>
-        </div>
+        </menu>
       {/snippet}
     </Popover>
   {/snippet}
 </Story>
+
+<style>
+  .popover-content {
+    padding: 0.5rem;
+    min-width: 12.5rem;
+  }
+
+  .popover-menu {
+    min-width: 12.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .menu-item {
+    display: block;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: none;
+    border-bottom: 2px solid black;
+    background-color: white;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .menu-item.last {
+    border-bottom: none;
+  }
+
+  .menu-item:hover {
+    background-color: #f5f5f5;
+  }
+</style>

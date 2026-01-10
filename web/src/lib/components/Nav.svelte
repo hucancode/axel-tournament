@@ -12,43 +12,97 @@
     let { currentPath, isAuthenticated, user, onLogout }: Props = $props();
 </script>
 
-<nav class="border-b border-blueprint-line-light bg-blueprint-paper px-8 py-4">
-    <div class="max-w-300 mx-auto flex justify-between items-center">
-        <div class="flex gap-6 items-center">
-            <a href="/" class="text-xl font-bold text-primary no-underline hover:opacity-80 transition-opacity">Axel Tournament</a>
+<nav>
+    <div class="nav-container">
+        <div class="nav-links">
+            <a href="/" class="brand">Axel Tournament</a>
             <a
                 href="/tournaments"
-                class="no-underline font-medium transition-colors hover:text-primary {currentPath.startsWith('/tournaments') ? 'text-primary font-semibold' : ''}"
+                class:active={currentPath.startsWith('/tournaments')}
             >
                 Tournaments
             </a>
             <a
                 href="/games"
-                class="no-underline font-medium transition-colors hover:text-primary {currentPath.startsWith('/games') ? 'text-primary font-semibold' : ''}"
+                class:active={currentPath.startsWith('/games')}
             >
                 Games
             </a>
             <a
                 href="/rooms"
-                class="no-underline font-medium transition-colors hover:text-primary {currentPath.startsWith('/rooms') ? 'text-primary font-semibold' : ''}"
+                class:active={currentPath.startsWith('/rooms')}
             >
                 Rooms
             </a>
             <a
                 href="/leaderboard"
-                class="no-underline font-medium transition-colors hover:text-primary {currentPath === '/leaderboard' ? 'text-primary font-semibold' : ''}"
+                class:active={currentPath === '/leaderboard'}
             >
                 Leaderboard
             </a>
         </div>
-        <div class="flex gap-6 items-center">
+        <div class="nav-actions">
             {#if isAuthenticated}
-                <a href="/profile" class="no-underline font-medium transition-colors hover:text-primary {currentPath === '/profile' ? 'text-primary font-semibold' : ''}">{user?.username}</a>
+                <a href="/profile" class:active={currentPath === '/profile'}>{user?.username}</a>
                 <Button onclick={onLogout} label="Logout" variant="ghost" />
             {:else}
-                <a href="/login" class="no-underline font-medium transition-colors hover:text-primary {currentPath === '/login' ? 'text-primary font-semibold' : ''}">Login</a>
+                <a href="/login" class:active={currentPath === '/login'}>Login</a>
                 <LinkButton href="/register" variant="primary" label="Sign Up" />
             {/if}
         </div>
     </div>
 </nav>
+
+<style>
+    nav {
+        border-bottom: 1px solid var(--color-blueprint-line-light);
+        background-color: var(--color-blueprint-paper);
+        padding: 1rem 2rem;
+    }
+
+    .nav-container {
+        max-width: 75rem;
+        margin-inline: auto;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .nav-links,
+    .nav-actions {
+        display: flex;
+        gap: 1.5rem;
+        align-items: center;
+    }
+
+    a {
+        text-decoration: none;
+        font-weight: 500;
+        color: inherit;
+        transition: color var(--transition-fast), opacity var(--transition-fast);
+    }
+
+    a:hover {
+        color: var(--color-primary);
+    }
+
+    a.active {
+        color: var(--color-primary);
+        font-weight: 600;
+    }
+
+    a:focus-visible {
+        outline: 2px solid var(--color-primary);
+        outline-offset: 2px;
+    }
+
+    .brand {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--color-primary);
+    }
+
+    .brand:hover {
+        opacity: 0.8;
+    }
+</style>

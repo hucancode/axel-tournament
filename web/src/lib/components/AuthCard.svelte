@@ -33,47 +33,37 @@
     }
 </script>
 
-<div class="container max-w-md mx-auto my-auto">
-    <div class="p-6 bg-hatch border-blueprint-line-faint">
-        <h1 class="page-title text-center">{title}</h1>
+<main>
+    <section class="bg-hatch">
+        <h1>{title}</h1>
         {#if error}
-            <div class="bg-red-100 p-6 bg-hatch mb-4">
-                <p class="text-red-600">{error}</p>
-            </div>
+            <aside role="alert" class="bg-hatch">
+                <p>{error}</p>
+            </aside>
         {/if}
 
         {#if showEmailPassword}
             <form onsubmit={handleSubmit}>
-                <div class="mb-4">
-                    <label
-                        for="email"
-                        class="block mb-2 font-medium text-gray-dark"
-                        >Email</label
-                    >
+                <fieldset>
+                    <label for="email">Email</label>
                     <input
                         type="email"
                         id="email"
-                        class="input"
                         bind:value={email}
                         required
                         disabled={loading}
                     />
-                </div>
-                <div class="mb-4">
-                    <label
-                        for="password"
-                        class="block mb-2 font-medium text-gray-dark"
-                        >Password</label
-                    >
+                </fieldset>
+                <fieldset>
+                    <label for="password">Password</label>
                     <input
                         type="password"
                         id="password"
-                        class="input"
                         bind:value={password}
                         required
                         disabled={loading}
                     />
-                </div>
+                </fieldset>
                 <Button
                     variant="primary"
                     label={loading ? "Loading..." : submitText}
@@ -84,5 +74,68 @@
         {/if}
 
         {@render children?.()}
-    </div>
-</div>
+    </section>
+</main>
+
+<style>
+    main {
+        max-width: 28rem;
+        margin: auto;
+        height: 100vh;
+        display: flex;
+        align-items: center;
+    }
+
+    section {
+        padding: 1.5rem;
+        border: 1px solid var(--blueprint-line-faint);
+        width: 100%;
+    }
+
+    h1 {
+        text-align: center;
+        margin-bottom: 1.5rem;
+    }
+
+    aside[role="alert"] {
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        border: 1px solid var(--error);
+    }
+
+    aside p {
+        color: var(--error);
+        margin: 0;
+    }
+
+    fieldset {
+        border: none;
+        padding: 0;
+        margin: 0 0 1rem 0;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: var(--text-dark);
+    }
+
+    input {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid var(--color-border-strong);
+        background: var(--color-blueprint-paper);
+        font-size: 1rem;
+    }
+
+    input:focus {
+        outline: 2px solid var(--primary);
+        outline-offset: -2px;
+    }
+
+    input:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+</style>

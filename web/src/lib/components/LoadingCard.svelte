@@ -6,6 +6,19 @@
     let { message = "Loading..." }: Props = $props();
 </script>
 
-<article class="border border-gray-800 p-6 bg-hatch text-center" aria-busy="true" aria-live="polite">
-    <p class="text-gray-500">{message}</p>
+<article aria-busy="true" aria-live="polite" class="bg-hatch">
+    <p>{message}</p>
 </article>
+
+<style>
+    article {
+        border: 1px solid var(--color-gray-800);
+        padding: 1.5rem;
+        text-align: center;
+    }
+
+    p {
+        color: var(--color-gray-500);
+        margin: 0;
+    }
+</style>

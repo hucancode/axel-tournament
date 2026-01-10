@@ -16,18 +16,99 @@
   }
 </script>
 
-<label class="inline-flex items-center gap-3 cursor-pointer select-none {disabled ? 'opacity-50 cursor-not-allowed' : ''}">
+<label>
   <input
     type="checkbox"
     bind:checked
     {disabled}
     onchange={handleChange}
-    class="absolute opacity-0 w-0 h-0 peer"
   />
-  <span class="relative inline-block w-12 h-6 bg-gray-light transition-all peer-checked:bg-primary peer-checked:border-primary peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-2 hover:border-primary hover:border-2 active:opacity-90 {disabled ? 'border-gray-medium' : ''}">
-    <span class="absolute top-0.5 left-0.5 w-4.5 h-4.5 bg-blueprint-paper transition-transform peer-checked:translate-x-6 peer-checked:bg-blueprint-paper peer-checked:border-white"></span>
+  <span class="switch-track">
+    <span class="switch-thumb"></span>
   </span>
   {#if label}
-    <span class="font-medium">{label}</span>
+    <span class="label-text">{label}</span>
   {/if}
 </label>
+
+<style>
+  label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  label:has(input:disabled) {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .switch-track {
+    position: relative;
+    display: inline-block;
+    width: 3rem;
+    height: 1.5rem;
+    background-color: var(--color-gray-light);
+    border: 1px solid var(--color-border-strong);
+    transition: background-color var(--transition-fast), border-color var(--transition-fast);
+  }
+
+  .switch-thumb {
+    position: absolute;
+    top: 0.125rem;
+    left: 0.125rem;
+    width: 1.125rem;
+    height: 1.125rem;
+    background-color: var(--color-blueprint-paper);
+    border: 1px solid var(--color-border-strong);
+    transition: transform var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast);
+  }
+
+  input:checked + .switch-track {
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+  }
+
+  input:checked + .switch-track .switch-thumb {
+    transform: translateX(1.5rem);
+    background-color: var(--color-blueprint-paper);
+    border-color: white;
+  }
+
+  input:focus + .switch-track {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  label:hover:not(:has(input:disabled)) .switch-track {
+    border-color: var(--color-primary);
+    border-width: 2px;
+  }
+
+  label:hover:not(:has(input:disabled)) .switch-thumb {
+    /* Adjust thumb position to account for increased border */
+    top: 0.0625rem;
+    left: 0.0625rem;
+  }
+
+  label:active:not(:has(input:disabled)) .switch-track {
+    opacity: 0.9;
+  }
+
+  input:disabled + .switch-track {
+    border-color: var(--color-gray-medium);
+  }
+
+  .label-text {
+    font-weight: 500;
+  }
+</style>

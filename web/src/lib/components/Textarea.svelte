@@ -24,6 +24,32 @@
   {required}
   {disabled}
   {id}
-  class={`w-full px-4 py-3 border border-border-strong text-base bg-blueprint-paper transition-all resize-y min-h-25 font-mono focus:outline-none focus:border-primary focus:ring-[3px] focus:ring-blue-500/10 ${className}`.trim()}
+  class={className}
   {...rest}
 ></textarea>
+
+<style>
+  textarea {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--color-border-strong);
+    font-size: 1rem;
+    background-color: var(--color-blueprint-paper);
+    color: var(--color-fg);
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+    resize: vertical;
+    min-height: 6.25rem;
+    font-family: monospace;
+  }
+
+  textarea:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgb(59 130 246 / 0.1);
+  }
+
+  textarea:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+</style>
