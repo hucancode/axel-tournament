@@ -1,10 +1,10 @@
 <script lang="ts">
-    import { tournamentService } from "$lib/services/tournaments";
-    import { gameService } from "$lib/services/games";
+    import { tournamentService } from "$services/tournaments";
+    import { gameService } from "$services/games";
     import { authStore } from "$lib/stores/auth";
     import { onMount } from "svelte";
     import type { Tournament, TournamentParticipant, Game } from "$lib/types";
-    import { TournamentCard, LinkButton, LoadingCard, EmptyState } from "$lib/components";
+    import { LinkButton, Card, Badge } from "$lib/components";
 
     let tournaments = $state<Tournament[]>([]);
     let games = $state<Game[]>([]);
@@ -74,51 +74,124 @@
     }
 </script>
 
-<section class="container">
-    <div class="flex justify-between items-center mb-4">
-        <h1 class="text-2xl font-bold">Tournaments</h1>
-        {#if canManageTournaments}
-            <LinkButton href="/tournaments/new" label="+ Create Tournament" variant="primary" />
+<style>
+    .tournaments-page {
+        padding: var(--spacing-8) 0;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: var(--spacing-4);
+    }
+
+    .page-header h1 {
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+
+    .filter-section {
+        padding: var(--spacing-6);
+        background-color: var(--color-blueprint-paper);
+        margin-bottom: var(--spacing-4);
+    }
+
+    .filter-controls {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-4);
+    }
+
+    .filter-controls label {
+        font-weight: 600;
+    }
+
+    .status-select {
+        width: auto;
+    }
+
+    .error-section {
+        padding: var(--spacing-6);
+        background-color: var(--color-gray-50);
+        margin-bottom: var(--spacing-4);
+        color: var(--color-error);
+    }
+
+    .loading-section, .empty-section {
+        text-align: center;
+    }
+
+    .tournaments-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--spacing-4);
+    }
+
+    .player-count {
+        color: var(--color-muted);
+    }
+</style>
+
+<main class="tournaments-page">
+    <div class="container">
+        <header class="page-header">
+            <h1>Tournaments</h1>
+            {#if canManageTournaments}
+                <LinkButton href="/tournaments/new" label="+ Create Tournament" variant="primary" />
+            {/if}
+        </header>
+
+        <section class="filter-section">
+            <div class="filter-controls">
+                <label for="status-filter">Filter by Status:</label>
+                <select
+                    id="status-filter"
+                    class="status-select"
+                    bind:value={selectedStatus}
+                    onchange={handleStatusChange}
+                    disabled={loading}
+                >
+                    {#each statusOptions as option}
+                        <option value={option.value}>{option.label}</option>
+                    {/each}
+                </select>
+            </div>
+        </section>
+
+        {#if error}
+            <section class="error-section">
+                <p>{error}</p>
+            </section>
+        {/if}
+
+        {#if loading}
+            <section class="loading-section">
+                <Card class="loading-card">
+                    <p>Loading tournaments...</p>
+                </Card>
+            </section>
+        {:else if tournaments.length === 0}
+            <section class="empty-section">
+                <Card class="empty-card">
+                    <p>No tournaments found</p>
+                </Card>
+            </section>
+        {:else}
+            <section class="tournaments-grid">
+                {#each tournaments as tournament}
+                    <Card href="/tournaments/tournament?id={tournament.id}">
+                        <h3>{tournament.name}</h3>
+                        <p>{tournament.description}</p>
+                        <footer>
+                            <Badge status={tournament.status} label={tournament.status} />
+                            <span class="player-count">
+                                {(participantCounts[tournament.id] || []).length}/{tournament.max_players} players
+                            </span>
+                        </footer>
+                    </Card>
+                {/each}
+            </section>
         {/if}
     </div>
-
-    <div class="p-6 bg-hatch mb-4">
-        <div class="flex items-center gap-4">
-            <label for="status-filter" class="font-semibold"
-                >Filter by Status:</label
-            >
-            <select
-                id="status-filter"
-                class="select w-auto"
-                bind:value={selectedStatus}
-                onchange={handleStatusChange}
-                disabled={loading}
-            >
-                {#each statusOptions as option}
-                    <option value={option.value}>{option.label}</option>
-                {/each}
-            </select>
-        </div>
-    </div>
-    {#if error}
-        <div
-            class="p-6 bg-hatch bg-red-100 mb-4"
-        >
-            <p class="text-red-600">{error}</p>
-        </div>
-    {/if}
-    {#if loading}
-        <LoadingCard message="Loading tournaments..." />
-    {:else if tournaments.length === 0}
-        <EmptyState message="No tournaments found" />
-    {:else}
-        <div class="grid grid-2">
-            {#each tournaments as tournament}
-                <TournamentCard
-                    {tournament}
-                    participants={participantCounts[tournament.id] || []}
-                />
-            {/each}
-        </div>
-    {/if}
-</section>
+</main>

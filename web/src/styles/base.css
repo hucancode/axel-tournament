@@ -1,0 +1,39 @@
+html,
+body {
+    height: 100%;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--color-blueprint-bg);
+    color: var(--color-fg);
+    line-height: 1.6;
+}
+
+.container {
+    width: 100%;
+    max-width: 1200px;
+    margin-inline: auto;
+    padding-inline: var(--spacing-4);
+}
+
+.bg-hatch {
+    background-image: repeating-linear-gradient(315deg, var(--color-pattern-fg-strong) 0, var(--color-pattern-fg-strong) 2px, var(--color-blueprint-bg) 0, var(--color-blueprint-bg) 50%);
+    background-size: 12px 12px;
+    border: 1px solid var(--color-pattern-fg-strong);
+}
+
+.bg-blueprint-fine-grid {
+    background-image:
+        repeating-linear-gradient(0deg, var(--color-pattern-fg) 0, var(--color-pattern-fg) 1px, transparent 1px, transparent 10px),
+        repeating-linear-gradient(90deg, var(--color-pattern-fg) 0, var(--color-pattern-fg) 1px, transparent 1px, transparent 10px);
+    background-size: 10px 10px;
+}
+
+.bg-blueprint-major-grid {
+    background-image:
+        repeating-linear-gradient(0deg, var(--color-pattern-fg-strong) 0, var(--color-pattern-fg-strong) 1px, transparent 1px, transparent 100px),
+        repeating-linear-gradient(90deg, var(--color-pattern-fg-strong) 0, var(--color-pattern-fg-strong) 1px, transparent 1px, transparent 100px),
+        repeating-linear-gradient(0deg, var(--color-pattern-fg) 0, var(--color-pattern-fg) 1px, transparent 1px, transparent 10px),
+        repeating-linear-gradient(90deg, var(--color-pattern-fg) 0, var(--color-pattern-fg) 1px, transparent 1px, transparent 10px);
+    background-size: 100px 100px, 100px 100px, 10px 10px, 10px 10px;
+}

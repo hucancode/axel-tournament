@@ -3,7 +3,7 @@
     import { goto } from "$app/navigation";
     import { page } from "$app/state";
     import { authStore } from "$lib/stores/auth";
-    import { authService } from "$lib/services/auth";
+    import { authService } from "$services/auth";
     import { LinkButton } from "$lib/components";
     let error = $state("");
     let loading = $state(true);
@@ -29,16 +29,46 @@
     });
 </script>
 
-<div class="page">
-    <div class="container text-center">
+<style>
+    .auth-callback-page {
+        padding: var(--spacing-8) 0;
+    }
+
+    .loading-section, .error-section {
+        text-align: center;
+    }
+
+    .error-section {
+        padding: var(--spacing-6);
+        background-color: var(--color-blueprint-paper);
+        max-width: 32rem;
+        margin: 0 auto;
+    }
+
+    .error-section h1 {
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin-bottom: var(--spacing-4);
+    }
+
+    .error-message {
+        color: var(--color-error);
+        margin-bottom: var(--spacing-4);
+    }
+</style>
+
+<main class="auth-callback-page">
+    <div class="container">
         {#if loading}
-            <h1>Authenticating with Google...</h1>
+            <section class="loading-section">
+                <h1>Authenticating with Google...</h1>
+            </section>
         {:else if error}
-            <div class="p-6 bg-hatch max-w-lg mx-auto">
-                <h1 class="text-2xl font-bold mb-4">Authentication Failed</h1>
-                <p class="text-red-600 mb-4">{error}</p>
+            <section class="error-section">
+                <h1>Authentication Failed</h1>
+                <p class="error-message">{error}</p>
                 <LinkButton href="/login" variant="primary" label="Back to Login" />
-            </div>
+            </section>
         {/if}
     </div>
-</div>
+</main>

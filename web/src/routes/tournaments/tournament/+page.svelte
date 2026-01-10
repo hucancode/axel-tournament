@@ -1,12 +1,12 @@
 <script lang="ts">
-    import { tournamentService } from "$lib/services/tournaments";
-    import { gameService } from "$lib/services/games";
-    import { submissionService } from "$lib/services/submissions";
+    import { tournamentService } from "$services/tournaments";
+    import { gameService } from "$services/games";
+    import { submissionService } from "$services/submissions";
     import { authStore } from "$lib/stores/auth";
     import { page } from "$app/state";
     import { onMount } from "svelte";
     import { goto } from "$app/navigation";
-    import { Button, LinkButton } from "$lib/components";
+    import { LinkButton } from "$lib/components";
     import type {
         Tournament,
         TournamentParticipant,
@@ -159,117 +159,325 @@
     }
 </script>
 
-<div class="page">
+<style>
+    .tournament-page {
+        padding: var(--spacing-8) 0;
+    }
+
+    .page-header {
+        margin-bottom: var(--spacing-8);
+    }
+
+    .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .title-section h1 {
+        font-size: 2rem;
+        font-weight: bold;
+        margin-bottom: var(--spacing-2);
+    }
+
+    .loading-state, .error-state, .not-found {
+        padding: var(--spacing-12);
+        text-align: center;
+        background-color: var(--color-blueprint-paper);
+    }
+
+    .error-state {
+        background-color: var(--color-gray-50);
+        color: var(--color-error);
+    }
+
+    .action-error {
+        padding: var(--spacing-6);
+        margin-bottom: var(--spacing-4);
+        background-color: var(--color-gray-50);
+        color: var(--color-error);
+    }
+
+    .tournament-layout {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: var(--spacing-6);
+    }
+
+    .tournament-content {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-4);
+    }
+
+    .tournament-details, .game-details, .participants-section, .submissions-section {
+        padding: var(--spacing-6);
+        background-color: var(--color-blueprint-paper);
+    }
+
+    .tournament-details h2, .game-details h2, .participants-section h2 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: var(--spacing-4);
+    }
+
+    .description {
+        color: var(--color-muted);
+        margin-bottom: var(--spacing-4);
+    }
+
+    .details-grid {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: var(--spacing-2);
+    }
+
+    .details-grid dt {
+        font-weight: 600;
+        color: var(--color-muted);
+    }
+
+    .languages-section {
+        margin-bottom: var(--spacing-4);
+    }
+
+    .languages-section h3 {
+        font-weight: 600;
+        color: var(--color-muted);
+        margin-bottom: var(--spacing-2);
+    }
+
+    .language-tags {
+        display: flex;
+        gap: var(--spacing-2);
+    }
+
+    .empty-state {
+        text-align: center;
+        color: var(--color-muted);
+    }
+
+    .participants-table, .submissions-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .participants-table th, .submissions-table th {
+        text-align: left;
+        padding: var(--spacing-2);
+        border-bottom: 1px solid var(--color-blueprint-line);
+    }
+
+    .participants-table td, .submissions-table td {
+        padding: var(--spacing-2);
+        border-bottom: 1px solid var(--color-blueprint-line-faint);
+    }
+
+    .rank {
+        font-weight: 600;
+    }
+
+    .no-rank {
+        color: var(--color-muted);
+    }
+
+    .username {
+        font-weight: 600;
+    }
+
+    .join-date, .submit-date {
+        font-size: 0.875rem;
+        color: var(--color-muted);
+    }
+
+    .language {
+        font-weight: 600;
+    }
+
+    .notes {
+        font-size: 0.875rem;
+        color: var(--color-muted);
+    }
+
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: var(--spacing-3);
+    }
+
+    .section-header h2 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    .auth-message, .loading-message, .empty-message {
+        font-size: 0.875rem;
+        color: var(--color-muted);
+    }
+
+    .error-message {
+        font-size: 0.875rem;
+        color: var(--color-error);
+    }
+
+    .tournament-sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-4);
+    }
+
+    .actions-section {
+        padding: var(--spacing-6);
+        background-color: var(--color-blueprint-paper);
+    }
+
+    .actions-section h3 {
+        font-weight: 600;
+        margin-bottom: var(--spacing-4);
+    }
+
+    .auth-required {
+        font-size: 0.875rem;
+        color: var(--color-muted);
+        margin-bottom: var(--spacing-4);
+    }
+
+    .participant-status {
+        margin-top: var(--spacing-4);
+        padding: var(--spacing-4);
+        background-color: var(--color-gray-50);
+        text-align: center;
+    }
+
+    .participant-status p {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--color-primary);
+        margin: 0;
+    }
+
+    .status-info {
+        padding: var(--spacing-6);
+        background-color: var(--color-blueprint-paper);
+    }
+
+    .status-info h3 {
+        font-weight: 600;
+        margin-bottom: var(--spacing-2);
+    }
+
+    .status-info p {
+        font-size: 0.875rem;
+        margin: 0;
+    }
+
+    .registration-open {
+        background-color: var(--color-gray-50);
+    }
+
+    .registration-open h3, .registration-open p {
+        color: var(--color-primary);
+    }
+
+    .tournament-running {
+        background-color: var(--color-gray-50);
+    }
+
+    .tournament-running h3, .tournament-running p {
+        color: var(--color-warning);
+    }
+
+    .tournament-completed {
+        background-color: var(--color-gray-50);
+    }
+
+    .tournament-completed h3, .tournament-completed p {
+        color: var(--color-success);
+    }
+</style>
+
+<main class="tournament-page">
     <div class="container">
         {#if loading}
-            <div class="p-6 bg-hatch text-center">
-                <p class="text-gray-500">Loading tournament...</p>
-            </div>
+            <section class="loading-state">
+                <p>Loading tournament...</p>
+            </section>
         {:else if error}
-            <div class="p-6 bg-hatch bg-red-100">
-                <p class="text-red-600">{error}</p>
-            </div>
+            <section class="error-state">
+                <p>{error}</p>
+            </section>
         {:else if tournament}
-            <div class="page-header">
-                <div class="flex justify-between items-center">
-                    <div>
-                        <h1 class="page-title">{tournament.name}</h1>
+            <header class="page-header">
+                <div class="header-content">
+                    <div class="title-section">
+                        <h1>{tournament.name}</h1>
                         <span class={getStatusBadgeClass(tournament.status)}>
                             {tournament.status}
                         </span>
                     </div>
                     <LinkButton href="/tournaments" variant="secondary" label="Back to Tournaments" />
                 </div>
-            </div>
+            </header>
+            
             {#if actionError}
-                <div class="p-6 bg-hatch mb-4 bg-red-100">
-                    <p class="text-red-600">{actionError}</p>
-                </div>
+                <section class="action-error">
+                    <p>{actionError}</p>
+                </section>
             {/if}
-            <div
-                class="grid grid-cols-[2fr_1fr] gap-6"
-            >
-                <div class="flex flex-col gap-4">
-                    <!-- Tournament Details -->
-                    <div class="p-6 bg-hatch">
-                        <h2 class="text-xl font-semibold mb-4">
-                            About This Tournament
-                        </h2>
-                        <p class="text-gray-700 mb-4">
-                            {tournament.description}
-                        </p>
-                        <div
-                            class="grid gap-2 grid-cols-[auto_1fr]"
-                        >
-                            <div class="font-semibold text-gray-700">
-                                Status:
-                            </div>
-                            <div>
-                                <span
-                                    class={getStatusBadgeClass(
-                                        tournament.status,
-                                    )}
-                                >
+            
+            <div class="tournament-layout">
+                <main class="tournament-content">
+                    <section class="tournament-details">
+                        <h2>About This Tournament</h2>
+                        <p class="description">{tournament.description}</p>
+                        <dl class="details-grid">
+                            <dt>Status:</dt>
+                            <dd>
+                                <span class={getStatusBadgeClass(tournament.status)}>
                                     {tournament.status}
                                 </span>
-                            </div>
-                            <div class="font-semibold text-gray-700">
-                                Players:
-                            </div>
-                            <div>
+                            </dd>
+                            <dt>Players:</dt>
+                            <dd>
                                 {participants.length} / {tournament.max_players}
                                 (min: {tournament.min_players})
-                            </div>
+                            </dd>
                             {#if tournament.start_time}
-                                <div class="font-semibold text-gray-700">
-                                    Start Time:
-                                </div>
-                                <div>{formatDate(tournament.start_time)}</div>
+                                <dt>Start Time:</dt>
+                                <dd>{formatDate(tournament.start_time)}</dd>
                             {/if}
                             {#if tournament.end_time}
-                                <div class="font-semibold text-gray-700">
-                                    End Time:
-                                </div>
-                                <div>{formatDate(tournament.end_time)}</div>
+                                <dt>End Time:</dt>
+                                <dd>{formatDate(tournament.end_time)}</dd>
                             {/if}
-                            <div class="font-semibold text-gray-700">
-                                Created:
-                            </div>
-                            <div>{formatDate(tournament.created_at)}</div>
-                        </div>
-                    </div>
-                    <!-- Game Details -->
+                            <dt>Created:</dt>
+                            <dd>{formatDate(tournament.created_at)}</dd>
+                        </dl>
+                    </section>
+
                     {#if game}
-                        <div class="p-6 bg-hatch">
-                            <h2 class="text-xl font-semibold mb-4">
-                                Game: {game.name}
-                            </h2>
-                            <p class="text-gray-700 mb-4">{game.description}</p>
-                            <div class="mb-4">
-                                <div class="font-semibold text-gray-700 mb-2">
-                                    Supported Languages:
-                                </div>
-                                <div class="flex gap-2">
+                        <section class="game-details">
+                            <h2>Game: {game.name}</h2>
+                            <p class="description">{game.description}</p>
+                            <div class="languages-section">
+                                <h3>Supported Languages:</h3>
+                                <div class="language-tags">
                                     {#each game.supported_languages as lang}
-                                        <span class="badge badge-scheduled"
-                                            >{lang}</span
-                                        >
+                                        <span class="badge badge-scheduled">{lang}</span>
                                     {/each}
                                 </div>
                             </div>
-                        </div>
+                        </section>
                     {/if}
-                    <!-- Participants -->
-                    <div class="p-6 bg-hatch">
-                        <h2 class="text-xl font-semibold mb-4">
-                            Participants ({participants.length})
-                        </h2>
+
+                    <section class="participants-section">
+                        <h2>Participants ({participants.length})</h2>
                         {#if participants.length === 0}
-                            <p class="text-center text-gray-500">
-                                No participants yet
-                            </p>
+                            <p class="empty-state">No participants yet</p>
                         {:else}
-                            <table>
+                            <table class="participants-table">
                                 <thead>
                                     <tr>
                                         <th>Rank</th>
@@ -283,43 +491,29 @@
                                         <tr>
                                             <td>
                                                 {#if participant.rank}
-                                                    <span class="font-semibold"
-                                                        >#{participant.rank}</span
-                                                    >
+                                                    <span class="rank">#{participant.rank}</span>
                                                 {:else}
-                                                    <span class="text-gray-500"
-                                                        >-</span
-                                                    >
+                                                    <span class="no-rank">-</span>
                                                 {/if}
                                             </td>
-                                            <td class="font-semibold">
-                                                {participant.username ||
-                                                    "Unknown"}
+                                            <td class="username">
+                                                {participant.username || "Unknown"}
                                                 {#if $authStore.user && participant.user_id === $authStore.user.id}
-                                                    <span
-                                                        class="badge badge-registration ml-2"
-                                                        >You</span
-                                                    >
+                                                    <span class="badge badge-registration">You</span>
                                                 {/if}
                                             </td>
                                             <td>{participant.score || 0}</td>
-                                            <td class="text-sm text-gray-500">
-                                                {formatDate(
-                                                    participant.joined_at,
-                                                )}
-                                            </td>
+                                            <td class="join-date">{formatDate(participant.joined_at)}</td>
                                         </tr>
                                     {/each}
                                 </tbody>
                             </table>
                         {/if}
-                    </div>
-                    <!-- User submissions -->
-                    <div class="p-6 bg-hatch">
-                        <div class="flex justify-between items-center mb-3">
-                            <h2 class="text-xl font-semibold">
-                                Your Submissions
-                            </h2>
+                    </section>
+
+                    <section class="submissions-section">
+                        <div class="section-header">
+                            <h2>Your Submissions</h2>
                             {#if canSubmit()}
                                 <LinkButton
                                     href="/tournaments/submit?id={tournamentId}"
@@ -329,23 +523,15 @@
                             {/if}
                         </div>
                         {#if !$authStore.isAuthenticated}
-                            <p class="text-sm text-gray-500">
-                                Login to view and submit your code.
-                            </p>
+                            <p class="auth-message">Login to view and submit your code.</p>
                         {:else if submissionsLoading}
-                            <p class="text-sm text-gray-500">
-                                Loading your submissions...
-                            </p>
+                            <p class="loading-message">Loading your submissions...</p>
                         {:else if submissionError}
-                            <p class="text-sm text-red-600">
-                                {submissionError}
-                            </p>
+                            <p class="error-message">{submissionError}</p>
                         {:else if userSubmissions.length === 0}
-                            <p class="text-sm text-gray-500">
-                                You have not submitted any code yet.
-                            </p>
+                            <p class="empty-message">You have not submitted any code yet.</p>
                         {:else}
-                            <table>
+                            <table class="submissions-table">
                                 <thead>
                                     <tr>
                                         <th>#</th>
@@ -359,65 +545,46 @@
                                     {#each userSubmissions as submission, index}
                                         <tr>
                                             <td>#{index + 1}</td>
-                                            <td class="font-semibold">
-                                                {submission.language.toUpperCase()}
-                                            </td>
+                                            <td class="language">{submission.language.toUpperCase()}</td>
                                             <td>
-                                                <span
-                                                    class="badge badge-{submission.status}"
-                                                >
+                                                <span class="badge badge-{submission.status}">
                                                     {submission.status}
                                                 </span>
                                             </td>
-                                            <td class="text-sm text-gray-500">
-                                                {formatDate(
-                                                    submission.created_at,
-                                                )}
-                                            </td>
-                                            <td class="text-sm text-gray-600">
-                                                {submission.error_message ||
-                                                    "-"}
-                                            </td>
+                                            <td class="submit-date">{formatDate(submission.created_at)}</td>
+                                            <td class="notes">{submission.error_message || "-"}</td>
                                         </tr>
                                     {/each}
                                 </tbody>
                             </table>
                         {/if}
-                    </div>
-                </div>
-                <!-- Actions Sidebar -->
-                <div class="flex flex-col gap-4">
-                    <div class="p-6 bg-hatch">
-                        <h3 class="font-semibold mb-4">Actions</h3>
+                    </section>
+                </main>
+
+                <aside class="tournament-sidebar">
+                    <section class="actions-section">
+                        <h3>Actions</h3>
                         {#if !$authStore.isAuthenticated}
-                            <p class="text-sm text-gray-500 mb-4">
-                                You must be logged in to participate
-                            </p>
-                            <LinkButton
-                                href="/login"
-                                variant="primary"
-                                label="Login"
-                            />
+                            <p class="auth-required">You must be logged in to participate</p>
+                            <LinkButton href="/login" variant="primary" label="Login" />
                         {:else}
                             {#if canJoin()}
-                                <Button
+                                <button
                                     onclick={joinTournament}
-                                    variant="success"
-                                    label={actionLoading
-                                        ? "Joining..."
-                                        : "Join Tournament"}
+                                    data-variant="success"
                                     disabled={actionLoading}
-                                />
+                                >
+                                    {actionLoading ? "Joining..." : "Join Tournament"}
+                                </button>
                             {/if}
                             {#if canLeave()}
-                                <Button
+                                <button
                                     onclick={leaveTournament}
-                                    variant="danger"
-                                    label={actionLoading
-                                        ? "Leaving..."
-                                        : "Leave Tournament"}
+                                    data-variant="danger"
                                     disabled={actionLoading}
-                                />
+                                >
+                                    {actionLoading ? "Leaving..." : "Leave Tournament"}
+                                </button>
                             {/if}
                             {#if canSubmit()}
                                 <LinkButton
@@ -427,63 +594,35 @@
                                 />
                             {/if}
                             {#if isParticipant}
-                                <div
-                                    class="mt-4 p-4 bg-primary-50"
-                                >
-                                    <p
-                                        class="text-sm text-center font-semibold text-primary-700"
-                                    >
-                                        You are participating in this tournament
-                                    </p>
+                                <div class="participant-status">
+                                    <p>You are participating in this tournament</p>
                                 </div>
                             {/if}
                         {/if}
-                    </div>
+                    </section>
+                    
                     {#if tournament.status === "registration"}
-                        <div
-                            class="p-6 bg-hatch bg-primary-50"
-                        >
-                            <h3
-                                class="font-semibold mb-2 text-primary-700"
-                            >
-                                Registration Open
-                            </h3>
-                            <p
-                                class="text-sm text-primary-700"
-                            >
-                                Join now to participate in this tournament!
-                            </p>
-                        </div>
+                        <section class="status-info registration-open">
+                            <h3>Registration Open</h3>
+                            <p>Join now to participate in this tournament!</p>
+                        </section>
                     {:else if tournament.status === "running"}
-                        <div class="p-6 bg-hatch bg-amber-100">
-                            <h3
-                                class="font-semibold mb-2 text-amber-900"
-                            >
-                                Tournament In Progress
-                            </h3>
-                            <p class="text-sm text-amber-900">
-                                This tournament is currently running. New
-                                participants cannot join.
-                            </p>
-                        </div>
+                        <section class="status-info tournament-running">
+                            <h3>Tournament In Progress</h3>
+                            <p>This tournament is currently running. New participants cannot join.</p>
+                        </section>
                     {:else if tournament.status === "completed"}
-                        <div class="p-6 bg-hatch bg-emerald-100">
-                            <h3
-                                class="font-semibold mb-2 text-emerald-800"
-                            >
-                                Tournament Completed
-                            </h3>
-                            <p class="text-sm text-emerald-800">
-                                Check the participants list for final rankings.
-                            </p>
-                        </div>
+                        <section class="status-info tournament-completed">
+                            <h3>Tournament Completed</h3>
+                            <p>Check the participants list for final rankings.</p>
+                        </section>
                     {/if}
-                </div>
+                </aside>
             </div>
         {:else}
-            <div class="p-6 bg-hatch text-center">
-                <p class="text-gray-500">Tournament not found</p>
-            </div>
+            <section class="not-found">
+                <p>Tournament not found</p>
+            </section>
         {/if}
     </div>
-</div>
+</main>

@@ -1,7 +1,6 @@
 <script module lang="ts">
   import { defineMeta } from '@storybook/addon-svelte-csf';
   import Popover from './Popover.svelte';
-    import Button from './Button.svelte';
 
   const { Story } = defineMeta({
     title: 'Container/Popover',

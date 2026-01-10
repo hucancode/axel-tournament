@@ -1,5 +1,9 @@
 import type { Preview } from "@storybook/svelte";
-import "../src/app.css";
+import "$styles/variables.css";
+import "$styles/base.css";
+import "$styles/forms.css";
+import "$styles/buttons.css";
+import "$styles/tabs.css";
 
 const preview: Preview = {
   parameters: {

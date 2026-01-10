@@ -1,0 +1,86 @@
+:root {
+    --color-blueprint-bg: #FFFFFF;
+    --color-blueprint-paper: #FFFFFF;
+    --color-blueprint-line: oklch(0.13 0.028 261.692);
+    --color-blueprint-line-light: oklch(0.50 0.02 261);
+    --color-blueprint-line-faint: oklch(0.95 0.01 261);
+    --color-primary: #3B82F6;
+    --color-secondary: #60A5FA;
+    --color-accent: #EC4899;
+    --color-success: #10B981;
+    --color-warning: #F59E0B;
+    --color-error: #EF4444;
+    --color-gray-50: #F8FAFC;
+    --color-gray-100: #F1F5F9;
+    --color-gray-200: #E2E8F0;
+    --color-gray-300: #CBD5E1;
+    --color-gray-400: #94A3B8;
+    --color-gray-500: #64748B;
+    --color-gray-600: #475569;
+    --color-gray-700: #334155;
+    --color-gray-800: #1E293B;
+    --color-gray-900: #0F172A;
+    --color-gray-950: #020617;
+    --color-gray-light: #F1F5F9;
+    --color-gray-medium: #94A3B8;
+    --color-gray-dark: #475569;
+    --color-fg: #0F172A;
+    --color-muted: #64748B;
+    --color-pattern-fg: rgb(0 0 0 / 0.05);
+    --color-pattern-fg-strong: rgb(0 0 0 / 0.08);
+    --color-border: rgb(0 0 0 / 0.05);
+    --color-border-strong: rgb(0 0 0 / 0.10);
+    --spacing-1: 0.25rem;
+    --spacing-2: 0.5rem;
+    --spacing-3: 0.75rem;
+    --spacing-4: 1rem;
+    --spacing-5: 1.25rem;
+    --spacing-6: 1.5rem;
+    --spacing-8: 2rem;
+    --spacing-12: 3rem;
+    --spacing-16: 4rem;
+    --radius-sm: 0.125rem;
+    --radius-md: 0.375rem;
+    --radius-lg: 0.5rem;
+    --radius-xl: 0.75rem;
+    --radius-2xl: 1rem;
+    --transition-fast: 0.15s ease;
+    --transition-normal: 0.2s ease;
+    --transition-slow: 0.3s ease;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --z-dropdown: 1000;
+    --z-sticky: 1020;
+    --z-fixed: 1030;
+    --z-modal-backdrop: 1040;
+    --z-modal: 1050;
+    --z-popover: 1060;
+    --z-tooltip: 1070;
+    --z-toast: 1080;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --color-blueprint-bg: oklch(0.13 0.028 261.692);
+        --color-blueprint-paper: #1E293B;
+        --color-blueprint-line: #E2E8F0;
+        --color-blueprint-line-light: #64748B;
+        --color-blueprint-line-faint: #334155;
+        --color-primary: #3B82F6;
+        --color-secondary: #60A5FA;
+        --color-accent: #F472B6;
+        --color-success: #34D399;
+        --color-warning: #FBBF24;
+        --color-error: #F87171;
+        --color-gray-light: #334155;
+        --color-gray-medium: #64748B;
+        --color-gray-dark: #94A3B8;
+        --color-fg: #F8FAFC;
+        --color-muted: #94A3B8;
+        --color-pattern-fg: rgb(255 255 255 / 0.05);
+        --color-pattern-fg-strong: rgb(255 255 255 / 0.08);
+        --color-border: rgb(77 77 77 / 0.10);
+        --color-border-strong: rgb(255 255 255 / 0.15);
+    }
+}

@@ -1,6 +1,5 @@
 <script lang="ts">
-    import { authService } from "$lib/services/auth";
-    import { Button } from "$lib/components";
+    import { authService } from "$services/auth";
 
     let email = $state("");
     let loading = $state(false);
@@ -28,32 +27,93 @@
     }
 </script>
 
-<div class="page">
-    <div class="container max-w-md">
-        <div class="p-6 bg-hatch">
-            <h1 class="page-title text-center">Reset Password</h1>
-            <p
-                class="text-sm text-gray-500 mb-6 text-center"
-            >
+<style>
+    .reset-password-page {
+        padding: var(--spacing-8) 0;
+    }
+
+    .container {
+        max-width: 28rem;
+    }
+
+    .reset-form-section {
+        padding: var(--spacing-6);
+        background-color: var(--color-blueprint-paper);
+    }
+
+    .reset-form-section h1 {
+        text-align: center;
+        margin-bottom: var(--spacing-2);
+    }
+
+    .form-subtitle {
+        font-size: 0.875rem;
+        color: var(--color-muted);
+        margin-bottom: var(--spacing-6);
+        text-align: center;
+    }
+
+    .error-message {
+        border: 1px solid var(--color-error);
+        padding: var(--spacing-6);
+        background-color: var(--color-gray-50);
+        margin-bottom: var(--spacing-4);
+        color: var(--color-error);
+    }
+
+    .success-message {
+        border: 1px solid var(--color-success);
+        padding: var(--spacing-6);
+        background-color: var(--color-gray-50);
+        margin-bottom: var(--spacing-4);
+        color: var(--color-success);
+    }
+
+    .form-field {
+        margin-bottom: var(--spacing-4);
+    }
+
+    .form-field label {
+        display: block;
+        margin-bottom: var(--spacing-2);
+        font-weight: 500;
+        color: var(--color-gray-dark);
+    }
+
+    .back-link {
+        margin-top: var(--spacing-6);
+        text-align: center;
+    }
+
+    .back-link a {
+        color: var(--color-primary);
+        text-decoration: none;
+    }
+</style>
+
+<main class="reset-password-page">
+    <div class="container">
+        <section class="reset-form-section">
+            <h1>Reset Password</h1>
+            <p class="form-subtitle">
                 Enter your account email and we'll send you a reset link.
             </p>
+            
             {#if error}
-                <div
-                    class="border p-6 bg-hatch bg-red-100 mb-4"
-                >
-                    <p class="text-red-600">{error}</p>
+                <div class="error-message">
+                    <p>{error}</p>
                 </div>
             {/if}
+            
             {#if message}
-                <div
-                    class="border p-6 bg-hatch bg-green-100 mb-4"
-                >
-                    <p class="text-green-700">{message}</p>
+                <div class="success-message">
+                    <p>{message}</p>
                 </div>
             {/if}
-            <form onsubmit={handleSubmit}>
-                <div class="mb-4">
-                    <label for="email" class="block mb-2 font-medium text-gray-dark">Email</label>
+            
+            <form onsubmit={handleSubmit} class="reset-form">
+                <div class="form-field">
+                    <label for="email">Email</label>
                     <input
                         type="email"
                         id="email"
@@ -63,17 +123,19 @@
                         disabled={loading}
                     />
                 </div>
-                <Button
-                    variant="primary"
-                    label={loading ? "Sending..." : "Send Reset Link"}
+                
+                <button
+                    type="submit"
+                    data-variant="primary"
                     disabled={loading}
-                />
-            </form>
-            <div class="mt-6 text-center">
-                <a href="/login" class="text-primary-600"
-                    >Back to Login</a
                 >
+                    {loading ? "Sending..." : "Send Reset Link"}
+                </button>
+            </form>
+            
+            <div class="back-link">
+                <a href="/login">Back to Login</a>
             </div>
-        </div>
+        </section>
     </div>
-</div>
+</main>

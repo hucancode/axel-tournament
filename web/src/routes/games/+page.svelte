@@ -1,9 +1,9 @@
 <script lang="ts">
-    import { gameService } from "$lib/services/games";
-    import { tournamentService } from "$lib/services/tournaments";
+    import { gameService } from "$services/games";
+    import { tournamentService } from "$services/tournaments";
     import { onMount } from "svelte";
     import type { Game, Tournament } from "$lib/types";
-    import { LinkButton, Button, LoadingCard, EmptyState, Badge, Card } from "$lib/components";
+    import { LinkButton, Card, Badge } from "$lib/components";
 
     let games = $state<Game[]>([]);
     let tournamentsByGame = $state<Map<string, Tournament[]>>(new Map());
@@ -48,76 +48,167 @@
     }
 </script>
 
-<section class="container">
-    <div class="flex justify-between items-center mb-4">
-        <h1 class="text-2xl font-bold">Available Games</h1>
-    </div>
+<style>
+    .games-page {
+        padding: var(--spacing-8) 0;
+    }
 
-    {#if error}
-        <div class="border p-6 bg-hatch bg-red-100 mb-4">
-            <p class="text-red-600">{error}</p>
-        </div>
-    {/if}
-    {#if loading}
-        <LoadingCard message="Loading games..." />
-    {:else if games.length === 0}
-        <EmptyState message="No games available" />
-    {:else}
-        <div class="grid grid-cols-2">
-            {#each games as game}
-                <Card>
-                    <div class="flex justify-between items-center mb-2">
-                        <h2 class="text-xl font-semibold">
-                            {game.name}
-                        </h2>
-                    </div>
-                    <p class="text-gray-700 mb-4">{game.description}</p>
-                    <div class="mb-4">
-                        <div class="text-sm font-semibold text-gray-700 mb-2">
-                            Supported Languages:
-                        </div>
-                        <div class="flex gap-2">
-                            {#each game.supported_languages as lang}
-                                <Badge status="scheduled" label={lang.toUpperCase()} />
-                            {/each}
-                        </div>
-                    </div>
-                    <div class="mb-4">
-                        <div class="text-sm font-semibold text-gray-700 mb-2">
-                            Tournament Statistics:
-                        </div>
-                        <div class="grid gap-2 grid-cols-[auto_1fr]">
-                            <div class="text-sm text-gray-500">
-                                Active Tournaments:
-                            </div>
-                            <div class="text-sm font-semibold">
-                                {getActiveTournamentCount(game.id)}
-                            </div>
-                            <div class="text-sm text-gray-500">
-                                Total Tournaments:
-                            </div>
-                            <div class="text-sm font-semibold">
-                                {getTotalTournamentCount(game.id)}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="flex gap-2 flex-wrap">
-                        {#if tournamentsByGame.get(game.id)?.length}
-                            <LinkButton
-                                href="/tournaments?game={game.id}"
-                                variant="primary"
-                                label="View Tournaments"
-                            />
-                        {:else}
-                            <Button
-                                variant="secondary"
-                                label="No Tournaments Yet"
-                                disabled={true}
-                            />
-                        {/if}
-                    </div>
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: var(--spacing-4);
+    }
+
+    .page-header h1 {
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+
+    .error-section {
+        border: 1px solid var(--color-error);
+        padding: var(--spacing-6);
+        background-color: var(--color-gray-50);
+        margin-bottom: var(--spacing-4);
+        color: var(--color-error);
+    }
+
+    .loading-section, .empty-section {
+        text-align: center;
+    }
+
+    .games-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--spacing-4);
+    }
+
+    .game-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: var(--spacing-2);
+    }
+
+    .game-header h2 {
+        font-size: 1.25rem;
+        font-weight: 600;
+    }
+
+    .game-description {
+        color: var(--color-muted);
+        margin-bottom: var(--spacing-4);
+    }
+
+    .game-languages, .game-stats {
+        margin-bottom: var(--spacing-4);
+    }
+
+    .game-languages h3, .game-stats h3 {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--color-muted);
+        margin-bottom: var(--spacing-2);
+    }
+
+    .language-badges {
+        display: flex;
+        gap: var(--spacing-2);
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: var(--spacing-2);
+    }
+
+    .stats-grid dt {
+        font-size: 0.875rem;
+        color: var(--color-muted);
+    }
+
+    .stats-grid dd {
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+
+    .game-actions {
+        display: flex;
+        gap: var(--spacing-2);
+        flex-wrap: wrap;
+    }
+</style>
+
+<main class="games-page">
+    <div class="container">
+        <header class="page-header">
+            <h1>Available Games</h1>
+        </header>
+
+        {#if error}
+            <section class="error-section">
+                <p>{error}</p>
+            </section>
+        {/if}
+
+        {#if loading}
+            <section class="loading-section">
+                <Card class="loading-card">
+                    <p>Loading games...</p>
                 </Card>
-            {/each}
-        </div>
-    {/if}
-</section>
+            </section>
+        {:else if games.length === 0}
+            <section class="empty-section">
+                <Card class="empty-card">
+                    <p>No games available</p>
+                </Card>
+            </section>
+        {:else}
+            <section class="games-grid">
+                {#each games as game}
+                    <article class="game-card">
+                        <Card>
+                            <header class="game-header">
+                                <h2>{game.name}</h2>
+                            </header>
+                            <p class="game-description">{game.description}</p>
+                            
+                            <div class="game-languages">
+                                <h3>Supported Languages:</h3>
+                                <div class="language-badges">
+                                    {#each game.supported_languages as lang}
+                                        <Badge status="scheduled" label={lang.toUpperCase()} />
+                                    {/each}
+                                </div>
+                            </div>
+                            
+                            <div class="game-stats">
+                                <h3>Tournament Statistics:</h3>
+                                <dl class="stats-grid">
+                                    <dt>Active Tournaments:</dt>
+                                    <dd>{getActiveTournamentCount(game.id)}</dd>
+                                    <dt>Total Tournaments:</dt>
+                                    <dd>{getTotalTournamentCount(game.id)}</dd>
+                                </dl>
+                            </div>
+                            
+                            <div class="game-actions">
+                                {#if tournamentsByGame.get(game.id)?.length}
+                                    <LinkButton
+                                        href="/tournaments?game={game.id}"
+                                        variant="primary"
+                                        label="View Tournaments"
+                                    />
+                                {:else}
+                                    <button data-variant="secondary" disabled>
+                                        No Tournaments Yet
+                                    </button>
+                                {/if}
+                            </div>
+                        </Card>
+                    </article>
+                {/each}
+            </section>
+        {/if}
+    </div>
+</main>

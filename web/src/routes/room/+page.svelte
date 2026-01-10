@@ -2,9 +2,9 @@
   import { onMount, tick } from 'svelte';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
-  import { roomService } from '$lib/services/rooms';
-  import { gameService } from '$lib/services/games';
-  import { RoomSocket } from '$lib/services/roomSocket';
+  import { roomService } from '$services/rooms';
+  import { gameService } from '$services/games';
+  import { RoomSocket } from '$services/roomSocket';
   import { createGame } from '$lib/games/registry';
   import type { BasePixiGame } from '$lib/games/BasePixiGame';
   import Alert from '$lib/components/Alert.svelte';

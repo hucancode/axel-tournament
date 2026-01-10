@@ -2,82 +2,35 @@
     import type { Snippet } from "svelte";
 
     interface Props {
-        title?: string;
-        content?: string;
         href?: string;
-        loading?: boolean;
+        class?: string;
         children?: Snippet;
     }
 
-    let { title = "", content = "", href, loading = false, children }: Props = $props();
+    let { href, class: className = "", children }: Props = $props();
     let isLink = $derived(!!href);
 </script>
 
 {#if isLink}
-    <a class="bg-hatch card-outer" {href} data-loading={loading}>
-        <div class="card-inner">
-            {#if loading}
-                <p>{content || "Loading..."}</p>
-            {:else if children}
-                {@render children()}
-            {:else}
-                {#if title}<h3>{title}</h3>{/if}
-                {#if content}<p>{content}</p>{/if}
-            {/if}
-        </div>
+    <a class="bg-hatch card {className}" {href}>
+        {@render children?.()}
     </a>
 {:else}
-    <article class="bg-hatch card-outer" data-loading={loading}>
-        <div class="card-inner">
-            {#if loading}
-                <p>{content || "Loading..."}</p>
-            {:else if children}
-                {@render children()}
-            {:else}
-                {#if title}<h3>{title}</h3>{/if}
-                {#if content}<p>{content}</p>{/if}
-            {/if}
-        </div>
-    </article>
+    <div class="bg-hatch card {className}">
+        {@render children?.()}
+    </div>
 {/if}
 
 <style>
-    a, article {
+    .card {
         display: block;
-        padding: 0.5rem;
-    }
-
-    a {
-        text-decoration: none;
-        transition: border-color var(--transition-fast);
-    }
-
-    a:hover {
-        border-color: var(--color-border-strong);
-    }
-
-    .card-inner {
-        border-radius: var(--radius-xl);
         border: 1px solid var(--color-gray-800);
-        background-color: var(--color-gray-950);
-        padding: 2rem;
+        padding: 1.5rem;
+        text-decoration: none;
+        transition: border-color 0.15s ease;
     }
 
-    [data-loading="true"] {
-        text-align: center;
-    }
-
-    [data-loading="true"] p {
-        color: var(--color-gray-500);
-    }
-
-    h3 {
-        font-size: 1.125rem;
-        font-weight: 600;
-        margin-bottom: 0.5rem;
-    }
-
-    p {
-        color: var(--color-muted);
+    a.card:hover {
+        border-color: var(--border-strong);
     }
 </style>

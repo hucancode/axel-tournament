@@ -2,9 +2,9 @@
     import { goto } from "$app/navigation";
     import { onMount } from "svelte";
     import { authStore } from "$lib/stores/auth";
-    import { tournamentService } from "$lib/services/tournaments";
-    import { gameService } from "$lib/services/games";
-    import { Button, LinkButton, LoadingCard, EmptyState } from "$lib/components";
+    import { tournamentService } from "$services/tournaments";
+    import { gameService } from "$services/games";
+    import { LinkButton, Card } from "$lib/components";
     import type { Game, CreateTournamentRequest, MatchGenerationType } from "$lib/types";
 
     let games = $state<Game[]>([]);
@@ -95,156 +95,236 @@
     }
 </script>
 
-<section class="container">
-    <div class="page-header">
-        <div class="flex justify-between items-center">
-            <div>
-                <h1 class="page-title">Create New Tournament</h1>
-                <p class="text-gray-500">Set up a new competitive tournament</p>
-            </div>
-            <LinkButton variant="secondary" href="/tournaments" label="Back to Tournaments" />
-        </div>
-    </div>
+<style>
+    .tournament-create-page {
+        padding: var(--spacing-8) 0;
+    }
 
-    {#if loading}
-        <LoadingCard message="Loading games..." />
-    {:else if error}
-        <div class="bg-red-100 border-l-4 border-red-600 p-4 mb-4">
-            <p class="text-red-600">{error}</p>
-        </div>
-    {:else if ownedGames().length === 0}
-        <EmptyState
-            message="You need to create a game before creating tournaments."
-            actionLabel="Create Game"
-            onAction={() => goto("/games/new")}
-        />
-    {:else}
-        {#if formError}
-            <div class="bg-red-100 border-l-4 border-red-600 p-4 mb-4">
-                <p class="text-red-600">{formError}</p>
+    .page-header {
+        margin-bottom: var(--spacing-8);
+    }
+
+    .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .title-section h1 {
+        font-size: 2rem;
+        font-weight: bold;
+        margin-bottom: var(--spacing-2);
+    }
+
+    .subtitle {
+        color: var(--color-muted);
+    }
+
+    .loading-section, .no-games-section {
+        text-align: center;
+    }
+
+    .error-section, .form-error-section {
+        background-color: var(--color-gray-50);
+        border-left: 4px solid var(--color-error);
+        padding: var(--spacing-4);
+        margin-bottom: var(--spacing-4);
+        color: var(--color-error);
+    }
+
+    .form-section {
+        background-color: var(--color-blueprint-paper);
+    }
+
+    .tournament-form {
+        padding: var(--spacing-6);
+        background-color: var(--color-blueprint-paper);
+    }
+
+    .form-field {
+        margin-bottom: var(--spacing-4);
+    }
+
+    .form-field label {
+        display: block;
+        margin-bottom: var(--spacing-2);
+        font-weight: 500;
+        color: var(--color-gray-dark);
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--spacing-4);
+        margin-bottom: var(--spacing-4);
+    }
+
+    .form-actions {
+        display: flex;
+        gap: var(--spacing-2);
+    }
+</style>
+
+<main class="tournament-create-page">
+    <div class="container">
+        <header class="page-header">
+            <div class="header-content">
+                <div class="title-section">
+                    <h1>Create New Tournament</h1>
+                    <p class="subtitle">Set up a new competitive tournament</p>
+                </div>
+                <LinkButton variant="secondary" href="/tournaments" label="Back to Tournaments" />
             </div>
+        </header>
+
+        {#if loading}
+            <section class="loading-section">
+                <Card class="loading-card">
+                    <p>Loading games...</p>
+                </Card>
+            </section>
+        {:else if error}
+            <section class="error-section">
+                <p>{error}</p>
+            </section>
+        {:else if ownedGames().length === 0}
+            <section class="no-games-section">
+                <Card class="no-games-card">
+                    <p>You need to create a game before creating tournaments.</p>
+                    <button onclick={() => goto("/games/new")} data-variant="primary">Create Game</button>
+                </Card>
+            </section>
+        {:else}
+            {#if formError}
+                <section class="form-error-section">
+                    <p>{formError}</p>
+                </section>
+            {/if}
+
+            <section class="form-section">
+                <form onsubmit={handleSubmit} class="tournament-form">
+                    <div class="form-field">
+                        <label for="game">Game</label>
+                        <select
+                            id="game"
+                            class="input"
+                            bind:value={formData.game_id}
+                            disabled={formLoading}
+                            required
+                        >
+                            {#each ownedGames() as game}
+                                <option value={game.id}>{game.name}</option>
+                            {/each}
+                        </select>
+                    </div>
+
+                    <div class="form-field">
+                        <label for="name">Tournament Name</label>
+                        <input
+                            id="name"
+                            type="text"
+                            class="input"
+                            bind:value={formData.name}
+                            disabled={formLoading}
+                            required
+                        />
+                    </div>
+
+                    <div class="form-field">
+                        <label for="description">Description</label>
+                        <textarea
+                            id="description"
+                            class="textarea"
+                            bind:value={formData.description}
+                            disabled={formLoading}
+                            rows="4"
+                            required
+                        ></textarea>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label for="min-players">Minimum Players</label>
+                            <input
+                                id="min-players"
+                                type="number"
+                                class="input"
+                                min="2"
+                                bind:value={formData.min_players}
+                                disabled={formLoading}
+                                required
+                            />
+                        </div>
+
+                        <div class="form-field">
+                            <label for="max-players">Maximum Players</label>
+                            <input
+                                id="max-players"
+                                type="number"
+                                class="input"
+                                min="2"
+                                bind:value={formData.max_players}
+                                disabled={formLoading}
+                                required
+                            />
+                        </div>
+                    </div>
+
+                    <div class="form-field">
+                        <label for="match-type">Match Generation Type</label>
+                        <select
+                            id="match-type"
+                            class="input"
+                            bind:value={formData.match_generation_type}
+                            disabled={formLoading}
+                            required
+                        >
+                            {#each matchTypes as type}
+                                <option value={type.value}>{type.label}</option>
+                            {/each}
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label for="start-time">Start Time (Optional)</label>
+                            <input
+                                id="start-time"
+                                type="datetime-local"
+                                class="input"
+                                bind:value={formData.start_time}
+                                disabled={formLoading}
+                            />
+                        </div>
+
+                        <div class="form-field">
+                            <label for="end-time">End Time (Optional)</label>
+                            <input
+                                id="end-time"
+                                type="datetime-local"
+                                class="input"
+                                bind:value={formData.end_time}
+                                disabled={formLoading}
+                            />
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button
+                            type="submit"
+                            data-variant="primary"
+                            disabled={formLoading}
+                        >
+                            {formLoading ? "Creating..." : "Create Tournament"}
+                        </button>
+                        <LinkButton
+                            href="/tournaments"
+                            variant="secondary"
+                            label="Cancel"
+                        />
+                    </div>
+                </form>
+            </section>
         {/if}
-
-        <form onsubmit={handleSubmit} class="p-6 bg-hatch">
-            <div class="mb-4">
-                <label for="game" class="block mb-2 font-medium text-gray-dark">Game</label>
-                <select
-                    id="game"
-                    class="input"
-                    bind:value={formData.game_id}
-                    disabled={formLoading}
-                    required
-                >
-                    {#each ownedGames() as game}
-                        <option value={game.id}>{game.name}</option>
-                    {/each}
-                </select>
-            </div>
-
-            <div class="mb-4">
-                <label for="name" class="block mb-2 font-medium text-gray-dark">Tournament Name</label>
-                <input
-                    id="name"
-                    type="text"
-                    class="input"
-                    bind:value={formData.name}
-                    disabled={formLoading}
-                    required
-                />
-            </div>
-
-            <div class="mb-4">
-                <label for="description" class="block mb-2 font-medium text-gray-dark">Description</label>
-                <textarea
-                    id="description"
-                    class="textarea"
-                    bind:value={formData.description}
-                    disabled={formLoading}
-                    rows="4"
-                    required
-                ></textarea>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4 mb-4">
-                <div>
-                    <label for="min-players" class="block mb-2 font-medium text-gray-dark">Minimum Players</label>
-                    <input
-                        id="min-players"
-                        type="number"
-                        class="input"
-                        min="2"
-                        bind:value={formData.min_players}
-                        disabled={formLoading}
-                        required
-                    />
-                </div>
-
-                <div>
-                    <label for="max-players" class="block mb-2 font-medium text-gray-dark">Maximum Players</label>
-                    <input
-                        id="max-players"
-                        type="number"
-                        class="input"
-                        min="2"
-                        bind:value={formData.max_players}
-                        disabled={formLoading}
-                        required
-                    />
-                </div>
-            </div>
-
-            <div class="mb-4">
-                <label for="match-type" class="block mb-2 font-medium text-gray-dark">Match Generation Type</label>
-                <select
-                    id="match-type"
-                    class="input"
-                    bind:value={formData.match_generation_type}
-                    disabled={formLoading}
-                    required
-                >
-                    {#each matchTypes as type}
-                        <option value={type.value}>{type.label}</option>
-                    {/each}
-                </select>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4 mb-4">
-                <div>
-                    <label for="start-time" class="block mb-2 font-medium text-gray-dark">Start Time (Optional)</label>
-                    <input
-                        id="start-time"
-                        type="datetime-local"
-                        class="input"
-                        bind:value={formData.start_time}
-                        disabled={formLoading}
-                    />
-                </div>
-
-                <div>
-                    <label for="end-time" class="block mb-2 font-medium text-gray-dark">End Time (Optional)</label>
-                    <input
-                        id="end-time"
-                        type="datetime-local"
-                        class="input"
-                        bind:value={formData.end_time}
-                        disabled={formLoading}
-                    />
-                </div>
-            </div>
-
-            <div class="flex gap-2">
-                <Button
-                    type="submit"
-                    variant="primary"
-                    disabled={formLoading}
-                    label={formLoading ? "Creating..." : "Create Tournament"}
-                />
-                <LinkButton
-                    href="/tournaments"
-                    variant="secondary"
-                    label="Cancel"
-                />
-            </div>
-        </form>
-    {/if}
-</section>
+    </div>
+</main>

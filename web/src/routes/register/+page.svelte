@@ -1,9 +1,9 @@
 <script lang="ts">
-    import { authService } from "$lib/services/auth";
+    import { authService } from "$services/auth";
     import { authStore } from "$lib/stores/auth";
     import { goto } from "$app/navigation";
     import { onMount } from "svelte";
-    import { AuthCard, Button } from "$lib/components";
+
     let email = $state("");
     let username = $state("");
     let password = $state("");
@@ -47,89 +47,135 @@
     }
 </script>
 
-<section>
-<AuthCard title="Sign Up" {error} {loading}>
-    <form onsubmit={handleSubmit}>
-        <div class="mb-4">
-            <label for="email" class="block mb-2 font-medium text-gray-dark">Email</label>
-            <input
-                type="email"
-                id="email"
-                class="input"
-                bind:value={email}
-                required
+<main>
+    <section class="bg-hatch">
+        <h1>Sign Up</h1>
+        {#if error}
+            <aside role="alert" class="bg-hatch">
+                <p>{error}</p>
+            </aside>
+        {/if}
+
+        <form onsubmit={handleSubmit}>
+            <fieldset>
+                <label for="email">Email</label>
+                <input
+                    type="email"
+                    id="email"
+                    bind:value={email}
+                    required
+                    disabled={loading}
+                />
+            </fieldset>
+            <fieldset>
+                <label for="username">Username</label>
+                <input
+                    type="text"
+                    id="username"
+                    bind:value={username}
+                    required
+                    minlength="3"
+                    maxlength="50"
+                    disabled={loading}
+                />
+            </fieldset>
+            <fieldset>
+                <label for="password">Password</label>
+                <input
+                    type="password"
+                    id="password"
+                    bind:value={password}
+                    required
+                    minlength="8"
+                    disabled={loading}
+                />
+                <p class="help-text">Minimum 8 characters</p>
+            </fieldset>
+            <fieldset>
+                <label for="confirmPassword">Confirm Password</label>
+                <input
+                    type="password"
+                    id="confirmPassword"
+                    bind:value={confirmPassword}
+                    required
+                    disabled={loading}
+                />
+            </fieldset>
+            <fieldset>
+                <label for="location">Country Code (Optional)</label>
+                <input
+                    type="text"
+                    id="location"
+                    bind:value={location}
+                    placeholder="US, UK, FR, etc."
+                    maxlength="2"
+                    disabled={loading}
+                />
+                <p class="help-text">2-letter ISO country code</p>
+            </fieldset>
+            <button
+                type="submit"
                 disabled={loading}
-            />
-        </div>
-        <div class="mb-4">
-            <label for="username" class="block mb-2 font-medium text-gray-dark">Username</label>
-            <input
-                type="text"
-                id="username"
-                class="input"
-                bind:value={username}
-                required
-                minlength="3"
-                maxlength="50"
-                disabled={loading}
-            />
-        </div>
-        <div class="mb-4">
-            <label for="password" class="block mb-2 font-medium text-gray-dark">Password</label>
-            <input
-                type="password"
-                id="password"
-                class="input"
-                bind:value={password}
-                required
-                minlength="8"
-                disabled={loading}
-            />
-            <p
-                class="text-sm text-gray-500 mt-1"
+                data-variant="primary"
             >
-                Minimum 8 characters
-            </p>
+                {loading ? "Creating account..." : "Create Account"}
+            </button>
+        </form>
+
+        <div class="auth-links">
+            <a href="/login">Already have an account? Login</a>
         </div>
-        <div class="mb-4">
-            <label for="confirmPassword" class="block mb-2 font-medium text-gray-dark">Confirm Password</label>
-            <input
-                type="password"
-                id="confirmPassword"
-                class="input"
-                bind:value={confirmPassword}
-                required
-                disabled={loading}
-            />
-        </div>
-        <div class="mb-4">
-            <label for="location" class="block mb-2 font-medium text-gray-dark">Country Code (Optional)</label>
-            <input
-                type="text"
-                id="location"
-                class="input"
-                bind:value={location}
-                placeholder="US, UK, FR, etc."
-                maxlength="2"
-                disabled={loading}
-            />
-            <p
-                class="text-sm text-gray-500 mt-1"
-            >
-                2-letter ISO country code
-            </p>
-        </div>
-        <Button
-            variant="primary"
-            type="submit"
-            label={loading ? "Creating account..." : "Create Account"}
-            disabled={loading}
-        />
-    </form>
-    <div class="mt-6 text-center">
-        <a href="/login" class="text-primary-600"
-            >Already have an account? Login</a
-        >
-    </div>
-</AuthCard>
-</section>
+    </section>
+</main>
+
+<style>
+    main {
+        max-width: 28rem;
+        margin: auto;
+        height: 100vh;
+        display: flex;
+        align-items: center;
+    }
+
+    section {
+        padding: 1.5rem;
+        border: 1px solid var(--blueprint-line-faint);
+        width: 100%;
+    }
+
+    h1 {
+        text-align: center;
+        margin-bottom: 1.5rem;
+    }
+
+    aside[role="alert"] {
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        border: 1px solid var(--error);
+    }
+
+    aside p {
+        color: var(--error);
+        margin: 0;
+    }
+
+    fieldset {
+        border: none;
+        padding: 0;
+        margin: 0 0 1rem 0;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: var(--text-dark);
+    }
+
+    .help-text {
+        font-size: 0.875rem;
+        color: var(--color-gray-500);
+        margin-top: 0.25rem;
+        margin-bottom: 0;
+    }
+</style>

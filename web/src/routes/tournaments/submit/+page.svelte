@@ -3,9 +3,9 @@
     import { page } from "$app/state";
     import { onMount } from "svelte";
     import { authStore } from "$lib/stores/auth";
-    import { submissionService } from "$lib/services/submissions";
-    import { tournamentService } from "$lib/services/tournaments";
-    import { Button, LinkButton } from "$lib/components";
+    import { submissionService } from "$services/submissions";
+    import { tournamentService } from "$services/tournaments";
+    import { LinkButton } from "$lib/components";
     import type {
         Tournament,
         TournamentParticipant,
@@ -98,88 +98,160 @@
     }
 </script>
 
-<div class="container page">
-    <div class="page-header">
-        <h1 class="page-title">Submit Code</h1>
-        {#if tournament}
-            <p class="text-gray-500">Tournament: {tournament.name}</p>
+<style>
+    .submit-page {
+        padding: var(--spacing-8) 0;
+    }
+
+    .page-header {
+        margin-bottom: var(--spacing-4);
+    }
+
+    .tournament-name {
+        color: var(--color-muted);
+    }
+
+    .loading-section {
+        padding: var(--spacing-6);
+        background-color: var(--color-blueprint-paper);
+        text-align: center;
+        color: var(--color-muted);
+    }
+
+    .error-section {
+        border: 1px solid var(--color-error);
+        padding: var(--spacing-6);
+        background-color: var(--color-gray-50);
+        border-left: 4px solid var(--color-error);
+        margin-bottom: var(--spacing-4);
+        color: var(--color-error);
+    }
+
+    .submit-form-section {
+        padding: var(--spacing-6);
+        background-color: var(--color-blueprint-paper);
+    }
+
+    .participation-warning {
+        font-size: 0.875rem;
+        color: var(--color-error);
+        margin-bottom: var(--spacing-4);
+    }
+
+    .participation-warning a {
+        margin-left: var(--spacing-1);
+        color: var(--color-primary);
+        text-decoration: none;
+    }
+
+    .form-field {
+        margin-bottom: var(--spacing-4);
+    }
+
+    .form-field label {
+        display: block;
+        margin-bottom: var(--spacing-2);
+        font-weight: 500;
+        color: var(--color-gray-dark);
+    }
+
+    .code-textarea {
+        font-family: monospace;
+        font-size: 0.875rem;
+    }
+
+    .character-count {
+        font-size: 0.875rem;
+        color: var(--color-muted);
+        margin-top: var(--spacing-2);
+    }
+
+    .form-actions {
+        display: flex;
+        gap: var(--spacing-2);
+    }
+</style>
+
+<main class="submit-page">
+    <div class="container">
+        <header class="page-header">
+            <h1>Submit Code</h1>
+            {#if tournament}
+                <p class="tournament-name">Tournament: {tournament.name}</p>
+            {/if}
+        </header>
+
+        {#if initialLoading}
+            <section class="loading-section">
+                <p>Loading tournament...</p>
+            </section>
+        {:else}
+            {#if error}
+                <section class="error-section">
+                    <p>{error}</p>
+                </section>
+            {/if}
+
+            <section class="submit-form-section">
+                {#if !isParticipant}
+                    <div class="participation-warning">
+                        You must join this tournament before submitting code.
+                        <a href="/tournaments/tournament?id={tournamentId}">Go back</a>
+                    </div>
+                {/if}
+
+                <form onsubmit={handleSubmit} class="submit-form">
+                    <div class="form-field">
+                        <label for="language">Programming Language</label>
+                        <select
+                            id="language"
+                            class="select"
+                            bind:value={language}
+                            disabled={loading || !isParticipant}
+                        >
+                            <option value="rust">Rust</option>
+                            <option value="go">Go</option>
+                            <option value="c">C</option>
+                        </select>
+                        {#if validationErrors.language}
+                            <p class="form-error">{validationErrors.language}</p>
+                        {/if}
+                    </div>
+
+                    <div class="form-field">
+                        <label for="code">Code</label>
+                        <textarea
+                            id="code"
+                            class="code-textarea"
+                            bind:value={code}
+                            disabled={loading || !isParticipant}
+                            rows="25"
+                            placeholder="Paste your code here..."
+                        ></textarea>
+                        {#if validationErrors.code}
+                            <p class="form-error">{validationErrors.code}</p>
+                        {/if}
+                        <p class="character-count">
+                            {code.length.toLocaleString()} characters
+                        </p>
+                    </div>
+
+                    <div class="form-actions">
+                        <button
+                            type="submit"
+                            data-variant="primary"
+                            disabled={loading || !isParticipant}
+                        >
+                            {loading ? "Submitting..." : "Submit Code"}
+                        </button>
+                        <LinkButton
+                            href="/tournaments/tournament?id={tournamentId}"
+                            variant="secondary"
+                            label="Cancel"
+                        />
+                    </div>
+                </form>
+            </section>
         {/if}
     </div>
-    {#if initialLoading}
-        <div class="p-6 bg-hatch text-center">
-            <p class="text-gray-500">Loading tournament...</p>
-        </div>
-    {:else}
-        {#if error}
-            <div
-                class="border p-6 bg-hatch bg-red-100 border-l-4 border-red-600 mb-4"
-            >
-                <p class="text-red-600">{error}</p>
-            </div>
-        {/if}
-        <div class="p-6 bg-hatch">
-            {#if !isParticipant}
-                <div
-                    class="text-sm text-red-600 mb-4"
-                >
-                    You must join this tournament before submitting code.
-                    <a
-                        href="/tournaments/tournament?id={tournamentId}"
-                        class="ml-1 text-primary-600"
-                    >
-                        Go back
-                    </a>
-                </div>
-            {/if}
-            <form onsubmit={handleSubmit}>
-                <div class="mb-4">
-                    <label for="language" class="block mb-2 font-medium text-gray-dark">Programming Language</label>
-                    <select
-                        id="language"
-                        class="select"
-                        bind:value={language}
-                        disabled={loading || !isParticipant}
-                    >
-                        <option value="rust">Rust</option>
-                        <option value="go">Go</option>
-                        <option value="c">C</option>
-                    </select>
-                    {#if validationErrors.language}
-                        <p class="form-error">{validationErrors.language}</p>
-                    {/if}
-                </div>
-                <div class="mb-4">
-                    <label for="code" class="block mb-2 font-medium text-gray-dark">Code</label>
-                    <textarea
-                        id="code"
-                        class="textarea font-mono text-sm"
-                        bind:value={code}
-                        disabled={loading || !isParticipant}
-                        rows="25"
-                        placeholder="Paste your code here..."
-                    ></textarea>
-                    {#if validationErrors.code}
-                        <p class="form-error">{validationErrors.code}</p>
-                    {/if}
-                    <p
-                        class="text-sm text-gray-500 mt-2"
-                    >
-                        {code.length.toLocaleString()} characters
-                    </p>
-                </div>
-                <div class="flex gap-2">
-                    <Button
-                        variant="primary"
-                        label={loading ? "Submitting..." : "Submit Code"}
-                        disabled={loading || !isParticipant}
-                    />
-                    <LinkButton
-                        href="/tournaments/tournament?id={tournamentId}"
-                        variant="secondary"
-                        label="Cancel"
-                    />
-                </div>
-            </form>
-        </div>
-    {/if}
-</div>
+</main>

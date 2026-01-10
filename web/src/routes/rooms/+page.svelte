@@ -1,12 +1,11 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import { goto } from "$app/navigation";
-    import { roomService } from "$lib/services/rooms";
-    import { gameService } from "$lib/services/games";
+    import { roomService } from "$services/rooms";
+    import { gameService } from "$services/games";
     import type { Room, Game, CreateRoomRequest } from "$lib/types";
     import Dialog from "$lib/components/Dialog.svelte";
     import Alert from "$lib/components/Alert.svelte";
-    import Button from "$lib/components/Button.svelte";
     import LinkButton from "$lib/components/LinkButton.svelte";
     import { authStore } from "$lib/stores/auth";
 
@@ -132,12 +131,136 @@
     }
 </script>
 
+<style>
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .header h1 {
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+
+    .content {
+        max-width: 80rem;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+
+    .filter-section {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding: 1rem;
+        background-color: var(--blueprint-line-faint);
+    }
+
+    .filter-section label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: var(--blueprint-ink);
+    }
+
+    .filter-select {
+        padding: 0.5rem;
+        min-width: 12.5rem;
+    }
+
+    .loading, .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: var(--blueprint-ink-light);
+    }
+
+    .rooms-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .room-card {
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        background-color: var(--blueprint-paper);
+    }
+
+    .room-info {
+        margin-bottom: 1rem;
+    }
+
+    .room-info h3 {
+        margin-bottom: 0.5rem;
+        color: var(--blueprint-ink);
+    }
+
+    .game-name {
+        color: var(--blueprint-ink-light);
+        font-size: 0.875rem;
+    }
+
+    .room-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .status-badge {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        text-transform: capitalize;
+    }
+
+    .status-waiting {
+        background-color: #dbeafe;
+        color: #1e40af;
+    }
+
+    .status-playing {
+        background-color: #fed7aa;
+        color: #c2410c;
+    }
+
+    .status-finished {
+        background-color: #dcfce7;
+        color: #166534;
+    }
+
+    .form-field {
+        margin-bottom: 1rem;
+    }
+
+    .form-field label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: var(--blueprint-ink);
+    }
+
+    .form-input {
+        width: 100%;
+        padding: 0.5rem;
+        background-color: var(--blueprint-paper);
+    }
+
+    .form-help {
+        font-size: 0.875rem;
+        color: var(--blueprint-ink-light);
+        margin-top: 0.25rem;
+    }
+</style>
+
 <section class="container">
-    <div class="flex justify-between items-center mb-4">
-        <h1 class="text-2xl font-bold">Rooms</h1>
-        <Button onclick={openCreateModal} label="+ Create Room" variant="primary" />
+    <div class="header">
+        <h1>Rooms</h1>
+        <button onclick={openCreateModal} data-variant="primary">+ Create Room</button>
     </div>
-    <div class="max-w-7xl mx-auto p-8">
+    <div class="content">
         {#if error}
             <Alert
                 type="error"
@@ -146,79 +269,71 @@
             />
         {/if}
 
-        <div class="flex gap-4 items-center mb-8 p-4 bg-blueprint-line-faint">
-            <label
-                for="game-filter"
-                class="block mb-2 font-medium text-blueprint-ink"
-                >Filter by game:</label
-            >
+        <div class="filter-section">
+            <label for="game-filter">Filter by game:</label>
             <select
                 id="game-filter"
                 bind:value={filterGameId}
                 onchange={loadData}
-                class="p-2 min-w-50"
+                class="filter-select"
             >
                 <option value="">All Games</option>
                 {#each games as game}
                     <option value={game.id}>{game.name}</option>
                 {/each}
             </select>
-            <Button variant="secondary" label="Refresh" onclick={loadData} />
+            <button data-variant="secondary" onclick={loadData}>Refresh</button>
         </div>
 
         {#if loading}
-            <div class="text-center p-12 text-blueprint-ink-light">Loading rooms...</div>
+            <div class="loading">Loading rooms...</div>
         {:else if rooms.length === 0}
-            <div class="text-center p-12 text-blueprint-ink-light">
+            <div class="empty-state">
                 <p>No rooms available. Create one to get started!</p>
             </div>
         {:else}
-            <div class="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-6">
+            <div class="rooms-grid">
                 {#each rooms as room}
-                    <div class="rounded-lg p-6 bg-blueprint-paper">
-                        <div class="mb-4">
-                            <h3 class="mb-2 text-blueprint-ink">{room.name}</h3>
-                            <span class="text-blueprint-ink-light text-sm"
-                                >{getGameName(room.game_id)}</span
-                            >
+                    <div class="room-card">
+                        <div class="room-info">
+                            <h3>{room.name}</h3>
+                            <span class="game-name">{getGameName(room.game_id)}</span>
                         </div>
-                        <div class="flex justify-between items-center mb-4">
-                            <span>
-                                👥 {room.players.length}/{room.max_players}
-                            </span>
-                            <span class="px-2 py-1 text-xs capitalize {room.status === 'waiting' ? 'bg-blue-100 text-blue-800' : room.status === 'playing' ? 'bg-orange-100 text-orange-800' : 'bg-green-100 text-green-800'}"
-                                >{room.status}</span
-                            >
+                        <div class="room-meta">
+                            <span>👥 {room.players.length}/{room.max_players}</span>
+                            <span class="status-badge status-{room.status}">{room.status}</span>
                         </div>
                         <div>
                             {#if room.status === "waiting"}
                                 {#if isUserInRoom(room)}
-                                    <Button
-                                        variant="primary"
-                                        label="Enter Room"
+                                    <button
+                                        data-variant="primary"
                                         onclick={() => joinRoom(room.id)}
-                                    />
+                                    >
+                                        Enter Room
+                                    </button>
                                 {:else if room.players.length < room.max_players}
-                                    <Button
-                                        variant="success"
-                                        label="Join Room"
+                                    <button
+                                        data-variant="success"
                                         onclick={() => joinRoom(room.id)}
-                                    />
+                                    >
+                                        Join Room
+                                    </button>
                                 {:else}
-                                    <Button
-                                        variant="secondary"
-                                        label="Full"
-                                        disabled={true}
-                                    />
+                                    <button
+                                        data-variant="secondary"
+                                        disabled
+                                    >
+                                        Full
+                                    </button>
                                 {/if}
                             {:else}
-                                <Button
-                                    variant="secondary"
-                                    label={room.status === "playing"
-                                        ? "In Progress"
-                                        : "Finished"}
-                                    disabled={true}
-                                />
+                                <button
+                                    data-variant="secondary"
+                                    disabled
+                                >
+                                    {room.status === "playing" ? "In Progress" : "Finished"}
+                                </button>
                             {/if}
                         </div>
                     </div>
@@ -233,56 +348,48 @@
     onclose={onDialogClose}
 >
     {#snippet children()}
-        <div class="mb-4">
-            <label for="game-select" class="block mb-2 font-medium text-blueprint-ink"
-                >Game</label
-            >
-            <select id="game-select" required bind:value={selectedGameId} class="w-full p-2 bg-blueprint-paper">
+        <div class="form-field">
+            <label for="game-select">Game</label>
+            <select id="game-select" required bind:value={selectedGameId} class="form-input">
                 <option value="">Select a game</option>
                 {#each games as game}
                     <option value={game.id}>{game.name}</option>
                 {/each}
             </select>
         </div>
-        <div class="mb-4">
-            <label for="room-name" class="block mb-2 font-medium text-blueprint-ink"
-                >Room Name</label
-            >
+        <div class="form-field">
+            <label for="room-name">Room Name</label>
             <input
                 id="room-name"
                 type="text"
                 required
                 bind:value={roomName}
                 placeholder="Enter room name"
-                class="w-full p-2 bg-blueprint-paper"
+                class="form-input"
             />
         </div>
-        <div class="mb-4">
-            <label for="max-players" class="block mb-2 font-medium text-blueprint-ink"
-                >Max Players</label
-            >
+        <div class="form-field">
+            <label for="max-players">Max Players</label>
             <input
                 id="max-players"
                 type="number"
                 bind:value={maxPlayers}
                 min="2"
                 max="8"
-                class="w-full p-2 bg-blueprint-paper"
+                class="form-input"
             />
         </div>
-        <div class="mb-4">
-            <label for="human-timeout" class="block mb-2 font-medium text-blueprint-ink"
-                >Human Timeout (ms)</label
-            >
+        <div class="form-field">
+            <label for="human-timeout">Human Timeout (ms)</label>
             <input
                 id="human-timeout"
                 type="number"
                 bind:value={humanTimeoutMs}
                 placeholder={getSelectedGame()?.human_timeout_ms?.toString() || "Default"}
                 min="1000"
-                class="w-full p-2 bg-blueprint-paper"
+                class="form-input"
             />
-            <p class="text-sm text-blueprint-ink-light mt-1">
+            <p class="form-help">
                 Leave empty to use game default ({getSelectedGame()?.human_timeout_ms || 'N/A'}ms)
             </p>
         </div>

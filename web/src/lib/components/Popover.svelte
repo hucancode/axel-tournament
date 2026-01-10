@@ -19,7 +19,6 @@
 </script>
 
 <button
-    class="btn inline-block"
     style="anchor-name: --{id};"
     bind:this={triggerButton}
     {disabled}

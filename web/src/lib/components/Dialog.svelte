@@ -1,5 +1,4 @@
 <script lang="ts">
-    import Button from "./Button.svelte";
     import type { Snippet } from "svelte";
 
     interface Props {
@@ -32,13 +31,16 @@
             </div>
         {/if}
         <footer>
-            <Button
-                variant="secondary"
+            <button
                 type="button"
-                label="Cancel"
+                data-variant="secondary"
                 onclick={() => dialog?.close()}
-            />
-            <Button variant="primary" type="submit" value="submit" label="Submit" />
+            >
+                Cancel
+            </button>
+            <button type="submit" data-variant="primary" value="submit">
+                Submit
+            </button>
         </footer>
     </form>
 </dialog>
@@ -79,21 +81,6 @@
         font-size: 1.25rem;
         font-weight: 600;
     }
-
-    button {
-        background: transparent;
-        border: 0;
-        font-size: 1.5rem;
-        cursor: pointer;
-        padding: 0;
-        line-height: 1;
-        transition: color var(--transition-fast);
-    }
-
-    button:hover {
-        color: var(--color-primary);
-    }
-
     .dialog-content {
         padding: 1.5rem;
     }

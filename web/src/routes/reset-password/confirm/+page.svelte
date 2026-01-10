@@ -1,7 +1,6 @@
 <script lang="ts">
-    import { authService } from "$lib/services/auth";
+    import { authService } from "$services/auth";
     import { page } from "$app/state";
-    import { Button } from "$lib/components";
 
     let token = $derived(page.url.searchParams.get("token") ?? "");
     let password = $state("");
@@ -45,41 +44,101 @@
     }
 </script>
 
-<div class="page">
-    <div class="container max-w-md">
-        <div class="p-6 bg-hatch">
-            <h1 class="page-title text-center">Set New Password</h1>
-            <p
-                class="text-sm text-gray-500 mb-6 text-center"
-            >
-                Choose a new password for your account.
-            </p>
+<style>
+    .reset-confirm-page {
+        padding: var(--spacing-8) 0;
+    }
+
+    .container {
+        max-width: 28rem;
+    }
+
+    .reset-form-section {
+        padding: var(--spacing-6);
+        background-color: var(--color-blueprint-paper);
+    }
+
+    .reset-form-section h1 {
+        text-align: center;
+        margin-bottom: var(--spacing-2);
+    }
+
+    .form-subtitle {
+        font-size: 0.875rem;
+        color: var(--color-muted);
+        margin-bottom: var(--spacing-6);
+        text-align: center;
+    }
+
+    .error-message {
+        padding: var(--spacing-6);
+        background-color: var(--color-gray-50);
+        margin-bottom: var(--spacing-4);
+        color: var(--color-error);
+    }
+
+    .success-message {
+        padding: var(--spacing-6);
+        background-color: var(--color-gray-50);
+        margin-bottom: var(--spacing-4);
+        color: var(--color-success);
+    }
+
+    .form-field {
+        margin-bottom: var(--spacing-4);
+    }
+
+    .form-field label {
+        display: block;
+        margin-bottom: var(--spacing-2);
+        font-weight: 500;
+        color: var(--color-gray-dark);
+    }
+
+    .form-help {
+        font-size: 0.875rem;
+        color: var(--color-muted);
+        margin-top: var(--spacing-1);
+    }
+
+    .back-link {
+        margin-top: var(--spacing-6);
+        text-align: center;
+    }
+
+    .back-link a {
+        color: var(--color-primary);
+        text-decoration: none;
+    }
+</style>
+
+<main class="reset-confirm-page">
+    <div class="container">
+        <section class="reset-form-section">
+            <h1>Set New Password</h1>
+            <p class="form-subtitle">Choose a new password for your account.</p>
+            
             {#if !token}
-                <div
-                    class="p-6 bg-hatch bg-red-100 mb-4"
-                >
-                    <p class="text-red-600">
-                        Reset token is missing or invalid.
-                    </p>
+                <div class="error-message">
+                    <p>Reset token is missing or invalid.</p>
                 </div>
             {/if}
+            
             {#if error}
-                <div
-                    class="p-6 bg-hatch bg-red-100 mb-4"
-                >
-                    <p class="text-red-600">{error}</p>
+                <div class="error-message">
+                    <p>{error}</p>
                 </div>
             {/if}
+            
             {#if message}
-                <div
-                    class="p-6 bg-hatch bg-green-100 mb-4"
-                >
-                    <p class="text-green-700">{message}</p>
+                <div class="success-message">
+                    <p>{message}</p>
                 </div>
             {/if}
-            <form onsubmit={handleSubmit}>
-                <div class="mb-4">
-                    <label for="password" class="block mb-2 font-medium text-gray-dark">New Password</label>
+            
+            <form onsubmit={handleSubmit} class="reset-form">
+                <div class="form-field">
+                    <label for="password">New Password</label>
                     <input
                         type="password"
                         id="password"
@@ -89,14 +148,11 @@
                         minlength="8"
                         disabled={loading || !token}
                     />
-                    <p
-                        class="text-sm text-gray-500 mt-1"
-                    >
-                        Minimum 8 characters
-                    </p>
+                    <p class="form-help">Minimum 8 characters</p>
                 </div>
-                <div class="mb-4">
-                    <label for="confirmPassword" class="block mb-2 font-medium text-gray-dark">Confirm New Password</label>
+                
+                <div class="form-field">
+                    <label for="confirmPassword">Confirm New Password</label>
                     <input
                         type="password"
                         id="confirmPassword"
@@ -106,17 +162,19 @@
                         disabled={loading || !token}
                     />
                 </div>
-                <Button
-                    variant="primary"
-                    label={loading ? "Saving..." : "Reset Password"}
+                
+                <button
+                    type="submit"
+                    data-variant="primary"
                     disabled={loading || !token}
-                />
-            </form>
-            <div class="mt-6 text-center">
-                <a href="/login" class="text-primary-600"
-                    >Back to Login</a
                 >
+                    {loading ? "Saving..." : "Reset Password"}
+                </button>
+            </form>
+            
+            <div class="back-link">
+                <a href="/login">Back to Login</a>
             </div>
-        </div>
+        </section>
     </div>
-</div>
+</main>
