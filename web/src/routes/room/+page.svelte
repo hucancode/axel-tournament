@@ -7,7 +7,7 @@
   import { RoomSocket } from '$services/roomSocket';
   import { createGame } from '$lib/games/registry';
   import type { BasePixiGame } from '$lib/games/BasePixiGame';
-  import Alert from '$lib/components/Alert.svelte';
+  import { Alert } from "$components";
   import type { Room, Game } from '$lib/types';
 
   const roomId = $derived(page.url.searchParams.get('id') || '');

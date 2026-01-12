@@ -5,7 +5,7 @@
     import { authStore } from "$lib/stores/auth";
     import { submissionService } from "$services/submissions";
     import { tournamentService } from "$services/tournaments";
-    import { LinkButton } from "$lib/components";
+    import { LinkButton } from "$components";
     import type {
         Tournament,
         TournamentParticipant,

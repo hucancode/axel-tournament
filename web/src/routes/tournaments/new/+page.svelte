@@ -4,7 +4,7 @@
     import { authStore } from "$lib/stores/auth";
     import { tournamentService } from "$services/tournaments";
     import { gameService } from "$services/games";
-    import { LinkButton, Card } from "$lib/components";
+    import { LinkButton, Card } from "$components";
     import type { Game, CreateTournamentRequest, MatchGenerationType } from "$lib/types";
 
     let games = $state<Game[]>([]);

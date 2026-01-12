@@ -8,7 +8,7 @@
     import { page } from "$app/state";
     import { authStore } from "$lib/stores/auth";
     import { goto } from "$app/navigation";
-    import { LinkButton } from "$lib/components";
+    import { LinkButton } from "$components";
     let { children } = $props();
     function logout() {
         authStore.logout();

@@ -4,7 +4,7 @@
     import { page } from "$app/state";
     import { authStore } from "$lib/stores/auth";
     import { authService } from "$services/auth";
-    import { LinkButton } from "$lib/components";
+    import { LinkButton } from "$components";
     let error = $state("");
     let loading = $state(true);
     onMount(async () => {

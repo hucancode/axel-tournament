@@ -4,8 +4,7 @@
     import { roomService } from "$services/rooms";
     import { gameService } from "$services/games";
     import type { Room, Game, CreateRoomRequest } from "$lib/types";
-    import Alert from "$lib/components/Alert.svelte";
-    import LinkButton from "$lib/components/LinkButton.svelte";
+    import { Alert } from "$components";
     import { authStore } from "$lib/stores/auth";
 
     let rooms = $state<Room[]>([]);

@@ -3,8 +3,7 @@
     import { tournamentService } from "$services/tournaments";
     import { onMount } from "svelte";
     import type { Game, Tournament } from "$lib/types";
-    import { LinkButton, Card, Badge } from "$lib/components";
-    import Alert from "$lib/components/Alert.svelte";
+    import { LinkButton, Card, Badge, Alert } from "$components";
 
     let games = $state<Game[]>([]);
     let tournamentsByGame = $state<Map<string, Tournament[]>>(new Map());

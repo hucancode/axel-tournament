@@ -4,7 +4,7 @@
     import { authStore } from "$lib/stores/auth";
     import { onMount } from "svelte";
     import type { Tournament, TournamentParticipant, Game } from "$lib/types";
-    import { LinkButton, Card, Badge, Alert } from "$lib/components";
+    import { LinkButton, Card, Badge, Alert } from "$components";
 
     let tournaments = $state<Tournament[]>([]);
     let games = $state<Game[]>([]);

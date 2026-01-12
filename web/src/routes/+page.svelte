@@ -5,7 +5,7 @@
     import type { Tournament, Game } from "$lib/types";
     import { tournamentService } from "$services/tournaments";
     import { api } from "$lib/api";
-    import { LinkButton, Statistic, Card, Badge } from "$lib/components";
+    import { LinkButton, Statistic, Card, Badge } from "$components";
 
     let tournaments = $state<Tournament[]>([]);
     let games = $state<Game[]>([]);

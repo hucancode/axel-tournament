@@ -3,7 +3,7 @@
     import { tournamentService } from "$services/tournaments";
     import { gameService } from "$services/games";
     import { onMount } from "svelte";
-    import Alert from "$lib/components/Alert.svelte";
+    import { Alert } from "$components";
     import type { LeaderboardEntry, Tournament, Game } from "$lib/types";
     let entries = $state<LeaderboardEntry[]>([]);
     let tournaments = $state<Tournament[]>([]);

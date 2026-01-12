@@ -6,7 +6,7 @@
     import { page } from "$app/state";
     import { onMount } from "svelte";
     import { goto } from "$app/navigation";
-    import { LinkButton } from "$lib/components";
+    import { LinkButton } from "$components";
     import type {
         Tournament,
         TournamentParticipant,
@@ -420,13 +420,13 @@
                     <LinkButton href="/tournaments" variant="secondary" label="Back to Tournaments" />
                 </div>
             </header>
-            
+
             {#if actionError}
                 <section class="action-error">
                     <p>{actionError}</p>
                 </section>
             {/if}
-            
+
             <div class="tournament-layout">
                 <div class="content">
                     <section class="tournament-details">
@@ -600,7 +600,7 @@
                             {/if}
                         {/if}
                     </section>
-                    
+
                     {#if tournament.status === "registration"}
                         <section class="status-info registration-open">
                             <h3>Registration Open</h3>
