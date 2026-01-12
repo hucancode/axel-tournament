@@ -6,7 +6,7 @@ ARG PUBLIC_JUDGE_URL
 
 WORKDIR /app
 COPY package.json bun.lock ./
-RUN bun install --frozen-lockfile
+RUN bun install --frozen-lockfile --production
 COPY . .
 
 # Set environment variables for the build
