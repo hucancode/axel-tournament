@@ -6,6 +6,4 @@ build
 .git
 .gitignore
 *.md
-.vscode
-.idea
 *.log

@@ -14,7 +14,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/usr/local/cargo/git \
     --mount=type=cache,target=/app/target \
     cargo build --release --bin api && \
-    cp /app/target/release/api main
+    cp target/release/api main
 
 FROM debian:trixie-slim
 

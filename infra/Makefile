@@ -181,10 +181,10 @@ push-images:
 		-t $(FRONTEND_IMAGE) ../web; \
 	docker push $(FRONTEND_IMAGE); \
 	echo "Building and pushing backend image..."; \
-	docker build -t $(BACKEND_IMAGE) ../api; \
+	docker build -f docker/api.Dockerfile -t $(BACKEND_IMAGE) ..; \
 	docker push $(BACKEND_IMAGE); \
 	echo "Building and pushing unified judge image..."; \
-	docker build -t $(JUDGE_IMAGE) ../judge; \
+	docker build -f docker/judge.Dockerfile -t $(JUDGE_IMAGE) ..; \
 	docker push $(JUDGE_IMAGE); \
 	echo "All images built and pushed successfully"
 

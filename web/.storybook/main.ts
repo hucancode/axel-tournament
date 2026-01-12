@@ -1,7 +1,6 @@
 import type { StorybookConfig } from "@storybook/sveltekit";
 import path from "node:path";
 import { mergeConfig } from "vite";
-import tailwindcss from "@tailwindcss/vite";
 
 const config: StorybookConfig = {
   stories: ["../src/**/*.stories.@(svelte|ts)"],
@@ -13,7 +12,7 @@ const config: StorybookConfig = {
   staticDirs: ["../static"],
   viteFinal: async (config) =>
     mergeConfig(config, {
-      plugins: [tailwindcss()],
+      plugins: [],
       resolve: {
         alias: {
           $lib: path.resolve(import.meta.url, "../src/lib"),

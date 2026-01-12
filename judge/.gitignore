@@ -18,7 +18,3 @@ Cargo.lock
 
 # Logs
 *.log
-
-# Docker
-.dockerignore
-*.tar

@@ -13,9 +13,9 @@ COPY judge ./judge
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/usr/local/cargo/git \
     --mount=type=cache,target=/app/target \
-     cargo build --release --bin judge && \
-     cp target/release/judge judge
+    cargo build --release --bin judge && \
+    cp target/release/judge main
 
 EXPOSE 8080
 
-CMD ["./judge"]
+CMD ["./main"]
