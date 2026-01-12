@@ -4,7 +4,7 @@
     import { authStore } from "$lib/stores/auth";
     import { onMount } from "svelte";
     import type { Tournament, TournamentParticipant, Game } from "$lib/types";
-    import { LinkButton, Card, Badge } from "$lib/components";
+    import { LinkButton, Card, Badge, Alert } from "$lib/components";
 
     let tournaments = $state<Tournament[]>([]);
     let games = $state<Game[]>([]);
@@ -24,7 +24,9 @@
     ];
 
     const auth = $derived($authStore);
-    const canManageTournaments = $derived(auth.isAuthenticated && auth.user?.role === "admin");
+    const canManageTournaments = $derived(
+        auth.isAuthenticated && auth.user?.role === "admin",
+    );
 
     onMount(async () => {
         await loadTournaments();
@@ -34,7 +36,8 @@
         loading = true;
         error = "";
         try {
-            const status = selectedStatus === "all" ? undefined : selectedStatus;
+            const status =
+                selectedStatus === "all" ? undefined : selectedStatus;
             const [tournamentsData, gamesData] = await Promise.all([
                 tournamentService.list(status),
                 gameService.list(),
@@ -45,10 +48,14 @@
             // Load participants for each tournament
             const participantPromises = tournaments.map(async (tournament) => {
                 try {
-                    const participants = await tournamentService.getParticipants(tournament.id);
+                    const participants =
+                        await tournamentService.getParticipants(tournament.id);
                     return { tournamentId: tournament.id, participants };
                 } catch (err) {
-                    console.error(`Failed to load participants for tournament ${tournament.id}:`, err);
+                    console.error(
+                        `Failed to load participants for tournament ${tournament.id}:`,
+                        err,
+                    );
                     return { tournamentId: tournament.id, participants: [] };
                 }
             });
@@ -62,7 +69,10 @@
                 {} as Record<string, TournamentParticipant[]>,
             );
         } catch (err) {
-            error = err instanceof Error ? err.message : "Failed to load tournaments";
+            error =
+                err instanceof Error
+                    ? err.message
+                    : "Failed to load tournaments";
             console.error("Failed to load tournaments:", err);
         } finally {
             loading = false;
@@ -73,6 +83,75 @@
         await loadTournaments();
     }
 </script>
+
+<main>
+    <div class="container">
+        <header class="page-header">
+            <h1>Tournaments</h1>
+            {#if canManageTournaments}
+                <LinkButton
+                    href="/tournaments/new"
+                    label="+ Create Tournament"
+                    variant="primary"
+                />
+            {/if}
+        </header>
+
+        {#if error}
+            <Alert message={error} />
+        {/if}
+
+        <section class="filter-section">
+            <div class="filter-controls">
+                <label for="status-filter">Filter by Status:</label>
+                <select
+                    id="status-filter"
+                    class="status-select"
+                    bind:value={selectedStatus}
+                    onchange={handleStatusChange}
+                    disabled={loading}
+                >
+                    {#each statusOptions as option}
+                        <option value={option.value}>{option.label}</option>
+                    {/each}
+                </select>
+            </div>
+        </section>
+
+        {#if loading}
+            <section class="loading-section">
+                <Card class="loading-card">
+                    <p>Loading tournaments...</p>
+                </Card>
+            </section>
+        {:else if tournaments.length === 0}
+            <section class="empty-section">
+                <Card class="empty-card">
+                    <p>No tournaments found</p>
+                </Card>
+            </section>
+        {:else}
+            <section class="tournaments-grid">
+                {#each tournaments as tournament}
+                    <Card href="/tournaments/tournament?id={tournament.id}">
+                        <h3>{tournament.name}</h3>
+                        <p>{tournament.description}</p>
+                        <footer>
+                            <Badge
+                                status={tournament.status}
+                                label={tournament.status}
+                            />
+                            <span class="player-count">
+                                {(participantCounts[tournament.id] || [])
+                                    .length}/{tournament.max_players} players
+                            </span>
+                        </footer>
+                    </Card>
+                {/each}
+            </section>
+        {/if}
+    </div>
+</main>
 
 <style>
     main {
@@ -111,14 +190,8 @@
         width: auto;
     }
 
-    .error-section {
-        padding: var(--spacing-6);
-        background-color: var(--color-gray-50);
-        margin-bottom: var(--spacing-4);
-        color: var(--color-error);
-    }
-
-    .loading-section, .empty-section {
+    .loading-section,
+    .empty-section {
         text-align: center;
     }
 
@@ -132,66 +205,3 @@
         color: var(--color-muted);
     }
 </style>
-
-<main>
-    <div class="container">
-        <header class="page-header">
-            <h1>Tournaments</h1>
-            {#if canManageTournaments}
-                <LinkButton href="/tournaments/new" label="+ Create Tournament" variant="primary" />
-            {/if}
-        </header>
-
-        <section class="filter-section">
-            <div class="filter-controls">
-                <label for="status-filter">Filter by Status:</label>
-                <select
-                    id="status-filter"
-                    class="status-select"
-                    bind:value={selectedStatus}
-                    onchange={handleStatusChange}
-                    disabled={loading}
-                >
-                    {#each statusOptions as option}
-                        <option value={option.value}>{option.label}</option>
-                    {/each}
-                </select>
-            </div>
-        </section>
-
-        {#if error}
-            <section class="error-section">
-                <p>{error}</p>
-            </section>
-        {/if}
-
-        {#if loading}
-            <section class="loading-section">
-                <Card class="loading-card">
-                    <p>Loading tournaments...</p>
-                </Card>
-            </section>
-        {:else if tournaments.length === 0}
-            <section class="empty-section">
-                <Card class="empty-card">
-                    <p>No tournaments found</p>
-                </Card>
-            </section>
-        {:else}
-            <section class="tournaments-grid">
-                {#each tournaments as tournament}
-                    <Card href="/tournaments/tournament?id={tournament.id}">
-                        <h3>{tournament.name}</h3>
-                        <p>{tournament.description}</p>
-                        <footer>
-                            <Badge status={tournament.status} label={tournament.status} />
-                            <span class="player-count">
-                                {(participantCounts[tournament.id] || []).length}/{tournament.max_players} players
-                            </span>
-                        </footer>
-                    </Card>
-                {/each}
-            </section>
-        {/if}
-    </div>
-</main>

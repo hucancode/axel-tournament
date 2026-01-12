@@ -4,6 +4,7 @@
     import { onMount } from "svelte";
     import type { Game, Tournament } from "$lib/types";
     import { LinkButton, Card, Badge } from "$lib/components";
+    import Alert from "$lib/components/Alert.svelte";
 
     let games = $state<Game[]>([]);
     let tournamentsByGame = $state<Map<string, Tournament[]>>(new Map());
@@ -63,14 +64,6 @@
     .page-header h1 {
         font-size: 1.5rem;
         font-weight: bold;
-    }
-
-    .error-section {
-        border: 1px solid var(--color-error);
-        padding: var(--spacing-6);
-        background-color: var(--color-gray-50);
-        margin-bottom: var(--spacing-4);
-        color: var(--color-error);
     }
 
     .loading-section, .empty-section {
@@ -146,9 +139,7 @@
         </header>
 
         {#if error}
-            <section class="error-section">
-                <p>{error}</p>
-            </section>
+            <Alert message={error} />
         {/if}
 
         {#if loading}
@@ -172,7 +163,7 @@
                                 <h2>{game.name}</h2>
                             </header>
                             <p class="game-description">{game.description}</p>
-                            
+
                             <div class="game-languages">
                                 <h3>Supported Languages:</h3>
                                 <div class="language-badges">
@@ -181,7 +172,7 @@
                                     {/each}
                                 </div>
                             </div>
-                            
+
                             <div class="game-stats">
                                 <h3>Tournament Statistics:</h3>
                                 <dl class="stats-grid">
@@ -191,7 +182,7 @@
                                     <dd>{getTotalTournamentCount(game.id)}</dd>
                                 </dl>
                             </div>
-                            
+
                             <div class="game-actions">
                                 {#if tournamentsByGame.get(game.id)?.length}
                                     <LinkButton

@@ -4,7 +4,6 @@
         type?: "error" | "success" | "warning";
         onclose?: () => void;
     }
-
     let { message, type = "error", onclose }: Props = $props();
 </script>
 

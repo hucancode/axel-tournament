@@ -3,6 +3,7 @@
     import { tournamentService } from "$services/tournaments";
     import { gameService } from "$services/games";
     import { onMount } from "svelte";
+    import Alert from "$lib/components/Alert.svelte";
     import type { LeaderboardEntry, Tournament, Game } from "$lib/types";
     let entries = $state<LeaderboardEntry[]>([]);
     let tournaments = $state<Tournament[]>([]);
@@ -109,14 +110,6 @@
         width: 100%;
         padding: var(--spacing-2);
         background-color: var(--color-blueprint-paper);
-    }
-
-    .error-section {
-        border: 1px solid var(--color-error);
-        padding: var(--spacing-6);
-        background-color: var(--color-gray-50);
-        margin-bottom: var(--spacing-4);
-        color: var(--color-error);
     }
 
     .loading-section, .empty-section {
@@ -233,6 +226,9 @@
 
 <main>
     <div class="container">
+        {#if error}
+            <Alert message={error} />
+        {/if}
         <section class="filters-section">
             <h2>Filters</h2>
             <div class="filters-grid">
@@ -284,11 +280,6 @@
             </div>
         </section>
 
-        {#if error}
-            <section class="error-section">
-                <p>{error}</p>
-            </section>
-        {/if}
 
         {#if loading}
             <section class="loading-section">

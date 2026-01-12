@@ -34,7 +34,7 @@
         padding: var(--spacing-8) 0;
     }
 
-    .loading-section, .error-section {
+    .loading-section {
         text-align: center;
     }
 

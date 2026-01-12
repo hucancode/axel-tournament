@@ -24,7 +24,7 @@
 
     onMount(async () => {
         // Subscribe to auth store changes
-        authStore.subscribe(state => {
+        authStore.subscribe((state) => {
             authState = state;
         });
         await loadData();
@@ -98,9 +98,192 @@
     function isUserInRoom(room: Room): boolean {
         const currentUser = authState.user;
         if (!currentUser) return false;
-        return room.host_id === currentUser.id || room.players.includes(currentUser.id);
+        return (
+            room.host_id === currentUser.id ||
+            room.players.includes(currentUser.id)
+        );
     }
 </script>
+
+<main>
+    <section class="container">
+        <div class="header">
+            <h1>Rooms</h1>
+            <button onclick={openCreateModal} data-variant="primary"
+                >+ Create Room</button
+            >
+        </div>
+        <div class="content">
+            {#if error}
+                <Alert
+                    type="error"
+                    message={error}
+                    onclose={() => (error = null)}
+                />
+            {/if}
+
+            <div class="filter-section">
+                <label for="game-filter">Filter by game:</label>
+                <select
+                    id="game-filter"
+                    bind:value={filterGameId}
+                    onchange={loadData}
+                    class="filter-select"
+                >
+                    <option value="">All Games</option>
+                    {#each games as game}
+                        <option value={game.id}>{game.name}</option>
+                    {/each}
+                </select>
+                <button data-variant="secondary" onclick={loadData}
+                    >Refresh</button
+                >
+            </div>
+
+            {#if loading}
+                <div class="loading">Loading rooms...</div>
+            {:else if rooms.length === 0}
+                <div class="empty-state">
+                    <p>No rooms available. Create one to get started!</p>
+                </div>
+            {:else}
+                <div class="rooms-grid">
+                    {#each rooms as room}
+                        <div class="room-card">
+                            <div class="room-info">
+                                <h3>{room.name}</h3>
+                                <span class="game-name"
+                                    >{getGameName(room.game_id)}</span
+                                >
+                            </div>
+                            <div class="room-meta">
+                                <span
+                                    >👥 {room.players
+                                        .length}/{room.max_players}</span
+                                >
+                                <span class="status-badge status-{room.status}"
+                                    >{room.status}</span
+                                >
+                            </div>
+                            <div>
+                                {#if room.status === "waiting"}
+                                    {#if isUserInRoom(room)}
+                                        <button
+                                            data-variant="primary"
+                                            onclick={() =>
+                                                goto(`/room?id=${room.id}`)}
+                                        >
+                                            Enter Room
+                                        </button>
+                                    {:else if room.players.length < room.max_players}
+                                        <button
+                                            data-variant="success"
+                                            onclick={() =>
+                                                goto(`/room?id=${room.id}`)}
+                                        >
+                                            Join Room
+                                        </button>
+                                    {:else}
+                                        <button
+                                            data-variant="secondary"
+                                            disabled
+                                        >
+                                            Full
+                                        </button>
+                                    {/if}
+                                {:else}
+                                    <button data-variant="secondary" disabled>
+                                        {room.status === "playing"
+                                            ? "In Progress"
+                                            : "Finished"}
+                                    </button>
+                                {/if}
+                            </div>
+                        </div>
+                    {/each}
+                </div>
+            {/if}
+        </div>
+    </section>
+</main>
+<dialog bind:this={createDialog} onclose={onDialogClose}>
+    <form method="dialog">
+        <header>
+            <h2>Create New Room</h2>
+            <button
+                type="button"
+                onclick={() => createDialog?.close()}
+                aria-label="Close">×</button
+            >
+        </header>
+        <div class="dialog-content">
+            <div class="form-field">
+                <label for="game-select">Game</label>
+                <select
+                    id="game-select"
+                    required
+                    bind:value={selectedGameId}
+                    class="form-input"
+                >
+                    <option value="">Select a game</option>
+                    {#each games as game}
+                        <option value={game.id}>{game.name}</option>
+                    {/each}
+                </select>
+            </div>
+            <div class="form-field">
+                <label for="room-name">Room Name</label>
+                <input
+                    id="room-name"
+                    type="text"
+                    required
+                    bind:value={roomName}
+                    placeholder="Enter room name"
+                    class="form-input"
+                />
+            </div>
+            <div class="form-field">
+                <label for="max-players">Max Players</label>
+                <input
+                    id="max-players"
+                    type="number"
+                    bind:value={maxPlayers}
+                    min="2"
+                    max="8"
+                    class="form-input"
+                />
+            </div>
+            <div class="form-field">
+                <label for="human-timeout">Human Timeout (ms)</label>
+                <input
+                    id="human-timeout"
+                    type="number"
+                    bind:value={humanTimeoutMs}
+                    placeholder={getSelectedGame()?.human_timeout_ms?.toString() ||
+                        "Default"}
+                    min="1000"
+                    class="form-input"
+                />
+                <p class="form-help">
+                    Leave empty to use game default ({getSelectedGame()
+                        ?.human_timeout_ms || "N/A"}ms)
+                </p>
+            </div>
+        </div>
+        <footer>
+            <button
+                type="button"
+                data-variant="secondary"
+                onclick={() => createDialog?.close()}
+            >
+                Cancel
+            </button>
+            <button type="submit" data-variant="primary" value="submit">
+                Create
+            </button>
+        </footer>
+    </form>
+</dialog>
 
 <style>
     .header {
@@ -142,7 +325,8 @@
         min-width: 12.5rem;
     }
 
-    .loading, .empty-state {
+    .loading,
+    .empty-state {
         text-align: center;
         padding: 3rem;
         color: var(--blueprint-ink-light);
@@ -225,162 +409,3 @@
         margin-top: 0.25rem;
     }
 </style>
-
-<section class="container">
-    <div class="header">
-        <h1>Rooms</h1>
-        <button onclick={openCreateModal} data-variant="primary">+ Create Room</button>
-    </div>
-    <div class="content">
-        {#if error}
-            <Alert
-                type="error"
-                message={error}
-                onclose={() => (error = null)}
-            />
-        {/if}
-
-        <div class="filter-section">
-            <label for="game-filter">Filter by game:</label>
-            <select
-                id="game-filter"
-                bind:value={filterGameId}
-                onchange={loadData}
-                class="filter-select"
-            >
-                <option value="">All Games</option>
-                {#each games as game}
-                    <option value={game.id}>{game.name}</option>
-                {/each}
-            </select>
-            <button data-variant="secondary" onclick={loadData}>Refresh</button>
-        </div>
-
-        {#if loading}
-            <div class="loading">Loading rooms...</div>
-        {:else if rooms.length === 0}
-            <div class="empty-state">
-                <p>No rooms available. Create one to get started!</p>
-            </div>
-        {:else}
-            <div class="rooms-grid">
-                {#each rooms as room}
-                    <div class="room-card">
-                        <div class="room-info">
-                            <h3>{room.name}</h3>
-                            <span class="game-name">{getGameName(room.game_id)}</span>
-                        </div>
-                        <div class="room-meta">
-                            <span>👥 {room.players.length}/{room.max_players}</span>
-                            <span class="status-badge status-{room.status}">{room.status}</span>
-                        </div>
-                        <div>
-                            {#if room.status === "waiting"}
-                                {#if isUserInRoom(room)}
-                                    <button
-                                        data-variant="primary"
-                                        onclick={() => goto(`/room?id=${room.id}`)}
-                                    >
-                                        Enter Room
-                                    </button>
-                                {:else if room.players.length < room.max_players}
-                                    <button
-                                        data-variant="success"
-                                        onclick={() => goto(`/room?id=${room.id}`)}
-                                    >
-                                        Join Room
-                                    </button>
-                                {:else}
-                                    <button
-                                        data-variant="secondary"
-                                        disabled
-                                    >
-                                        Full
-                                    </button>
-                                {/if}
-                            {:else}
-                                <button
-                                    data-variant="secondary"
-                                    disabled
-                                >
-                                    {room.status === "playing" ? "In Progress" : "Finished"}
-                                </button>
-                            {/if}
-                        </div>
-                    </div>
-                {/each}
-            </div>
-        {/if}
-    </div>
-</section>
-<dialog bind:this={createDialog} onclose={onDialogClose}>
-    <form method="dialog">
-        <header>
-            <h2>Create New Room</h2>
-            <button
-                type="button"
-                onclick={() => createDialog?.close()}
-                aria-label="Close"
-            >×</button>
-        </header>
-        <div class="dialog-content">
-            <div class="form-field">
-                <label for="game-select">Game</label>
-                <select id="game-select" required bind:value={selectedGameId} class="form-input">
-                    <option value="">Select a game</option>
-                    {#each games as game}
-                        <option value={game.id}>{game.name}</option>
-                    {/each}
-                </select>
-            </div>
-            <div class="form-field">
-                <label for="room-name">Room Name</label>
-                <input
-                    id="room-name"
-                    type="text"
-                    required
-                    bind:value={roomName}
-                    placeholder="Enter room name"
-                    class="form-input"
-                />
-            </div>
-            <div class="form-field">
-                <label for="max-players">Max Players</label>
-                <input
-                    id="max-players"
-                    type="number"
-                    bind:value={maxPlayers}
-                    min="2"
-                    max="8"
-                    class="form-input"
-                />
-            </div>
-            <div class="form-field">
-                <label for="human-timeout">Human Timeout (ms)</label>
-                <input
-                    id="human-timeout"
-                    type="number"
-                    bind:value={humanTimeoutMs}
-                    placeholder={getSelectedGame()?.human_timeout_ms?.toString() || "Default"}
-                    min="1000"
-                    class="form-input"
-                />
-                <p class="form-help">
-                    Leave empty to use game default ({getSelectedGame()?.human_timeout_ms || 'N/A'}ms)
-                </p>
-            </div>
-        </div>
-        <footer>
-            <button
-                type="button"
-                data-variant="secondary"
-                onclick={() => createDialog?.close()}
-            >
-                Cancel
-            </button>
-            <button type="submit" data-variant="primary" value="submit">
-                Create
-            </button>
-        </footer>
-    </form>
-</dialog>
