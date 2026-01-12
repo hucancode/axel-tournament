@@ -1,8 +1,7 @@
 nav:has(input[type="radio"][role="tab"]) {
     display: inline-flex;
-    background-color: var(--color-blueprint-paper);
-    border: 1px solid var(--color-border-strong);
-    overflow: hidden;
+    background: var(--color-bg-light);
+    border: 1px solid var(--color-border);
 }
 
 nav:has(input[type="radio"][role="tab"]) input[type="radio"][role="tab"] {
@@ -13,16 +12,17 @@ nav:has(input[type="radio"][role="tab"]) input[type="radio"][role="tab"] {
 }
 
 nav:has(input[type="radio"][role="tab"]) label {
-    position: relative;
     display: inline-flex;
     align-items: center;
-    padding: 0.75rem 1.5rem;
-    background-color: transparent;
-    border-right: 1px solid var(--color-blueprint-line-faint);
+    padding: var(--spacing-2) var(--spacing-4);
+    background: transparent;
+    border-right: 1px solid var(--color-border-light);
     font-weight: 500;
     cursor: pointer;
-    transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+    transition: background var(--transition-fast), color var(--transition-fast);
     user-select: none;
+    color: var(--color-fg-muted);
+    margin: 0;
 }
 
 nav:has(input[type="radio"][role="tab"]) label:last-child {
@@ -30,44 +30,27 @@ nav:has(input[type="radio"][role="tab"]) label:last-child {
 }
 
 nav:has(input[type="radio"][role="tab"]) input[type="radio"][role="tab"]:checked + label {
-    background-color: var(--color-primary);
-    color: white;
-    border-color: var(--color-primary);
+    background: var(--color-primary);
+    color: var(--color-bg-dark);
 }
 
 nav:has(input[type="radio"][role="tab"]) input[type="radio"][role="tab"]:focus + label {
-    outline: 2px solid var(--color-primary);
-    outline-offset: -2px;
-    z-index: 10;
+    outline: 1px solid var(--color-primary);
+    outline-offset: -1px;
 }
 
-nav:has(input[type="radio"][role="tab"]) label:hover:not(:has(input:checked)) {
-    background-color: var(--color-blueprint-line-faint);
-}
-
-nav:has(input[type="radio"][role="tab"]) label:active {
-    background-color: var(--color-primary);
-    color: white;
+nav:has(input[type="radio"][role="tab"]) label:hover {
+    background: var(--color-bg-popup);
 }
 
 section[role="tabpanel"] {
-    margin-top: 1rem;
+    margin-top: var(--spacing-4);
     display: none;
 }
 
-:has(nav input[type="radio"][role="tab"]:nth-of-type(1):checked) section[role="tabpanel"]:nth-of-type(1) {
-    display: block;
-}
-
-:has(nav input[type="radio"][role="tab"]:nth-of-type(2):checked) section[role="tabpanel"]:nth-of-type(2) {
-    display: block;
-}
-
-:has(nav input[type="radio"][role="tab"]:nth-of-type(3):checked) section[role="tabpanel"]:nth-of-type(3) {
-    display: block;
-}
-
+:has(nav input[type="radio"][role="tab"]:nth-of-type(1):checked) section[role="tabpanel"]:nth-of-type(1),
+:has(nav input[type="radio"][role="tab"]:nth-of-type(2):checked) section[role="tabpanel"]:nth-of-type(2),
+:has(nav input[type="radio"][role="tab"]:nth-of-type(3):checked) section[role="tabpanel"]:nth-of-type(3),
 :has(nav input[type="radio"][role="tab"]:nth-of-type(4):checked) section[role="tabpanel"]:nth-of-type(4) {
     display: block;
 }
-/* currently support up to 4 tabs, if you need more, duplicate the code above */

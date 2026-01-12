@@ -112,13 +112,14 @@
 
   button {
     min-width: 2rem;
-    padding: 0.5rem 0.75rem;
-    background-color: var(--color-blueprint-paper);
-    border: 1px solid var(--color-border-strong);
+    padding: var(--spacing-2) var(--spacing-3);
+    background: var(--color-bg-light);
+    border: 1px solid var(--color-border);
+    color: var(--color-fg);
     font-weight: 500;
     font-size: 0.875rem;
     cursor: pointer;
-    transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), opacity var(--transition-fast);
+    transition: border-color var(--transition-fast);
   }
 
   button[data-nav] {
@@ -126,18 +127,7 @@
   }
 
   button:hover:not(:disabled) {
-    background-color: var(--color-gray-light);
-    border-color: var(--color-border-strong);
-  }
-
-  button:active:not(:disabled) {
-    opacity: 0.9;
-  }
-
-  button:focus {
-    outline: 2px solid var(--color-primary);
-    outline-offset: 2px;
-    z-index: 10;
+    border-color: var(--color-fg-dim);
   }
 
   button:disabled {
@@ -145,28 +135,21 @@
     cursor: not-allowed;
   }
 
-  button:disabled:hover {
-    background-color: var(--color-blueprint-paper);
-    color: var(--color-muted);
-  }
-
   button[data-current="true"] {
-    background-color: var(--color-primary);
+    background: var(--color-primary);
     border-color: var(--color-primary);
-    color: white;
+    color: var(--color-bg-dark);
   }
 
   button[data-current="true"]:hover {
-    background-color: var(--color-primary);
-    border-color: var(--color-primary);
     cursor: default;
   }
 
   .ellipsis {
     display: flex;
     align-items: center;
-    padding: 0.5rem 0.25rem;
+    padding: var(--spacing-2) var(--spacing-1);
     font-weight: 500;
-    color: var(--color-muted);
+    color: var(--color-fg-dim);
   }
 </style>

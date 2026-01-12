@@ -42,7 +42,7 @@
 </script>
 
 <style>
-    .profile-page {
+    main {
         padding: var(--spacing-8) 0;
     }
 
@@ -135,7 +135,7 @@
     }
 </style>
 
-<main class="profile-page">
+<main>
     <div class="container">
         <section class="user-info-section">
             <h2>User Information</h2>

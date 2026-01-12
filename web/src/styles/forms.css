@@ -5,143 +5,254 @@ input[type="number"],
 input[type="search"],
 input[type="tel"],
 input[type="url"],
-textarea {
+textarea,
+select {
     width: 100%;
-    padding: var(--spacing-3);
-    border: 1px solid var(--color-border-strong);
-    background: var(--color-blueprint-paper);
+    padding: var(--spacing-2) var(--spacing-3);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-light);
+    color: var(--color-fg);
     font-size: 1rem;
     font-family: inherit;
-    transition: var(--transition-fast);
+    transition: border-color var(--transition-fast);
 }
 
 input:focus,
-textarea:focus {
-    outline: 2px solid var(--color-primary);
-    outline-offset: -2px;
+textarea:focus,
+select:focus {
+    outline: none;
     border-color: var(--color-primary);
 }
 
 input:disabled,
-textarea:disabled {
-    opacity: 0.6;
+textarea:disabled,
+select:disabled {
     cursor: not-allowed;
-    background: var(--color-gray-100);
+    color: var(--color-fg-dim);
+    background-image: repeating-linear-gradient(315deg, var(--color-pattern-fg-strong) 0, var(--color-pattern-fg-strong) 2px, transparent 0, transparent 50%);
+    background-size: 12px 12px;
 }
 
-/* Native select styling */
 select {
-    width: 100%;
-    padding: var(--spacing-3) var(--spacing-4);
-    border: 2px solid var(--color-border-strong);
-    background: var(--color-blueprint-paper);
-    font-size: 1rem;
     cursor: pointer;
 }
 
-select:focus {
-    outline: 2px solid var(--color-primary);
-    outline-offset: -2px;
+textarea {
+    resize: vertical;
+    min-height: 6rem;
+    font-family: monospace;
 }
 
-select:disabled {
-    opacity: 0.6;
+/* Checkbox */
+input[type="checkbox"] {
+    appearance: none;
+    width: 1rem;
+    aspect-ratio: 1;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-light);
+    cursor: pointer;
+    position: relative;
+    margin: 0;
+}
+
+input[type="checkbox"]:checked {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+input[type="checkbox"]:checked::after {
+    content: "";
+    position: absolute;
+    left: 4px;
+    width: 5px;
+    height: 8px;
+    border: solid var(--color-bg-dark);
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+input[type="checkbox"]:focus {
+    outline: none;
+    border-color: var(--color-primary);
+}
+
+input[type="checkbox"]:disabled {
     cursor: not-allowed;
+    background-image: repeating-linear-gradient(315deg, var(--color-pattern-fg-strong) 0, var(--color-pattern-fg-strong) 2px, transparent 0, transparent 50%);
+    background-size: 6px 6px;
 }
 
-/* Native range slider styling */
+/* Switch */
+input[type="checkbox"][role="switch"] {
+    width: 2.5rem;
+    height: 1.25rem;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-popup);
+    position: relative;
+    padding: 2px;
+}
+
+input[type="checkbox"][role="switch"]::after {
+    content: "";
+    height: 100%;
+    background: var(--color-fg-dim);
+    transform: none;
+    width: 50%;
+    display: block;
+    position: initial;
+    border: none;
+    transition: ease-in-out;
+    transform: none;
+}
+
+input[type="checkbox"][role="switch"]:checked {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+input[type="checkbox"][role="switch"]:checked::after {
+    transform: translateX(100%);
+    background: var(--color-bg-dark);
+}
+
+/* Range slider */
 input[type="range"] {
-    -webkit-appearance: none;
     appearance: none;
     width: 100%;
+    height: 1rem;
     background: transparent;
     cursor: pointer;
 }
 
 input[type="range"]::-webkit-slider-runnable-track {
     width: 100%;
-    height: 1rem;
-    background: var(--color-blueprint-paper);
-    border: 1px solid var(--color-border-strong);
+    height: 50%;
+    background: var(--color-bg-popup);
+    border: 1px solid var(--color-border);
+    overflow: hidden;
 }
 
 input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
     appearance: none;
-    width: 1.25rem;
-    height: 1.25rem;
+    aspect-ratio: 1;
+    height: 200%;
     background: var(--color-primary);
-    border: 1px solid var(--color-border-strong);
+    border: 1px solid var(--color-primary);
     cursor: grab;
-    margin-top: -0.125rem;
+    border: none;
+    border-radius: 0;
+    box-shadow: -100vw 0 0 100vw var(--color-secondary);
 }
 
 input[type="range"]::-moz-range-track {
-    width: 100%;
-    height: 1rem;
-    background: var(--color-blueprint-paper);
-    border: 1px solid var(--color-border-strong);
+    height: 50%;
+    background: var(--color-bg-popup);
+    border: 1px solid var(--color-border);
+}
+
+input[type="range"]::-moz-range-progress {
+    background: var(--color-secondary);
+    height: 50%;
 }
 
 input[type="range"]::-moz-range-thumb {
-    width: 1.25rem;
-    height: 1.25rem;
+    aspect-ratio: 1;
+    height: 100%;
     background: var(--color-primary);
-    border: 1px solid var(--color-border-strong);
+    border: 1px solid var(--color-primary);
     cursor: grab;
-}
-
-input[type="range"]:focus {
-    outline: 2px solid var(--color-primary);
-    outline-offset: 2px;
+    border: none;
+    border-radius: 0;
 }
 
 input[type="range"]:disabled {
-    opacity: 0.6;
     cursor: not-allowed;
 }
 
-/* Native progress styling */
+input[type="range"]:disabled::-webkit-slider-runnable-track {
+    background-image: repeating-linear-gradient(315deg, var(--color-pattern-fg-strong) 0, var(--color-pattern-fg-strong) 2px, transparent 0, transparent 50%);
+    background-size: 8px 8px;
+}
+
+input[type="range"]:disabled::-moz-range-track {
+    background-image: repeating-linear-gradient(315deg, var(--color-pattern-fg-strong) 0, var(--color-pattern-fg-strong) 2px, transparent 0, transparent 50%);
+    background-size: 8px 8px;
+}
+
+/* Progress bar */
 progress {
     width: 100%;
-    height: 1.25rem;
-    border: 1px solid var(--color-border-strong);
+    height: 0.5rem;
+    border: 1px solid var(--color-border);
     appearance: none;
 }
 
 progress::-webkit-progress-bar {
-    background-color: var(--color-blueprint-paper);
+    background: var(--color-bg-popup);
 }
 
 progress::-webkit-progress-value {
-    background-color: var(--color-primary);
+    background: var(--color-primary);
 }
 
 progress::-moz-progress-bar {
-    background-color: var(--color-primary);
+    background: var(--color-primary);
 }
 
-/* Native textarea styling */
-textarea {
-    width: 100%;
-    padding: 0.75rem 1rem;
-    border: 1px solid var(--color-border-strong);
-    font-size: 1rem;
-    background-color: var(--color-blueprint-paper);
-    color: var(--color-fg);
-    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
-    resize: vertical;
-    min-height: 6.25rem;
-    font-family: monospace;
+progress:indeterminate {
+    background-image: repeating-linear-gradient(
+        315deg,
+        var(--color-pattern-fg-strong) 0,
+        var(--color-pattern-fg-strong) 2px,
+        transparent 0,
+        transparent 50%
+    );
+    background-size: 12px 12px;
+    animation: progress-indeterminate 0.5s linear infinite;
 }
 
-textarea:focus {
-    outline: none;
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 3px rgb(59 130 246 / 0.1);
+progress:indeterminate::-webkit-progress-bar {
+    background: transparent;
 }
 
-textarea:disabled {
-    opacity: 0.5;
+progress:indeterminate::-moz-progress-bar {
+    background-color: transparent;
+    background-image: repeating-linear-gradient(
+        315deg,
+        var(--color-pattern-fg-strong) 0,
+        var(--color-pattern-fg-strong) 2px,
+        transparent 0,
+        transparent 50%
+    );
+    background-size: 12px 12px;
+    animation: progress-indeterminate 0.5s linear infinite;
+}
+
+@keyframes progress-indeterminate {
+    from {
+        background-position: 0 0;
+    }
+    to {
+        background-position: 12px 0;
+    }
+}
+
+/* Label */
+label {
+    display: block;
+    margin-bottom: var(--spacing-1);
+    font-weight: 500;
+    color: var(--color-fg-muted);
+}
+
+label:has(input[type="checkbox"]) {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    font-weight: normal;
+    cursor: pointer;
+}
+
+label:has(input[type="checkbox"]:disabled) {
     cursor: not-allowed;
 }

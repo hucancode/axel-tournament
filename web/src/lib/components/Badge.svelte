@@ -27,48 +27,48 @@
 <style>
   span {
     display: inline-block;
-    padding: 0.125rem 0.625rem;
+    padding: 0 var(--spacing-2);
     font-size: 0.75rem;
     font-weight: 500;
+    border: 1px solid;
   }
 
   span[data-status="scheduled"],
   span[data-status="pending"] {
-    background-color: rgb(100 116 139 / 0.1);
-    color: var(--color-gray-dark);
-  }
-
-  @media (prefers-color-scheme: dark) {
-    span[data-status="scheduled"],
-    span[data-status="pending"] {
-      color: var(--color-gray-400);
-    }
+    background: var(--color-bg-popup);
+    color: var(--color-fg-dim);
+    border-color: var(--color-border);
   }
 
   span[data-status="registration"] {
-    background-color: rgb(59 130 246 / 0.1);
+    background: var(--color-bg-popup);
     color: var(--color-primary);
+    border-color: var(--color-primary);
   }
 
   span[data-status="generating"] {
-    background-color: rgb(236 72 153 / 0.1);
+    background: var(--color-bg-popup);
     color: var(--color-accent);
+    border-color: var(--color-accent);
   }
 
   span[data-status="running"] {
-    background-color: rgb(245 158 11 / 0.1);
-    color: #D97706;
+    background: var(--color-bg-popup);
+    color: var(--color-warning);
+    border-color: var(--color-warning);
   }
 
   span[data-status="completed"],
   span[data-status="accepted"] {
-    background-color: rgb(16 185 129 / 0.1);
+    background: var(--color-bg-popup);
     color: var(--color-success);
+    border-color: var(--color-success);
   }
 
   span[data-status="cancelled"],
   span[data-status="failed"] {
-    background-color: rgb(239 68 68 / 0.1);
+    background: var(--color-bg-popup);
     color: var(--color-error);
+    border-color: var(--color-error);
   }
 </style>

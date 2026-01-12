@@ -4,6 +4,7 @@ import "$styles/base.css";
 import "$styles/forms.css";
 import "$styles/buttons.css";
 import "$styles/tabs.css";
+import "$styles/dialog.css";
 
 const preview: Preview = {
   parameters: {

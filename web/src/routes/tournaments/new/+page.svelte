@@ -96,7 +96,7 @@
 </script>
 
 <style>
-    .tournament-create-page {
+    main {
         padding: var(--spacing-8) 0;
     }
 
@@ -165,7 +165,7 @@
     }
 </style>
 
-<main class="tournament-create-page">
+<main>
     <div class="container">
         <header class="page-header">
             <div class="header-content">

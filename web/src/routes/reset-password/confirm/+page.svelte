@@ -45,7 +45,7 @@
 </script>
 
 <style>
-    .reset-confirm-page {
+    main {
         padding: var(--spacing-8) 0;
     }
 
@@ -112,7 +112,7 @@
     }
 </style>
 
-<main class="reset-confirm-page">
+<main>
     <div class="container">
         <section class="reset-form-section">
             <h1>Set New Password</h1>

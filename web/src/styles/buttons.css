@@ -1,85 +1,69 @@
 button {
-    padding: var(--spacing-3) var(--spacing-6);
-    border: 2px solid var(--color-border-strong);
-    background: var(--color-blueprint-paper);
+    padding: var(--spacing-2) var(--spacing-4);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-light);
     color: var(--color-fg);
     font-size: 1rem;
-    font-weight: 600;
+    font-weight: 500;
     font-family: inherit;
     cursor: pointer;
-    transition: var(--transition-fast);
-    box-shadow: 4px 4px 0 var(--color-border-strong);
+    transition: background var(--transition-fast), border-color var(--transition-fast);
 }
 
 button:hover:not(:disabled) {
-    transform: translate(2px, 2px);
-    box-shadow: 2px 2px 0 var(--color-border-strong);
+    border-color: var(--color-fg-dim);
 }
 
 button:active:not(:disabled) {
-    transform: translate(4px, 4px);
-    box-shadow: none;
+    background: var(--color-bg-popup);
 }
 
 button:disabled {
-    opacity: 0.6;
     cursor: not-allowed;
-    transform: none;
-    box-shadow: 4px 4px 0 var(--color-border-strong);
+    color: var(--color-fg-dim);
+    background-image: repeating-linear-gradient(315deg, var(--color-pattern-fg-strong) 0, var(--color-pattern-fg-strong) 2px, transparent 0, transparent 50%);
+    background-size: 12px 12px;
 }
 
 button[data-variant="primary"] {
     background: var(--color-primary);
-    color: var(--color-blueprint-paper);
+    color: var(--color-bg-dark);
     border-color: var(--color-primary);
-    box-shadow: 4px 4px 0 var(--color-primary);
 }
 
 button[data-variant="primary"]:hover:not(:disabled) {
-    box-shadow: 2px 2px 0 var(--color-primary);
+    border-color: var(--color-secondary);
 }
 
 button[data-variant="secondary"] {
-    background: var(--color-secondary);
-    color: var(--color-blueprint-paper);
-    border-color: var(--color-secondary);
-    box-shadow: 4px 4px 0 var(--color-secondary);
+    background: var(--color-bg-popup);
+    color: var(--color-fg);
+    border-color: var(--color-border);
 }
 
 button[data-variant="secondary"]:hover:not(:disabled) {
-    box-shadow: 2px 2px 0 var(--color-secondary);
+    border-color: var(--color-fg-dim);
 }
 
 button[data-variant="success"] {
     background: var(--color-success);
-    color: var(--color-blueprint-paper);
+    color: var(--color-bg-dark);
     border-color: var(--color-success);
-    box-shadow: 4px 4px 0 var(--color-success);
-}
-
-button[data-variant="success"]:hover:not(:disabled) {
-    box-shadow: 2px 2px 0 var(--color-success);
 }
 
 button[data-variant="danger"] {
     background: var(--color-error);
-    color: var(--color-blueprint-paper);
+    color: var(--color-fg);
     border-color: var(--color-error);
-    box-shadow: 4px 4px 0 var(--color-error);
-}
-
-button[data-variant="danger"]:hover:not(:disabled) {
-    box-shadow: 2px 2px 0 var(--color-error);
 }
 
 button[data-variant="ghost"] {
     background: transparent;
     color: var(--color-fg);
-    border-color: var(--color-border-strong);
-    box-shadow: 4px 4px 0 var(--color-border-strong);
+    border-color: transparent;
 }
 
 button[data-variant="ghost"]:hover:not(:disabled) {
-    background: var(--color-gray-100);
-    box-shadow: 2px 2px 0 var(--color-border-strong);
+    background: var(--color-bg-light);
+    border-color: var(--color-border-light);
 }

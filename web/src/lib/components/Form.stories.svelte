@@ -6,6 +6,7 @@
   });
 </script>
 
+
 <Story name="All Elements">
   {#snippet template()}
     <form>
@@ -42,6 +43,37 @@
 
         <label for="progress">Progress Bar</label>
         <progress id="progress" value="70" max="100">70%</progress>
+
+        <label for="progress-indeterminate">Indeterminate Progress</label>
+        <progress id="progress-indeterminate">Loading...</progress>
+      </fieldset>
+
+      <fieldset>
+        <legend>Checkbox & Switch</legend>
+        <label>
+          <input type="checkbox" />
+          Default checkbox
+        </label>
+        <label>
+          <input type="checkbox" checked />
+          Checked checkbox
+        </label>
+        <label>
+          <input type="checkbox" disabled />
+          Disabled checkbox
+        </label>
+        <label>
+          <input type="checkbox" role="switch" />
+          Default switch
+        </label>
+        <label>
+          <input type="checkbox" role="switch" checked />
+          Checked switch
+        </label>
+        <label>
+          <input type="checkbox" role="switch" disabled />
+          Disabled switch
+        </label>
       </fieldset>
 
       <fieldset>
@@ -74,10 +106,6 @@
     display: block;
     margin: 1rem 0 0.5rem 0;
     font-weight: 500;
-  }
-
-  input, select, textarea {
-    margin-bottom: 1rem;
   }
 
   button {

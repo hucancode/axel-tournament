@@ -48,7 +48,7 @@
 </script>
 
 <style>
-    .home-page {
+    main {
         padding: var(--spacing-8) 0;
     }
 
@@ -144,7 +144,7 @@
     }
 </style>
 
-<main class="home-page">
+<main>
     <div class="container">
         <header class="hero-section">
             <h1>Welcome to Axel Tournament</h1>

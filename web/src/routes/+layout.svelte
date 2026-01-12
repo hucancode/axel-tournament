@@ -4,6 +4,7 @@
     import "$styles/forms.css";
     import "$styles/buttons.css";
     import "$styles/tabs.css";
+    import "$styles/dialog.css";
     import { page } from "$app/state";
     import { authStore } from "$lib/stores/auth";
     import { goto } from "$app/navigation";
@@ -23,146 +24,78 @@
 </svelte:head>
 
 <nav>
-    <div class="nav-container">
-        <div class="nav-links">
-            <a href="/" class="brand">Axel Tournament</a>
-            <a
-                href="/tournaments"
-                class:active={currentPath.startsWith('/tournaments')}
-            >
-                Tournaments
-            </a>
-            <a
-                href="/games"
-                class:active={currentPath.startsWith('/games')}
-            >
-                Games
-            </a>
-            <a
-                href="/rooms"
-                class:active={currentPath.startsWith('/rooms')}
-            >
-                Rooms
-            </a>
-            <a
-                href="/leaderboard"
-                class:active={currentPath === '/leaderboard'}
-            >
-                Leaderboard
-            </a>
-        </div>
-        <div class="nav-actions">
-            {#if isAuthenticated}
-                <a href="/profile" class:active={currentPath === '/profile'}>{user?.username}</a>
-                <button onclick={logout} data-variant="ghost">Logout</button>
-            {:else}
-                <a href="/login" class:active={currentPath === '/login'}>Login</a>
-                <LinkButton href="/register" variant="primary" label="Sign Up" />
-            {/if}
-        </div>
-    </div>
+    <a href="/">Axel Tournament</a>
+    <a href="/tournaments" class:active={currentPath.startsWith("/tournaments")}
+        >Tournaments</a
+    >
+    <a href="/games" class:active={currentPath.startsWith("/games")}>Games</a>
+    <a href="/rooms" class:active={currentPath.startsWith("/rooms")}>Rooms</a>
+    <a href="/leaderboard" class:active={currentPath === "/leaderboard"}
+        >Leaderboard</a
+    >
+    <span></span>
+    {#if isAuthenticated}
+        <a href="/profile" class:active={currentPath === "/profile"}
+            >{user?.username}</a
+        >
+        <button onclick={logout} data-variant="ghost">Logout</button>
+    {:else}
+        <a href="/login" class:active={currentPath === "/login"}>Login</a>
+        <LinkButton href="/register" variant="primary" label="Sign Up" />
+    {/if}
 </nav>
-<div class="page-wrapper bg-blueprint-fine-grid bg-blueprint-major-grid">
-    <div class="bg-hatch sidebar"></div>
-    <main>
-        {@render children()}
-    </main>
-    <div class="bg-hatch sidebar"></div>
+<div class="bg-grid bg-grid-major">
+    {@render children()}
 </div>
-<footer>
-    <div class="footer-content">
-        <p>
-            &copy; 2025 Axel Tournament Platform. All rights reserved.
-        </p>
-    </div>
-</footer>
+<footer>&copy; 2025 Axel Tournament Platform</footer>
 
 <style>
     nav {
-        border-bottom: 1px solid var(--color-blueprint-line-light);
-        background-color: var(--color-blueprint-paper);
-        padding: 1rem 2rem;
-    }
-
-    .nav-container {
-        max-width: 75rem;
-        margin-inline: auto;
         display: flex;
-        justify-content: space-between;
         align-items: center;
-    }
-
-    .nav-links,
-    .nav-actions {
-        display: flex;
         gap: 1.5rem;
-        align-items: center;
+        padding: var(--spacing-3) var(--spacing-6);
+        background: var(--color-bg-light);
+        border-bottom: 1px solid var(--color-border-light);
     }
 
     nav a {
         text-decoration: none;
+        color: var(--color-fg-muted);
         font-weight: 500;
-        color: inherit;
-        transition: color var(--transition-fast), opacity var(--transition-fast);
+        transition: color var(--transition-fast);
+    }
+
+    nav a:first-child {
+        font-weight: 700;
+        color: var(--color-primary);
+        margin-right: var(--spacing-4);
     }
 
     nav a:hover {
-        color: var(--color-primary);
+        color: var(--color-fg);
     }
 
     nav a.active {
         color: var(--color-primary);
-        font-weight: 600;
     }
 
-    nav a:focus-visible {
-        outline: 2px solid var(--color-primary);
-        outline-offset: 2px;
-    }
-
-    .brand {
-        font-size: 1.25rem;
-        font-weight: 700;
-        color: var(--color-primary);
-    }
-
-    .brand:hover {
-        opacity: 0.8;
-    }
-
-    .page-wrapper {
-        display: flex;
+    nav span {
         flex: 1;
+    }
+
+    div {
+        flex: 1;
+        display: flex;
         justify-content: center;
     }
 
-    .sidebar {
-        width: 2rem;
-        height: 100%;
-    }
-
-    main {
-        flex: 1;
-        max-width: 1200px;
-        background-color: var(--color-gray-950);
-    }
-
     footer {
-        background: var(--color-blueprint-paper);
-        padding: 2rem 0;
-        margin-top: auto;
+        padding: var(--spacing-4);
         text-align: center;
-        border-top: 1px solid var(--color-border);
-    }
-
-    .footer-content {
-        max-width: 75rem;
-        margin-inline: auto;
-        padding-inline: 1rem;
-    }
-
-    .footer-content p {
+        background: var(--color-bg-light);
+        border-top: 1px solid var(--color-border-light);
         font-size: 0.875rem;
-        margin: 0;
+        color: var(--color-fg-dim);
     }
 </style>

@@ -4,7 +4,6 @@
     import { roomService } from "$services/rooms";
     import { gameService } from "$services/games";
     import type { Room, Game, CreateRoomRequest } from "$lib/types";
-    import Dialog from "$lib/components/Dialog.svelte";
     import Alert from "$lib/components/Alert.svelte";
     import LinkButton from "$lib/components/LinkButton.svelte";
     import { authStore } from "$lib/stores/auth";
@@ -314,56 +313,74 @@
         {/if}
     </div>
 </section>
-<Dialog
-    bind:dialog={createDialog}
-    title="Create New Room"
-    onclose={onDialogClose}
->
-    {#snippet children()}
-        <div class="form-field">
-            <label for="game-select">Game</label>
-            <select id="game-select" required bind:value={selectedGameId} class="form-input">
-                <option value="">Select a game</option>
-                {#each games as game}
-                    <option value={game.id}>{game.name}</option>
-                {/each}
-            </select>
+<dialog bind:this={createDialog} onclose={onDialogClose}>
+    <form method="dialog">
+        <header>
+            <h2>Create New Room</h2>
+            <button
+                type="button"
+                onclick={() => createDialog?.close()}
+                aria-label="Close"
+            >×</button>
+        </header>
+        <div class="dialog-content">
+            <div class="form-field">
+                <label for="game-select">Game</label>
+                <select id="game-select" required bind:value={selectedGameId} class="form-input">
+                    <option value="">Select a game</option>
+                    {#each games as game}
+                        <option value={game.id}>{game.name}</option>
+                    {/each}
+                </select>
+            </div>
+            <div class="form-field">
+                <label for="room-name">Room Name</label>
+                <input
+                    id="room-name"
+                    type="text"
+                    required
+                    bind:value={roomName}
+                    placeholder="Enter room name"
+                    class="form-input"
+                />
+            </div>
+            <div class="form-field">
+                <label for="max-players">Max Players</label>
+                <input
+                    id="max-players"
+                    type="number"
+                    bind:value={maxPlayers}
+                    min="2"
+                    max="8"
+                    class="form-input"
+                />
+            </div>
+            <div class="form-field">
+                <label for="human-timeout">Human Timeout (ms)</label>
+                <input
+                    id="human-timeout"
+                    type="number"
+                    bind:value={humanTimeoutMs}
+                    placeholder={getSelectedGame()?.human_timeout_ms?.toString() || "Default"}
+                    min="1000"
+                    class="form-input"
+                />
+                <p class="form-help">
+                    Leave empty to use game default ({getSelectedGame()?.human_timeout_ms || 'N/A'}ms)
+                </p>
+            </div>
         </div>
-        <div class="form-field">
-            <label for="room-name">Room Name</label>
-            <input
-                id="room-name"
-                type="text"
-                required
-                bind:value={roomName}
-                placeholder="Enter room name"
-                class="form-input"
-            />
-        </div>
-        <div class="form-field">
-            <label for="max-players">Max Players</label>
-            <input
-                id="max-players"
-                type="number"
-                bind:value={maxPlayers}
-                min="2"
-                max="8"
-                class="form-input"
-            />
-        </div>
-        <div class="form-field">
-            <label for="human-timeout">Human Timeout (ms)</label>
-            <input
-                id="human-timeout"
-                type="number"
-                bind:value={humanTimeoutMs}
-                placeholder={getSelectedGame()?.human_timeout_ms?.toString() || "Default"}
-                min="1000"
-                class="form-input"
-            />
-            <p class="form-help">
-                Leave empty to use game default ({getSelectedGame()?.human_timeout_ms || 'N/A'}ms)
-            </p>
-        </div>
-    {/snippet}
-</Dialog>
+        <footer>
+            <button
+                type="button"
+                data-variant="secondary"
+                onclick={() => createDialog?.close()}
+            >
+                Cancel
+            </button>
+            <button type="submit" data-variant="primary" value="submit">
+                Create
+            </button>
+        </footer>
+    </form>
+</dialog>

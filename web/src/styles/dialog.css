@@ -1,0 +1,42 @@
+dialog {
+    max-width: 31.25rem;
+    width: 90%;
+    background: var(--color-bg-light);
+    color: var(--color-fg);
+    border: 1px solid var(--color-border);
+}
+
+dialog::backdrop {
+    background: rgb(0 0 0 / 0.6);
+}
+
+dialog form {
+    display: flex;
+    flex-direction: column;
+}
+
+dialog header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-4);
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+dialog header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+dialog .dialog-content {
+    padding: var(--spacing-4);
+}
+
+dialog footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--spacing-3);
+    padding: var(--spacing-4);
+    border-top: 1px solid var(--color-border-light);
+}

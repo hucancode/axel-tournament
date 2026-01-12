@@ -48,9 +48,8 @@
 <style>
   div[role="radiogroup"] {
     display: inline-flex;
-    background-color: var(--color-blueprint-paper);
-    border: 1px solid var(--color-border-strong);
-    overflow: hidden;
+    background: var(--color-bg-light);
+    border: 1px solid var(--color-border);
   }
 
   div[data-disabled="true"] {
@@ -59,16 +58,17 @@
   }
 
   label {
-    position: relative;
     display: inline-flex;
     align-items: center;
-    padding: 0.75rem 1.5rem;
-    background-color: transparent;
-    border-right: 1px solid var(--color-blueprint-line-faint);
+    padding: var(--spacing-2) var(--spacing-4);
+    background: transparent;
+    border-right: 1px solid var(--color-border-light);
     font-weight: 500;
     cursor: pointer;
-    transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+    transition: background var(--transition-fast), color var(--transition-fast);
     user-select: none;
+    color: var(--color-fg-muted);
+    margin: 0;
   }
 
   label:last-child {
@@ -87,27 +87,16 @@
   }
 
   label:has(input:checked) {
-    background-color: var(--color-primary);
-    color: white;
-    border-color: var(--color-primary);
+    background: var(--color-primary);
+    color: var(--color-bg-dark);
   }
 
   label:has(input:focus) {
-    outline: 2px solid var(--color-primary);
-    outline-offset: -2px;
-    z-index: 10;
+    outline: 1px solid var(--color-primary);
+    outline-offset: -1px;
   }
 
   label:hover:has(input:not(:disabled):not(:checked)) {
-    background-color: var(--color-blueprint-line-faint);
-  }
-
-  label:active:has(input:not(:disabled)) {
-    background-color: var(--color-primary);
-    color: white;
-  }
-
-  div[data-disabled="true"] label {
-    border-color: var(--color-gray-medium);
+    background: var(--color-bg-popup);
   }
 </style>

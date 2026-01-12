@@ -4,9 +4,21 @@ body {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    background-color: var(--color-blueprint-bg);
+    background-color: var(--color-bg);
     color: var(--color-fg);
     line-height: 1.6;
+    font-family: Inter, system-ui;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    margin: 0;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+main, .container {
+    width: 100%;
+    max-width: 1200px;
 }
 
 .container {
@@ -17,19 +29,19 @@ body {
 }
 
 .bg-hatch {
-    background-image: repeating-linear-gradient(315deg, var(--color-pattern-fg-strong) 0, var(--color-pattern-fg-strong) 2px, var(--color-blueprint-bg) 0, var(--color-blueprint-bg) 50%);
+    background-image: repeating-linear-gradient(315deg, var(--color-pattern-fg-strong) 0, var(--color-pattern-fg-strong) 2px, var(--color-bg) 0, var(--color-bg) 50%);
     background-size: 12px 12px;
     border: 1px solid var(--color-pattern-fg-strong);
 }
 
-.bg-blueprint-fine-grid {
+.bg-grid {
     background-image:
         repeating-linear-gradient(0deg, var(--color-pattern-fg) 0, var(--color-pattern-fg) 1px, transparent 1px, transparent 10px),
         repeating-linear-gradient(90deg, var(--color-pattern-fg) 0, var(--color-pattern-fg) 1px, transparent 1px, transparent 10px);
     background-size: 10px 10px;
 }
 
-.bg-blueprint-major-grid {
+.bg-grid-major {
     background-image:
         repeating-linear-gradient(0deg, var(--color-pattern-fg-strong) 0, var(--color-pattern-fg-strong) 1px, transparent 1px, transparent 100px),
         repeating-linear-gradient(90deg, var(--color-pattern-fg-strong) 0, var(--color-pattern-fg-strong) 1px, transparent 1px, transparent 100px),

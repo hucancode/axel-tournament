@@ -30,7 +30,7 @@
 </script>
 
 <style>
-    .auth-callback-page {
+    main {
         padding: var(--spacing-8) 0;
     }
 
@@ -57,7 +57,7 @@
     }
 </style>
 
-<main class="auth-callback-page">
+<main>
     <div class="container">
         {#if loading}
             <section class="loading-section">

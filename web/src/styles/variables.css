@@ -1,35 +1,27 @@
 :root {
-    --color-blueprint-bg: #FFFFFF;
-    --color-blueprint-paper: #FFFFFF;
-    --color-blueprint-line: oklch(0.13 0.028 261.692);
-    --color-blueprint-line-light: oklch(0.50 0.02 261);
-    --color-blueprint-line-faint: oklch(0.95 0.01 261);
-    --color-primary: #3B82F6;
-    --color-secondary: #60A5FA;
-    --color-accent: #EC4899;
-    --color-success: #10B981;
-    --color-warning: #F59E0B;
-    --color-error: #EF4444;
-    --color-gray-50: #F8FAFC;
-    --color-gray-100: #F1F5F9;
-    --color-gray-200: #E2E8F0;
-    --color-gray-300: #CBD5E1;
-    --color-gray-400: #94A3B8;
-    --color-gray-500: #64748B;
-    --color-gray-600: #475569;
-    --color-gray-700: #334155;
-    --color-gray-800: #1E293B;
-    --color-gray-900: #0F172A;
-    --color-gray-950: #020617;
-    --color-gray-light: #F1F5F9;
-    --color-gray-medium: #94A3B8;
-    --color-gray-dark: #475569;
-    --color-fg: #0F172A;
-    --color-muted: #64748B;
-    --color-pattern-fg: rgb(0 0 0 / 0.05);
-    --color-pattern-fg-strong: rgb(0 0 0 / 0.08);
-    --color-border: rgb(0 0 0 / 0.05);
-    --color-border-strong: rgb(0 0 0 / 0.10);
+    /* Kanagawa dark palette (default) */
+    --color-bg: #1F1F28;
+    --color-bg-dark: #16161D;
+    --color-bg-light: #2A2A37;
+    --color-bg-popup: #363646;
+    --color-fg: #DCD7BA;
+    --color-fg-muted: #C8C093;
+    --color-fg-dim: #727169;
+    --color-border: #54546D;
+    --color-border-light: #363646;
+    --color-primary: #7E9CD8;
+    --color-secondary: #7FB4CA;
+    --color-accent: #957FB8;
+    --color-success: #98BB6C;
+    --color-warning: #E6C384;
+    --color-error: #FF5D62;
+    --color-info: #A3D4D5;
+    --color-pink: #D27E99;
+    --color-orange: #FFA066;
+    --color-red: #C34043;
+    --color-aqua: #6A9589;
+    --color-pattern-fg: rgb(255 255 255 / 0.03);
+    --color-pattern-fg-strong: rgb(255 255 255 / 0.06);
     --spacing-1: 0.25rem;
     --spacing-2: 0.5rem;
     --spacing-3: 0.75rem;
@@ -39,17 +31,9 @@
     --spacing-8: 2rem;
     --spacing-12: 3rem;
     --spacing-16: 4rem;
-    --radius-sm: 0.125rem;
-    --radius-md: 0.375rem;
-    --radius-lg: 0.5rem;
-    --radius-xl: 0.75rem;
-    --radius-2xl: 1rem;
     --transition-fast: 0.15s ease;
     --transition-normal: 0.2s ease;
     --transition-slow: 0.3s ease;
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
     --z-dropdown: 1000;
     --z-sticky: 1020;
     --z-fixed: 1030;
@@ -60,27 +44,30 @@
     --z-toast: 1080;
 }
 
-@media (prefers-color-scheme: dark) {
+@media (prefers-color-scheme: light) {
     :root {
-        --color-blueprint-bg: oklch(0.13 0.028 261.692);
-        --color-blueprint-paper: #1E293B;
-        --color-blueprint-line: #E2E8F0;
-        --color-blueprint-line-light: #64748B;
-        --color-blueprint-line-faint: #334155;
-        --color-primary: #3B82F6;
-        --color-secondary: #60A5FA;
-        --color-accent: #F472B6;
-        --color-success: #34D399;
-        --color-warning: #FBBF24;
-        --color-error: #F87171;
-        --color-gray-light: #334155;
-        --color-gray-medium: #64748B;
-        --color-gray-dark: #94A3B8;
-        --color-fg: #F8FAFC;
-        --color-muted: #94A3B8;
-        --color-pattern-fg: rgb(255 255 255 / 0.05);
-        --color-pattern-fg-strong: rgb(255 255 255 / 0.08);
-        --color-border: rgb(77 77 77 / 0.10);
-        --color-border-strong: rgb(255 255 255 / 0.15);
+        /* Kanagawa Lotus (light) palette */
+        --color-bg: #F2ECBC;
+        --color-bg-dark: #E5DDB0;
+        --color-bg-light: #F9F5D7;
+        --color-bg-popup: #DCD5AC;
+        --color-fg: #43436C;
+        --color-fg-muted: #545454;
+        --color-fg-dim: #8A8980;
+        --color-border: #A09CAC;
+        --color-border-light: #C9CBD1;
+        --color-primary: #4D699B;
+        --color-secondary: #4E8CA2;
+        --color-accent: #624C83;
+        --color-success: #6F894E;
+        --color-warning: #DE9800;
+        --color-error: #C84053;
+        --color-info: #5A7785;
+        --color-pink: #B35B79;
+        --color-orange: #CC6D00;
+        --color-red: #D7474B;
+        --color-aqua: #597B75;
+        --color-pattern-fg: rgb(0 0 0 / 0.04);
+        --color-pattern-fg-strong: rgb(0 0 0 / 0.08);
     }
 }

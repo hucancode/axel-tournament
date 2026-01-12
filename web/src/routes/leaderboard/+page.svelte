@@ -75,7 +75,7 @@
 </script>
 
 <style>
-    .leaderboard-page {
+    main {
         padding: var(--spacing-8) 0;
     }
 
@@ -231,7 +231,7 @@
     }
 </style>
 
-<main class="leaderboard-page">
+<main>
     <div class="container">
         <section class="filters-section">
             <h2>Filters</h2>

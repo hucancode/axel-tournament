@@ -17,33 +17,31 @@
 
 <style>
     aside {
-        margin-bottom: 1rem;
-        border: 1px solid var(--color-border-strong);
+        margin-bottom: var(--spacing-4);
+        border: 1px solid var(--color-border);
         position: relative;
-        padding: 1rem 2.5rem 1rem 1rem;
-        border-left-width: 2px;
+        padding: var(--spacing-3) var(--spacing-8) var(--spacing-3) var(--spacing-3);
+        border-left-width: 3px;
+        background: var(--color-bg-light);
     }
 
     aside[data-closable="false"] {
-        padding-right: 1rem;
+        padding-right: var(--spacing-3);
     }
 
     aside[data-type="error"] {
-        background-color: rgb(239 68 68 / 0.1);
-        color: var(--color-error);
         border-left-color: var(--color-error);
+        color: var(--color-error);
     }
 
     aside[data-type="success"] {
-        background-color: rgb(16 185 129 / 0.1);
-        color: var(--color-success);
         border-left-color: var(--color-success);
+        color: var(--color-success);
     }
 
     aside[data-type="warning"] {
-        background-color: rgb(245 158 11 / 0.1);
-        color: #D97706;
         border-left-color: var(--color-warning);
+        color: var(--color-warning);
     }
 
     p {
@@ -54,9 +52,9 @@
     button {
         position: absolute;
         top: 50%;
-        right: 0.5rem;
+        right: var(--spacing-2);
         transform: translateY(-50%);
-        background-color: transparent;
+        background: transparent;
         border: 0;
         font-size: 1.25rem;
         font-weight: 700;
@@ -69,6 +67,7 @@
         justify-content: center;
         line-height: 1;
         opacity: 0.6;
+        color: inherit;
         transition: opacity var(--transition-fast);
     }
 

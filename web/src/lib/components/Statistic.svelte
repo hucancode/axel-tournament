@@ -10,7 +10,7 @@
     let { value, label, variant = "neutral" }: Props = $props();
 </script>
 
-<article data-variant={variant} class="bg-hatch">
+<article data-variant={variant}>
     <data value={typeof value === 'number' ? value : undefined}>
         {value}
     </data>
@@ -19,28 +19,30 @@
 
 <style>
     article {
-        padding: 1.5rem;
+        padding: var(--spacing-4);
         text-align: center;
+        background: var(--color-bg-light);
+        border: 1px solid var(--color-border);
     }
 
     data {
         font-size: 1.875rem;
         font-weight: bold;
         display: block;
-        color: var(--primary);
+        color: var(--color-primary);
     }
 
     article[data-variant="positive"] data {
-        color: var(--green-600);
+        color: var(--color-success);
     }
 
     article[data-variant="negative"] data {
-        color: var(--red-600);
+        color: var(--color-error);
     }
 
     footer {
         font-size: 0.875rem;
-        color: var(--color-gray-600);
-        margin-top: 0.5rem;
+        color: var(--color-fg-dim);
+        margin-top: var(--spacing-2);
     }
 </style>

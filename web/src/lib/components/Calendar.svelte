@@ -35,18 +35,15 @@
 
     const days: Date[] = [];
 
-    // Add empty slots for days before the 1st
     for (let i = 0; i < startingDayOfWeek; i++) {
       const prevMonthDay = new Date(year, month, -startingDayOfWeek + i + 1);
       days.push(prevMonthDay);
     }
 
-    // Add days of current month
     for (let i = 1; i <= daysInMonth; i++) {
       days.push(new Date(year, month, i));
     }
 
-    // Fill remaining slots to complete the week
     const remainingDays = 7 - (days.length % 7);
     if (remainingDays < 7) {
       for (let i = 1; i <= remainingDays; i++) {
@@ -101,45 +98,25 @@
 </script>
 
 <div class="calendar">
-  <div class="calendar-header">
-    <button
-      type="button"
-      class="calendar-nav-btn"
-      onclick={previousMonth}
-      disabled={disabled}
-      aria-label="Previous month"
-    >
-      ←
-    </button>
-    <div class="calendar-month">
-      {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
-    </div>
-    <button
-      type="button"
-      class="calendar-nav-btn"
-      onclick={nextMonth}
-      disabled={disabled}
-      aria-label="Next month"
-    >
-      →
-    </button>
-  </div>
+  <header>
+    <button type="button" onclick={previousMonth} disabled={disabled} aria-label="Previous month">←</button>
+    <span>{monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}</span>
+    <button type="button" onclick={nextMonth} disabled={disabled} aria-label="Next month">→</button>
+  </header>
 
-  <div class="calendar-weekdays">
+  <div class="weekdays">
     {#each dayNames as dayName}
-      <div class="calendar-weekday">{dayName}</div>
+      <div>{dayName}</div>
     {/each}
   </div>
 
-  <div class="calendar-days">
+  <div class="days">
     {#each days as day}
       <button
         type="button"
-        class="calendar-day"
-        class:calendar-day-today={isToday(day)}
-        class:calendar-day-selected={isSameDay(day, selectedDate)}
-        class:calendar-day-outside={!isCurrentMonth(day)}
-        class:calendar-day-disabled={isDisabled(day)}
+        data-today={isToday(day) || undefined}
+        data-selected={isSameDay(day, selectedDate) || undefined}
+        data-outside={!isCurrentMonth(day) || undefined}
         onclick={() => selectDate(day)}
         disabled={isDisabled(day)}
       >
@@ -151,107 +128,107 @@
 
 <style>
   .calendar {
-    border: 1px solid var(--border-color-strong);
-    background: var(--color-blueprint-paper);
-    padding: 0.75rem;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-light);
+    padding: var(--spacing-3);
     width: fit-content;
   }
 
-  .calendar-header {
+  header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1rem;
-    padding-top: 0.25rem;
+    margin-bottom: var(--spacing-3);
   }
 
-  .calendar-month {
+  header span {
     font-size: 0.875rem;
     font-weight: 600;
-    color: var(--text);
+    color: var(--color-fg);
   }
 
-  .calendar-nav-btn {
+  header button {
     width: 1.75rem;
     height: 1.75rem;
-    border: 1px solid var(--border-color-strong);
-    background: var(--color-blueprint-paper);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-light);
     cursor: pointer;
     font-size: 1rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: border-color 0.15s ease, background-color 0.15s ease;
-    color: var(--text-muted);
+    transition: border-color var(--transition-fast);
+    color: var(--color-fg-dim);
+    padding: 0;
   }
 
-  .calendar-nav-btn:hover:not(:disabled) {
-    border-color: var(--primary);
-    color: var(--primary);
+  header button:hover:not(:disabled) {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
   }
 
-  .calendar-nav-btn:disabled {
+  header button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }
 
-  .calendar-weekdays {
+  .weekdays {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
     gap: 0.25rem;
-    margin-bottom: 0.5rem;
+    margin-bottom: var(--spacing-2);
   }
 
-  .calendar-weekday {
+  .weekdays div {
     text-align: center;
     font-size: 0.75rem;
     font-weight: 500;
-    color: var(--text-muted);
+    color: var(--color-fg-dim);
     width: 2.25rem;
   }
 
-  .calendar-days {
+  .days {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
     gap: 0.25rem;
   }
 
-  .calendar-day {
+  .days button {
     width: 2.25rem;
     height: 2.25rem;
     border: 1px solid transparent;
-    background: var(--color-blueprint-paper);
+    background: var(--color-bg-light);
     cursor: pointer;
     font-size: 0.875rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: border-color 0.15s ease, background-color 0.15s ease;
-    color: var(--text);
+    transition: border-color var(--transition-fast);
+    color: var(--color-fg);
+    padding: 0;
   }
 
-  .calendar-day:hover:not(:disabled):not(.calendar-day-selected) {
-    border-color: var(--primary);
-    background-color: rgb(59 130 246 / 0.05);
+  .days button:hover:not(:disabled):not([data-selected]) {
+    border-color: var(--color-primary);
   }
 
-  .calendar-day-today {
-    background: var(--color-gray-light);
+  .days button[data-today] {
+    background: var(--color-bg-popup);
     font-weight: 600;
   }
 
-  .calendar-day-selected {
-    background: var(--primary);
-    color: var(--color-blueprint-paper);
+  .days button[data-selected] {
+    background: var(--color-primary);
+    color: var(--color-bg-dark);
     font-weight: 600;
   }
 
-  .calendar-day-outside {
-    color: var(--text-muted);
+  .days button[data-outside] {
+    color: var(--color-fg-dim);
     opacity: 0.5;
   }
 
-  .calendar-day-disabled {
+  .days button:disabled {
     opacity: 0.3;
     cursor: not-allowed;
   }

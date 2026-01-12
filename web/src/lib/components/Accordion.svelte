@@ -11,7 +11,7 @@
 </script>
 
 <details {open}>
-  <summary class="bg-hatch">
+  <summary>
     {title}
   </summary>
   <div>
@@ -21,26 +21,28 @@
 
 <style>
   details {
-    background: var(--blueprint-paper);
+    background: var(--color-bg-light);
+    border: 1px solid var(--color-border);
   }
 
   summary {
-    padding: 1rem;
+    padding: var(--spacing-3);
     font-weight: 600;
     cursor: pointer;
-    border-bottom: 2px solid transparent;
-    transition: border-color 0.15s ease;
+    border-bottom: 1px solid transparent;
+    transition: border-color var(--transition-fast);
+    color: var(--color-fg);
   }
 
   summary:hover {
-    border-bottom-color: var(--primary);
+    border-bottom-color: var(--color-primary);
   }
 
   details[open] summary {
-    border-bottom-color: var(--blueprint-line-faint);
+    border-bottom-color: var(--color-border-light);
   }
 
   details > div {
-    padding: 1rem;
+    padding: var(--spacing-3);
   }
 </style>

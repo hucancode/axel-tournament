@@ -1,7 +1,7 @@
 <script lang="ts">
   interface Props {
     label?: string;
-    value?: string; // HH:mm format
+    value?: string;
     min?: string;
     max?: string;
     step?: number;
@@ -25,7 +25,6 @@
   let minutes = $state('00');
   let ampm = $state<'AM' | 'PM'>('PM');
 
-  // Parse initial value
   $effect(() => {
     if (value) {
       const [h, m] = value.split(':');
@@ -120,75 +119,40 @@
   });
 </script>
 
-<div class="time-picker-container" bind:this={timePickerRef}>
-  <label for={inputId} class="time-label">{label}</label>
+<div bind:this={timePickerRef}>
+  <label for={inputId}>{label}</label>
 
-  <div class="time-input-wrapper">
+  <div class="wrapper">
     <button
       type="button"
-      class="time-input"
-      class:time-input-disabled={disabled}
+      class="trigger"
       onclick={toggleDropdown}
       {disabled}
     >
-      <span class="time-value" class:time-placeholder={!displayValue()}>
+      <span class:placeholder={!displayValue()}>
         {displayValue() || 'Select time...'}
       </span>
-      <span class="time-icon">🕐</span>
     </button>
 
     {#if showDropdown}
-      <div class="time-dropdown">
-        <div class="time-picker">
-          <div class="time-column">
-            <button
-              type="button"
-              class="time-btn"
-              onclick={incrementHours}
-              {disabled}
-            >
-              ▲
-            </button>
-            <div class="time-display">{hours}</div>
-            <button
-              type="button"
-              class="time-btn"
-              onclick={decrementHours}
-              {disabled}
-            >
-              ▼
-            </button>
+      <div class="dropdown">
+        <div class="picker">
+          <div class="column">
+            <button type="button" onclick={incrementHours} {disabled}>▲</button>
+            <div class="display">{hours}</div>
+            <button type="button" onclick={decrementHours} {disabled}>▼</button>
           </div>
 
-          <div class="time-separator">:</div>
+          <div class="separator">:</div>
 
-          <div class="time-column">
-            <button
-              type="button"
-              class="time-btn"
-              onclick={incrementMinutes}
-              {disabled}
-            >
-              ▲
-            </button>
-            <div class="time-display">{minutes}</div>
-            <button
-              type="button"
-              class="time-btn"
-              onclick={decrementMinutes}
-              {disabled}
-            >
-              ▼
-            </button>
+          <div class="column">
+            <button type="button" onclick={incrementMinutes} {disabled}>▲</button>
+            <div class="display">{minutes}</div>
+            <button type="button" onclick={decrementMinutes} {disabled}>▼</button>
           </div>
 
-          <div class="time-column">
-            <button
-              type="button"
-              class="ampm-btn"
-              onclick={toggleAmPm}
-              {disabled}
-            >
+          <div class="column">
+            <button type="button" class="ampm" onclick={toggleAmPm} {disabled}>
               {ampm}
             </button>
           </div>
@@ -198,159 +162,124 @@
   </div>
 
   {#if error}
-    <div class="form-error">{error}</div>
+    <div class="error">{error}</div>
   {/if}
 </div>
 
 <style>
-  .time-picker-container {
-    width: 100%;
+  .wrapper {
     position: relative;
   }
 
-  .time-label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 500;
-    color: var(--text);
-    font-size: 0.875rem;
-  }
-
-  .time-input-wrapper {
-    position: relative;
-  }
-
-  .time-input {
+  .trigger {
     width: 100%;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 0.75rem 1rem;
-    border: 1px solid var(--border-color-strong);
-    background: var(--color-blueprint-paper);
+    padding: var(--spacing-2) var(--spacing-3);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-light);
     font-size: 1rem;
     cursor: pointer;
-    transition: border-color 0.15s ease;
+    transition: border-color var(--transition-fast);
     text-align: left;
-    color: var(--text);
+    color: var(--color-fg);
   }
 
-  .time-input:hover:not(:disabled) {
-    border-color: var(--primary);
+  .trigger:hover:not(:disabled) {
+    border-color: var(--color-fg-dim);
   }
 
-  .time-input:focus {
+  .trigger:focus {
     outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgb(59 130 246 / 0.1);
+    border-color: var(--color-primary);
   }
 
-  .time-input-disabled {
+  .trigger:disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }
 
-  .time-value {
-    flex: 1;
+  .placeholder {
+    color: var(--color-fg-dim);
   }
 
-  .time-placeholder {
-    color: var(--text-muted);
-  }
-
-  .time-icon {
-    margin-left: 0.5rem;
-    font-size: 1rem;
-  }
-
-  .time-dropdown {
+  .dropdown {
     position: absolute;
-    top: calc(100% + 0.5rem);
+    top: calc(100% + var(--spacing-2));
     left: 0;
-    z-index: 50;
-    background: var(--color-blueprint-paper);
-    border: 1px solid var(--border-color-strong);
-    padding: 1rem;
+    z-index: var(--z-dropdown);
+    background: var(--color-bg-light);
+    border: 1px solid var(--color-border);
+    padding: var(--spacing-3);
   }
 
-  .time-picker {
+  .picker {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: var(--spacing-2);
   }
 
-  .time-column {
+  .column {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.5rem;
+    gap: var(--spacing-2);
   }
 
-  .time-btn {
+  .column button {
     width: 2.5rem;
     height: 2rem;
-    border: 1px solid var(--border-color-strong);
-    background: var(--color-blueprint-paper);
+    padding: 0;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-light);
     cursor: pointer;
     font-size: 0.875rem;
-    transition: border-color 0.15s ease, background-color 0.15s ease;
-    color: var(--text-muted);
+    transition: border-color var(--transition-fast);
+    color: var(--color-fg-dim);
   }
 
-  .time-btn:hover:not(:disabled) {
-    border-color: var(--primary);
-    color: var(--primary);
+  .column button:hover:not(:disabled) {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
   }
 
-  .time-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .time-display {
+  .display {
     width: 2.5rem;
-    padding: 0.5rem;
-    border: 1px solid var(--border-color-strong);
-    background: var(--color-blueprint-paper);
+    padding: var(--spacing-2);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-popup);
     text-align: center;
     font-size: 1.25rem;
     font-weight: 600;
-    color: var(--text);
+    color: var(--color-fg);
   }
 
-  .time-separator {
+  .separator {
     font-size: 1.5rem;
     font-weight: 600;
-    padding: 0 0.25rem;
-    color: var(--text-muted);
+    color: var(--color-fg-dim);
   }
 
-  .ampm-btn {
+  .ampm {
     width: 3rem;
     height: 100%;
-    border: 1px solid var(--border-color-strong);
-    background: var(--color-gray-light);
-    color: var(--text);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-popup);
+    color: var(--color-fg);
     cursor: pointer;
     font-size: 0.875rem;
     font-weight: 600;
-    transition: border-color 0.15s ease, background-color 0.15s ease;
+    transition: border-color var(--transition-fast);
   }
 
-  .ampm-btn:hover:not(:disabled) {
-    border-color: var(--primary);
-    background: rgb(59 130 246 / 0.1);
-    color: var(--primary);
+  .ampm:hover:not(:disabled) {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
   }
 
-  .ampm-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .form-error {
-    margin-top: 0.5rem;
-    color: var(--error);
+  .error {
+    margin-top: var(--spacing-2);
+    color: var(--color-error);
     font-size: 0.875rem;
   }
 </style>

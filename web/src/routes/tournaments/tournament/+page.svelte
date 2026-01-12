@@ -160,7 +160,7 @@
 </script>
 
 <style>
-    .tournament-page {
+    main {
         padding: var(--spacing-8) 0;
     }
 
@@ -204,7 +204,7 @@
         gap: var(--spacing-6);
     }
 
-    .tournament-content {
+    .content {
         display: flex;
         flex-direction: column;
         gap: var(--spacing-4);
@@ -398,7 +398,7 @@
     }
 </style>
 
-<main class="tournament-page">
+<main>
     <div class="container">
         {#if loading}
             <section class="loading-state">
@@ -428,7 +428,7 @@
             {/if}
             
             <div class="tournament-layout">
-                <main class="tournament-content">
+                <div class="content">
                     <section class="tournament-details">
                         <h2>About This Tournament</h2>
                         <p class="description">{tournament.description}</p>
@@ -559,7 +559,7 @@
                             </table>
                         {/if}
                     </section>
-                </main>
+                </div>
 
                 <aside class="tournament-sidebar">
                     <section class="actions-section">

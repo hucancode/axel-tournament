@@ -28,7 +28,7 @@
 </script>
 
 <style>
-    .reset-password-page {
+    main {
         padding: var(--spacing-8) 0;
     }
 
@@ -91,7 +91,7 @@
     }
 </style>
 
-<main class="reset-password-page">
+<main>
     <div class="container">
         <section class="reset-form-section">
             <h1>Reset Password</h1>

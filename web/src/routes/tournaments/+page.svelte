@@ -75,7 +75,7 @@
 </script>
 
 <style>
-    .tournaments-page {
+    main {
         padding: var(--spacing-8) 0;
     }
 
@@ -133,7 +133,7 @@
     }
 </style>
 
-<main class="tournaments-page">
+<main>
     <div class="container">
         <header class="page-header">
             <h1>Tournaments</h1>

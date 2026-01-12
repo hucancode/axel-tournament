@@ -75,14 +75,11 @@
 </div>
 
 <style>
-  /* Root navigation */
   div[role="navigation"] {
     display: flex;
     width: 100%;
-    gap: 0;
   }
 
-  /* Step wrapper - first level div */
   div[role="navigation"] > div {
     display: flex;
     flex: 1;
@@ -90,18 +87,18 @@
     min-width: 0;
   }
 
-  /* Step button */
   button {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 1rem;
-    background-color: var(--color-blueprint-paper);
-    border: 1px solid var(--blueprint-line-light);
+    gap: var(--spacing-3);
+    padding: var(--spacing-3);
+    background: var(--color-bg-light);
+    border: 1px solid var(--color-border);
     cursor: default;
-    transition: border-color 0.15s ease;
+    transition: border-color var(--transition-fast);
     flex: 1;
     min-width: 0;
+    color: var(--color-fg);
   }
 
   button[data-clickable] {
@@ -109,33 +106,20 @@
   }
 
   button[data-clickable]:hover {
-    border-color: var(--primary);
-    border-width: 2px;
-    padding: calc(1rem - 1px);
-  }
-
-  button[data-clickable]:active {
-    opacity: 0.9;
-  }
-
-  button:focus {
-    outline: 2px solid var(--primary);
-    outline-offset: 2px;
-    z-index: 1;
+    border-color: var(--color-primary);
   }
 
   button[data-status="current"] {
-    background-color: var(--primary);
-    border-color: var(--primary);
-    color: var(--color-blueprint-paper);
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: var(--color-bg-dark);
   }
 
   button[data-status="upcoming"] {
-    background-color: var(--blueprint-line-faint);
+    background: var(--color-bg-popup);
     opacity: 0.7;
   }
 
-  /* Step indicator - first div inside button */
   button > div:first-child {
     display: flex;
     align-items: center;
@@ -143,44 +127,38 @@
     width: 2rem;
     height: 2rem;
     flex-shrink: 0;
-    border: 1px solid var(--blueprint-line-light);
-    background-color: var(--color-blueprint-paper);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-light);
     font-weight: 600;
     font-size: 0.875rem;
-    color: var(--text);
-    transition: all 0.15s;
   }
 
   button[data-status="completed"] > div:first-child {
-    background-color: var(--success);
-    border-color: var(--success);
-    color: var(--color-blueprint-paper);
+    background: var(--color-success);
+    border-color: var(--color-success);
+    color: var(--color-bg-dark);
   }
 
   button[data-status="current"] > div:first-child {
-    background-color: var(--color-blueprint-paper);
-    border-color: var(--color-blueprint-paper);
-    color: var(--primary);
+    background: var(--color-bg-light);
+    border-color: var(--color-bg-light);
+    color: var(--color-primary);
   }
 
   button[data-status="upcoming"] > div:first-child {
-    background-color: var(--blueprint-line-faint);
-    border-color: var(--blueprint-line-light);
-    color: var(--text-muted);
+    background: var(--color-bg-popup);
+    color: var(--color-fg-dim);
   }
 
-  /* Checkmark SVG */
   svg {
     width: 1rem;
     height: 1rem;
   }
 
-  /* Step number */
   button > div:first-child > span {
     line-height: 1;
   }
 
-  /* Step content - second div inside button */
   button > div:last-child {
     display: flex;
     flex-direction: column;
@@ -189,24 +167,17 @@
     flex: 1;
   }
 
-  /* Step label - first div in content */
   button > div:last-child > div:first-child {
     font-weight: 600;
     font-size: 0.875rem;
-    color: var(--text);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
-  button[data-status="current"] > div:last-child > div:first-child {
-    color: var(--color-blueprint-paper);
-  }
-
-  /* Step description - second div in content */
   button > div:last-child > div:last-child {
     font-size: 0.75rem;
-    color: var(--text-muted);
+    color: var(--color-fg-dim);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -220,24 +191,22 @@
     opacity: 0.6;
   }
 
-  /* Step connector */
   div[data-connector] {
     height: 1px;
     flex: 1;
-    background-color: var(--blueprint-line-light);
-    margin: 0 0.5rem;
-    transition: background-color 0.3s;
+    background: var(--color-border);
+    margin: 0 var(--spacing-2);
     min-width: 1rem;
   }
 
   div[data-connector][data-completed] {
-    background-color: var(--success);
+    background: var(--color-success);
   }
 
   @media (max-width: 768px) {
     div[role="navigation"] {
       flex-direction: column;
-      gap: 0.5rem;
+      gap: var(--spacing-2);
     }
 
     div[role="navigation"] > div {
@@ -250,7 +219,7 @@
       height: 1rem;
       margin: 0;
       align-self: flex-start;
-      margin-left: 1rem;
+      margin-left: var(--spacing-4);
     }
 
     button > div:last-child > div {

@@ -49,7 +49,7 @@
 </script>
 
 <style>
-    .games-page {
+    main {
         padding: var(--spacing-8) 0;
     }
 
@@ -139,7 +139,7 @@
     }
 </style>
 
-<main class="games-page">
+<main>
     <div class="container">
         <header class="page-header">
             <h1>Available Games</h1>
