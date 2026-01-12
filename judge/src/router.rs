@@ -6,7 +6,7 @@ use crate::handlers::room;
 use crate::services::room::websocket;
 use crate::middleware;
 use axum::http::{header, Method};
-use axum::routing::{get, post};
+use axum::routing::get;
 use axum::{middleware as axum_middleware, Router};
 use std::sync::Arc;
 use tower_http::cors::CorsLayer;
@@ -27,7 +27,6 @@ pub fn create_router(
 
     // Protected routes (require authentication)
     let protected_routes = Router::new()
-        // Room management API (use tic_tac_toe_state but RoomManager is shared)
         .route(
             "/api/rooms",
             get(room::list_rooms::<games::TicTacToe>).post(room::create_room::<games::TicTacToe>),
@@ -36,17 +35,13 @@ pub fn create_router(
             "/api/rooms/{room_id}",
             get(room::get_room::<games::TicTacToe>),
         )
-        .route(
-            "/api/rooms/{room_id}/join",
-            post(room::join_room::<games::TicTacToe>),
-        )
         .with_state(tic_tac_toe_state.clone())
         .route_layer(axum_middleware::from_fn_with_state(
             tic_tac_toe_state.clone(),
             middleware::auth::auth_middleware,
         ));
 
-    // WebSocket endpoints (protected)
+    // WebSocket endpoints (auth via LOGIN message, not HTTP headers)
     let websocket_routes = Router::new()
         .route(
             "/ws/tic-tac-toe/{room_id}",
@@ -62,12 +57,7 @@ pub fn create_router(
             "/ws/prisoners-dilemma/{room_id}",
             get(websocket::ws_get_room::<games::PrisonersDilemma>),
         )
-        .with_state(pd_state.clone())
-        // Apply auth middleware to websocket routes
-        .route_layer(axum_middleware::from_fn_with_state(
-            tic_tac_toe_state.clone(),
-            middleware::auth::auth_middleware,
-        ));
+        .with_state(pd_state.clone());
 
     // Combine all routes
     Router::new()

@@ -55,31 +55,9 @@ pub async fn get_room<G>(
 where
     G: Game + Clone + Send + Sync + 'static,
 {
-    if let Some(room) = state.room_manager.get_room(&room_id).await {
-        Ok(Json(room))
-    } else {
-        Err(StatusCode::NOT_FOUND)
-    }
-}
-
-/// Join a room
-pub async fn join_room<G>(
-    State(state): State<Arc<crate::app_state::AppState<G>>>,
-    Path(room_id): Path<String>,
-    Extension(claims): Extension<Claims>,
-) -> Result<Json<RoomResponse>, StatusCode>
-where
-    G: Game + Clone + Send + Sync + 'static,
-{
-    let player_id = claims.sub;
-
-    match state.room_manager.join_room(&room_id, player_id).await {
-        Ok((response, _is_reconnecting)) => Ok(Json(response)),
-        Err(e) => {
-            tracing::warn!("Failed to join room: {}", e);
-            Err(StatusCode::BAD_REQUEST)
-        }
-    }
+    state.room_manager.get_room(&room_id).await
+        .map(Json)
+        .ok_or(StatusCode::NOT_FOUND)
 }
 
 /// List all waiting rooms

@@ -226,17 +226,11 @@
     }
   }
 
-  async function leaveRoom() {
-    try {
-      if (roomSocket && roomSocket.isAuthenticated()) {
-        roomSocket.leave();
-      }
-      await roomService.leave(roomId);
-      goto('/rooms');
-    } catch (err) {
-      error = err instanceof Error ? err.message : 'Failed to leave room';
-      console.error('Failed to leave room:', err);
+  function leaveRoom() {
+    if (roomSocket?.isAuthenticated()) {
+      roomSocket.leave();
     }
+    goto('/rooms');
   }
 
   function sendChat() {

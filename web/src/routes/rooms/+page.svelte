@@ -68,34 +68,6 @@
         }
     }
 
-    async function joinRoom(roomId: string) {
-        try {
-            error = null;
-
-            // Find the room to check if user is already in it
-            const room = rooms.find(r => r.id === roomId);
-            const currentUser = authState.user;
-
-            if (room && currentUser) {
-                // Check if user is already in the room (as host or player)
-                const isAlreadyInRoom = room.host_id === currentUser.id || room.players.includes(currentUser.id);
-
-                if (isAlreadyInRoom) {
-                    // User is already in room, navigate directly
-                    goto(`/room?id=${roomId}`);
-                    return;
-                }
-            }
-
-            // User is not in room, call join API
-            await roomService.join(roomId);
-            goto(`/room?id=${roomId}`);
-        } catch (err) {
-            error = err instanceof Error ? err.message : "Failed to join room";
-            console.error("Failed to join room:", err);
-        }
-    }
-
     function openCreateModal() {
         if (!createDialog) return;
         createDialog.returnValue = "cancel";
@@ -308,14 +280,14 @@
                                 {#if isUserInRoom(room)}
                                     <button
                                         data-variant="primary"
-                                        onclick={() => joinRoom(room.id)}
+                                        onclick={() => goto(`/room?id=${room.id}`)}
                                     >
                                         Enter Room
                                     </button>
                                 {:else if room.players.length < room.max_players}
                                     <button
                                         data-variant="success"
-                                        onclick={() => joinRoom(room.id)}
+                                        onclick={() => goto(`/room?id=${room.id}`)}
                                     >
                                         Join Room
                                     </button>

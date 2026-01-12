@@ -35,8 +35,6 @@ controller:
         ~^/ws/[^/]+/([^/?\s]+)              $1;
         # Room API endpoints: /api/rooms/{room_id}
         ~^/api/rooms/([^/?\s]+)             $1;
-        # Join room: /api/rooms/{room_id}/join
-        ~^/api/rooms/([^/?\s]+)/join        $1;
         default                             "";
       }
 

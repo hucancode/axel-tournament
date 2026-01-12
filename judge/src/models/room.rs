@@ -1,5 +1,5 @@
 use crate::db::Database;
-use crate::models::players::HumanPlayer;
+use crate::models::players::{HumanPlayer, Player};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use surrealdb::sql::{Datetime, Thing};
@@ -147,13 +147,8 @@ impl Room {
                 let username = id_str.strip_prefix("user:").unwrap_or(&id_str).to_string();
                 let connected = self.connected_players.get(i).and_then(|p| p.as_ref()).is_some();
 
-                // Only include connected players in the response
                 if connected {
-                    Some(PlayerInfo {
-                        id: id_str,
-                        username,
-                        connected: true,
-                    })
+                    Some(PlayerInfo { id: id_str, username, connected: true })
                 } else {
                     None
                 }
@@ -172,16 +167,11 @@ impl Room {
         }
     }
 
-    /// Create Room from RoomRecord (requires additional data for in-memory state)
+    /// Create Room from RoomRecord
     pub fn from_record(record: RoomRecord) -> Self {
-        let room_id = record
-            .id
-            .as_ref()
-            .map(|t| t.to_string())
+        let room_id = record.id.as_ref().map(|t| t.to_string())
             .unwrap_or_else(|| format!("room_{}", uuid::Uuid::new_v4()));
-
-        let player_count = record.players.len();
-        let connected_players = vec![None; player_count];
+        let connected_players = vec![None; record.players.len()];
 
         Room {
             id: room_id,
@@ -195,6 +185,38 @@ impl Room {
             human_timeout_ms: record.human_timeout_ms,
             message_history: record.event_history,
         }
+    }
+
+    /// Broadcast message to all connected players
+    pub async fn broadcast(&self, message: &str) {
+        for player in self.connected_players.iter().flatten() {
+            let _ = player.send_message(message).await;
+        }
+    }
+
+    /// Count of currently connected players
+    pub fn connected_count(&self) -> usize {
+        self.connected_players.iter().filter(|p| p.is_some()).count()
+    }
+
+    /// Transfer host to next connected player. Returns new host ID if transferred.
+    pub async fn transfer_host_if_needed(&mut self, leaving_player_id: &str) -> Option<String> {
+        if self.host_id != leaving_player_id {
+            return None;
+        }
+
+        let new_host = self.connected_players.iter()
+            .flatten()
+            .next()?;
+
+        let new_host_id = new_host.player_id().to_string();
+        self.host_id = new_host_id.clone();
+
+        let msg = format!("HOST_CHANGED {}", new_host_id);
+        self.message_history.push(msg.clone());
+        self.broadcast(&msg).await;
+
+        Some(new_host_id)
     }
 }
 

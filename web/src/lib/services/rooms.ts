@@ -64,14 +64,6 @@ interface JudgeCreateRoomRequest {
   human_timeout_ms?: number;
 }
 
-interface JudgeJoinRoomRequest {
-  player_id: string;
-  player_username: string;
-}
-
-interface JudgeLeaveRoomRequest {
-  player_id: string;
-}
 
 interface JudgeRoomResponse {
   id: string;
@@ -126,7 +118,6 @@ export const roomService = {
   },
 
   async create(data: CreateRoomRequest): Promise<Room> {
-    // Get current user info (we'll need username)
     const userInfo = this.getCurrentUser();
 
     const judgeRequest: JudgeCreateRoomRequest = {
@@ -139,7 +130,6 @@ export const roomService = {
 
     const judgeRoom = await judgeApi.post<JudgeRoomResponse>('/api/rooms', judgeRequest);
 
-    // Convert Judge response to Room format
     return {
       id: judgeRoom.id,
       name: judgeRoom.name,
@@ -151,40 +141,6 @@ export const roomService = {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
-  },
-
-  async join(id: string): Promise<Room> {
-    const userInfo = this.getCurrentUser();
-
-    const judgeRequest: JudgeJoinRoomRequest = {
-      player_id: userInfo.id,
-      player_username: userInfo.username,
-    };
-
-    const judgeRoom = await judgeApi.post<JudgeRoomResponse>(`/api/rooms/${id}/join`, judgeRequest);
-
-    // Convert Judge response to Room format
-    return {
-      id: judgeRoom.id,
-      name: judgeRoom.name,
-      game_id: judgeRoom.game_id,
-      max_players: judgeRoom.max_players,
-      status: judgeRoom.status as RoomStatus,
-      host_id: judgeRoom.host_id,
-      players: judgeRoom.players.map(p => p.id),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-  },
-
-  async leave(id: string): Promise<void> {
-    const userInfo = this.getCurrentUser();
-
-    const judgeRequest: JudgeLeaveRoomRequest = {
-      player_id: userInfo.id,
-    };
-
-    await judgeApi.delete(`/api/rooms/${id}/leave`);
   },
 
   // Helper to get current user info from JWT token
