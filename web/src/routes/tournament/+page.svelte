@@ -516,7 +516,7 @@
                             <h2>Your Submissions</h2>
                             {#if canSubmit()}
                                 <LinkButton
-                                    href="/tournaments/submit?id={tournamentId}"
+                                    href="/tournament/submit?id={tournamentId}"
                                     variant="primary"
                                     label="New Submission"
                                 />
@@ -588,7 +588,7 @@
                             {/if}
                             {#if canSubmit()}
                                 <LinkButton
-                                    href="/tournaments/submit?id={tournamentId}"
+                                    href="/tournament/submit?id={tournamentId}"
                                     variant="primary"
                                     label="Submit Code"
                                 />

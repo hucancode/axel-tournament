@@ -84,7 +84,7 @@
 
         try {
             await tournamentService.update(tournamentId, formData);
-            goto(`/tournaments/tournament?id=${tournamentId}`);
+            goto(`/tournament?id=${tournamentId}`);
         } catch (err) {
             formError = err instanceof Error ? err.message : "Failed to update tournament";
         } finally {
@@ -97,7 +97,7 @@
         formError = "";
         try {
             await tournamentService.start(tournamentId);
-            goto(`/tournaments/tournament?id=${tournamentId}`);
+            goto(`/tournament?id=${tournamentId}`);
         } catch (err) {
             formError = err instanceof Error ? err.message : "Failed to start tournament";
         } finally {
@@ -180,7 +180,7 @@
                     <h1>Edit Tournament</h1>
                     <p class="subtitle">Update tournament settings</p>
                 </div>
-                <LinkButton variant="secondary" href="/tournaments/tournament?id={tournamentId}" label="Back to Tournament" />
+                <LinkButton variant="secondary" href="/tournament?id={tournamentId}" label="Back to Tournament" />
             </div>
         </header>
 
@@ -285,7 +285,7 @@
                             </button>
                         {/if}
                         <LinkButton
-                            href="/tournaments/tournament?id={tournamentId}"
+                            href="/tournament?id={tournamentId}"
                             variant="secondary"
                             label="Cancel"
                         />

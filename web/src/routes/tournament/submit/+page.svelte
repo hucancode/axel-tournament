@@ -88,7 +88,7 @@
                 code,
             });
             // Redirect to tournament page on success
-            goto(`/tournaments/tournament?id=${tournamentId}`);
+            goto(`/tournament?id=${tournamentId}`);
         } catch (err) {
             error =
                 err instanceof Error ? err.message : "Failed to submit code";
@@ -196,7 +196,7 @@
                 {#if !isParticipant}
                     <div class="participation-warning">
                         You must join this tournament before submitting code.
-                        <a href="/tournaments/tournament?id={tournamentId}">Go back</a>
+                        <a href="/tournament?id={tournamentId}">Go back</a>
                     </div>
                 {/if}
 
@@ -245,7 +245,7 @@
                             {loading ? "Submitting..." : "Submit Code"}
                         </button>
                         <LinkButton
-                            href="/tournaments/tournament?id={tournamentId}"
+                            href="/tournament?id={tournamentId}"
                             variant="secondary"
                             label="Cancel"
                         />
