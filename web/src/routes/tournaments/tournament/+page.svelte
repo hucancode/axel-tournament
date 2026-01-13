@@ -12,7 +12,7 @@
         TournamentParticipant,
         Game,
         Submission,
-    } from "$lib/types";
+    } from "$lib/models";
     const tournamentId = $derived(page.url.searchParams.get('id') || '');
     let tournament = $state<Tournament | null>(null);
     let game = $state<Game | null>(null);

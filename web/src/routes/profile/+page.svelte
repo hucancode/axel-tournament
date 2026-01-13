@@ -4,7 +4,7 @@
     import { submissionService } from "$services/submissions";
     import { goto } from "$app/navigation";
     import { onMount } from "svelte";
-    import type { Submission } from "$lib/types";
+    import type { Submission } from "$lib/models";
     let user = $state($authStore.user);
     let submissions = $state<Submission[]>([]);
     let location = $state(user?.location || "");

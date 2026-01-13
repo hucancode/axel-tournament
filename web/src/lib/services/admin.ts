@@ -1,5 +1,5 @@
 import { api } from "../api";
-import type { User } from "../types";
+import type { User } from "../models";
 
 export const adminService = {
   async listUsers(page: number = 1, limit: number = 50): Promise<User[]> {

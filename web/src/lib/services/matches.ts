@@ -3,7 +3,7 @@ import type {
   Match,
   CreateMatchRequest,
   UpdateMatchResultRequest,
-} from "../types";
+} from "../models";
 
 export const matchService = {
   async list(filters?: {

@@ -3,7 +3,7 @@
     import { goto } from "$app/navigation";
     import { roomService } from "$services/rooms";
     import { gameService } from "$services/games";
-    import type { Room, Game, CreateRoomRequest } from "$lib/types";
+    import type { Room, Game, CreateRoomRequest } from "$lib/models";
     import { Alert } from "$components";
     import { authStore } from "$lib/stores/auth";
 
@@ -122,12 +122,10 @@
             {/if}
 
             <div class="filter-section">
-                <label for="game-filter">Filter by game:</label>
                 <select
                     id="game-filter"
                     bind:value={filterGameId}
                     onchange={loadData}
-                    class="filter-select"
                 >
                     <option value="">All Games</option>
                     {#each games as game}
@@ -310,13 +308,6 @@
         margin-bottom: 2rem;
         padding: 1rem;
         background-color: var(--blueprint-line-faint);
-    }
-
-    .filter-section label {
-        display: block;
-        margin-bottom: 0.5rem;
-        font-weight: 500;
-        color: var(--blueprint-ink);
     }
 
     .filter-select {

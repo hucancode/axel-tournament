@@ -4,7 +4,7 @@
     import { gameService } from "$services/games";
     import { onMount } from "svelte";
     import { Alert } from "$components";
-    import type { LeaderboardEntry, Tournament, Game } from "$lib/types";
+    import type { LeaderboardEntry, Tournament, Game } from "$lib/models";
     let entries = $state<LeaderboardEntry[]>([]);
     let tournaments = $state<Tournament[]>([]);
     let games = $state<Game[]>([]);
@@ -251,7 +251,6 @@
                     <label for="game-filter">Game</label>
                     <select
                         id="game-filter"
-                        class="filter-select"
                         bind:value={selectedGame}
                         onchange={handleFilterChange}
                         disabled={loading}

@@ -3,7 +3,7 @@ import type {
   Submission,
   SubmissionResponse,
   CreateSubmissionRequest,
-} from "../types";
+} from "../models";
 
 export const submissionService = {
   async create(data: CreateSubmissionRequest): Promise<SubmissionResponse> {

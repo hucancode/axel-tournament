@@ -4,7 +4,7 @@ import type {
   TournamentParticipant,
   CreateTournamentRequest,
   UpdateTournamentRequest,
-} from "../types";
+} from "../models";
 
 export const tournamentService = {
   async list(status?: string): Promise<Tournament[]> {

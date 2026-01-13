@@ -1,5 +1,5 @@
 import { api } from "../api";
-import type { LeaderboardEntry } from "../types";
+import type { LeaderboardEntry } from "../models";
 
 export const leaderboardService = {
   async get(filters?: {

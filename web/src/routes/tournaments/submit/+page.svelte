@@ -10,7 +10,7 @@
         Tournament,
         TournamentParticipant,
         ProgrammingLanguage,
-    } from "$lib/types";
+    } from "$lib/models";
     let tournament = $state<Tournament | null>(null);
     let language = $state<ProgrammingLanguage>("rust");
     let code = $state("");

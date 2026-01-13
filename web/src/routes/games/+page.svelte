@@ -2,7 +2,7 @@
     import { gameService } from "$services/games";
     import { tournamentService } from "$services/tournaments";
     import { onMount } from "svelte";
-    import type { Game, Tournament } from "$lib/types";
+    import type { Game, Tournament } from "$lib/models";
     import { LinkButton, Card, Badge, Alert } from "$components";
 
     let games = $state<Game[]>([]);

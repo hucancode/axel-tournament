@@ -2,7 +2,7 @@
     import { authStore } from "$lib/stores/auth";
     import { gameService } from "$services/games";
     import { onMount } from "svelte";
-    import type { Tournament, Game } from "$lib/types";
+    import type { Tournament, Game } from "$lib/models";
     import { tournamentService } from "$services/tournaments";
     import { api } from "$lib/api";
     import { LinkButton, Statistic, Card, Badge } from "$components";

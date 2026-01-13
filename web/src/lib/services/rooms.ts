@@ -1,5 +1,5 @@
 import { env } from '$env/dynamic/public';
-import type { Room, CreateRoomRequest, RoomMessage, CreateRoomMessageRequest, RoomStatus } from '$lib/types';
+import type { Room, CreateRoomRequest, RoomMessage, CreateRoomMessageRequest, RoomStatus } from '$lib/models';
 
 const JUDGE_URL = env.PUBLIC_JUDGE_URL || "http://localhost:8081";
 

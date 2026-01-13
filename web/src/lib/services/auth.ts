@@ -4,7 +4,7 @@ import type {
   LoginRequest,
   RegisterRequest,
   User,
-} from "../types";
+} from "../models";
 
 export const authService = {
   async register(data: RegisterRequest): Promise<AuthResponse> {

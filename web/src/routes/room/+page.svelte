@@ -8,7 +8,7 @@
   import { createGame } from '$lib/games/registry';
   import type { BasePixiGame } from '$lib/games/BasePixiGame';
   import { Alert } from "$components";
-  import type { Room, Game } from '$lib/types';
+  import type { Room, Game } from '$lib/models';
 
   const roomId = $derived(page.url.searchParams.get('id') || '');
   let room = $state<Room | null>(null);
@@ -272,9 +272,9 @@
       </div>
       <div class="room-actions">
         {#if room.status === 'waiting'}
-          <button class="btn-primary" onclick={startGame}>Start Game</button>
+          <button data-variant="primary" onclick={startGame}>Start Game</button>
         {/if}
-        <button class="btn-secondary" onclick={leaveRoom}>Leave Room</button>
+        <button data-variant="secondary" onclick={leaveRoom}>Leave Room</button>
       </div>
     </div>
 
@@ -506,23 +506,6 @@
     padding: 0.5rem;
     background: white;
     margin: 0.25rem 0;
-  }
-
-
-  .btn-primary, .btn-secondary {
-    padding: 0.5rem 1rem;
-    cursor: pointer;
-  }
-
-  .btn-primary {
-    background: #1976d2;
-    color: white;
-  }
-
-  .btn-secondary {
-    background: #f5f5f5;
-    color: #333;
-    border: 1px solid #ddd;
   }
 
   .loading, .error {

@@ -1,5 +1,5 @@
 import { api } from "../api";
-import type { Game } from "../types";
+import type { Game } from "../models";
 
 export const gameService = {
   async list(): Promise<Game[]> {

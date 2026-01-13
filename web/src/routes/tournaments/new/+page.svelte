@@ -5,7 +5,7 @@
     import { tournamentService } from "$services/tournaments";
     import { gameService } from "$services/games";
     import { LinkButton, Card } from "$components";
-    import type { Game, CreateTournamentRequest, MatchGenerationType } from "$lib/types";
+    import type { Game, CreateTournamentRequest, MatchGenerationType } from "$lib/models";
 
     let games = $state<Game[]>([]);
     let loading = $state(true);

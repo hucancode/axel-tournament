@@ -1,5 +1,5 @@
 import { writable } from "svelte/store";
-import type { User } from "../types";
+import type { User } from "../models";
 
 interface AuthState {
   user: User | null;

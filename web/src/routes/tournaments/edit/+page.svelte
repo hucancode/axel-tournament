@@ -6,7 +6,7 @@
     import { tournamentService } from "$services/tournaments";
     import { gameService } from "$services/games";
     import { LinkButton, Card } from "$components";
-    import type { Tournament, Game, UpdateTournamentRequest, TournamentStatus } from "$lib/types";
+    import type { Tournament, Game, UpdateTournamentRequest, TournamentStatus } from "$lib/models";
 
     let tournamentId = $derived(page.url.searchParams.get('id') || '');
     let tournament = $state<Tournament | null>(null);

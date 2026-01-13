@@ -1,5 +1,5 @@
 import { env } from "$env/dynamic/public";
-import type { ApiError } from "./types";
+import type { ApiError } from "./models";
 
 const API_URL = env.PUBLIC_API_URL || "http://localhost:8080";
 

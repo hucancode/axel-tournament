@@ -3,7 +3,7 @@
     import { gameService } from "$services/games";
     import { authStore } from "$lib/stores/auth";
     import { onMount } from "svelte";
-    import type { Tournament, TournamentParticipant, Game } from "$lib/types";
+    import type { Tournament, TournamentParticipant, Game } from "$lib/models";
     import { LinkButton, Card, Badge, Alert } from "$components";
 
     let tournaments = $state<Tournament[]>([]);
@@ -103,10 +103,8 @@
 
         <section class="filter-section">
             <div class="filter-controls">
-                <label for="status-filter">Filter by Status:</label>
                 <select
                     id="status-filter"
-                    class="status-select"
                     bind:value={selectedStatus}
                     onchange={handleStatusChange}
                     disabled={loading}
@@ -180,14 +178,6 @@
         display: flex;
         align-items: center;
         gap: var(--spacing-4);
-    }
-
-    .filter-controls label {
-        font-weight: 600;
-    }
-
-    .status-select {
-        width: auto;
     }
 
     .loading-section,
