@@ -48,10 +48,6 @@
 </script>
 
 <style>
-    main {
-        padding: var(--spacing-8) 0;
-    }
-
     .hero-section {
         margin-bottom: var(--spacing-8);
         text-align: center;
@@ -59,18 +55,16 @@
 
     .hero-section h1 {
         font-size: 2.25rem;
-        font-weight: bold;
-        margin-bottom: var(--spacing-2);
     }
 
     .hero-subtitle {
         font-size: 1.125rem;
-        color: var(--color-muted);
+        color: var(--color-fg-muted);
     }
 
     .cta-section {
         padding: var(--spacing-6);
-        background-color: var(--color-blueprint-paper);
+        background-color: var(--color-bg-light);
         text-align: center;
         max-width: 32rem;
         margin: var(--spacing-8) auto;
@@ -78,8 +72,6 @@
 
     .cta-section h2 {
         font-size: 1.25rem;
-        font-weight: 600;
-        margin-bottom: var(--spacing-4);
     }
 
     .cta-section p {
@@ -94,14 +86,12 @@
 
     .welcome-section {
         padding: var(--spacing-6);
-        background-color: var(--color-blueprint-paper);
+        background-color: var(--color-bg-light);
         margin-bottom: var(--spacing-8);
     }
 
     .welcome-section h2 {
         font-size: 1.25rem;
-        font-weight: 600;
-        margin-bottom: var(--spacing-2);
     }
 
     .welcome-actions {
@@ -114,22 +104,10 @@
         margin-bottom: var(--spacing-8);
     }
 
-    .stats-section h2 {
-        font-size: 1.5rem;
-        font-weight: bold;
-        margin-bottom: var(--spacing-4);
-    }
-
     .stats-grid {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
         gap: var(--spacing-4);
-    }
-
-    .tournaments-section h2 {
-        font-size: 1.5rem;
-        font-weight: bold;
-        margin-bottom: var(--spacing-4);
     }
 
     .tournaments-grid {

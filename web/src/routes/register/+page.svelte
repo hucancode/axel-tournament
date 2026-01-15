@@ -139,7 +139,7 @@
 
     section {
         padding: 1.5rem;
-        border: 1px solid var(--blueprint-line-faint);
+        border: 1px solid var(--color-border-light);
         width: 100%;
     }
 
@@ -151,11 +151,11 @@
     aside[role="alert"] {
         padding: 1.5rem;
         margin-bottom: 1rem;
-        border: 1px solid var(--error);
+        border: 1px solid var(--color-error);
     }
 
     aside p {
-        color: var(--error);
+        color: var(--color-error);
         margin: 0;
     }
 
@@ -169,12 +169,12 @@
         display: block;
         margin-bottom: 0.5rem;
         font-weight: 500;
-        color: var(--text-dark);
+        color: var(--color-fg);
     }
 
     .help-text {
         font-size: 0.875rem;
-        color: var(--color-gray-500);
+        color: var(--color-fg-dim);
         margin-top: 0.25rem;
         margin-bottom: 0;
     }

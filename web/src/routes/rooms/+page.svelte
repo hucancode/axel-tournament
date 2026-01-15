@@ -4,7 +4,7 @@
     import { roomService } from "$services/rooms";
     import { gameService } from "$services/games";
     import type { Room, Game, CreateRoomRequest } from "$lib/models";
-    import { Alert } from "$components";
+    import { Alert, PageHeader } from "$components";
     import { authStore } from "$lib/stores/auth";
 
     let rooms = $state<Room[]>([]);
@@ -106,12 +106,11 @@
 
 <main>
     <section class="container">
-        <div class="header">
-            <h1>Rooms</h1>
+        <PageHeader title="Rooms">
             <button onclick={openCreateModal} data-variant="primary"
                 >+ Create Room</button
             >
-        </div>
+        </PageHeader>
         <div class="content">
             {#if error}
                 <Alert
@@ -283,18 +282,6 @@
 </dialog>
 
 <style>
-    .header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1rem;
-    }
-
-    .header h1 {
-        font-size: 1.5rem;
-        font-weight: bold;
-    }
-
     .content {
         max-width: 80rem;
         margin: 0 auto;
@@ -307,7 +294,7 @@
         align-items: center;
         margin-bottom: 2rem;
         padding: 1rem;
-        background-color: var(--blueprint-line-faint);
+        background-color: var(--color-border-light);
     }
 
     .filter-select {
@@ -319,7 +306,7 @@
     .empty-state {
         text-align: center;
         padding: 3rem;
-        color: var(--blueprint-ink-light);
+        color: var(--color-fg-muted);
     }
 
     .rooms-grid {
@@ -331,7 +318,7 @@
     .room-card {
         border-radius: 0.5rem;
         padding: 1.5rem;
-        background-color: var(--blueprint-paper);
+        background-color: var(--color-bg-light);
     }
 
     .room-info {
@@ -340,11 +327,11 @@
 
     .room-info h3 {
         margin-bottom: 0.5rem;
-        color: var(--blueprint-ink);
+        color: var(--color-fg);
     }
 
     .game-name {
-        color: var(--blueprint-ink-light);
+        color: var(--color-fg-muted);
         font-size: 0.875rem;
     }
 
@@ -362,18 +349,18 @@
     }
 
     .status-waiting {
-        background-color: #dbeafe;
-        color: #1e40af;
+        background-color: var(--color-info);
+        color: var(--color-bg);
     }
 
     .status-playing {
-        background-color: #fed7aa;
-        color: #c2410c;
+        background-color: var(--color-warning);
+        color: var(--color-bg);
     }
 
     .status-finished {
-        background-color: #dcfce7;
-        color: #166534;
+        background-color: var(--color-success);
+        color: var(--color-bg);
     }
 
     .form-field {
@@ -384,18 +371,18 @@
         display: block;
         margin-bottom: 0.5rem;
         font-weight: 500;
-        color: var(--blueprint-ink);
+        color: var(--color-fg);
     }
 
     .form-input {
         width: 100%;
         padding: 0.5rem;
-        background-color: var(--blueprint-paper);
+        background-color: var(--color-bg-light);
     }
 
     .form-help {
         font-size: 0.875rem;
-        color: var(--blueprint-ink-light);
+        color: var(--color-fg-muted);
         margin-top: 0.25rem;
     }
 </style>

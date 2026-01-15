@@ -347,7 +347,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 1rem;
-    border-bottom: 1px solid #e0e0e0;
+    border-bottom: 1px solid var(--color-border-light);
     margin-bottom: 1rem;
   }
 
@@ -356,7 +356,7 @@
   }
 
   .game-name {
-    color: #666;
+    color: var(--color-fg-dim);
     margin: 0 0 0.5rem 0;
   }
 
@@ -372,24 +372,24 @@
     text-transform: capitalize;
   }
 
-  .status-waiting { background: #e3f2fd; color: #1976d2; }
-  .status-playing { background: #fff3e0; color: #f57c00; }
-  .status-finished { background: #e8f5e8; color: #388e3c; }
+  .status-waiting { background: var(--color-info); color: var(--color-bg); }
+  .status-playing { background: var(--color-warning); color: var(--color-bg); }
+  .status-finished { background: var(--color-success); color: var(--color-bg); }
 
   .ws-status {
     padding: 0.25rem 0.5rem;
     font-size: 0.8rem;
-    background: #ffebee;
-    color: #c62828;
+    background: var(--color-error);
+    color: var(--color-bg);
   }
 
   .ws-status.connected {
-    background: #e8f5e9;
-    color: #2e7d32;
+    background: var(--color-success);
+    color: var(--color-bg);
   }
 
   .hint {
-    color: #f57c00;
+    color: var(--color-warning);
     font-style: italic;
     margin-top: 1rem;
   }

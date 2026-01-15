@@ -4,7 +4,7 @@
     import { authStore } from "$lib/stores/auth";
     import { tournamentService } from "$services/tournaments";
     import { gameService } from "$services/games";
-    import { LinkButton, Card } from "$components";
+    import { LinkButton, Card, PageHeader } from "$components";
     import type { Game, CreateTournamentRequest, MatchGenerationType } from "$lib/models";
 
     let games = $state<Game[]>([]);
@@ -96,36 +96,12 @@
 </script>
 
 <style>
-    main {
-        padding: var(--spacing-8) 0;
-    }
-
-    .page-header {
-        margin-bottom: var(--spacing-8);
-    }
-
-    .header-content {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .title-section h1 {
-        font-size: 2rem;
-        font-weight: bold;
-        margin-bottom: var(--spacing-2);
-    }
-
-    .subtitle {
-        color: var(--color-muted);
-    }
-
     .loading-section, .no-games-section {
         text-align: center;
     }
 
     .error-section, .form-error-section {
-        background-color: var(--color-gray-50);
+        background-color: var(--color-bg-popup);
         border-left: 4px solid var(--color-error);
         padding: var(--spacing-4);
         margin-bottom: var(--spacing-4);
@@ -133,12 +109,12 @@
     }
 
     .form-section {
-        background-color: var(--color-blueprint-paper);
+        background-color: var(--color-bg-light);
     }
 
     .tournament-form {
         padding: var(--spacing-6);
-        background-color: var(--color-blueprint-paper);
+        background-color: var(--color-bg-light);
     }
 
     .form-field {
@@ -149,7 +125,7 @@
         display: block;
         margin-bottom: var(--spacing-2);
         font-weight: 500;
-        color: var(--color-gray-dark);
+        color: var(--color-fg);
     }
 
     .form-row {
@@ -167,15 +143,12 @@
 
 <main>
     <div class="container">
-        <header class="page-header">
-            <div class="header-content">
-                <div class="title-section">
-                    <h1>Create New Tournament</h1>
-                    <p class="subtitle">Set up a new competitive tournament</p>
-                </div>
-                <LinkButton variant="secondary" href="/tournaments" label="Back to Tournaments" />
-            </div>
-        </header>
+        <PageHeader 
+            title="Create New Tournament" 
+            subtitle="Set up a new competitive tournament"
+        >
+            <LinkButton variant="secondary" href="/tournaments" label="Back to Tournaments" />
+        </PageHeader>
 
         {#if loading}
             <section class="loading-section">

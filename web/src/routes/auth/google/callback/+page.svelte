@@ -30,24 +30,19 @@
 </script>
 
 <style>
-    main {
-        padding: var(--spacing-8) 0;
-    }
-
     .loading-section {
         text-align: center;
     }
 
     .error-section {
         padding: var(--spacing-6);
-        background-color: var(--color-blueprint-paper);
+        background-color: var(--color-bg-light);
         max-width: 32rem;
         margin: 0 auto;
     }
 
     .error-section h1 {
         font-size: 1.5rem;
-        font-weight: bold;
         margin-bottom: var(--spacing-4);
     }
 

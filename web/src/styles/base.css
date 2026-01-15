@@ -53,3 +53,98 @@ main {
         repeating-linear-gradient(90deg, var(--color-pattern-fg) 0, var(--color-pattern-fg) 1px, transparent 1px, transparent 10px);
     background-size: 100px 100px, 100px 100px, 10px 10px, 10px 10px;
 }
+
+h1 {
+    font-size: 2rem;
+    font-weight: bold;
+    margin-bottom: var(--spacing-2);
+}
+
+h2 {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: var(--spacing-4);
+}
+
+h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: var(--spacing-2);
+}
+
+/* Links */
+a {
+    color: var(--color-primary);
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+section {
+    margin-bottom: var(--spacing-8);
+}
+
+section h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: var(--spacing-4);
+}
+
+main {
+    padding: var(--spacing-8) 0;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th {
+    text-align: left;
+    padding: var(--spacing-2);
+    border-bottom: 1px solid var(--color-border);
+    font-weight: 600;
+}
+
+td {
+    padding: var(--spacing-2);
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+.loading-state, .empty-state {
+    padding: var(--spacing-6);
+    background-color: var(--color-bg-light);
+    text-align: center;
+    color: var(--color-fg-muted);
+}
+
+.error-state {
+    padding: var(--spacing-6);
+    background-color: var(--color-bg-popup);
+    border-left: 4px solid var(--color-error);
+    color: var(--color-error);
+}
+
+/* Horizontal Rule with Text */
+hr {
+    border: none;
+    border-top: 1px solid var(--color-border);
+    margin: var(--spacing-4) 0;
+}
+
+hr[data-content] {
+    position: relative;
+    text-align: center;
+}
+
+hr[data-content]::after {
+    content: attr(data-content);
+    position: relative;
+    top: -0.75rem;
+    display: inline-block;
+    padding: 0 var(--spacing-2);
+    color: var(--color-fg-muted);
+    font-size: 0.875rem;
+}

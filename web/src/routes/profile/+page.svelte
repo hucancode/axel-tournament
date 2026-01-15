@@ -42,23 +42,9 @@
 </script>
 
 <style>
-    main {
-        padding: var(--spacing-8) 0;
-    }
-
-    .container {
-        max-width: 48rem;
-    }
-
     .user-info-section, .location-section, .submissions-section {
         padding: var(--spacing-6);
-        background-color: var(--color-blueprint-paper);
-        margin-bottom: var(--spacing-4);
-    }
-
-    .user-info-section h2, .location-section h2, .submissions-section h2 {
-        font-size: 1.25rem;
-        font-weight: 600;
+        background-color: var(--color-bg-light);
         margin-bottom: var(--spacing-4);
     }
 
@@ -75,14 +61,14 @@
     .error-message {
         border: 1px solid var(--color-error);
         padding: var(--spacing-6);
-        background-color: var(--color-gray-50);
+        background-color: var(--color-bg-popup);
         margin-bottom: var(--spacing-4);
         color: var(--color-error);
     }
 
     .success-message {
         padding: var(--spacing-6);
-        background-color: var(--color-gray-50);
+        background-color: var(--color-bg-popup);
         margin-bottom: var(--spacing-4);
         color: var(--color-success);
     }
@@ -95,34 +81,26 @@
         display: block;
         margin-bottom: var(--spacing-2);
         font-weight: 500;
-        color: var(--color-gray-dark);
+        color: var(--color-fg);
     }
 
     .form-help {
         font-size: 0.875rem;
-        color: var(--color-muted);
+        color: var(--color-fg-muted);
         margin-top: var(--spacing-1);
     }
 
     .empty-state {
         text-align: center;
-        color: var(--color-muted);
-    }
-
-    .submissions-table {
-        width: 100%;
-        border-collapse: collapse;
+        color: var(--color-fg-muted);
     }
 
     .submissions-table th {
-        text-align: left;
-        padding: var(--spacing-2);
-        border-bottom: 1px solid var(--color-blueprint-line);
+        border-bottom: 1px solid var(--color-border);
     }
 
     .submissions-table td {
-        padding: var(--spacing-2);
-        border-bottom: 1px solid var(--color-blueprint-line-faint);
+        border-bottom: 1px solid var(--color-border-light);
     }
 
     .tournament-link {
@@ -131,7 +109,7 @@
     }
 
     .submit-date {
-        color: var(--color-muted);
+        color: var(--color-fg-muted);
     }
 </style>
 

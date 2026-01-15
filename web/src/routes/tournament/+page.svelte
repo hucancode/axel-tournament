@@ -160,11 +160,7 @@
 </script>
 
 <style>
-    main {
-        padding: var(--spacing-8) 0;
-    }
-
-    .page-header {
+    header {
         margin-bottom: var(--spacing-8);
     }
 
@@ -176,25 +172,23 @@
 
     .title-section h1 {
         font-size: 2rem;
-        font-weight: bold;
-        margin-bottom: var(--spacing-2);
     }
 
     .loading-state, .error-state, .not-found {
         padding: var(--spacing-12);
         text-align: center;
-        background-color: var(--color-blueprint-paper);
+        background-color: var(--color-bg-light);
     }
 
     .error-state {
-        background-color: var(--color-gray-50);
+        background-color: var(--color-bg-popup);
         color: var(--color-error);
     }
 
     .action-error {
         padding: var(--spacing-6);
         margin-bottom: var(--spacing-4);
-        background-color: var(--color-gray-50);
+        background-color: var(--color-bg-popup);
         color: var(--color-error);
     }
 
@@ -212,17 +206,11 @@
 
     .tournament-details, .game-details, .participants-section, .submissions-section {
         padding: var(--spacing-6);
-        background-color: var(--color-blueprint-paper);
-    }
-
-    .tournament-details h2, .game-details h2, .participants-section h2 {
-        font-size: 1.25rem;
-        font-weight: 600;
-        margin-bottom: var(--spacing-4);
+        background-color: var(--color-bg-light);
     }
 
     .description {
-        color: var(--color-muted);
+        color: var(--color-fg-muted);
         margin-bottom: var(--spacing-4);
     }
 
@@ -234,7 +222,7 @@
 
     .details-grid dt {
         font-weight: 600;
-        color: var(--color-muted);
+        color: var(--color-fg-muted);
     }
 
     .languages-section {
@@ -243,7 +231,7 @@
 
     .languages-section h3 {
         font-weight: 600;
-        color: var(--color-muted);
+        color: var(--color-fg-muted);
         margin-bottom: var(--spacing-2);
     }
 
@@ -254,23 +242,23 @@
 
     .empty-state {
         text-align: center;
-        color: var(--color-muted);
+        color: var(--color-fg-muted);
     }
 
-    .participants-table, .submissions-table {
-        width: 100%;
-        border-collapse: collapse;
+    .participants-table th {
+        border-bottom: 1px solid var(--color-border);
     }
 
-    .participants-table th, .submissions-table th {
-        text-align: left;
-        padding: var(--spacing-2);
-        border-bottom: 1px solid var(--color-blueprint-line);
+    .participants-table td {
+        border-bottom: 1px solid var(--color-border-light);
     }
 
-    .participants-table td, .submissions-table td {
-        padding: var(--spacing-2);
-        border-bottom: 1px solid var(--color-blueprint-line-faint);
+    .submissions-table th {
+        border-bottom: 1px solid var(--color-border);
+    }
+
+    .submissions-table td {
+        border-bottom: 1px solid var(--color-border-light);
     }
 
     .rank {
@@ -278,7 +266,7 @@
     }
 
     .no-rank {
-        color: var(--color-muted);
+        color: var(--color-fg-muted);
     }
 
     .username {
@@ -287,7 +275,7 @@
 
     .join-date, .submit-date {
         font-size: 0.875rem;
-        color: var(--color-muted);
+        color: var(--color-fg-muted);
     }
 
     .language {
@@ -296,7 +284,7 @@
 
     .notes {
         font-size: 0.875rem;
-        color: var(--color-muted);
+        color: var(--color-fg-muted);
     }
 
     .section-header {
@@ -308,13 +296,12 @@
 
     .section-header h2 {
         font-size: 1.25rem;
-        font-weight: 600;
         margin: 0;
     }
 
     .auth-message, .loading-message, .empty-message {
         font-size: 0.875rem;
-        color: var(--color-muted);
+        color: var(--color-fg-muted);
     }
 
     .error-message {
@@ -330,24 +317,23 @@
 
     .actions-section {
         padding: var(--spacing-6);
-        background-color: var(--color-blueprint-paper);
+        background-color: var(--color-bg-light);
     }
 
     .actions-section h3 {
-        font-weight: 600;
         margin-bottom: var(--spacing-4);
     }
 
     .auth-required {
         font-size: 0.875rem;
-        color: var(--color-muted);
+        color: var(--color-fg-muted);
         margin-bottom: var(--spacing-4);
     }
 
     .participant-status {
         margin-top: var(--spacing-4);
         padding: var(--spacing-4);
-        background-color: var(--color-gray-50);
+        background-color: var(--color-bg-popup);
         text-align: center;
     }
 
@@ -360,11 +346,10 @@
 
     .status-info {
         padding: var(--spacing-6);
-        background-color: var(--color-blueprint-paper);
+        background-color: var(--color-bg-light);
     }
 
     .status-info h3 {
-        font-weight: 600;
         margin-bottom: var(--spacing-2);
     }
 
@@ -374,7 +359,7 @@
     }
 
     .registration-open {
-        background-color: var(--color-gray-50);
+        background-color: var(--color-bg-popup);
     }
 
     .registration-open h3, .registration-open p {
@@ -382,7 +367,7 @@
     }
 
     .tournament-running {
-        background-color: var(--color-gray-50);
+        background-color: var(--color-bg-popup);
     }
 
     .tournament-running h3, .tournament-running p {
@@ -390,7 +375,7 @@
     }
 
     .tournament-completed {
-        background-color: var(--color-gray-50);
+        background-color: var(--color-bg-popup);
     }
 
     .tournament-completed h3, .tournament-completed p {
@@ -409,7 +394,7 @@
                 <p>{error}</p>
             </section>
         {:else if tournament}
-            <header class="page-header">
+            <header>
                 <div class="header-content">
                     <div class="title-section">
                         <h1>{tournament.name}</h1>

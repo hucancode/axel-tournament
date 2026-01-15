@@ -1,9 +1,11 @@
 export { default as Alert } from './Alert.svelte';
 export { default as Calendar } from './Calendar.svelte';
 export { default as Card } from './Card.svelte';
+export { default as DataTable } from './DataTable.svelte';
 export { default as DatePicker } from './DatePicker.svelte';
 export { default as DateTimePicker } from './DateTimePicker.svelte';
 export { default as LinkButton } from './LinkButton.svelte';
+export { default as PageHeader } from './PageHeader.svelte';
 export { default as Popover } from './Popover.svelte';
 export { default as Segmented } from './Segmented.svelte';
 export { default as Statistic } from './Statistic.svelte';

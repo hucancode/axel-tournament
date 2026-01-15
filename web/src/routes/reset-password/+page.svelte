@@ -28,17 +28,13 @@
 </script>
 
 <style>
-    main {
-        padding: var(--spacing-8) 0;
-    }
-
     .container {
         max-width: 28rem;
     }
 
     .reset-form-section {
         padding: var(--spacing-6);
-        background-color: var(--color-blueprint-paper);
+        background-color: var(--color-bg-light);
     }
 
     .reset-form-section h1 {
@@ -48,7 +44,7 @@
 
     .form-subtitle {
         font-size: 0.875rem;
-        color: var(--color-muted);
+        color: var(--color-fg-muted);
         margin-bottom: var(--spacing-6);
         text-align: center;
     }
@@ -56,7 +52,7 @@
     .error-message {
         border: 1px solid var(--color-error);
         padding: var(--spacing-6);
-        background-color: var(--color-gray-50);
+        background-color: var(--color-bg-popup);
         margin-bottom: var(--spacing-4);
         color: var(--color-error);
     }
@@ -64,7 +60,7 @@
     .success-message {
         border: 1px solid var(--color-success);
         padding: var(--spacing-6);
-        background-color: var(--color-gray-50);
+        background-color: var(--color-bg-popup);
         margin-bottom: var(--spacing-4);
         color: var(--color-success);
     }
@@ -77,12 +73,12 @@
         display: block;
         margin-bottom: var(--spacing-2);
         font-weight: 500;
-        color: var(--color-gray-dark);
+        color: var(--color-fg);
     }
 
     .back-link {
-        margin-top: var(--spacing-6);
         text-align: center;
+        margin-top: var(--spacing-6);
     }
 
     .back-link a {

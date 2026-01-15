@@ -45,17 +45,13 @@
 </script>
 
 <style>
-    main {
-        padding: var(--spacing-8) 0;
-    }
-
     .container {
         max-width: 28rem;
     }
 
     .reset-form-section {
         padding: var(--spacing-6);
-        background-color: var(--color-blueprint-paper);
+        background-color: var(--color-bg-light);
     }
 
     .reset-form-section h1 {
@@ -65,21 +61,21 @@
 
     .form-subtitle {
         font-size: 0.875rem;
-        color: var(--color-muted);
+        color: var(--color-fg-muted);
         margin-bottom: var(--spacing-6);
         text-align: center;
     }
 
     .error-message {
         padding: var(--spacing-6);
-        background-color: var(--color-gray-50);
+        background-color: var(--color-bg-popup);
         margin-bottom: var(--spacing-4);
         color: var(--color-error);
     }
 
     .success-message {
         padding: var(--spacing-6);
-        background-color: var(--color-gray-50);
+        background-color: var(--color-bg-popup);
         margin-bottom: var(--spacing-4);
         color: var(--color-success);
     }
@@ -92,12 +88,12 @@
         display: block;
         margin-bottom: var(--spacing-2);
         font-weight: 500;
-        color: var(--color-gray-dark);
+        color: var(--color-fg);
     }
 
     .form-help {
         font-size: 0.875rem;
-        color: var(--color-muted);
+        color: var(--color-fg-muted);
         margin-top: var(--spacing-1);
     }
 

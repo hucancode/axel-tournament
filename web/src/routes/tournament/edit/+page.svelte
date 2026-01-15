@@ -107,11 +107,7 @@
 </script>
 
 <style>
-    main {
-        padding: var(--spacing-8) 0;
-    }
-
-    .page-header {
+    header {
         margin-bottom: var(--spacing-8);
     }
 
@@ -123,12 +119,10 @@
 
     .title-section h1 {
         font-size: 2rem;
-        font-weight: bold;
-        margin-bottom: var(--spacing-2);
     }
 
     .subtitle {
-        color: var(--color-muted);
+        color: var(--color-fg-muted);
     }
 
     .loading-section {
@@ -136,7 +130,7 @@
     }
 
     .error-section, .form-error-section {
-        background-color: var(--color-gray-50);
+        background-color: var(--color-bg-popup);
         border-left: 4px solid var(--color-error);
         padding: var(--spacing-4);
         margin-bottom: var(--spacing-4);
@@ -145,7 +139,7 @@
 
     .tournament-form {
         padding: var(--spacing-6);
-        background-color: var(--color-blueprint-paper);
+        background-color: var(--color-bg-light);
     }
 
     .form-field {
@@ -156,7 +150,7 @@
         display: block;
         margin-bottom: var(--spacing-2);
         font-weight: 500;
-        color: var(--color-gray-dark);
+        color: var(--color-fg);
     }
 
     .form-row {
@@ -174,7 +168,7 @@
 
 <main>
     <div class="container">
-        <header class="page-header">
+        <header>
             <div class="header-content">
                 <div class="title-section">
                     <h1>Edit Tournament</h1>

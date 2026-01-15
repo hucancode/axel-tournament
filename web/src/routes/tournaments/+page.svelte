@@ -4,7 +4,7 @@
     import { authStore } from "$lib/stores/auth";
     import { onMount } from "svelte";
     import type { Tournament, TournamentParticipant, Game } from "$lib/models";
-    import { LinkButton, Card, Badge, Alert } from "$components";
+    import { LinkButton, Card, Badge, Alert, PageHeader } from "$components";
 
     let tournaments = $state<Tournament[]>([]);
     let games = $state<Game[]>([]);
@@ -86,8 +86,7 @@
 
 <main>
     <div class="container">
-        <header class="page-header">
-            <h1>Tournaments</h1>
+        <PageHeader title="Tournaments">
             {#if canManageTournaments}
                 <LinkButton
                     href="/tournaments/new"
@@ -95,7 +94,7 @@
                     variant="primary"
                 />
             {/if}
-        </header>
+        </PageHeader>
 
         {#if error}
             <Alert message={error} />
@@ -152,25 +151,9 @@
 </main>
 
 <style>
-    main {
-        padding: var(--spacing-8) 0;
-    }
-
-    .page-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: var(--spacing-4);
-    }
-
-    .page-header h1 {
-        font-size: 1.5rem;
-        font-weight: bold;
-    }
-
     .filter-section {
         padding: var(--spacing-6);
-        background-color: var(--color-blueprint-paper);
+        background-color: var(--color-bg-light);
         margin-bottom: var(--spacing-4);
     }
 
@@ -192,6 +175,6 @@
     }
 
     .player-count {
-        color: var(--color-muted);
+        color: var(--color-fg-muted);
     }
 </style>

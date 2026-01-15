@@ -99,29 +99,25 @@
 </script>
 
 <style>
-    main {
-        padding: var(--spacing-8) 0;
-    }
-
-    .page-header {
+    header {
         margin-bottom: var(--spacing-4);
     }
 
     .tournament-name {
-        color: var(--color-muted);
+        color: var(--color-fg-muted);
     }
 
     .loading-section {
         padding: var(--spacing-6);
-        background-color: var(--color-blueprint-paper);
+        background-color: var(--color-bg-light);
         text-align: center;
-        color: var(--color-muted);
+        color: var(--color-fg-muted);
     }
 
     .error-section {
         border: 1px solid var(--color-error);
         padding: var(--spacing-6);
-        background-color: var(--color-gray-50);
+        background-color: var(--color-bg-popup);
         border-left: 4px solid var(--color-error);
         margin-bottom: var(--spacing-4);
         color: var(--color-error);
@@ -129,7 +125,7 @@
 
     .submit-form-section {
         padding: var(--spacing-6);
-        background-color: var(--color-blueprint-paper);
+        background-color: var(--color-bg-light);
     }
 
     .participation-warning {
@@ -152,7 +148,7 @@
         display: block;
         margin-bottom: var(--spacing-2);
         font-weight: 500;
-        color: var(--color-gray-dark);
+        color: var(--color-fg);
     }
 
     .code-textarea {
@@ -162,7 +158,7 @@
 
     .character-count {
         font-size: 0.875rem;
-        color: var(--color-muted);
+        color: var(--color-fg-muted);
         margin-top: var(--spacing-2);
     }
 
@@ -174,7 +170,7 @@
 
 <main>
     <div class="container">
-        <header class="page-header">
+        <header>
             <h1>Submit Code</h1>
             {#if tournament}
                 <p class="tournament-name">Tournament: {tournament.name}</p>

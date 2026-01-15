@@ -76,7 +76,7 @@
             </button>
         </form>
 
-        <div class="divider">or</div>
+        <hr data-content="or" />
         <button onclick={handleGoogleLogin} data-variant="secondary">
             Continue with Google
         </button>
@@ -100,7 +100,7 @@
 
     section {
         padding: 1.5rem;
-        border: 1px solid var(--blueprint-line-faint);
+        border: 1px solid var(--color-border-light);
         width: 100%;
     }
 
@@ -112,11 +112,11 @@
     aside[role="alert"] {
         padding: 1.5rem;
         margin-bottom: 1rem;
-        border: 1px solid var(--error);
+        border: 1px solid var(--color-error);
     }
 
     aside p {
-        color: var(--error);
+        color: var(--color-error);
         margin: 0;
     }
 
@@ -130,13 +130,7 @@
         display: block;
         margin-bottom: 0.5rem;
         font-weight: 500;
-        color: var(--text-dark);
-    }
-
-    .divider {
-        margin: var(--spacing-6) 0;
-        text-align: center;
-        color: var(--color-muted);
+        color: var(--color-fg);
     }
 
     .auth-links {

@@ -3,7 +3,7 @@
     import { tournamentService } from "$services/tournaments";
     import { onMount } from "svelte";
     import type { Game, Tournament } from "$lib/models";
-    import { LinkButton, Card, Badge, Alert } from "$components";
+    import { LinkButton, Card, Badge, Alert, PageHeader } from "$components";
 
     let games = $state<Game[]>([]);
     let tournamentsByGame = $state<Map<string, Tournament[]>>(new Map());
@@ -49,22 +49,6 @@
 </script>
 
 <style>
-    main {
-        padding: var(--spacing-8) 0;
-    }
-
-    .page-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: var(--spacing-4);
-    }
-
-    .page-header h1 {
-        font-size: 1.5rem;
-        font-weight: bold;
-    }
-
     .loading-section, .empty-section {
         text-align: center;
     }
@@ -84,11 +68,10 @@
 
     .game-header h2 {
         font-size: 1.25rem;
-        font-weight: 600;
     }
 
     .game-description {
-        color: var(--color-muted);
+        color: var(--color-fg-muted);
         margin-bottom: var(--spacing-4);
     }
 
@@ -99,7 +82,7 @@
     .game-languages h3, .game-stats h3 {
         font-size: 0.875rem;
         font-weight: 600;
-        color: var(--color-muted);
+        color: var(--color-fg-muted);
         margin-bottom: var(--spacing-2);
     }
 
@@ -116,7 +99,7 @@
 
     .stats-grid dt {
         font-size: 0.875rem;
-        color: var(--color-muted);
+        color: var(--color-fg-muted);
     }
 
     .stats-grid dd {
@@ -133,14 +116,10 @@
 
 <main>
     <div class="container">
-        <header class="page-header">
-            <h1>Available Games</h1>
-        </header>
-
+        <PageHeader title="Available Games" />
         {#if error}
             <Alert message={error} />
         {/if}
-
         {#if loading}
             <section class="loading-section">
                 <Card class="loading-card">

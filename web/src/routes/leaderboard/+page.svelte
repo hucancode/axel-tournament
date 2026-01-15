@@ -3,7 +3,7 @@
     import { tournamentService } from "$services/tournaments";
     import { gameService } from "$services/games";
     import { onMount } from "svelte";
-    import { Alert } from "$components";
+    import { Alert, PageHeader } from "$components";
     import type { LeaderboardEntry, Tournament, Game } from "$lib/models";
     let entries = $state<LeaderboardEntry[]>([]);
     let tournaments = $state<Tournament[]>([]);
@@ -76,19 +76,14 @@
 </script>
 
 <style>
-    main {
-        padding: var(--spacing-8) 0;
-    }
-
     .filters-section {
         padding: var(--spacing-6);
-        background-color: var(--color-blueprint-paper);
+        background-color: var(--color-bg-light);
         margin-bottom: var(--spacing-4);
     }
 
     .filters-section h2 {
         font-size: 1.125rem;
-        font-weight: 600;
         margin-bottom: var(--spacing-4);
     }
 
@@ -109,24 +104,24 @@
     .filter-select {
         width: 100%;
         padding: var(--spacing-2);
-        background-color: var(--color-blueprint-paper);
+        background-color: var(--color-bg-light);
     }
 
     .loading-section, .empty-section {
         padding: var(--spacing-6);
-        background-color: var(--color-blueprint-paper);
+        background-color: var(--color-bg-light);
         text-align: center;
-        color: var(--color-muted);
+        color: var(--color-fg-muted);
     }
 
     .empty-hint {
         font-size: 0.875rem;
-        color: var(--color-muted);
+        color: var(--color-fg-muted);
         margin-top: var(--spacing-2);
     }
 
     .leaderboard-section {
-        background-color: var(--color-blueprint-paper);
+        background-color: var(--color-bg-light);
         padding: 0;
         overflow-x: auto;
     }
@@ -136,13 +131,11 @@
     }
 
     .leaderboard-table {
-        width: 100%;
-        border-collapse: collapse;
-        background-color: var(--color-blueprint-paper);
+        background-color: var(--color-bg-light);
     }
 
     .leaderboard-table thead {
-        background-color: var(--color-blueprint-line-faint);
+        background-color: var(--color-border-light);
         position: sticky;
         top: 0;
         z-index: 10;
@@ -150,9 +143,7 @@
 
     .leaderboard-table th {
         padding: var(--spacing-3);
-        text-align: left;
-        font-weight: 600;
-        border-bottom: 2px solid var(--color-blueprint-line-light);
+        border-bottom: 2px solid var(--color-border-light);
     }
 
     .rank-column {
@@ -160,12 +151,12 @@
     }
 
     .leaderboard-row:hover {
-        background-color: var(--color-blueprint-line-faint);
+        background-color: var(--color-border-light);
     }
 
     .leaderboard-table td {
         padding: var(--spacing-3);
-        border-bottom: 1px solid var(--color-blueprint-line-light);
+        border-bottom: 1px solid var(--color-border-light);
     }
 
     .rank-cell {
@@ -184,24 +175,24 @@
     }
 
     .rank-gold {
-        color: #d97706;
+        color: var(--color-warning);
     }
 
     .rank-silver {
-        color: #64748b;
+        color: var(--color-fg-dim);
     }
 
     .rank-bronze {
-        color: #92400e;
+        color: var(--color-orange);
     }
 
     .player-cell {
         font-weight: 600;
-        color: var(--color-blueprint-line);
+        color: var(--color-border);
     }
 
     .no-location {
-        color: var(--color-muted);
+        color: var(--color-fg-muted);
     }
 
     .score-cell {
@@ -220,12 +211,13 @@
         text-align: center;
         margin-top: var(--spacing-4);
         font-size: 0.875rem;
-        color: var(--color-muted);
+        color: var(--color-fg-muted);
     }
 </style>
 
 <main>
     <div class="container">
+        <PageHeader title="Leaderboard" />
         {#if error}
             <Alert message={error} />
         {/if}
