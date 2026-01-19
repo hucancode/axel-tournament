@@ -15,14 +15,14 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: ${FRONTEND_IMAGE}
+          image: FRONTEND_IMAGE
           ports:
             - containerPort: 80
           env:
             - name: PUBLIC_API_URL
-              value: "${PUBLIC_API_URL}"
+              value: "https://api.example.com"
             - name: PUBLIC_JUDGE_URL
-              value: "https://judge.${DOMAIN_NAME}"
+              value: "https://judge.example.com"
           livenessProbe:
             httpGet:
               path: /robots.txt

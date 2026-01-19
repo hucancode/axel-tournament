@@ -19,7 +19,7 @@ metadata:
     nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
-    cert-manager.io/cluster-issuer: "letsencrypt-${CERT_ISSUER}"
+    cert-manager.io/cluster-issuer: "letsencrypt-staging"
     # Enable sticky sessions by room_id for room management endpoints
     # room_id is extracted globally in ingress-nginx-values.yaml http-snippet
     nginx.ingress.kubernetes.io/upstream-hash-by: "$room_id"
@@ -27,10 +27,10 @@ spec:
   ingressClassName: nginx
   tls:
     - hosts:
-        - api.${DOMAIN_NAME}
+        - api.example.com
       secretName: backend-tls-cert
   rules:
-    - host: api.${DOMAIN_NAME}
+    - host: api.example.com
       http:
         paths:
           # Room management routes → Judge (with sticky sessions)

@@ -1,4 +1,4 @@
-.PHONY: aws-up aws-down k8s-up k8s-down push-images
+.PHONY: aws-up aws-down k8s-up k8s-down images kustomize clean-kustomize
 .ONESHELL:
 
 # Load environment variables from .env file
@@ -84,7 +84,7 @@ aws-up:
 	@echo "1. Set LETSENCRYPT_EMAIL, DOMAIN and other required values in your .env file"
 	@echo "2. Run 'make k8s-up' to deploy applications"
 
-k8s-up: push-images
+k8s-up: images kustomize
 	@test -n "$(FRONTEND_IMAGE)" || (echo "FRONTEND_IMAGE is required" && exit 1)
 	@test -n "$(BACKEND_IMAGE)" || (echo "BACKEND_IMAGE is required" && exit 1)
 	@test -n "$(JUDGE_IMAGE)" || (echo "JUDGE_IMAGE is required" && exit 1)
@@ -93,12 +93,8 @@ k8s-up: push-images
 	@test -n "$(DOMAIN_NAME)" || (echo "DOMAIN_NAME is required" && exit 1)
 	@test -n "$(LETSENCRYPT_EMAIL)" || (echo "LETSENCRYPT_EMAIL is required in .env" && exit 1)
 	@test -n "$(CERT_ISSUER)" || (echo "CERT_ISSUER is required in .env (use 'staging' or 'prod')" && exit 1)
-	@echo "Configuring cert-manager ClusterIssuer..."
-	@envsubst < k8s/addons/cert-manager.yaml | kubectl apply -f -
-	@kubectl apply -f k8s/namespaces.yaml
-	@kubectl apply -f k8s/addons/gp3-storageclass.yaml
-	@kubectl apply -f k8s/apps/artifacts-pvc.yaml
-	@kubectl apply -f k8s/apps/surrealdb.yaml
+	@echo "Validating Kustomize configuration..."
+	@kubectl kustomize k8s/overlays/production > /dev/null || (echo "Kustomize validation failed" && exit 1)
 	@echo "Getting NGINX LoadBalancer address..."
 	@nginx_lb=$$(kubectl -n ingress-nginx get svc ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null)
 	@test -n "$$nginx_lb" || (echo "Error: NGINX LoadBalancer not found. Make sure 'make aws-up' completed successfully." && exit 1)
@@ -111,17 +107,8 @@ k8s-up: push-images
 		--change-batch '{"Changes":[{"Action":"UPSERT","ResourceRecordSet":{"Name":"api.$(DOMAIN_NAME)","Type":"CNAME","TTL":300,"ResourceRecords":[{"Value":"'$$nginx_lb'"}]}},{"Action":"UPSERT","ResourceRecordSet":{"Name":"judge.$(DOMAIN_NAME)","Type":"CNAME","TTL":300,"ResourceRecords":[{"Value":"'$$nginx_lb'"}]}},{"Action":"UPSERT","ResourceRecordSet":{"Name":"$(DOMAIN_NAME)","Type":"A","AliasTarget":{"HostedZoneId":"'$$nlb_zone_id'","DNSName":"'$$nginx_lb'","EvaluateTargetHealth":false}}}]}'
 	@echo "DNS records created. Waiting 30s for propagation..."
 	@sleep 30
-	@echo "Deploying applications..."
-	@export PUBLIC_API_URL="https://api.$(DOMAIN_NAME)"; \
-	export FRONTEND_URL="https://$(DOMAIN_NAME)"; \
-	export GOOGLE_REDIRECT_URI="https://api.$(DOMAIN_NAME)/api/auth/google/callback";
-	@envsubst < k8s/apps/backend.yaml | kubectl apply -f -
-	@envsubst < k8s/apps/judge.yaml | kubectl apply -f -
-	@envsubst < k8s/apps/frontend.yaml | kubectl apply -f -
-	@echo "Deploying ingress resources..."
-	@envsubst < k8s/apps/ingress/backend.yaml | kubectl apply -f -
-	@envsubst < k8s/apps/ingress/judge.yaml | kubectl apply -f -
-	@envsubst < k8s/apps/ingress/frontend.yaml | kubectl apply -f -
+	@echo "Applying Kubernetes resources with Kustomize..."
+	@kubectl apply -k k8s/overlays/production
 	@echo "Waiting for TLS certificates to be issued..."
 	@kubectl -n backend wait --for=condition=Ready certificate/backend-tls-cert --timeout=300s
 	@kubectl -n backend wait --for=condition=Ready certificate/judge-tls-cert --timeout=300s
@@ -166,43 +153,56 @@ url:
 		echo "For your domain/subdomain $$domain"; \
 	fi
 
-push-images:
+images:
 	@test -n "$(TF_ECR_WEB)" || (echo "ECR_WEB_REPO not found. Run 'make aws-up' first." && exit 1)
 	@test -n "$(TF_ECR_API)" || (echo "ECR_API_REPO not found. Run 'make aws-up' first." && exit 1)
 	@test -n "$(TF_ECR_JUDGE)" || (echo "ECR_JUDGE_REPO not found. Run 'make aws-up' first." && exit 1)
 	@test -n "$(DOMAIN_NAME)" || (echo "DOMAIN_NAME not found" && exit 1)
 	@ECR_REGISTRY=$$(echo "$(TF_ECR_WEB)" | cut -d/ -f1); \
 	echo "Logging in to ECR $$ECR_REGISTRY..."; \
-	aws ecr get-login-password | docker login --username AWS --password-stdin $$ECR_REGISTRY; \
-	echo "Building and pushing frontend image..."; \
-	docker build \
+	aws ecr get-login-password | docker login --username AWS --password-stdin $$ECR_REGISTRY;
+	@echo "Building and pushing frontend image..."
+	@docker build \
 		--build-arg PUBLIC_API_URL=https://api.$(DOMAIN_NAME) \
 		--build-arg PUBLIC_JUDGE_URL=https://judge.$(DOMAIN_NAME) \
-		-t $(FRONTEND_IMAGE) ../web; \
-	docker push $(FRONTEND_IMAGE); \
-	echo "Building and pushing backend image..."; \
-	docker build -f docker/api.Dockerfile -t $(BACKEND_IMAGE) ..; \
-	docker push $(BACKEND_IMAGE); \
-	echo "Building and pushing unified judge image..."; \
-	docker build -f docker/judge.Dockerfile -t $(JUDGE_IMAGE) ..; \
-	docker push $(JUDGE_IMAGE); \
-	echo "All images built and pushed successfully"
+		-t $(FRONTEND_IMAGE) ../web
+	@docker push $(FRONTEND_IMAGE)
+	@echo "Building and pushing backend image..."
+	@docker build -f docker/api.Dockerfile -t $(BACKEND_IMAGE) ..
+	@docker push $(BACKEND_IMAGE)
+	@echo "Building and pushing unified judge image..."
+	@docker build -f docker/judge.Dockerfile -t $(JUDGE_IMAGE) ..
+	@docker push $(JUDGE_IMAGE)
+	@echo "All images built and pushed successfully"
 
-k8s-down:
-	@export GOOGLE_CLIENT_ID="$${GOOGLE_CLIENT_ID:-placeholder}"; \
-	export GOOGLE_CLIENT_SECRET="$${GOOGLE_CLIENT_SECRET:-placeholder}"; \
-	export GOOGLE_REDIRECT_URI="placeholder"; \
-	export PUBLIC_API_URL="placeholder"; \
-	export FRONTEND_URL="placeholder"; \
-	envsubst < k8s/apps/frontend.yaml | kubectl delete -f - --ignore-not-found; \
-	envsubst < k8s/apps/judge.yaml | kubectl delete -f - --ignore-not-found; \
-	envsubst < k8s/apps/backend.yaml | kubectl delete -f - --ignore-not-found
-	@envsubst < k8s/apps/ingress/backend.yaml | kubectl delete -f - --ignore-not-found
-	@envsubst < k8s/apps/ingress/judge.yaml | kubectl delete -f - --ignore-not-found
-	@envsubst < k8s/apps/ingress/frontend.yaml | kubectl delete -f - --ignore-not-found
-	@kubectl delete -f k8s/apps/surrealdb.yaml --ignore-not-found
-	@kubectl delete -f k8s/addons/gp3-storageclass.yaml --ignore-not-found
-	@kubectl delete -f k8s/namespaces.yaml --ignore-not-found
+# Generate Kustomize overlay files from environment variables and Terraform outputs
+kustomize:
+	@echo "Generating Kustomize overlay files from templates..."
+	@BACKEND_IMAGE_NAME=$$(echo $(BACKEND_IMAGE) | cut -d: -f1); \
+	BACKEND_IMAGE_TAG=$$(echo $(BACKEND_IMAGE) | cut -d: -f2); \
+	FRONTEND_IMAGE_NAME=$$(echo $(FRONTEND_IMAGE) | cut -d: -f1); \
+	FRONTEND_IMAGE_TAG=$$(echo $(FRONTEND_IMAGE) | cut -d: -f2); \
+	JUDGE_IMAGE_NAME=$$(echo $(JUDGE_IMAGE) | cut -d: -f1); \
+	JUDGE_IMAGE_TAG=$$(echo $(JUDGE_IMAGE) | cut -d: -f2); \
+	EFS_FILE_SYSTEM_ID=$$(cd . && terraform output -raw efs_file_system_id 2>/dev/null || echo "fs-placeholder"); \
+	export BACKEND_IMAGE_NAME BACKEND_IMAGE_TAG FRONTEND_IMAGE_NAME FRONTEND_IMAGE_TAG JUDGE_IMAGE_NAME JUDGE_IMAGE_TAG EFS_FILE_SYSTEM_ID; \
+	envsubst < k8s/overlays/production/kustomization.example.yaml > k8s/overlays/production/kustomization.yaml && \
+	envsubst < k8s/overlays/production/domain-patch.example.yaml > k8s/overlays/production/domain-patch.yaml && \
+	envsubst < k8s/overlays/production/efs-patch.example.yaml > k8s/overlays/production/efs-patch.yaml && \
+	envsubst < k8s/overlays/production/cert-issuer-patch.example.yaml > k8s/overlays/production/cert-issuer-patch.yaml
+	@echo "Kustomize overlay files generated from templates"
+
+# Clean generated Kustomize files
+clean-kustomize:
+	@rm -f k8s/overlays/production/kustomization.yaml
+	@rm -f k8s/overlays/production/domain-patch.yaml
+	@rm -f k8s/overlays/production/efs-patch.yaml
+	@rm -f k8s/overlays/production/cert-issuer-patch.yaml
+	@echo "Cleaned generated Kustomize files"
+
+k8s-down: kustomize
+	@echo "Deleting Kubernetes resources with Kustomize..."
+	@kubectl delete -k k8s/overlays/production --ignore-not-found
 
 aws-down:
 	@helm uninstall ingress-nginx --namespace ingress-nginx || true

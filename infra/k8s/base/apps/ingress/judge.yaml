@@ -19,7 +19,7 @@ metadata:
   annotations:
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
-    cert-manager.io/cluster-issuer: "letsencrypt-${CERT_ISSUER}"
+    cert-manager.io/cluster-issuer: "letsencrypt-staging"
     # WebSocket specific settings
     nginx.ingress.kubernetes.io/websocket-services: "judge"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "86400"  # 24 hours
@@ -30,10 +30,10 @@ spec:
   ingressClassName: nginx
   tls:
     - hosts:
-        - judge.${DOMAIN_NAME}
+        - judge.example.com
       secretName: judge-tls-cert
   rules:
-    - host: judge.${DOMAIN_NAME}
+    - host: judge.example.com
       http:
         paths:
           # WebSocket endpoints (sticky sessions by room_id)

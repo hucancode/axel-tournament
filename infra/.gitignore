@@ -5,3 +5,8 @@
 terraform.tfstate
 terraform.tfstate.backup
 *.tfvars
+
+k8s/overlays/production/kustomization.yaml
+k8s/overlays/production/domain-patch.yaml
+k8s/overlays/production/efs-patch.yaml
+k8s/overlays/production/cert-issuer-patch.yaml

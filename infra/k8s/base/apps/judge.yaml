@@ -23,7 +23,7 @@ spec:
           effect: "NoSchedule"
       containers:
         - name: judge
-          image: ${JUDGE_IMAGE}
+          image: JUDGE_IMAGE
           ports:
             - containerPort: 8080
             - containerPort: 8081
@@ -64,7 +64,7 @@ spec:
             - name: COMPILER_WORKSPACE
               value: "/artifacts"
             - name: FRONTEND_URL
-              value: "${FRONTEND_URL}"
+              value: "https://example.com"
             - name: HOSTNAME
               valueFrom:
                 fieldRef:
@@ -148,10 +148,10 @@ spec:
   ingressClassName: nginx
   tls:
     - hosts:
-        - judge.${DOMAIN_NAME}
+        - judge.example.com
       secretName: judge-tls-cert
   rules:
-    - host: judge.${DOMAIN_NAME}
+    - host: judge.example.com
       http:
         paths:
           - path: /api

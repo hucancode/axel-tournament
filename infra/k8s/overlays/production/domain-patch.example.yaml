@@ -1,0 +1,93 @@
+# Domain patches for Ingress resources
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: backend
+  namespace: backend
+spec:
+  tls:
+    - hosts:
+        - api.${DOMAIN_NAME}
+  rules:
+    - host: api.${DOMAIN_NAME}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: frontend
+  namespace: frontend
+spec:
+  tls:
+    - hosts:
+        - ${DOMAIN_NAME}
+  rules:
+    - host: ${DOMAIN_NAME}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: judge-websocket
+  namespace: backend
+spec:
+  tls:
+    - hosts:
+        - judge.${DOMAIN_NAME}
+  rules:
+    - host: judge.${DOMAIN_NAME}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: judge-api
+  namespace: backend
+spec:
+  tls:
+    - hosts:
+        - judge.${DOMAIN_NAME}
+  rules:
+    - host: judge.${DOMAIN_NAME}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: frontend
+spec:
+  template:
+    spec:
+      containers:
+        - name: frontend
+          env:
+            - name: PUBLIC_API_URL
+              value: https://api.${DOMAIN_NAME}
+            - name: PUBLIC_JUDGE_URL
+              value: https://judge.${DOMAIN_NAME}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: backend
+spec:
+  template:
+    spec:
+      containers:
+        - name: backend
+          env:
+            - name: FRONTEND_URL
+              value: https://${DOMAIN_NAME}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: judge
+  namespace: backend
+spec:
+  template:
+    spec:
+      containers:
+        - name: judge
+          env:
+            - name: FRONTEND_URL
+              value: https://${DOMAIN_NAME}
