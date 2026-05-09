@@ -1,9 +1,9 @@
-pub mod tic_tac_toe;
-pub mod rock_paper_scissors;
-pub mod prisoners_dilemma;
+pub mod pd_logic;
+pub mod rps_logic;
+pub mod ttt_logic;
 
-pub use tic_tac_toe::TicTacToe;
-pub use rock_paper_scissors::RockPaperScissors;
-pub use prisoners_dilemma::PrisonersDilemma;
-pub use crate::models::game::{Game, GameResult};
+pub use pd_logic::Pd;
+pub use rps_logic::Rps;
+pub use ttt_logic::Ttt;
+
 pub use crate::models::game_metadata::find_game_by_id;

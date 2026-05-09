@@ -14,14 +14,15 @@ tower = { version = "0.5", features = ["util"] }
 tower-http = { version = "0.6", features = ["fs", "cors"] }
 
 # Database
-surrealdb = { version = "2.4", features = ["protocol-ws"] }
+surrealdb = { version = "3.0.5", features = ["protocol-ws"] }
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+validator = { version = "0.19", features = ["derive"] }
 
 # Auth & Security
-jsonwebtoken = { version = "10", features = ["rust_crypto"] }
+jsonwebtoken = { version = "10", default-features = false, features = ["use_pem", "aws_lc_rs"] }
 argon2 = "0.5"
 
 # Utilities

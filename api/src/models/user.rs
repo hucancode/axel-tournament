@@ -1,10 +1,10 @@
 use serde::{Deserialize, Serialize};
-use surrealdb::sql::{Datetime, Thing};
+use surrealdb::types::{Datetime, RecordId, SurrealValue};
 use validator::Validate;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
 pub struct User {
-    pub id: Option<Thing>,
+    pub id: Option<RecordId>,
     pub email: String,
     pub username: String,
     pub password_hash: Option<String>, // None for OAuth users
@@ -20,15 +20,17 @@ pub struct User {
     pub password_reset_expires: Option<Datetime>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, SurrealValue)]
 #[serde(rename_all = "lowercase")]
+#[surreal(untagged, lowercase)]
 pub enum UserRole {
     Admin,
     Player,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
 #[serde(rename_all = "lowercase")]
+#[surreal(untagged, lowercase)]
 pub enum OAuthProvider {
     Google,
 }

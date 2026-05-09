@@ -1,169 +1,104 @@
 import { env } from '$env/dynamic/public';
-import type { Room, CreateRoomRequest, RoomMessage, CreateRoomMessageRequest, RoomStatus } from '$lib/models';
+import type { Room, CreateRoomRequest, RoomStatus } from '$lib/models';
 
-const JUDGE_URL = env.PUBLIC_JUDGE_URL || "http://localhost:8081";
+const JUDGE_URL = env.PUBLIC_JUDGE_URL || 'http://localhost:8081';
 
-class JudgeApiClient {
-  private getHeaders(includeAuth: boolean = false): HeadersInit {
-    const headers: HeadersInit = {
-      "Content-Type": "application/json",
-    };
-    if (includeAuth && typeof window !== "undefined") {
-      const token = localStorage.getItem("auth_token");
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
-    }
-    return headers;
-  }
-
-  private async handleResponse<T>(response: Response): Promise<T> {
-    if (!response.ok) {
-      const error = await response.text().catch(() => `HTTP ${response.status}: ${response.statusText}`);
-      throw new Error(error);
-    }
-    const text = await response.text();
-    if (!text) return {} as T;
-    return JSON.parse(text) as T;
-  }
-
-  async get<T>(path: string): Promise<T> {
-    const response = await fetch(`${JUDGE_URL}${path}`, {
-      method: "GET",
-      headers: this.getHeaders(true),
-    });
-    return this.handleResponse<T>(response);
-  }
-
-  async post<T, D = any>(path: string, data?: D): Promise<T> {
-    const response = await fetch(`${JUDGE_URL}${path}`, {
-      method: "POST",
-      headers: this.getHeaders(true),
-      body: data ? JSON.stringify(data) : undefined,
-    });
-    return this.handleResponse<T>(response);
-  }
-
-  async delete<T>(path: string): Promise<T> {
-    const response = await fetch(`${JUDGE_URL}${path}`, {
-      method: "DELETE",
-      headers: this.getHeaders(true),
-    });
-    return this.handleResponse<T>(response);
-  }
-}
-
-const judgeApi = new JudgeApiClient();
-
-// Judge server types
-interface JudgeCreateRoomRequest {
-  name: string;
-  game_id: string;
-  host_id: string;
-  host_username: string;
-  human_timeout_ms?: number;
-}
-
-
-interface JudgeRoomResponse {
+interface JudgeRoomMeta {
   id: string;
-  name: string;
   game_id: string;
-  max_players: number;
-  status: string;
-  host_id: string;
-  host_username: string;
-  players: Array<{
-    id: string;
-    username: string;
-    connected: boolean;
-  }>;
-  reconnecting: boolean;
+  phase: 'lobby' | 'playing' | 'finished';
+  host: string | null;
+  players: string[];
+  head: number;
 }
 
+const PHASE_TO_STATUS: Record<JudgeRoomMeta['phase'], RoomStatus> = {
+  lobby: 'waiting',
+  playing: 'playing',
+  finished: 'finished',
+};
+
+/**
+ * Client-side room service. Discovery reads the judge's `room_meta` index;
+ * room IDs are allocated locally because the judge no longer has CRUD —
+ * a room comes into existence on the first ACT (typically auto-JOIN).
+ */
 export const roomService = {
   async list(gameId?: string): Promise<Room[]> {
-    const params = gameId ? `?game_id=${gameId}` : '';
-    const judgeRooms = await judgeApi.get<any[]>(`/api/rooms${params}`);
-
-    // Convert Judge response to Room format
-    return judgeRooms.map(room => ({
-      id: room.id,
-      name: room.name,
-      game_id: room.game_id,
-      max_players: room.max_players,
-      status: room.status as RoomStatus,
-      host_id: room.host_username, // Use host_username as display
-      players: room.current_players ? Array(room.current_players).fill('').map((_, i) => `player_${i}`) : [],
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+    const params = gameId ? `?game=${encodeURIComponent(gameId)}` : '';
+    const resp = await fetch(`${JUDGE_URL}/api/rooms${params}`);
+    if (!resp.ok) {
+      throw new Error(`Failed to list rooms: HTTP ${resp.status}`);
+    }
+    const metas = (await resp.json()) as JudgeRoomMeta[];
+    const now = new Date().toISOString();
+    return metas.map((m) => ({
+      id: m.id,
+      name: m.id,
+      game_id: m.game_id,
+      host_id: m.host ?? '',
+      max_players: 2,
+      status: PHASE_TO_STATUS[m.phase] ?? 'waiting',
+      players: m.players,
+      created_at: now,
+      updated_at: now,
     }));
   },
 
+  /** Returns a synthetic Room shaped from the id alone. Real player/host/phase
+   *  data is delivered by the WebSocket on connect (see RoomSocket). */
   async get(id: string): Promise<Room> {
-    const judgeRoom = await judgeApi.get<JudgeRoomResponse>(`/api/rooms/${id}`);
-
-    // Convert Judge response to Room format
+    const now = new Date().toISOString();
     return {
-      id: judgeRoom.id,
-      name: judgeRoom.name,
-      game_id: judgeRoom.game_id,
-      max_players: judgeRoom.max_players,
-      status: judgeRoom.status as RoomStatus,
-      host_id: judgeRoom.host_id,
-      players: judgeRoom.players.map(p => p.id),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      id,
+      game_id: '',
+      host_id: '',
+      name: id,
+      max_players: 2,
+      status: 'waiting' as RoomStatus,
+      players: [],
+      created_at: now,
+      updated_at: now,
     };
   },
 
+  /** Allocate a room ID locally; server-side row is created on first ACT. */
   async create(data: CreateRoomRequest): Promise<Room> {
-    const userInfo = this.getCurrentUser();
-
-    const judgeRequest: JudgeCreateRoomRequest = {
-      name: data.name,
-      game_id: data.game_id,
-      host_id: userInfo.id,
-      host_username: userInfo.username,
-      human_timeout_ms: data.human_timeout_ms,
-    };
-
-    const judgeRoom = await judgeApi.post<JudgeRoomResponse>('/api/rooms', judgeRequest);
-
+    const id = `room:${cryptoRandomId()}`;
+    const user = this.getCurrentUser();
+    const now = new Date().toISOString();
     return {
-      id: judgeRoom.id,
-      name: judgeRoom.name,
-      game_id: judgeRoom.game_id,
-      max_players: judgeRoom.max_players,
-      status: judgeRoom.status as RoomStatus,
-      host_id: judgeRoom.host_id,
-      players: judgeRoom.players.map(p => p.id),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      id,
+      game_id: data.game_id,
+      host_id: user.id,
+      name: data.name,
+      max_players: data.max_players,
+      status: 'waiting' as RoomStatus,
+      players: [],
+      human_timeout_ms: data.human_timeout_ms,
+      created_at: now,
+      updated_at: now,
     };
   },
 
-  // Helper to get current user info from JWT token
   getCurrentUser(): { id: string; username: string } {
-    if (typeof window === "undefined") {
-      throw new Error("Cannot get user info on server side");
+    if (typeof window === 'undefined') {
+      throw new Error('Cannot get user info on server side');
     }
-
-    const token = localStorage.getItem("auth_token");
-    if (!token) {
-      throw new Error("No auth token found");
-    }
-
+    const token = localStorage.getItem('auth_token');
+    if (!token) throw new Error('No auth token found');
     try {
-      // Decode JWT payload (simple base64 decode, not verifying signature)
       const payload = JSON.parse(atob(token.split('.')[1]));
-      return {
-        id: payload.sub,
-        username: payload.username || payload.sub, // Fallback to sub if no username
-      };
-    } catch (e) {
-      throw new Error("Invalid auth token");
+      return { id: payload.sub, username: payload.username || payload.sub };
+    } catch {
+      throw new Error('Invalid auth token');
     }
   },
-
 };
+
+function cryptoRandomId(): string {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return crypto.randomUUID().replace(/-/g, '').slice(0, 16);
+  }
+  return Math.random().toString(36).slice(2, 18);
+}

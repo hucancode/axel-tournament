@@ -1,16 +1,16 @@
 use serde::{Deserialize, Serialize};
-use surrealdb::sql::{Datetime, Thing};
+use surrealdb::types::{Datetime, RecordId, SurrealValue, ToSql};
 use validator::Validate;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
 pub struct Match {
-    pub id: Option<Thing>,
-    pub tournament_id: Option<Thing>, // Optional for standalone interactive matches
+    pub id: Option<RecordId>,
+    pub tournament_id: Option<RecordId>, // Optional for standalone interactive matches
     pub game_id: String, // Changed from Thing - games are now hardcoded
     pub status: MatchStatus,
     pub participants: Vec<MatchParticipant>,
     pub metadata: Option<serde_json::Value>, // For game-specific replay data or logs
-    pub room_id: Option<Thing>, // For interactive matches
+    pub room_id: Option<RecordId>, // For interactive matches
     pub game_event_source: Option<String>, // Game state history for reconnection
     pub judge_server_name: Option<String>, // Which judge server claimed this match
     pub created_at: Datetime,
@@ -39,13 +39,13 @@ pub struct MatchResponse {
 impl From<Match> for MatchResponse {
     fn from(match_data: Match) -> Self {
         Self {
-            id: match_data.id.map(|t| t.to_string()).unwrap_or_default(),
-            tournament_id: match_data.tournament_id.map(|t| t.to_string()),
+            id: match_data.id.map(|t| t.to_sql()).unwrap_or_default(),
+            tournament_id: match_data.tournament_id.map(|t| t.to_sql()),
             game_id: match_data.game_id, // Already a String
             status: match_data.status,
             participants: match_data.participants.into_iter().map(Into::into).collect(),
             metadata: match_data.metadata,
-            room_id: match_data.room_id.map(|t| t.to_string()),
+            room_id: match_data.room_id.map(|t| t.to_sql()),
             game_event_source: match_data.game_event_source,
             judge_server_name: match_data.judge_server_name,
             created_at: match_data.created_at,
@@ -56,8 +56,9 @@ impl From<Match> for MatchResponse {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, SurrealValue)]
 #[serde(rename_all = "lowercase")]
+#[surreal(untagged, lowercase)]
 pub enum MatchStatus {
     Pending,
     Queued,
@@ -67,10 +68,10 @@ pub enum MatchStatus {
     Cancelled,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
 pub struct MatchParticipant {
-    pub user_id: Thing,
-    pub submission_id: Option<Thing>, // For automated matches
+    pub user_id: RecordId,
+    pub submission_id: Option<RecordId>, // For automated matches
     pub score: Option<f64>,
 }
 
@@ -84,8 +85,8 @@ pub struct MatchParticipantResponse {
 impl From<MatchParticipant> for MatchParticipantResponse {
     fn from(participant: MatchParticipant) -> Self {
         Self {
-            user_id: participant.user_id.to_string(),
-            submission_id: participant.submission_id.map(|t| t.to_string()),
+            user_id: participant.user_id.to_sql(),
+            submission_id: participant.submission_id.map(|t| t.to_sql()),
             score: participant.score,
         }
     }

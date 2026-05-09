@@ -10,7 +10,7 @@ use argon2::{
 use chrono::Utc;
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use sha2::{Digest, Sha256};
-use surrealdb::sql::Thing;
+use surrealdb::types::{RecordId, ToSql};
 
 pub struct AuthService {
     jwt_secret: String,
@@ -45,7 +45,7 @@ impl AuthService {
             .id
             .as_ref()
             .ok_or_else(|| ApiError::Internal("User ID is missing".to_string()))?
-            .to_string();
+            .to_sql();
         let claims = Claims {
             sub: user_id,
             email: user.email.clone(),
@@ -86,7 +86,7 @@ impl AuthService {
             .id
             .as_ref()
             .ok_or_else(|| ApiError::Internal("User ID is missing".to_string()))?
-            .to_string();
+            .to_sql();
         Ok(UserInfo {
             id,
             email: user.email.clone(),
@@ -98,9 +98,8 @@ impl AuthService {
     }
 }
 
-pub async fn get_user_by_id(db: &Database, user_id: Thing) -> ApiResult<User> {
-    let key = (user_id.tb.as_str(), user_id.id.to_string());
-    let user: Option<User> = db.select(key).await?;
+pub async fn get_user_by_id(db: &Database, user_id: RecordId) -> ApiResult<User> {
+    let user: Option<User> = db.select(&user_id).await?;
     user.ok_or_else(|| ApiError::NotFound("User not found".to_string()))
 }
 

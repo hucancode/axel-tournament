@@ -1,13 +1,6 @@
-// Re-export models from the new location
-pub use crate::models::room::*;
+// Room runtime: event-log-driven, lease-based failover.
+// AI-vs-AI matches share this runtime via the stdio bot transport
+// (`bot`). Spec: judge/protocols/architecture.md.
 
-// Database operations
-pub mod db;
-
-// WebSocket handler
-pub mod websocket;
-pub use websocket::ws_get_room;
-
-// Room manager
-pub mod manager;
-pub use manager::RoomManager;
+pub mod bot;
+pub mod ws;

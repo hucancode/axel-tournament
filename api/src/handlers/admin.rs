@@ -9,7 +9,7 @@ use axum::{
     extract::{Path, Query, State},
 };
 use serde::Deserialize;
-use surrealdb::sql::Thing;
+use surrealdb::types::RecordId;
 
 #[derive(Deserialize)]
 pub struct BanUserRequest {
@@ -39,8 +39,7 @@ pub async fn ban_user(
 ) -> ApiResult<Json<UserInfo>> {
     let user = services::user::ban_user(
         &state.db,
-        user_id
-            .parse::<Thing>()
+        RecordId::parse_simple(&user_id)
             .map_err(|_| crate::error::ApiError::BadRequest("Invalid user id".to_string()))?,
         payload.reason,
     )
@@ -55,8 +54,7 @@ pub async fn unban_user(
 ) -> ApiResult<Json<UserInfo>> {
     let user = services::user::unban_user(
         &state.db,
-        user_id
-            .parse::<Thing>()
+        RecordId::parse_simple(&user_id)
             .map_err(|_| crate::error::ApiError::BadRequest("Invalid user id".to_string()))?,
     )
     .await?;

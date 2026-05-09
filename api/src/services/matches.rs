@@ -9,13 +9,13 @@ use crate::{
 };
 use serde::Deserialize;
 use std::collections::HashSet;
-use surrealdb::sql::{Datetime, Thing};
+use surrealdb::types::{Datetime, RecordId, SurrealValue, ToSql};
 
 pub async fn create_match(
     db: &Database,
-    tournament_id: Thing,
+    tournament_id: RecordId,
     game_id: String,
-    participant_submission_ids: Vec<Thing>,
+    participant_submission_ids: Vec<RecordId>,
 ) -> ApiResult<Match> {
     // 1. Verify Game exists in hardcoded registry
     find_game_by_id(&game_id)
@@ -25,16 +25,15 @@ pub async fn create_match(
     let mut participants = Vec::new();
 
     for sub_id in participant_submission_ids {
-        let submission_key = (sub_id.tb.as_str(), sub_id.id.to_string());
-        let submission: Option<Submission> = db.select(submission_key).await?;
+        let submission: Option<Submission> = db.select(&sub_id).await?;
         let submission = submission
-            .ok_or_else(|| ApiError::NotFound(format!("Submission {} not found", sub_id)))?;
+            .ok_or_else(|| ApiError::NotFound(format!("Submission {} not found", sub_id.to_sql())))?;
 
         // Ensure submission belongs to the correct game
         if submission.game_id != game_id {
             return Err(ApiError::BadRequest(format!(
                 "Submission {} does not belong to game {}",
-                sub_id, game_id
+                sub_id.to_sql(), game_id
             )));
         }
         participants.push(MatchParticipant {
@@ -65,17 +64,16 @@ pub async fn create_match(
     created.ok_or_else(|| ApiError::Internal("Failed to create match".to_string()))
 }
 
-pub async fn get_match(db: &Database, match_id: Thing) -> ApiResult<Match> {
-    let key = (match_id.tb.as_str(), match_id.id.to_string());
-    let match_data: Option<Match> = db.select(key).await?;
+pub async fn get_match(db: &Database, match_id: RecordId) -> ApiResult<Match> {
+    let match_data: Option<Match> = db.select(&match_id).await?;
     match_data.ok_or_else(|| ApiError::NotFound("Match not found".to_string()))
 }
 
 pub async fn list_matches(
     db: &Database,
-    tournament_id: Option<Thing>,
-    game_id: Option<Thing>,
-    user_id: Option<Thing>, // Filter by user involved
+    tournament_id: Option<RecordId>,
+    game_id: Option<RecordId>,
+    user_id: Option<RecordId>, // Filter by user involved
     limit: Option<u32>,
     offset: Option<u32>,
 ) -> ApiResult<Vec<Match>> {
@@ -130,14 +128,14 @@ pub async fn list_matches(
             submissions_query = submissions_query.bind(("game_id", gid));
         }
 
-        #[derive(Deserialize)]
+        #[derive(Deserialize, SurrealValue)]
         struct SubmissionRow {
-            id: Thing,
+            id: RecordId,
         }
 
         let mut submission_rows = submissions_query.await?;
         let submissions: Vec<SubmissionRow> = submission_rows.take(0)?;
-        let submission_ids: HashSet<Thing> =
+        let submission_ids: HashSet<RecordId> =
             submissions.into_iter().map(|row| row.id).collect();
 
         if submission_ids.is_empty() {

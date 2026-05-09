@@ -1,11 +1,11 @@
 use serde::{Deserialize, Serialize};
-use surrealdb::sql::{Datetime, Thing};
+use surrealdb::types::{Datetime, RecordId, SurrealValue, ToSql};
 use validator::Validate;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
 pub struct GameTemplate {
-    pub id: Option<Thing>,
-    pub game_id: Thing,
+    pub id: Option<RecordId>,
+    pub game_id: RecordId,
     pub language: String, // ProgrammingLanguage as string
     pub template_code: String,
     pub created_at: Datetime,
@@ -25,8 +25,8 @@ pub struct GameTemplateResponse {
 impl From<GameTemplate> for GameTemplateResponse {
     fn from(template: GameTemplate) -> Self {
         Self {
-            id: template.id.map(|t| t.to_string()).unwrap_or_default(),
-            game_id: template.game_id.to_string(),
+            id: template.id.map(|t| t.to_sql()).unwrap_or_default(),
+            game_id: template.game_id.to_sql(),
             language: template.language,
             template_code: template.template_code,
             created_at: template.created_at,

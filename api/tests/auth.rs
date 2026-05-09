@@ -31,7 +31,7 @@ async fn test_auth_service_password_hashing() {
 async fn test_auth_service_jwt_generation() {
     let auth_service = AuthService::new("test-secret".to_string(), 3600);
     let user = User {
-        id: Some(surrealdb::sql::Thing::from(("user", "test123"))),
+        id: Some(surrealdb::types::RecordId::new("user", "test123")),
         email: "test@example.com".to_string(),
         username: "testuser".to_string(),
         password_hash: None,
@@ -41,8 +41,8 @@ async fn test_auth_service_jwt_generation() {
         oauth_id: None,
         is_banned: false,
         ban_reason: None,
-        created_at: surrealdb::sql::Datetime::default(),
-        updated_at: surrealdb::sql::Datetime::default(),
+        created_at: surrealdb::types::Datetime::default(),
+        updated_at: surrealdb::types::Datetime::default(),
         password_reset_token: None,
         password_reset_expires: None,
     };

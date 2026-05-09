@@ -1,23 +1,27 @@
+// Reference PD bot. Always defects. Spec: judge/protocols/wire.md.
+
 use std::io::{self, BufRead, Write};
 
 fn main() {
     let stdin = io::stdin();
     let mut stdout = io::stdout();
-
     for line in stdin.lock().lines() {
-        let line = line.unwrap();
-        let line = line.trim();
-
-        if line == "START" {
-            println!("DEFECT");
-            stdout.flush().unwrap();
-        } else if line.starts_with("RESULT") {
-            println!("DEFECT");
-            stdout.flush().unwrap();
-        } else if line.starts_with("SCORE") {
+        let line = match line {
+            Ok(l) => l,
+            Err(_) => break,
+        };
+        let mut tok = line.split_whitespace();
+        if tok.next() != Some("EVENT") {
             continue;
-        } else if line == "END" {
-            break;
+        }
+        let _seq = tok.next();
+        match tok.next() {
+            Some("GAME_STARTED") | Some("ROUND_RESULT") => {
+                let _ = writeln!(stdout, "ACT MOVE D");
+                let _ = stdout.flush();
+            }
+            Some("GAME_END") => break,
+            _ => {}
         }
     }
 }

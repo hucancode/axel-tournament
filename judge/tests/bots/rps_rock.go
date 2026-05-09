@@ -1,3 +1,5 @@
+// Reference RPS bot in Go. Always plays ROCK.
+// Wire protocol: judge/protocols/wire.md (stdio transport).
 package main
 
 import (
@@ -8,19 +10,22 @@ import (
 )
 
 func main() {
-	scanner := bufio.NewScanner(os.Stdin)
+	r := bufio.NewScanner(os.Stdin)
+	r.Buffer(make([]byte, 0, 1024), 64*1024)
+	w := bufio.NewWriter(os.Stdout)
+	defer w.Flush()
 
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-
-		if line == "START" {
-			fmt.Println("ROCK")
-		} else if strings.HasPrefix(line, "ROUND") {
-			fmt.Println("ROCK")
-		} else if strings.HasPrefix(line, "SCORE") {
+	for r.Scan() {
+		tokens := strings.Fields(r.Text())
+		if len(tokens) < 3 || tokens[0] != "EVENT" {
 			continue
-		} else if line == "END" {
-			break
+		}
+		switch tokens[2] {
+		case "GAME_STARTED", "ROUND_RESULT":
+			fmt.Fprintln(w, "ACT MOVE ROCK")
+			w.Flush()
+		case "GAME_END":
+			return
 		}
 	}
 }

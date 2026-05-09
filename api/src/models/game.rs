@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use surrealdb::types::SurrealValue;
 
 // Hardcoded game metadata (only serialized, never deserialized)
 // All games support both automated (bot) and interactive (human) modes
@@ -84,8 +85,9 @@ pub fn find_game_by_id(id: &str) -> Option<&'static GameMetadata> {
 // Type alias for response (same as metadata)
 pub type GameResponse = GameMetadata;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, SurrealValue)]
 #[serde(rename_all = "lowercase")]
+#[surreal(untagged, lowercase)]
 pub enum ProgrammingLanguage {
     Rust,
     Go,

@@ -8,7 +8,7 @@ use axum::{
     Json,
     extract::{Query, State},
 };
-use surrealdb::sql::Thing;
+use surrealdb::types::RecordId;
 
 pub async fn get_leaderboard(
     State(state): State<AppState>,
@@ -19,7 +19,7 @@ pub async fn get_leaderboard(
         .tournament_id
         .as_deref()
         .map(|id| {
-            id.parse::<Thing>().map_err(|_| {
+            RecordId::parse_simple(id).map_err(|_| {
                 crate::error::ApiError::BadRequest("Invalid tournament id".to_string())
             })
         })
@@ -28,7 +28,7 @@ pub async fn get_leaderboard(
         .game_id
         .as_deref()
         .map(|id| {
-            id.parse::<Thing>()
+            RecordId::parse_simple(id)
                 .map_err(|_| crate::error::ApiError::BadRequest("Invalid game id".to_string()))
         })
         .transpose()?;

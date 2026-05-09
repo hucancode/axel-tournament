@@ -19,11 +19,12 @@ pub async fn connect(
         match Surreal::new::<Ws>(url).await {
             Ok(db) => {
                 match db.signin(Root {
-                    username: user,
-                    password: pass,
+                    username: user.to_string(),
+                    password: pass.to_string(),
                 }).await {
                     Ok(_) => {
                         db.use_ns(namespace).use_db(database).await?;
+                        init_schema(&db).await?;
                         tracing::info!("Successfully connected to database at {}", url);
                         return Ok(db);
                     }
@@ -49,4 +50,19 @@ pub async fn connect(
             Err(e) => return Err(e.into()),
         }
     }
+}
+
+/// Idempotently ensure tables judge queries exist. API later layers SCHEMAFULL
+/// fields onto `match`/`submission`. Judge-owned tables (`room_*`) stay schemaless.
+async fn init_schema(db: &Database) -> Result<()> {
+    db.query(
+        "DEFINE TABLE IF NOT EXISTS match SCHEMAFULL;
+         DEFINE TABLE IF NOT EXISTS submission SCHEMAFULL;
+         DEFINE TABLE IF NOT EXISTS room_lease SCHEMALESS;
+         DEFINE TABLE IF NOT EXISTS room_event SCHEMALESS;
+         DEFINE TABLE IF NOT EXISTS room_meta SCHEMALESS;
+         DEFINE INDEX IF NOT EXISTS room_event_seq ON room_event FIELDS room, seq UNIQUE;",
+    )
+    .await?;
+    Ok(())
 }

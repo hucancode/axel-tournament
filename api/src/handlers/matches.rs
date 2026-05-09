@@ -10,7 +10,7 @@ use axum::{
     http::StatusCode,
 };
 use serde::Deserialize;
-use surrealdb::sql::Thing;
+use surrealdb::types::RecordId;
 use validator::Validate;
 
 #[derive(Debug, Deserialize)]
@@ -29,16 +29,14 @@ pub async fn create_match(
     payload
         .validate()
         .map_err(|e| crate::error::ApiError::Validation(e.to_string()))?;
-    let tournament_id: Thing = payload
-        .tournament_id
-        .parse()
+    let tournament_id: RecordId = RecordId::parse_simple(&payload.tournament_id)
         .map_err(|_| crate::error::ApiError::BadRequest("Invalid tournament id".to_string()))?;
     let game_id = payload.game_id;
     let submission_ids = payload
         .participant_submission_ids
         .iter()
         .map(|id| {
-            id.parse::<Thing>().map_err(|_| {
+            RecordId::parse_simple(id).map_err(|_| {
                 crate::error::ApiError::BadRequest("Invalid submission id".to_string())
             })
         })
@@ -54,8 +52,7 @@ pub async fn get_match(
 ) -> ApiResult<Json<MatchResponse>> {
     let match_data = services::matches::get_match(
         &state.db,
-        match_id
-            .parse::<Thing>()
+        RecordId::parse_simple(&match_id)
             .map_err(|_| crate::error::ApiError::BadRequest("Invalid match id".to_string()))?,
     )
     .await?;
@@ -70,7 +67,7 @@ pub async fn list_matches(
         .tournament_id
         .as_deref()
         .map(|id| {
-            id.parse::<Thing>().map_err(|_| {
+            RecordId::parse_simple(id).map_err(|_| {
                 crate::error::ApiError::BadRequest("Invalid tournament id".to_string())
             })
         })
@@ -79,7 +76,7 @@ pub async fn list_matches(
         .game_id
         .as_deref()
         .map(|id| {
-            id.parse::<Thing>()
+            RecordId::parse_simple(id)
                 .map_err(|_| crate::error::ApiError::BadRequest("Invalid game id".to_string()))
         })
         .transpose()?;
@@ -87,7 +84,7 @@ pub async fn list_matches(
         .user_id
         .as_deref()
         .map(|id| {
-            id.parse::<Thing>()
+            RecordId::parse_simple(id)
                 .map_err(|_| crate::error::ApiError::BadRequest("Invalid user id".to_string()))
         })
         .transpose()?;

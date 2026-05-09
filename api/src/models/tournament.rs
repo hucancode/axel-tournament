@@ -1,11 +1,11 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use surrealdb::sql::{Datetime, Thing};
+use surrealdb::types::{Datetime, RecordId, SurrealValue, ToSql};
 use validator::Validate;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
 pub struct Tournament {
-    pub id: Option<Thing>,
+    pub id: Option<RecordId>,
     pub game_id: String, // Game ID (e.g., "rock-paper-scissors")
     pub name: String,
     pub description: String,
@@ -38,7 +38,7 @@ pub struct TournamentResponse {
 impl From<Tournament> for TournamentResponse {
     fn from(tournament: Tournament) -> Self {
         Self {
-            id: tournament.id.map(|t| t.to_string()).unwrap_or_default(),
+            id: tournament.id.map(|t| t.to_sql()).unwrap_or_default(),
             game_id: tournament.game_id,
             name: tournament.name,
             description: tournament.description,
@@ -54,18 +54,23 @@ impl From<Tournament> for TournamentResponse {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, SurrealValue)]
 #[serde(rename_all = "snake_case")]
+#[surreal(untagged)]
 pub enum MatchGenerationType {
     /// Each player plays against every other player (including themselves)
     /// For N players: N * N matches
+    #[surreal(rename = "all_vs_all")]
     AllVsAll,
     /// Each player plays against every other player (excluding themselves)
     /// For N players: N * (N-1) matches
+    #[surreal(rename = "round_robin")]
     RoundRobin,
     /// Single elimination bracket
+    #[surreal(rename = "single_elimination")]
     SingleElimination,
     /// Double elimination bracket
+    #[surreal(rename = "double_elimination")]
     DoubleElimination,
 }
 
@@ -75,8 +80,9 @@ impl Default for MatchGenerationType {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, SurrealValue)]
 #[serde(rename_all = "lowercase")]
+#[surreal(untagged, lowercase)]
 pub enum TournamentStatus {
     Scheduled,
     Registration,
@@ -86,12 +92,12 @@ pub enum TournamentStatus {
     Cancelled,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
 pub struct TournamentParticipant {
-    pub id: Option<Thing>,
-    pub tournament_id: Thing,
-    pub user_id: Thing,
-    pub submission_id: Option<Thing>, // Latest submission for this tournament
+    pub id: Option<RecordId>,
+    pub tournament_id: RecordId,
+    pub user_id: RecordId,
+    pub submission_id: Option<RecordId>, // Latest submission for this tournament
     pub score: f64,
     pub rank: Option<u32>,
     pub joined_at: Datetime,

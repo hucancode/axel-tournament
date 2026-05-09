@@ -1,15 +1,15 @@
 use crate::{db::Database, error::ApiResult, models::LeaderboardEntry};
-use surrealdb::sql::Thing;
+use surrealdb::types::{RecordId, SurrealValue, ToSql};
 
 pub async fn get_leaderboard(
     db: &Database,
     limit: u32,
-    tournament_id: Option<Thing>,
-    game_id: Option<Thing>,
+    tournament_id: Option<RecordId>,
+    game_id: Option<RecordId>,
 ) -> ApiResult<Vec<LeaderboardEntry>> {
     let limit = limit.min(1000); // Cap at 1000
-    let tournament_id_val = tournament_id.as_ref().map(|t| t.id.to_string());
-    let game_id_val = game_id.as_ref().map(|g| g.id.to_string());
+    let tournament_id_val = tournament_id.as_ref().map(|t| t.to_sql());
+    let game_id_val = game_id.as_ref().map(|g| g.to_sql());
     let query = if let Some(_tid) = tournament_id_val {
         "SELECT id, score, user_id, tournament_id,
                 user_id.username AS username,
@@ -45,10 +45,10 @@ pub async fn get_leaderboard(
         result = result.bind(("game_id", gid));
     }
     let mut response = result.await?;
-    #[derive(serde::Deserialize)]
+    #[derive(serde::Deserialize, SurrealValue)]
     struct RawEntry {
-        user_id: Thing,
-        tournament_id: Thing,
+        user_id: RecordId,
+        tournament_id: RecordId,
         score: f64,
         username: Option<String>,
         location: Option<String>,
@@ -60,12 +60,12 @@ pub async fn get_leaderboard(
         .enumerate()
         .map(|(idx, entry)| LeaderboardEntry {
             rank: (idx + 1) as u32,
-            user_id: entry.user_id.to_string(),
+            user_id: entry.user_id.to_sql(),
             username: entry.username.unwrap_or_default(),
             location: entry.location.unwrap_or_default(),
             score: entry.score,
             tournament_name: entry.tournament_name.unwrap_or_default(),
-            tournament_id: entry.tournament_id.to_string(),
+            tournament_id: entry.tournament_id.to_sql(),
         })
         .collect();
     Ok(entries)

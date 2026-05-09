@@ -1,14 +1,14 @@
 use serde::{Deserialize, Serialize};
-use surrealdb::sql::{Datetime, Thing};
+use surrealdb::types::{Datetime, RecordId, SurrealValue, ToSql};
 use validator::Validate;
 
 use super::game::ProgrammingLanguage;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
 pub struct Submission {
-    pub id: Option<Thing>,
-    pub user_id: Thing,
-    pub tournament_id: Thing,
+    pub id: Option<RecordId>,
+    pub user_id: RecordId,
+    pub tournament_id: RecordId,
     pub game_id: String, // Changed from Thing - games are now hardcoded
     pub language: ProgrammingLanguage,
     pub code: String, // Code content stored as string
@@ -18,8 +18,9 @@ pub struct Submission {
     pub created_at: Datetime,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, SurrealValue)]
 #[serde(rename_all = "lowercase")]
+#[surreal(untagged, lowercase)]
 pub enum SubmissionStatus {
     Pending,
     Compiling,
@@ -47,8 +48,8 @@ pub struct SubmissionResponse {
 impl From<Submission> for SubmissionResponse {
     fn from(submission: Submission) -> Self {
         Self {
-            id: submission.id.map(|t| t.to_string()).unwrap_or_default(),
-            tournament_id: submission.tournament_id.to_string(),
+            id: submission.id.map(|t| t.to_sql()).unwrap_or_default(),
+            tournament_id: submission.tournament_id.to_sql(),
             language: submission.language,
             status: submission.status,
             created_at: submission.created_at,

@@ -47,6 +47,32 @@ impl CapacityTracker {
         }
     }
 
+    /// Increment active room count
+    pub async fn increment_rooms(&self) {
+        let mut state = self.state.write().await;
+        state.active_rooms += 1;
+        tracing::debug!(
+            "Room created. Active: {} rooms, {} matches (total: {}/{})",
+            state.active_rooms,
+            state.active_matches,
+            state.active_rooms + state.active_matches,
+            self.max_capacity
+        );
+    }
+
+    /// Decrement active room count
+    pub async fn decrement_rooms(&self) {
+        let mut state = self.state.write().await;
+        state.active_rooms = state.active_rooms.saturating_sub(1);
+        tracing::debug!(
+            "Room deleted. Active: {} rooms, {} matches (total: {}/{})",
+            state.active_rooms,
+            state.active_matches,
+            state.active_rooms + state.active_matches,
+            self.max_capacity
+        );
+    }
+
     /// Increment active match count
     pub async fn increment_matches(&self) {
         let mut state = self.state.write().await;

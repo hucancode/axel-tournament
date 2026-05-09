@@ -3,12 +3,12 @@ use crate::{
     error::{ApiError, ApiResult},
     models::{ProgrammingLanguage, Submission, SubmissionStatus},
 };
-use surrealdb::sql::{Datetime, Thing};
+use surrealdb::types::{Datetime, RecordId};
 
 pub async fn create_submission(
     db: &Database,
-    user_id: Thing,
-    tournament_id: Thing,
+    user_id: RecordId,
+    tournament_id: RecordId,
     game_id: String,
     language: ProgrammingLanguage,
     code: String,
@@ -49,16 +49,15 @@ pub async fn create_submission(
     Ok(submission)
 }
 
-pub async fn get_submission(db: &Database, submission_id: Thing) -> ApiResult<Submission> {
-    let key = (submission_id.tb.as_str(), submission_id.id.to_string());
-    let submission: Option<Submission> = db.select(key).await?;
+pub async fn get_submission(db: &Database, submission_id: RecordId) -> ApiResult<Submission> {
+    let submission: Option<Submission> = db.select(&submission_id).await?;
     submission.ok_or_else(|| ApiError::NotFound("Submission not found".to_string()))
 }
 
 pub async fn list_user_submissions(
     db: &Database,
-    user_id: Thing,
-    tournament_id: Option<Thing>,
+    user_id: RecordId,
+    tournament_id: Option<RecordId>,
 ) -> ApiResult<Vec<Submission>> {
     let mut result = if let Some(tid) = tournament_id {
         db.query("SELECT * FROM submission WHERE user_id = $user_id AND tournament_id = $tournament_id ORDER BY created_at DESC")
@@ -76,7 +75,7 @@ pub async fn list_user_submissions(
 
 pub async fn update_submission_status(
     db: &Database,
-    submission_id: Thing,
+    submission_id: RecordId,
     status: SubmissionStatus,
     error_message: Option<String>,
 ) -> ApiResult<Submission> {

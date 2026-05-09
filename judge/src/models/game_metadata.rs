@@ -14,6 +14,8 @@ pub struct Metadata {
     pub bot_turn_timeout_ms: u64,
     pub human_turn_timeout_ms: u64,
     pub memory_limit_mb: u64,
+    pub game_rounds: Option<u32>,
+    pub game_round_variance: Option<u32>,
 }
 
 // Static game registry matching the API server
@@ -31,6 +33,8 @@ pub static GAMES: &[Metadata] = &[
         bot_turn_timeout_ms: 2000,
         human_turn_timeout_ms: 10000,
         memory_limit_mb: 64,
+        game_rounds: Some(5),
+        game_round_variance: Some(2),
     },
     Metadata {
         id: "prisoners-dilemma",
@@ -45,6 +49,8 @@ pub static GAMES: &[Metadata] = &[
         bot_turn_timeout_ms: 2000,
         human_turn_timeout_ms: 10000,
         memory_limit_mb: 64,
+        game_rounds: Some(10),
+        game_round_variance: Some(3),
     },
     Metadata {
         id: "tic-tac-toe",
@@ -59,6 +65,8 @@ pub static GAMES: &[Metadata] = &[
         bot_turn_timeout_ms: 30000,
         human_turn_timeout_ms: 60000,
         memory_limit_mb: 64,
+        game_rounds: None,
+        game_round_variance: None,
     },
 ];
 

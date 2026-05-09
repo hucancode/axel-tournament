@@ -13,12 +13,12 @@ use axum::{
     http::StatusCode,
 };
 use serde::Deserialize;
-use surrealdb::sql::Thing;
+use surrealdb::types::RecordId;
 use validator::Validate;
 
 async fn ensure_tournament_owner(
     _state: &AppState,
-    _tournament_id: Thing,
+    _tournament_id: RecordId,
     claims: &Claims,
 ) -> ApiResult<()> {
     if claims.role != UserRole::Admin {
@@ -71,8 +71,7 @@ pub async fn get_tournament(
 ) -> ApiResult<Json<TournamentResponse>> {
     let tournament = services::tournament::get_tournament(
         &state.db,
-        tournament_id
-            .parse()
+        RecordId::parse_simple(&tournament_id)
             .map_err(|_| crate::error::ApiError::BadRequest("Invalid tournament id".to_string()))?,
     )
     .await?;
@@ -114,8 +113,7 @@ pub async fn update_tournament(
     payload
         .validate()
         .map_err(|e| crate::error::ApiError::Validation(e.to_string()))?;
-    let tournament_id: Thing = tournament_id
-        .parse()
+    let tournament_id: RecordId = RecordId::parse_simple(&tournament_id)
         .map_err(|_| crate::error::ApiError::BadRequest("Invalid tournament id".to_string()))?;
 
     // Only admins can update tournaments
@@ -141,12 +139,9 @@ pub async fn join_tournament(
 ) -> ApiResult<(StatusCode, Json<TournamentParticipant>)> {
     let participant = services::tournament::join_tournament(
         &state.db,
-        tournament_id
-            .parse()
+        RecordId::parse_simple(&tournament_id)
             .map_err(|_| crate::error::ApiError::BadRequest("Invalid tournament id".to_string()))?,
-        claims
-            .sub
-            .parse::<Thing>()
+        RecordId::parse_simple(&claims.sub)
             .map_err(|_| crate::error::ApiError::BadRequest("Invalid user id".to_string()))?,
     )
     .await?;
@@ -160,12 +155,9 @@ pub async fn leave_tournament(
 ) -> ApiResult<StatusCode> {
     services::tournament::leave_tournament(
         &state.db,
-        tournament_id
-            .parse()
+        RecordId::parse_simple(&tournament_id)
             .map_err(|_| crate::error::ApiError::BadRequest("Invalid tournament id".to_string()))?,
-        claims
-            .sub
-            .parse::<Thing>()
+        RecordId::parse_simple(&claims.sub)
             .map_err(|_| crate::error::ApiError::BadRequest("Invalid user id".to_string()))?,
     )
     .await?;
@@ -178,8 +170,7 @@ pub async fn get_tournament_participants(
 ) -> ApiResult<Json<Vec<TournamentParticipant>>> {
     let participants = services::tournament::get_tournament_participants(
         &state.db,
-        tournament_id
-            .parse()
+        RecordId::parse_simple(&tournament_id)
             .map_err(|_| crate::error::ApiError::BadRequest("Invalid tournament id".to_string()))?,
     )
     .await?;
@@ -192,8 +183,7 @@ pub async fn start_tournament(
     Extension(claims): Extension<Claims>,
     Path(tournament_id): Path<String>,
 ) -> ApiResult<Json<TournamentResponse>> {
-    let tournament_id: Thing = tournament_id
-        .parse()
+    let tournament_id: RecordId = RecordId::parse_simple(&tournament_id)
         .map_err(|_| crate::error::ApiError::BadRequest("Invalid tournament id".to_string()))?;
 
     // Only admins can start tournaments

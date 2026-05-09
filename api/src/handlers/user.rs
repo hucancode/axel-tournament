@@ -5,15 +5,13 @@ use crate::{
     services::{self, AuthService},
 };
 use axum::{Extension, Json, extract::State};
-use surrealdb::sql::Thing;
+use surrealdb::types::RecordId;
 
 pub async fn get_profile(
     State(state): State<AppState>,
     Extension(claims): Extension<Claims>,
 ) -> ApiResult<Json<UserInfo>> {
-    let user_id = claims
-        .sub
-        .parse::<Thing>()
+    let user_id = RecordId::parse_simple(&claims.sub)
         .map_err(|_| ApiError::Auth("Invalid user id".to_string()))?;
     let user = services::auth::get_user_by_id(&state.db, user_id).await?;
     let user_info = AuthService::user_to_info(&user)?;
@@ -33,9 +31,7 @@ pub async fn update_location(
             "Location must be a 2-letter country code".to_string(),
         ));
     }
-    let user_id = claims
-        .sub
-        .parse::<Thing>()
+    let user_id = RecordId::parse_simple(&claims.sub)
         .map_err(|_| ApiError::Auth("Invalid user id".to_string()))?;
     let mut user = services::auth::get_user_by_id(&state.db, user_id).await?;
     user.location = location.to_uppercase();

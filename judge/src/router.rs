@@ -2,67 +2,52 @@ use crate::app_state::AppState;
 use crate::config::Config;
 use crate::games;
 use crate::handlers;
-use crate::handlers::room;
-use crate::services::room::websocket;
-use crate::middleware;
+use crate::services::room::ws::{handle_ws, WsContext};
+use crate::services::room_logic::RoomLogic;
+use axum::extract::{Path, State, ws::WebSocketUpgrade};
 use axum::http::{header, Method};
+use axum::response::Response;
 use axum::routing::get;
-use axum::{middleware as axum_middleware, Router};
+use axum::Router;
 use std::sync::Arc;
 use tower_http::cors::CorsLayer;
 
+pub async fn ws_entry<L: RoomLogic>(
+    ws: WebSocketUpgrade,
+    Path(room_id): Path<String>,
+    State(ctx): State<Arc<WsContext<L>>>,
+) -> Response {
+    ws.on_upgrade(move |socket| handle_ws(socket, room_id, ctx))
+}
+
 pub fn create_router(
     config: &Config,
-    tic_tac_toe_state: Arc<AppState<games::TicTacToe>>,
-    rps_state: Arc<AppState<games::RockPaperScissors>>,
-    pd_state: Arc<AppState<games::PrisonersDilemma>>,
+    app_state: Arc<AppState>,
+    rps_ctx: Arc<WsContext<games::Rps>>,
+    ttt_ctx: Arc<WsContext<games::Ttt>>,
+    pd_ctx: Arc<WsContext<games::Pd>>,
 ) -> Router {
     tracing::info!("CORS: Allowing origin: {}", config.frontend_url);
 
-    // Public routes (no authentication required)
     let public_routes = Router::new()
         .route("/health", get(handlers::health))
-        .route("/capacity", get(handlers::get_capacity::<games::TicTacToe>))
-        .with_state(tic_tac_toe_state.clone());
+        .route("/capacity", get(handlers::get_capacity))
+        .route("/api/rooms", get(handlers::list_rooms))
+        .with_state(app_state);
 
-    // Protected routes (require authentication)
-    let protected_routes = Router::new()
-        .route(
-            "/api/rooms",
-            get(room::list_rooms::<games::TicTacToe>).post(room::create_room::<games::TicTacToe>),
-        )
-        .route(
-            "/api/rooms/{room_id}",
-            get(room::get_room::<games::TicTacToe>),
-        )
-        .with_state(tic_tac_toe_state.clone())
-        .route_layer(axum_middleware::from_fn_with_state(
-            tic_tac_toe_state.clone(),
-            middleware::auth::auth_middleware,
-        ));
+    let rps_ws = Router::new()
+        .route("/ws/rock-paper-scissors/{room_id}", get(ws_entry::<games::Rps>))
+        .with_state(rps_ctx);
+    let ttt_ws = Router::new()
+        .route("/ws/tic-tac-toe/{room_id}", get(ws_entry::<games::Ttt>))
+        .with_state(ttt_ctx);
+    let pd_ws = Router::new()
+        .route("/ws/prisoners-dilemma/{room_id}", get(ws_entry::<games::Pd>))
+        .with_state(pd_ctx);
+    let websocket_routes = Router::new().merge(rps_ws).merge(ttt_ws).merge(pd_ws);
 
-    // WebSocket endpoints (auth via LOGIN message, not HTTP headers)
-    let websocket_routes = Router::new()
-        .route(
-            "/ws/tic-tac-toe/{room_id}",
-            get(websocket::ws_get_room::<games::TicTacToe>),
-        )
-        .with_state(tic_tac_toe_state.clone())
-        .route(
-            "/ws/rock-paper-scissors/{room_id}",
-            get(websocket::ws_get_room::<games::RockPaperScissors>),
-        )
-        .with_state(rps_state.clone())
-        .route(
-            "/ws/prisoners-dilemma/{room_id}",
-            get(websocket::ws_get_room::<games::PrisonersDilemma>),
-        )
-        .with_state(pd_state.clone());
-
-    // Combine all routes
     Router::new()
         .merge(public_routes)
-        .merge(protected_routes)
         .merge(websocket_routes)
         .layer(
             CorsLayer::new()

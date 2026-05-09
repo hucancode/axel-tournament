@@ -196,7 +196,7 @@ pub async fn request_password_reset(
         // Generate reset token
         let reset_token = state.auth_service.generate_reset_token();
         let reset_token_hash = state.auth_service.hash_reset_token(&reset_token);
-        let expires: surrealdb::sql::Datetime = (Utc::now() + Duration::hours(1)).into();
+        let expires: surrealdb::types::Datetime = (Utc::now() + Duration::hours(1)).into();
         user.password_reset_token = Some(reset_token_hash);
         user.password_reset_expires = Some(expires);
         let user_id = user.id.as_ref().unwrap().clone();
@@ -234,7 +234,7 @@ pub async fn confirm_password_reset(
         .ok_or_else(|| ApiError::BadRequest("Invalid or expired reset token".to_string()))?;
     // Check if token expired
     if let Some(expires) = user.password_reset_expires {
-        let now: surrealdb::sql::Datetime = Utc::now().into();
+        let now: surrealdb::types::Datetime = Utc::now().into();
         if expires < now {
             return Err(ApiError::BadRequest("Reset token has expired".to_string()));
         }

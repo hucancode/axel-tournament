@@ -59,7 +59,7 @@
             const newRoom = await roomService.create(request);
             await loadData();
             closeCreateModal();
-            goto(`/room?id=${newRoom.id}`);
+            goto(`/room?id=${encodeURIComponent(newRoom.id)}&game=${encodeURIComponent(newRoom.game_id)}`);
         } catch (err) {
             error = err instanceof Error ? err.message : "";
             console.error("Failed to create room:", err);
@@ -167,7 +167,7 @@
                                         <button
                                             data-variant="primary"
                                             onclick={() =>
-                                                goto(`/room?id=${room.id}`)}
+                                                goto(`/room?id=${encodeURIComponent(room.id)}&game=${encodeURIComponent(room.game_id)}`)}
                                         >
                                             Enter Room
                                         </button>
@@ -175,7 +175,7 @@
                                         <button
                                             data-variant="success"
                                             onclick={() =>
-                                                goto(`/room?id=${room.id}`)}
+                                                goto(`/room?id=${encodeURIComponent(room.id)}&game=${encodeURIComponent(room.game_id)}`)}
                                         >
                                             Join Room
                                         </button>

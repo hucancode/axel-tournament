@@ -1,14 +1,14 @@
+use crate::db::Database;
+use crate::services::capacity::CapacityTracker;
+use crate::services::storage::MetaIndex;
 use std::sync::Arc;
 
-use crate::services::capacity::CapacityTracker;
-use crate::db::Database;
-use crate::models::game::Game;
-use crate::services::room::RoomManager;
-
-pub struct AppState<G: Game> {
+/// Shared judge state used by HTTP middleware, capacity, and discovery
+/// endpoints. Per-game v2 room registries live in `WsContext<L>`
+/// (services::room::ws).
+pub struct AppState {
     pub db: Database,
-    pub game: G,
     pub capacity: CapacityTracker,
-    pub room_manager: Arc<RoomManager>,
     pub jwt_secret: String,
+    pub meta: Arc<dyn MetaIndex>,
 }

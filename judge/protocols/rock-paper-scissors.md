@@ -1,89 +1,44 @@
-# Rock Paper Scissors Protocol
+# Rock Paper Scissors
 
-## Game Overview
-- 2 players
-- Random number of rounds (3-7, configurable)
-- Best score wins
+`game_id = rock-paper-scissors`. Two players. Best score after a fixed
+number of rounds (default 5) wins.
 
-## Message Flow
+## Actions (client → server `ACT`)
 
-### 1. Game Start
-**Server → Player:**
-```
-START
-```
+| kind    | payload                       | when valid                        |
+|---------|-------------------------------|-----------------------------------|
+| `JOIN`  | (none)                        | lobby phase, room not full        |
+| `LEAVE` | (none)                        | always (no-op if not in room)     |
+| `START` | (none)                        | host, lobby phase, ≥ 2 players    |
+| `MOVE`  | `ROCK \| PAPER \| SCISSORS`   | playing phase, hasn't moved this round |
+| `CHAT`  | `<msg>`                       | always                            |
 
-### 2. Move Input (per round)
-**Player → Server:**
-```
-ROCK
-```
-or
-```
-PAPER
-```
-or
-```
-SCISSORS
-```
+`MOVE` accepts the short forms `R`, `P`, `S` as aliases.
 
-### 3. Round Result
-**Server → Player:**
-```
-ROUND {round_number} SCORE {player_score} {opponent_score}
-```
+## Events (server → client `EVENT`)
 
-Example:
-```
-ROUND 1 SCORE 1 0
-```
+| kind            | payload                              | meaning                          |
+|-----------------|--------------------------------------|----------------------------------|
+| `PLAYER_JOINED` | `<pid>`                              | player added to room             |
+| `PLAYER_LEFT`   | `<pid>`                              | player removed                   |
+| `HOST_CHANGED`  | `<pid>`                              | host transferred                 |
+| `GAME_STARTED`  | `<total_rounds>`                     | match started                    |
+| `MOVE`          | `<pid> <ROCK\|PAPER\|SCISSORS>`      | player committed a move          |
+| `ROUND_RESULT`  | `<round> <m0> <m1> <s0> <s1>`        | round resolved                   |
+| `GAME_END`      | `<s0> <s1>`                          | final cumulative scores          |
+| `CHAT`          | `<pid> <msg>`                        | chat (no state mutation)         |
 
-### 4. Game End
-**Server → Player:**
-```
-SCORE {your_final_score}
-```
+`m0`/`m1` are the player-0 and player-1 moves for the round; `s0`/`s1`
+are the cumulative scores after the round (also used for `GAME_END`).
+Player indices come from join order; the first player is index 0.
 
-### 5. Graceful Exit
-**Server → Player:**
-```
-END
-```
+## Scoring
 
-## Rules
-- Rock beats Scissors
-- Paper beats Rock  
-- Scissors beats Paper
-- Same moves result in a draw (no points)
-- Winner gets 1 point per round
-- Player with most points after all rounds wins
-- Number of rounds is random and unknown to players
+Rock beats Scissors. Paper beats Rock. Scissors beats Paper. Equal moves
+are a draw and award no points. The round winner gains 1 point.
 
-## Reconnection
+## Reconnect
 
-When a player reconnects during an active game, the server sends:
-
-```
-START
-ROUND 1 SCORE 0 0
-ROUND 2 SCORE 1 0
-ROUND 3 SCORE 1 1
-ROUND {current_round} SCORE {current_p1_score} {current_p2_score}
-```
-
-This replays all completed rounds with cumulative scores, matching the live gameplay format. The reconnecting player can then continue from the current round.
-
-If the game is finished:
-
-```
-START
-ROUND 1 SCORE 0 0
-...
-ROUND {total_rounds} SCORE {final_p1_score} {final_p2_score}
-SCORE {player_final_score}
-END
-```
-
-## Error Conditions
-- Invalid move (not ROCK/PAPER/SCISSORS) → `WrongAnswer`
-- Timeout → `TimeLimitExceeded`
+Reconnect is a wire-level concern, not a per-game concern. See
+[`wire.md`](wire.md). The client replays the events above and renders
+state directly; there is no separate reconnect format.

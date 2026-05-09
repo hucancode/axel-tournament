@@ -3,7 +3,7 @@ use crate::{
     error::{ApiError, ApiResult},
     models::{OAuthProvider, User, UserRole},
 };
-use surrealdb::sql::{Datetime, Thing};
+use surrealdb::types::{Datetime, RecordId};
 
 pub async fn create_user(
     db: &Database,
@@ -34,13 +34,12 @@ pub async fn create_user(
     created.ok_or_else(|| ApiError::Internal("Failed to create user".to_string()))
 }
 
-pub async fn update_user(db: &Database, user_id: Thing, user: User) -> ApiResult<User> {
-    let key = (user_id.tb.as_str(), user_id.id.to_string());
-    let updated: Option<User> = db.update(key).content(user).await?;
+pub async fn update_user(db: &Database, user_id: RecordId, user: User) -> ApiResult<User> {
+    let updated: Option<User> = db.update(&user_id).content(user).await?;
     updated.ok_or_else(|| ApiError::NotFound("User not found".to_string()))
 }
 
-pub async fn ban_user(db: &Database, user_id: Thing, ban_reason: String) -> ApiResult<User> {
+pub async fn ban_user(db: &Database, user_id: RecordId, ban_reason: String) -> ApiResult<User> {
     let mut result = db
         .query("UPDATE $user_id SET is_banned = true, ban_reason = $reason, updated_at = $now")
         .bind(("user_id", user_id))
@@ -54,7 +53,7 @@ pub async fn ban_user(db: &Database, user_id: Thing, ban_reason: String) -> ApiR
         .ok_or_else(|| ApiError::NotFound("User not found".to_string()))
 }
 
-pub async fn unban_user(db: &Database, user_id: Thing) -> ApiResult<User> {
+pub async fn unban_user(db: &Database, user_id: RecordId) -> ApiResult<User> {
     let mut result = db
         .query("UPDATE $user_id SET is_banned = false, ban_reason = NONE, updated_at = $now")
         .bind(("user_id", user_id))

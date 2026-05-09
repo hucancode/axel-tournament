@@ -3,7 +3,7 @@ use crate::models::{User, UserRole};
 use surrealdb::Surreal;
 use surrealdb::engine::remote::ws::{Client, Ws};
 use surrealdb::opt::auth::Root;
-use surrealdb::sql::Datetime;
+use surrealdb::types::Datetime;
 use tracing::{info, warn, error};
 
 // Type alias for database connection
@@ -18,8 +18,8 @@ pub async fn connect(config: &DatabaseConfig) -> Result<Database, surrealdb::Err
             Ok(db) => {
                 match db
                     .signin(Root {
-                        username: &config.user,
-                        password: &config.pass,
+                        username: config.user.clone(),
+                        password: config.pass.clone(),
                     })
                     .await
                 {
@@ -61,7 +61,7 @@ pub async fn init_schema(db: &Database) -> Result<(), surrealdb::Error> {
     // Users table
     db.query(
         "DEFINE TABLE IF NOT EXISTS user SCHEMAFULL;
-         DEFINE FIELD IF NOT EXISTS email ON user TYPE string ASSERT string::is::email($value);
+         DEFINE FIELD IF NOT EXISTS email ON user TYPE string ASSERT string::is_email($value);
          DEFINE FIELD IF NOT EXISTS username ON user TYPE string;
          DEFINE FIELD IF NOT EXISTS password_hash ON user TYPE option<string>;
          DEFINE FIELD IF NOT EXISTS role ON user TYPE string;

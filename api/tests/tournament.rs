@@ -4,7 +4,7 @@ use api::{
     models::{CreateTournamentRequest, MatchGenerationType, TournamentStatus},
     services::{matches, submission, tournament, auth},
 };
-use surrealdb::sql::Thing;
+use surrealdb::types::RecordId;
 use validator::Validate;
 
 fn unique_name(prefix: &str) -> String {
@@ -206,7 +206,7 @@ async fn test_start_tournament_all_vs_all() {
     // Use Bob and Alice users
     let bob_user = get_bob_user(&db).await;
     let alice_user = get_alice_user(&db).await;
-    let user_ids: Vec<Thing> = vec![bob_user.id.unwrap(), alice_user.id.unwrap()];
+    let user_ids: Vec<RecordId> = vec![bob_user.id.unwrap(), alice_user.id.unwrap()];
 
     // Join tournament and create submissions
     for user_id in &user_ids {
@@ -265,7 +265,7 @@ async fn test_start_tournament_round_robin() {
     // Use Bob and Alice users
     let bob_user = get_bob_user(&db).await;
     let alice_user = get_alice_user(&db).await;
-    let user_ids: Vec<Thing> = vec![bob_user.id.unwrap(), alice_user.id.unwrap()];
+    let user_ids: Vec<RecordId> = vec![bob_user.id.unwrap(), alice_user.id.unwrap()];
 
     // Join tournament and create submissions
     for user_id in &user_ids {

@@ -1,25 +1,22 @@
+/* Reference RPS bot in C. Always plays ROCK.
+ * Wire protocol: judge/protocols/wire.md (stdio transport). */
 #include <stdio.h>
 #include <string.h>
 
-int main() {
+int main(void) {
     char line[256];
-
-    while (fgets(line, sizeof(line), stdin)) {
-        // Remove newline
-        line[strcspn(line, "\n")] = 0;
-
-        if (strcmp(line, "START") == 0) {
-            printf("ROCK\n");
+    setvbuf(stdout, NULL, _IOLBF, 0);
+    while (fgets(line, sizeof line, stdin)) {
+        char verb[16] = {0}, kind[32] = {0};
+        unsigned long seq;
+        if (sscanf(line, "%15s %lu %31s", verb, &seq, kind) < 3) continue;
+        if (strcmp(verb, "EVENT") != 0) continue;
+        if (strcmp(kind, "GAME_STARTED") == 0 || strcmp(kind, "ROUND_RESULT") == 0) {
+            puts("ACT MOVE ROCK");
             fflush(stdout);
-        } else if (strncmp(line, "ROUND", 5) == 0) {
-            printf("ROCK\n");
-            fflush(stdout);
-        } else if (strncmp(line, "SCORE", 5) == 0) {
-            continue;
-        } else if (strcmp(line, "END") == 0) {
+        } else if (strcmp(kind, "GAME_END") == 0) {
             break;
         }
     }
-
     return 0;
 }

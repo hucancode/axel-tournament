@@ -8,7 +8,7 @@ use crate::{
     },
 };
 use chrono::{DateTime, Utc};
-use surrealdb::sql::{Datetime, Thing};
+use surrealdb::types::{Datetime, RecordId};
 
 pub async fn create_tournament(
     db: &Database,
@@ -43,9 +43,8 @@ pub async fn create_tournament(
     created.ok_or_else(|| ApiError::Internal("Failed to create tournament".to_string()))
 }
 
-pub async fn get_tournament(db: &Database, tournament_id: Thing) -> ApiResult<Tournament> {
-    let key = (tournament_id.tb.as_str(), tournament_id.id.to_string());
-    let tournament: Option<Tournament> = db.select(key).await?;
+pub async fn get_tournament(db: &Database, tournament_id: RecordId) -> ApiResult<Tournament> {
+    let tournament: Option<Tournament> = db.select(&tournament_id).await?;
     tournament.ok_or_else(|| ApiError::NotFound("Tournament not found".to_string()))
 }
 
@@ -88,7 +87,7 @@ pub async fn list_tournaments(
 
 pub async fn update_tournament(
     db: &Database,
-    tournament_id: Thing,
+    tournament_id: RecordId,
     name: Option<String>,
     description: Option<String>,
     status: Option<TournamentStatus>,
@@ -112,15 +111,14 @@ pub async fn update_tournament(
         tournament.end_time = Some(et.into());
     }
     tournament.updated_at = Datetime::default();
-    let key = (tournament_id.tb.as_str(), tournament_id.id.to_string());
-    let updated: Option<Tournament> = db.update(key).content(tournament).await?;
+    let updated: Option<Tournament> = db.update(&tournament_id).content(tournament).await?;
     updated.ok_or_else(|| ApiError::NotFound("Tournament not found".to_string()))
 }
 
 pub async fn join_tournament(
     db: &Database,
-    tournament_id: Thing,
-    user_id: Thing,
+    tournament_id: RecordId,
+    user_id: RecordId,
 ) -> ApiResult<TournamentParticipant> {
     let tournament = get_tournament(db, tournament_id.clone()).await?;
     // Check if tournament is accepting registrations
@@ -167,7 +165,7 @@ pub async fn join_tournament(
 
 pub async fn get_tournament_participants(
     db: &Database,
-    tournament_id: Thing,
+    tournament_id: RecordId,
 ) -> ApiResult<Vec<TournamentParticipant>> {
     let mut result = db
         .query("SELECT * FROM tournament_participant WHERE tournament_id = $tournament_id ORDER BY score DESC")
@@ -179,8 +177,8 @@ pub async fn get_tournament_participants(
 
 pub async fn leave_tournament(
     db: &Database,
-    tournament_id: Thing,
-    user_id: Thing,
+    tournament_id: RecordId,
+    user_id: RecordId,
 ) -> ApiResult<()> {
     // Check tournament status - cannot leave if tournament has started
     let tournament = get_tournament(db, tournament_id.clone()).await?;
@@ -202,14 +200,13 @@ pub async fn leave_tournament(
 
     // Delete by specific participant id
     if let Some(pid) = participant.id.clone() {
-        let delete_key = (pid.tb.as_str(), pid.id.to_string());
-        let _: Option<TournamentParticipant> = db.delete(delete_key).await?;
+        let _: Option<TournamentParticipant> = db.delete(&pid).await?;
     }
     Ok(())
 }
 
 /// Start a tournament and generate matches based on the configured match generation type
-pub async fn start_tournament(db: &Database, tournament_id: Thing) -> ApiResult<Tournament> {
+pub async fn start_tournament(db: &Database, tournament_id: RecordId) -> ApiResult<Tournament> {
     let tournament_id_thing = tournament_id.clone();
     let tournament = get_tournament(db, tournament_id_thing.clone()).await?;
 

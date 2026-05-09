@@ -1,98 +1,44 @@
-# Prisoners Dilemma Protocol
+# Prisoners Dilemma
 
-## Game Overview
-- 2 players
-- Random number of rounds (7-13, configurable)
-- Highest total score wins
+`game_id = prisoners-dilemma`. Two players. Iterated PD with a fixed round
+count (default 10). Highest cumulative score wins.
 
-## Message Flow
+## Actions (client → server `ACT`)
 
-### 1. Game Start
-**Server → Player:**
-```
-START
-```
+| kind    | payload         | when valid                                |
+|---------|-----------------|-------------------------------------------|
+| `JOIN`  | (none)          | lobby phase, room not full                |
+| `LEAVE` | (none)          | always (no-op if not in room)             |
+| `START` | (none)          | host, lobby phase, exactly 2 players      |
+| `MOVE`  | `C \| D`        | playing phase, hasn't moved this round    |
+| `CHAT`  | `<msg>`         | always                                    |
 
-### 2. Move Input (per round)
-**Player → Server:**
-```
-C
-```
-or
-```
-COOPERATE
-```
-or
-```
-D
-```
-or
-```
-DEFECT
-```
+`MOVE` accepts the long forms `COOPERATE` and `DEFECT` as aliases.
 
-### 3. Round Result
-**Server → Player:**
-```
-RESULT {opponent_move} {your_move} {opponent_score} {your_score}
-```
+## Events (server → client `EVENT`)
 
-Example:
-```
-RESULT D C 20 15
-```
+| kind            | payload                        | meaning                            |
+|-----------------|--------------------------------|------------------------------------|
+| `PLAYER_JOINED` | `<pid>`                        | player added to room               |
+| `PLAYER_LEFT`   | `<pid>`                        | player removed                     |
+| `HOST_CHANGED`  | `<pid>`                        | host transferred                   |
+| `GAME_STARTED`  | `<total_rounds>`               | match started                      |
+| `MOVE`          | `<pid> <C\|D>`                 | move committed                     |
+| `ROUND_RESULT`  | `<round> <m0> <m1> <s0> <s1>`  | round resolved (cumulative scores) |
+| `GAME_END`      | `<s0> <s1>`                    | final cumulative scores            |
+| `CHAT`          | `<pid> <msg>`                  | chat (no state mutation)           |
 
-### 4. Game End
-**Server → Player:**
-```
-SCORE {your_final_score}
-```
+Player indices are assigned by join order; index 0 is the first joiner.
 
-### 5. Graceful Exit
-**Server → Player:**
-```
-END
-```
+## Payoff matrix
 
-## Scoring Matrix
-| Your Move | Opponent Move | Your Points | Opponent Points |
-|-----------|---------------|-------------|-----------------|
-| C         | C             | 3           | 3               |
-| C         | D             | 0           | 5               |
-| D         | C             | 5           | 0               |
-| D         | D             | 1           | 1               |
+| `m0` | `m1` | Δscore for player 0 | Δscore for player 1 |
+|------|------|---------------------|---------------------|
+| C    | C    | 3                   | 3                   |
+| C    | D    | 0                   | 5                   |
+| D    | C    | 5                   | 0                   |
+| D    | D    | 1                   | 1                   |
 
-## Rules
-- C = Cooperate, D = Defect
-- Both forms (C/COOPERATE, D/DEFECT) are accepted
-- Player with highest total score after all rounds wins
-- Number of rounds is random and unknown to players
+## Reconnect
 
-## Reconnection
-
-When a player reconnects during an active game, the server sends the complete game history with results in player perspective (opponent_move, your_move, opponent_score, your_score):
-
-```
-START
-RESULT D C 5 0
-RESULT C D 10 0
-RESULT D D 11 1
-RESULT {opponent_move} {your_move} {opponent_cumulative_score} {your_cumulative_score}
-```
-
-This replays all completed rounds with cumulative scores, matching the live gameplay format. The reconnecting player can then continue from the current round.
-
-If the game is finished:
-
-```
-START
-RESULT D C 5 0
-...
-RESULT {opponent_move} {your_move} {final_opponent_score} {final_your_score}
-SCORE {your_final_score}
-END
-```
-
-## Error Conditions
-- Invalid move (not C/COOPERATE/D/DEFECT) → `WrongAnswer`
-- Timeout → `TimeLimitExceeded`
+See [`wire.md`](wire.md). Replay events and render.

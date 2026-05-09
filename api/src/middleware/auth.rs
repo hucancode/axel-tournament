@@ -8,7 +8,7 @@ use axum::{
     middleware::Next,
     response::Response,
 };
-use surrealdb::sql::Thing;
+use surrealdb::types::RecordId;
 
 pub async fn auth_middleware(
     State(state): State<AppState>,
@@ -27,9 +27,7 @@ pub async fn auth_middleware(
     // Check if user is banned
     let user = crate::services::auth::get_user_by_id(
         &state.db,
-        claims
-            .sub
-            .parse::<Thing>()
+        RecordId::parse_simple(&claims.sub)
             .map_err(|_| ApiError::Auth("Invalid user id".to_string()))?,
     )
     .await?;
