@@ -25,7 +25,7 @@ dialog header {
 
 dialog header h2 {
     margin: 0;
-    font-size: 1.25rem;
+    font-size: var(--font-size-xl);
     font-weight: 600;
 }
 

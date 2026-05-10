@@ -24,7 +24,7 @@
 <style>
     .card {
         display: block;
-        border: 1px solid var(--color-border);
+        border: var(--border-thin) solid var(--color-border);
         background: var(--color-bg-light);
         padding: var(--spacing-4);
         text-decoration: none;

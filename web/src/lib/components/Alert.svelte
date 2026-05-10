@@ -17,7 +17,7 @@
 <style>
     aside {
         margin-bottom: var(--spacing-4);
-        border: 1px solid var(--color-border);
+        border: var(--border-thin) solid var(--color-border);
         position: relative;
         padding: var(--spacing-3) var(--spacing-8) var(--spacing-3) var(--spacing-3);
         border-left-width: 3px;
@@ -55,7 +55,7 @@
         transform: translateY(-50%);
         background: transparent;
         border: 0;
-        font-size: 1.25rem;
+        font-size: var(--font-size-xl);
         font-weight: 700;
         cursor: pointer;
         padding: 0;

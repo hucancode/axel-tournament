@@ -119,7 +119,7 @@
       <span class="datetime-value" class:datetime-placeholder={!displayValue()}>
         {displayValue() || 'Select date and time...'}
       </span>
-      <span class="datetime-icon">📅</span>
+      <svg class="icon datetime-icon"><use href="/icons.svg#i-calendar" /></svg>
     </button>
 
     {#if showCalendar}
@@ -160,10 +160,10 @@
 
   .datetime-label {
     display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 600;
-    color: var(--black);
-    font-size: 0.875rem;
+    margin-bottom: var(--spacing-1);
+    font-weight: 500;
+    color: var(--color-fg-muted);
+    font-size: var(--font-size-sm);
   }
 
   .datetime-input-wrapper {
@@ -175,23 +175,23 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.75rem 1rem;
-    border: 3px solid var(--black);
-    background: var(--color-blueprint-paper);
-    font-size: 1rem;
+    padding: var(--spacing-2) var(--spacing-3);
+    border: var(--border-thin) solid var(--color-border);
+    background: var(--color-bg-light);
+    color: var(--color-fg);
+    font-size: var(--font-size-md);
     cursor: pointer;
-    transition: none;
+    transition: border-color var(--transition-fast);
     text-align: left;
-    box-shadow: none;
   }
 
   .datetime-input:hover:not(:disabled) {
-    box-shadow: 3px 3px 0 0 var(--primary);
+    border-color: var(--color-fg-dim);
   }
 
   .datetime-input:focus {
     outline: none;
-    box-shadow: 3px 3px 0 0 var(--primary);
+    border-color: var(--color-primary);
   }
 
   .datetime-input-disabled {
@@ -204,61 +204,61 @@
   }
 
   .datetime-placeholder {
-    color: var(--color-gray-medium);
+    color: var(--color-fg-dim);
   }
 
   .datetime-icon {
-    margin-left: 0.5rem;
-    font-size: 1rem;
+    margin-left: var(--spacing-2);
+    color: var(--color-fg-muted);
   }
 
   .datetime-dropdown {
     position: absolute;
-    top: calc(100% + 0.5rem);
+    top: calc(100% + var(--spacing-2));
     left: 0;
-    z-index: 50;
-    background: var(--color-blueprint-paper);
-    border: 3px solid var(--black);
-    box-shadow: 6px 6px 0 0 var(--black);
-    padding: 1rem;
+    z-index: var(--z-dropdown);
+    background: var(--color-bg-light);
+    border: var(--border-thin) solid var(--color-border);
+    box-shadow: var(--shadow-popup);
+    padding: var(--spacing-3);
   }
 
   .time-picker-section {
-    margin-top: 1rem;
-    padding-top: 1rem;
-    border-top: 3px solid var(--black);
+    margin-top: var(--spacing-3);
+    padding-top: var(--spacing-3);
+    border-top: var(--border-thin) solid var(--color-border-light);
   }
 
   .time-label {
     display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 600;
-    color: var(--black);
-    font-size: 0.875rem;
+    margin-bottom: var(--spacing-1);
+    font-weight: 500;
+    color: var(--color-fg-muted);
+    font-size: var(--font-size-sm);
   }
 
   .time-input {
     width: 100%;
-    padding: 0.75rem 1rem;
-    border: 3px solid var(--black);
-    background: var(--color-blueprint-paper);
-    font-size: 1rem;
-    transition: none;
-    box-shadow: none;
+    padding: var(--spacing-2) var(--spacing-3);
+    border: var(--border-thin) solid var(--color-border);
+    background: var(--color-bg-light);
+    color: var(--color-fg);
+    font-size: var(--font-size-md);
+    transition: border-color var(--transition-fast);
   }
 
   .time-input:hover:not(:disabled) {
-    box-shadow: 3px 3px 0 0 var(--primary);
+    border-color: var(--color-fg-dim);
   }
 
   .time-input:focus {
     outline: none;
-    box-shadow: 3px 3px 0 0 var(--primary);
+    border-color: var(--color-primary);
   }
 
   .form-error {
-    margin-top: 0.5rem;
-    color: var(--error);
-    font-size: 0.875rem;
+    margin-top: var(--spacing-2);
+    color: var(--color-error);
+    font-size: var(--font-size-sm);
   }
 </style>

@@ -4,7 +4,7 @@
     import { authStore } from "$lib/stores/auth";
     import { tournamentService } from "$services/tournaments";
     import { gameService } from "$services/games";
-    import { LinkButton, Card, PageHeader } from "$components";
+    import { LinkButton, Card, PageHeader, DateTimePicker } from "$components";
     import type { Game, CreateTournamentRequest, MatchGenerationType } from "$lib/models";
 
     let games = $state<Game[]>([]);
@@ -282,22 +282,16 @@
 
                     <div class="form-row">
                         <div class="form-field">
-                            <label for="start-time">Start Time (Optional)</label>
-                            <input
-                                id="start-time"
-                                type="datetime-local"
-                                class="input"
+                            <DateTimePicker
+                                label="Start Time (Optional)"
                                 bind:value={formData.start_time}
                                 disabled={formLoading}
                             />
                         </div>
 
                         <div class="form-field">
-                            <label for="end-time">End Time (Optional)</label>
-                            <input
-                                id="end-time"
-                                type="datetime-local"
-                                class="input"
+                            <DateTimePicker
+                                label="End Time (Optional)"
                                 bind:value={formData.end_time}
                                 disabled={formLoading}
                             />

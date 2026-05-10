@@ -22,11 +22,11 @@
         padding: var(--spacing-4);
         text-align: center;
         background: var(--color-bg-light);
-        border: 1px solid var(--color-border);
+        border: var(--border-thin) solid var(--color-border);
     }
 
     data {
-        font-size: 1.875rem;
+        font-size: var(--font-size-3xl);
         font-weight: bold;
         display: block;
         color: var(--color-primary);
@@ -41,7 +41,7 @@
     }
 
     footer {
-        font-size: 0.875rem;
+        font-size: var(--font-size-sm);
         color: var(--color-fg-dim);
         margin-top: var(--spacing-2);
     }

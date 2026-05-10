@@ -60,7 +60,8 @@
         onclick={() => handlePageClick(currentPage - 1)}
         aria-label="Previous page"
       >
-        ← Prev
+        <svg class="icon"><use href="/icons.svg#i-chevron-left" /></svg>
+        Prev
       </button>
     </li>
 
@@ -88,7 +89,8 @@
         onclick={() => handlePageClick(currentPage + 1)}
         aria-label="Next page"
       >
-        Next →
+        Next
+        <svg class="icon"><use href="/icons.svg#i-chevron-right" /></svg>
       </button>
     </li>
   </ul>
@@ -111,13 +113,16 @@
   }
 
   button {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-1);
     min-width: 2rem;
     padding: var(--spacing-2) var(--spacing-3);
     background: var(--color-bg-light);
-    border: 1px solid var(--color-border);
+    border: var(--border-thin) solid var(--color-border);
     color: var(--color-fg);
     font-weight: 500;
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
     cursor: pointer;
     transition: border-color var(--transition-fast);
   }

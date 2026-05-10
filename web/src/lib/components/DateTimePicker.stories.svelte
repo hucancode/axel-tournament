@@ -1,10 +1,10 @@
 <script module lang="ts">
   import { defineMeta } from '@storybook/addon-svelte-csf';
-  import Pagination from './Pagination.svelte';
+  import DateTimePicker from './DateTimePicker.svelte';
 
   const { Story } = defineMeta({
-    title: 'Navigation/Pagination',
-    component: Pagination,
+    component: DateTimePicker,
+    title: 'Data Entry/DateTimePicker',
     parameters: {
       layout: 'fullscreen',
     },
@@ -14,40 +14,44 @@
 <Story name="All Variants">
   {#snippet template()}
     <section class="showcase">
-      <h2>Pagination</h2>
+      <h2>DateTimePicker</h2>
       <p class="lede">
-        Page navigation with prev/next + ellipsis. Pass <code>currentPage</code>, <code>totalPages</code>, <code>onPageChange</code>.
+        Calendar dropdown + time input. Outputs <code>YYYY-MM-DDTHH:mm</code>. Supports <code>min</code>/<code>max</code>, <code>disabled</code>, inline <code>error</code>.
       </p>
 
-      <div class="stack">
+      <div class="grid">
         <article class="cell">
-          <code>first page (5/10)</code>
-          <Pagination currentPage={1} totalPages={10} />
+          <code>default</code>
+          <DateTimePicker label="Pick date and time" />
         </article>
 
         <article class="cell">
-          <code>middle page (5/10)</code>
-          <Pagination currentPage={5} totalPages={10} />
+          <code>with value</code>
+          <DateTimePicker label="Tournament Start" value="2024-06-15T18:30" />
         </article>
 
         <article class="cell">
-          <code>last page (10/10)</code>
-          <Pagination currentPage={10} totalPages={10} />
+          <code>min/max range</code>
+          <DateTimePicker
+            label="Match Window"
+            value="2024-06-15T12:00"
+            min="2024-06-01T00:00"
+            max="2024-06-30T23:59"
+          />
         </article>
 
         <article class="cell">
-          <code>few pages (2/5) — no ellipsis</code>
-          <Pagination currentPage={2} totalPages={5} />
+          <code>disabled</code>
+          <DateTimePicker label="Locked" value="2024-03-20T09:00" disabled={true} />
         </article>
 
         <article class="cell">
-          <code>many pages (15/50) — both ellipses</code>
-          <Pagination currentPage={15} totalPages={50} />
-        </article>
-
-        <article class="cell">
-          <code>single page</code>
-          <Pagination currentPage={1} totalPages={1} />
+          <code>with error</code>
+          <DateTimePicker
+            label="Deadline"
+            value="2024-02-14T23:59"
+            error="This slot is already booked"
+          />
         </article>
       </div>
     </section>
@@ -66,9 +70,9 @@
     color: var(--color-fg-muted);
     margin-bottom: var(--spacing-4);
   }
-  .stack {
-    display: flex;
-    flex-direction: column;
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
     gap: var(--spacing-4);
   }
   .cell {

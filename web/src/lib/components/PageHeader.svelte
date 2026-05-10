@@ -44,14 +44,14 @@
     }
 
     .title h1 {
-        font-size: 2rem;
+        font-size: var(--font-size-3xl);
         margin: 0;
     }
 
     .subtitle {
         color: var(--color-fg-muted);
         margin: var(--spacing-1) 0 0 0;
-        font-size: 0.875rem;
+        font-size: var(--font-size-sm);
     }
 
     .actions {

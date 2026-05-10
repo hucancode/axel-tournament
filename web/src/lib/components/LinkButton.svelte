@@ -22,9 +22,9 @@
 		align-items: center;
 		justify-content: center;
 		padding: var(--spacing-2) var(--spacing-4);
-		font-size: 1rem;
+		font-size: var(--font-size-md);
 		font-weight: 500;
-		border: 1px solid var(--color-border);
+		border: var(--border-thin) solid var(--color-border);
 		background: var(--color-bg-light);
 		color: var(--color-fg);
 		text-decoration: none;

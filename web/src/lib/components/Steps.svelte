@@ -40,19 +40,7 @@
       >
         <div>
           {#if getStepStatus(index) === 'completed'}
-            <svg
-              viewBox="0 0 20 20"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M16.6667 5L7.50004 14.1667L3.33337 10"
-                stroke="currentColor"
-                stroke-width="3"
-                stroke-linecap="square"
-                stroke-linejoin="miter"
-              />
-            </svg>
+            <svg class="icon"><use href="/icons.svg#i-check" /></svg>
           {:else}
             <span>{index + 1}</span>
           {/if}
@@ -93,7 +81,7 @@
     gap: var(--spacing-3);
     padding: var(--spacing-3);
     background: var(--color-bg-light);
-    border: 1px solid var(--color-border);
+    border: var(--border-thin) solid var(--color-border);
     cursor: default;
     transition: border-color var(--transition-fast);
     flex: 1;
@@ -127,10 +115,10 @@
     width: 2rem;
     height: 2rem;
     flex-shrink: 0;
-    border: 1px solid var(--color-border);
+    border: var(--border-thin) solid var(--color-border);
     background: var(--color-bg-light);
     font-weight: 600;
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
   }
 
   button[data-status="completed"] > div:first-child {
@@ -151,8 +139,7 @@
   }
 
   svg {
-    width: 1rem;
-    height: 1rem;
+    --icon-size: 1rem;
   }
 
   button > div:first-child > span {
@@ -169,14 +156,14 @@
 
   button > div:last-child > div:first-child {
     font-weight: 600;
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
   button > div:last-child > div:last-child {
-    font-size: 0.75rem;
+    font-size: var(--font-size-xs);
     color: var(--color-fg-dim);
     white-space: nowrap;
     overflow: hidden;

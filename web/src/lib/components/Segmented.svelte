@@ -49,7 +49,7 @@
   div[role="radiogroup"] {
     display: inline-flex;
     background: var(--color-bg-light);
-    border: 1px solid var(--color-border);
+    border: var(--border-thin) solid var(--color-border);
   }
 
   div[data-disabled="true"] {

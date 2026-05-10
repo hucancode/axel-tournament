@@ -801,7 +801,8 @@
                                             <td class="fault-cell">
                                                 {#if fault}
                                                     <span class="badge badge-fault" title={fault}>
-                                                        ⚠ {fault}
+                                                        <svg class="icon"><use href="/icons.svg#i-warning" /></svg>
+                                                        {fault}
                                                     </span>
                                                 {:else}
                                                     -
@@ -1022,7 +1023,8 @@
             {#if m.room_id}
                 <p class="replay-link">
                     <a href={`/room?id=${encodeURIComponent(m.room_id)}&game=${encodeURIComponent(m.game_id)}`}>
-                        Open replay →
+                        Open replay
+                        <svg class="icon"><use href="/icons.svg#i-arrow-right" /></svg>
                     </a>
                 </p>
             {/if}

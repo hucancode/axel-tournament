@@ -92,24 +92,24 @@
 
 <style>
   fieldset {
-    border: 1px solid var(--color-border-strong);
-    margin-bottom: 2rem;
-    padding: 1rem;
+    border: var(--border-thin) solid var(--color-border);
+    margin-bottom: var(--spacing-8);
+    padding: var(--spacing-4);
   }
 
   legend {
     font-weight: 600;
-    padding: 0 0.5rem;
+    padding: 0 var(--spacing-2);
   }
 
   label {
     display: block;
-    margin: 1rem 0 0.5rem 0;
+    margin: var(--spacing-4) 0 var(--spacing-2) 0;
     font-weight: 500;
   }
 
   button {
-    margin-right: 0.5rem;
-    margin-bottom: 0.5rem;
+    margin-right: var(--spacing-2);
+    margin-bottom: var(--spacing-2);
   }
 </style>

@@ -123,9 +123,9 @@
     display: flex;
     align-items: center;
     padding: var(--spacing-2) var(--spacing-3);
-    border: 1px solid var(--color-border);
+    border: var(--border-thin) solid var(--color-border);
     background: var(--color-bg-light);
-    font-size: 1rem;
+    font-size: var(--font-size-md);
     cursor: pointer;
     transition: border-color var(--transition-fast);
     text-align: left;
@@ -160,6 +160,6 @@
   .error {
     margin-top: var(--spacing-2);
     color: var(--color-error);
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
   }
 </style>

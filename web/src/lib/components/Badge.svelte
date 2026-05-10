@@ -28,9 +28,9 @@
   span {
     display: inline-block;
     padding: 0 var(--spacing-2);
-    font-size: 0.75rem;
+    font-size: var(--font-size-xs);
     font-weight: 500;
-    border: 1px solid;
+    border: var(--border-thin) solid;
   }
 
   span[data-status="scheduled"],

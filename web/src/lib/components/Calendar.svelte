@@ -99,9 +99,13 @@
 
 <div class="calendar">
   <header>
-    <button type="button" onclick={previousMonth} disabled={disabled} aria-label="Previous month">←</button>
+    <button type="button" onclick={previousMonth} disabled={disabled} aria-label="Previous month">
+      <svg class="icon"><use href="/icons.svg#i-chevron-left" /></svg>
+    </button>
     <span>{monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}</span>
-    <button type="button" onclick={nextMonth} disabled={disabled} aria-label="Next month">→</button>
+    <button type="button" onclick={nextMonth} disabled={disabled} aria-label="Next month">
+      <svg class="icon"><use href="/icons.svg#i-chevron-right" /></svg>
+    </button>
   </header>
 
   <div class="weekdays">
@@ -128,7 +132,7 @@
 
 <style>
   .calendar {
-    border: 1px solid var(--color-border);
+    border: var(--border-thin) solid var(--color-border);
     background: var(--color-bg-light);
     padding: var(--spacing-3);
     width: fit-content;
@@ -142,7 +146,7 @@
   }
 
   header span {
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
     font-weight: 600;
     color: var(--color-fg);
   }
@@ -150,10 +154,10 @@
   header button {
     width: 1.75rem;
     height: 1.75rem;
-    border: 1px solid var(--color-border);
+    border: var(--border-thin) solid var(--color-border);
     background: var(--color-bg-light);
     cursor: pointer;
-    font-size: 1rem;
+    font-size: var(--font-size-md);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -181,7 +185,7 @@
 
   .weekdays div {
     text-align: center;
-    font-size: 0.75rem;
+    font-size: var(--font-size-xs);
     font-weight: 500;
     color: var(--color-fg-dim);
     width: 2.25rem;
@@ -196,10 +200,10 @@
   .days button {
     width: 2.25rem;
     height: 2.25rem;
-    border: 1px solid transparent;
+    border: var(--border-thin) solid transparent;
     background: var(--color-bg-light);
     cursor: pointer;
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
     display: flex;
     align-items: center;
     justify-content: center;

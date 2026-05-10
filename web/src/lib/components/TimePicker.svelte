@@ -138,17 +138,25 @@
       <div class="dropdown">
         <div class="picker">
           <div class="column">
-            <button type="button" onclick={incrementHours} {disabled}>▲</button>
+            <button type="button" onclick={incrementHours} {disabled} aria-label="Increment hours">
+              <svg class="icon"><use href="/icons.svg#i-chevron-up" /></svg>
+            </button>
             <div class="display">{hours}</div>
-            <button type="button" onclick={decrementHours} {disabled}>▼</button>
+            <button type="button" onclick={decrementHours} {disabled} aria-label="Decrement hours">
+              <svg class="icon"><use href="/icons.svg#i-chevron-down" /></svg>
+            </button>
           </div>
 
           <div class="separator">:</div>
 
           <div class="column">
-            <button type="button" onclick={incrementMinutes} {disabled}>▲</button>
+            <button type="button" onclick={incrementMinutes} {disabled} aria-label="Increment minutes">
+              <svg class="icon"><use href="/icons.svg#i-chevron-up" /></svg>
+            </button>
             <div class="display">{minutes}</div>
-            <button type="button" onclick={decrementMinutes} {disabled}>▼</button>
+            <button type="button" onclick={decrementMinutes} {disabled} aria-label="Decrement minutes">
+              <svg class="icon"><use href="/icons.svg#i-chevron-down" /></svg>
+            </button>
           </div>
 
           <div class="column">
@@ -176,9 +184,9 @@
     display: flex;
     align-items: center;
     padding: var(--spacing-2) var(--spacing-3);
-    border: 1px solid var(--color-border);
+    border: var(--border-thin) solid var(--color-border);
     background: var(--color-bg-light);
-    font-size: 1rem;
+    font-size: var(--font-size-md);
     cursor: pointer;
     transition: border-color var(--transition-fast);
     text-align: left;
@@ -209,7 +217,7 @@
     left: 0;
     z-index: var(--z-dropdown);
     background: var(--color-bg-light);
-    border: 1px solid var(--color-border);
+    border: var(--border-thin) solid var(--color-border);
     padding: var(--spacing-3);
   }
 
@@ -230,10 +238,10 @@
     width: 2.5rem;
     height: 2rem;
     padding: 0;
-    border: 1px solid var(--color-border);
+    border: var(--border-thin) solid var(--color-border);
     background: var(--color-bg-light);
     cursor: pointer;
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
     transition: border-color var(--transition-fast);
     color: var(--color-fg-dim);
   }
@@ -246,16 +254,16 @@
   .display {
     width: 2.5rem;
     padding: var(--spacing-2);
-    border: 1px solid var(--color-border);
+    border: var(--border-thin) solid var(--color-border);
     background: var(--color-bg-popup);
     text-align: center;
-    font-size: 1.25rem;
+    font-size: var(--font-size-xl);
     font-weight: 600;
     color: var(--color-fg);
   }
 
   .separator {
-    font-size: 1.5rem;
+    font-size: var(--font-size-2xl);
     font-weight: 600;
     color: var(--color-fg-dim);
   }
@@ -263,11 +271,11 @@
   .ampm {
     width: 3rem;
     height: 100%;
-    border: 1px solid var(--color-border);
+    border: var(--border-thin) solid var(--color-border);
     background: var(--color-bg-popup);
     color: var(--color-fg);
     cursor: pointer;
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
     font-weight: 600;
     transition: border-color var(--transition-fast);
   }
@@ -280,6 +288,6 @@
   .error {
     margin-top: var(--spacing-2);
     color: var(--color-error);
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
   }
 </style>
