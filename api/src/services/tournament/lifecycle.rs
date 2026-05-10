@@ -7,7 +7,7 @@ use crate::{
     services::common::enum_tag,
 };
 use chrono::{DateTime, Utc};
-use surrealdb::types::{Datetime, RecordId};
+use surrealdb::types::{Datetime, RecordId, SurrealValue};
 
 use super::generation;
 
@@ -167,6 +167,39 @@ pub async fn get_tournament_participants(
         .await?;
     let participants: Vec<TournamentParticipant> = result.take(0)?;
     Ok(participants)
+}
+
+pub async fn get_tournament_participants_with_usernames(
+    db: &Database,
+    tournament_id: RecordId,
+) -> ApiResult<Vec<(TournamentParticipant, Option<String>)>> {
+    let participants = get_tournament_participants(db, tournament_id).await?;
+    if participants.is_empty() {
+        return Ok(Vec::new());
+    }
+    let user_ids: Vec<RecordId> = participants.iter().map(|p| p.user_id.clone()).collect();
+    let mut response = db
+        .query("SELECT id, username FROM user WHERE id IN $ids")
+        .bind(("ids", user_ids))
+        .await?;
+
+    #[derive(serde::Deserialize, SurrealValue)]
+    struct UserRow {
+        id: RecordId,
+        username: Option<String>,
+    }
+    let rows: Vec<UserRow> = response.take(0)?;
+    let mut by_id: std::collections::HashMap<RecordId, String> = rows
+        .into_iter()
+        .filter_map(|r| r.username.map(|u| (r.id, u)))
+        .collect();
+    Ok(participants
+        .into_iter()
+        .map(|p| {
+            let username = by_id.remove(&p.user_id);
+            (p, username)
+        })
+        .collect())
 }
 
 /// Single participant lookup by `(tournament, user)`. None if absent.

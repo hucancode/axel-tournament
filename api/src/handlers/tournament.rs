@@ -159,7 +159,7 @@ pub async fn get_tournament_participants(
     State(state): State<AppState>,
     Path(tournament_id): Path<String>,
 ) -> ApiResult<Json<Vec<TournamentParticipantResponse>>> {
-    let participants = services::tournament::get_tournament_participants(
+    let participants = services::tournament::get_tournament_participants_with_usernames(
         &state.db,
         rid("tournament", tournament_id),
     )

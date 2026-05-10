@@ -1,4 +1,5 @@
 button {
+  	display: inline-flex;
     padding: var(--spacing-2) var(--spacing-4);
     border: var(--border-thin) solid var(--color-border);
     background: var(--color-bg-light);

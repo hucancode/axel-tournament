@@ -18,7 +18,6 @@
 
 <style>
 	a {
-		display: inline-flex;
 		align-items: center;
 		justify-content: center;
 		padding: var(--spacing-2) var(--spacing-4);

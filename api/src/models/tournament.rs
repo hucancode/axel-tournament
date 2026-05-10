@@ -146,6 +146,7 @@ pub struct TournamentParticipantResponse {
     pub elo: Option<f64>,
     pub rank: Option<u32>,
     pub joined_at: Datetime,
+    pub username: Option<String>,
 }
 
 impl From<TournamentParticipant> for TournamentParticipantResponse {
@@ -162,7 +163,16 @@ impl From<TournamentParticipant> for TournamentParticipantResponse {
             elo: p.elo,
             rank: p.rank,
             joined_at: p.joined_at,
+            username: None,
         }
+    }
+}
+
+impl From<(TournamentParticipant, Option<String>)> for TournamentParticipantResponse {
+    fn from((p, username): (TournamentParticipant, Option<String>)) -> Self {
+        let mut resp: TournamentParticipantResponse = p.into();
+        resp.username = username;
+        resp
     }
 }
 
