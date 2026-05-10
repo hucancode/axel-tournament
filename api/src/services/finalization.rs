@@ -35,17 +35,21 @@ pub struct ParticipantTotals {
 /// of the database layer.
 pub fn aggregate_totals(matches: &[Match]) -> HashMap<String, ParticipantTotals> {
     let mut totals: HashMap<String, ParticipantTotals> = HashMap::new();
-    let ensure = |totals: &mut HashMap<String, ParticipantTotals>, uid: &str| {
+    fn entry_for<'a>(
+        totals: &'a mut HashMap<String, ParticipantTotals>,
+        uid: &str,
+    ) -> &'a mut ParticipantTotals {
         totals
             .entry(uid.to_string())
-            .or_insert(ParticipantTotals {
+            .or_insert_with(|| ParticipantTotals {
                 user_id: uid.to_string(),
                 score: 0.0,
                 wins: 0,
                 losses: 0,
                 draws: 0,
-            });
-    };
+            })
+    }
+
     for m in matches {
         if m.status != MatchStatus::Completed && m.status != MatchStatus::Failed {
             continue;
@@ -60,8 +64,7 @@ pub fn aggregate_totals(matches: &[Match]) -> HashMap<String, ParticipantTotals>
         if !faulted.is_empty() {
             for p in &m.participants {
                 let uid = p.user_id.to_sql();
-                ensure(&mut totals, &uid);
-                let entry = totals.get_mut(&uid).unwrap();
+                let entry = entry_for(&mut totals, &uid);
                 if let Some(s) = p.score {
                     entry.score += s;
                 }
@@ -80,8 +83,7 @@ pub fn aggregate_totals(matches: &[Match]) -> HashMap<String, ParticipantTotals>
         if m.status == MatchStatus::Failed {
             for p in &m.participants {
                 let uid = p.user_id.to_sql();
-                ensure(&mut totals, &uid);
-                totals.get_mut(&uid).unwrap().losses += 1;
+                entry_for(&mut totals, &uid).losses += 1;
             }
             continue;
         }
@@ -97,8 +99,7 @@ pub fn aggregate_totals(matches: &[Match]) -> HashMap<String, ParticipantTotals>
 
         for (i, p) in m.participants.iter().enumerate() {
             let uid = p.user_id.to_sql();
-            ensure(&mut totals, &uid);
-            let entry = totals.get_mut(&uid).unwrap();
+            let entry = entry_for(&mut totals, &uid);
             entry.score += scores[i];
             if scores[i] == max && leaders == 1 {
                 entry.wins += 1;

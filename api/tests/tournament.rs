@@ -2,7 +2,7 @@ mod db;
 use api::{
     config::Config,
     models::{CreateTournamentRequest, MatchGenerationType, TournamentStatus},
-    services::{matches, submission, tournament, auth},
+    services::{matches, submission, tournament, user},
 };
 use surrealdb::types::RecordId;
 use validator::Validate;
@@ -20,7 +20,7 @@ const TEST_GAME_ID: &str = "rock-paper-scissors";
 
 async fn get_bob_user(db: &api::db::Database) -> api::models::User {
     let config = Config::from_env();
-    auth::get_user_by_email(db, &config.bob.email)
+    user::get_user_by_email(db, &config.bob.email)
         .await
         .unwrap()
         .expect("Bob user should exist")
@@ -28,7 +28,7 @@ async fn get_bob_user(db: &api::db::Database) -> api::models::User {
 
 async fn get_alice_user(db: &api::db::Database) -> api::models::User {
     let config = Config::from_env();
-    auth::get_user_by_email(db, &config.alice.email)
+    user::get_user_by_email(db, &config.alice.email)
         .await
         .unwrap()
         .expect("Alice user should exist")

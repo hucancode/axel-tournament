@@ -2,27 +2,24 @@ use api::{
     AppState,
     config::Config,
     db, router,
-    services::{AuthService, EmailService, HealerService},
+    services::{auth::AuthConfig, healer::run_healer},
 };
 use std::sync::Arc;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt::init();
-    // Load configuration
     let config = Config::from_env();
-    // Connect to database
     let db = db::connect(&config.database).await?;
-    // Initialize services
-    let auth_service = Arc::new(AuthService::new(
-        config.jwt.secret.clone(),
-        config.jwt.expiration,
-    ));
-    let email_service = Arc::new(EmailService::new(config.email.clone()));
-    // Create seed users if user table is empty
-    let admin_password_hash = auth_service.hash_password(&config.admin.password)?;
-    let bob_password_hash = auth_service.hash_password(&config.bob.password)?;
-    let alice_password_hash = auth_service.hash_password(&config.alice.password)?;
+
+    let auth = AuthConfig {
+        jwt_secret: config.jwt.secret.clone(),
+        jwt_expiration: config.jwt.expiration,
+    };
+
+    let admin_password_hash = api::services::auth::hash_password(&config.admin.password)?;
+    let bob_password_hash = api::services::auth::hash_password(&config.bob.password)?;
+    let alice_password_hash = api::services::auth::hash_password(&config.alice.password)?;
     db::seed_users(
         &db,
         &config.admin.email,
@@ -34,20 +31,17 @@ async fn main() -> anyhow::Result<()> {
     )
     .await?;
 
-    // Start healer service as background task
-    let healer = HealerService::new(db.clone());
+    let healer_db = db.clone();
     tokio::spawn(async move {
-        healer.run().await;
+        run_healer(healer_db).await;
     });
 
     let state = AppState {
         db,
-        auth_service,
-        email_service,
+        auth,
         config: Arc::new(config.clone()),
     };
     let app = router::create_router(state);
-    // Start server
     let addr = format!("{}:{}", config.server.host, config.server.port);
     let listener = tokio::net::TcpListener::bind(&addr).await?;
     tracing::info!("Starting API server on {}", addr);

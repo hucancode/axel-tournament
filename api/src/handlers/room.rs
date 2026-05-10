@@ -36,29 +36,19 @@ pub async fn create_room(
         .map_err(|e| crate::error::ApiError::Validation(e.to_string()))?;
     let host_id = RecordId::parse_simple(&claims.sub)
         .map_err(|_| crate::error::ApiError::BadRequest("Invalid user id".to_string()))?;
-    let room = if let Some(tid) = payload.tournament_id {
-        services::room::create_room(
-            &state.db,
-            host_id,
-            payload.game_id,
-            payload.name,
-            payload.max_players,
-            Some(rid("tournament", tid)),
-            false,
-            Vec::new(),
-            None,
-        )
-        .await?
-    } else {
-        services::room::create_unranked_room_for_user(
-            &state.db,
-            host_id,
-            payload.game_id,
-            payload.name,
-            payload.max_players,
-        )
-        .await?
-    };
+    let tournament_record = payload.tournament_id.map(|tid| rid("tournament", tid));
+    let room = services::room::create_room(
+        &state.db,
+        host_id,
+        payload.game_id,
+        payload.name,
+        payload.max_players,
+        tournament_record,
+        false,
+        Vec::new(),
+        None,
+    )
+    .await?;
     Ok((StatusCode::CREATED, Json(room.into())))
 }
 

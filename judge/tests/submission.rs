@@ -1,14 +1,13 @@
-// Integration test: judge `submission_compiler::tick` claims a pending
-// row and writes the compiled artifact path back. Uses a fake compiler
-// so the test doesn't need a real toolchain.
+// Integration test: judge `submission::tick` claims a pending row and
+// writes the compiled artifact path back. Uses a fake compiler so the
+// test doesn't need a real toolchain.
 
 mod db;
 
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
-use judge::services::submission_compiler::{tick, BotCompiler};
+use judge::services::submission::{tick, BotCompiler};
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 use surrealdb::types::{Datetime, RecordId, SurrealValue};
 use tokio::sync::Mutex;
 use std::sync::OnceLock;
@@ -100,7 +99,7 @@ async fn pending_submission_compiles_and_is_marked_accepted() {
         .unwrap();
     let sid = seed_pending(&db, "fn main() {}").await;
 
-    let comp: Arc<dyn BotCompiler> = Arc::new(AlwaysOk("/artifacts/p"));
+    let comp = AlwaysOk("/artifacts/p");
     let handled = tick(&db, &comp).await.unwrap();
     assert!(handled >= 1);
 
@@ -119,7 +118,7 @@ async fn compile_failure_marks_submission_failed_with_message() {
         .unwrap();
     let sid = seed_pending(&db, "this is not rust").await;
 
-    let comp: Arc<dyn BotCompiler> = Arc::new(AlwaysFail);
+    let comp = AlwaysFail;
     tick(&db, &comp).await.unwrap();
 
     let after = fetch(&db, &sid).await;
@@ -146,12 +145,12 @@ async fn already_accepted_submission_is_not_reclaimed() {
     let sid = seed_pending(&db, "fn main() {}").await;
 
     // First tick: succeeds, status -> accepted.
-    let comp: Arc<dyn BotCompiler> = Arc::new(AlwaysOk("/artifacts/cached"));
+    let comp = AlwaysOk("/artifacts/cached");
     tick(&db, &comp).await.unwrap();
 
     // Second tick with a different binary: must NOT touch the row,
     // since status is no longer 'pending'.
-    let comp2: Arc<dyn BotCompiler> = Arc::new(AlwaysOk("/artifacts/clobbered"));
+    let comp2 = AlwaysOk("/artifacts/clobbered");
     tick(&db, &comp2).await.unwrap();
 
     let after = fetch(&db, &sid).await;
@@ -191,16 +190,16 @@ async fn concurrent_ticks_only_compile_once() {
     let _sid = seed_pending(&db, "fn main() {}").await;
 
     let runs = StdArc::new(std::sync::atomic::AtomicU32::new(0));
-    let comp_a: Arc<dyn BotCompiler> = Arc::new(CountingOk {
+    let comp_a = CountingOk {
         bin: "/artifacts/a",
         runs: runs.clone(),
         delay_ms: 200,
-    });
-    let comp_b: Arc<dyn BotCompiler> = Arc::new(CountingOk {
+    };
+    let comp_b = CountingOk {
         bin: "/artifacts/b",
         runs: runs.clone(),
         delay_ms: 200,
-    });
+    };
 
     let db_a = db.clone();
     let db_b = db.clone();
@@ -224,7 +223,7 @@ async fn pending_row_appearing_after_one_tick_is_picked_up_on_next_tick() {
     db.query("DELETE submission WHERE status = 'pending' OR status = 'compiling'")
         .await
         .unwrap();
-    let comp: Arc<dyn BotCompiler> = Arc::new(AlwaysOk("/artifacts/x"));
+    let comp = AlwaysOk("/artifacts/x");
 
     // First tick on empty state: nobody to compile.
     let n0 = tick(&db, &comp).await.unwrap();

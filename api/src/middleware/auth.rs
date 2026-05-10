@@ -2,6 +2,7 @@ use crate::{
     AppState,
     error::{ApiError, ApiResult},
     models::{Claims, UserRole},
+    services::{auth, user},
 };
 use axum::{
     extract::{Request, State},
@@ -23,18 +24,13 @@ pub async fn auth_middleware(
     let token = auth_header
         .strip_prefix("Bearer ")
         .ok_or_else(|| ApiError::Auth("Invalid authorization format".to_string()))?;
-    let claims = state.auth_service.validate_token(token)?;
-    // Check if user is banned
-    let user = crate::services::auth::get_user_by_id(
-        &state.db,
-        RecordId::parse_simple(&claims.sub)
-            .map_err(|_| ApiError::Auth("Invalid user id".to_string()))?,
-    )
-    .await?;
+    let claims = auth::validate_token(&state.auth, token)?;
+    let uid = RecordId::parse_simple(&claims.sub)
+        .map_err(|_| ApiError::Auth("Invalid user id".to_string()))?;
+    let user = user::get_user_by_id(&state.db, uid).await?;
     if user.is_banned {
         return Err(ApiError::Forbidden("User is banned".to_string()));
     }
-    // Store claims in request extensions
     req.extensions_mut().insert(claims);
     Ok(next.run(req).await)
 }
@@ -54,7 +50,6 @@ pub async fn admin_middleware(
     Ok(next.run(req).await)
 }
 
-// Extension trait to easily get claims from request
 pub trait RequestExt {
     fn claims(&self) -> ApiResult<&Claims>;
 }

@@ -1,6 +1,6 @@
+use crate::services::sandbox::{Result, SandboxError};
 use seccompiler::*;
 use std::collections::BTreeMap;
-use crate::services::sandbox::{Result, SandboxError};
 
 pub fn apply_execution_filter() -> Result<()> {
     let filter = execution_filter()?;
@@ -94,17 +94,18 @@ fn execution_filter() -> Result<BpfProgram> {
         rules,
         SeccompAction::Errno(nix::libc::EPERM as u32),
         SeccompAction::Allow,
-        std::env::consts::ARCH.try_into()
-            .map_err(|e| SandboxError::SeccompError(format!("Invalid arch: {:?}", e)))?,
+        std::env::consts::ARCH
+            .try_into()
+            .map_err(|e| SandboxError::setup("seccomp arch", format!("{e:?}")))?,
     )
-    .map_err(|e| SandboxError::SeccompError(format!("Failed to create seccomp filter: {:?}", e)))?
+    .map_err(|e| SandboxError::setup("seccomp filter", format!("{e:?}")))?
     .try_into()
-    .map_err(|e| SandboxError::SeccompError(format!("Failed to build BPF program: {:?}", e)))
+    .map_err(|e| SandboxError::setup("seccomp BPF build", format!("{e:?}")))
 }
 
 fn apply_filter(program: BpfProgram) -> Result<()> {
     apply_filter_all_threads(&program)
-        .map_err(|e| SandboxError::SeccompError(format!("Failed to apply seccomp filter: {:?}", e)))?;
+        .map_err(|e| SandboxError::setup("seccomp apply", format!("{e:?}")))?;
     Ok(())
 }
 
@@ -137,7 +138,6 @@ mod tests {
     }
 
     /// Block-list: syscalls we never want to allow even by accident.
-    /// Adding any of these would let user code escape the sandbox.
     #[test]
     fn allowlist_excludes_dangerous_syscalls() {
         let allowed = allowed_syscalls();

@@ -1,73 +1,57 @@
-// Submission compiler worker.
+// Submission worker.
 //
 // Polls `submission` rows in `pending` state and compiles them upfront,
-// caching the resulting binary path on the row. Match runners reuse the
-// cached artifact instead of compiling per-match.
+// caching the resulting binary path on the row. Match runners reuse
+// the cached artifact instead of compiling per-match.
 //
 // Status transitions: pending -> compiling -> accepted | failed.
-// Claim is atomic via conditional UPDATE so multiple judges don't race.
 
 use crate::db::Database;
-use crate::services::sandbox::compiler::CompilerSandbox;
+use crate::models::PendingSubmission;
+use crate::services::sandbox::BuildSandbox;
 use anyhow::{Context, Result};
 use async_trait::async_trait;
-use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
-use surrealdb::types::{RecordId, SurrealValue, ToSql};
+use surrealdb::types::{RecordId, ToSql};
 
 const POLL_INTERVAL: Duration = Duration::from_secs(2);
 
-/// Per-submission compile contract. Plug in `CompilerSandbox` at
-/// runtime; in tests, plug in `FakeCompiler` to drive the worker
-/// without touching the real sandbox.
+/// Compile contract. Tests substitute a fake; production wires up
+/// `BuildSandbox`.
 #[async_trait]
-pub trait BotCompiler: Send + Sync + 'static {
+pub trait BotCompiler: Send + Sync {
     async fn compile(&self, sid: &str, language: &str, code: &str) -> Result<String>;
 }
 
 #[async_trait]
-impl BotCompiler for CompilerSandbox {
+impl BotCompiler for BuildSandbox {
     async fn compile(&self, sid: &str, language: &str, code: &str) -> Result<String> {
-        CompilerSandbox::compile(self, sid, language, code)
+        BuildSandbox::compile(self, sid, language, code)
             .await
-            .map_err(|e| anyhow::anyhow!("compile: {e}"))
+            .map_err(Into::into)
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
-pub struct PendingSubmission {
-    pub id: RecordId,
-    pub language: String,
-    pub code: String,
-}
-
-pub fn spawn(db: Database) {
+pub fn spawn(db: Database, compiler: Arc<dyn BotCompiler>) {
     tokio::spawn(async move {
-        if let Err(e) = run(db).await {
-            tracing::error!("Submission compiler exited: {e:#}");
+        if let Err(e) = run(db, compiler).await {
+            tracing::error!("Submission worker exited: {e:#}");
         }
     });
 }
 
-async fn run(db: Database) -> Result<()> {
-    tracing::info!("Submission compiler worker started");
-    let workspace_root = std::env::var("COMPILER_WORKSPACE")
-        .unwrap_or_else(|_| "/artifacts".to_string());
-    let sandbox = CompilerSandbox::new(PathBuf::from(workspace_root))
-        .map_err(|e| anyhow::anyhow!("init compiler sandbox: {e}"))
-        .context("init compiler")?;
-    let compiler: Arc<dyn BotCompiler> = Arc::new(sandbox);
+async fn run(db: Database, compiler: Arc<dyn BotCompiler>) -> Result<()> {
+    tracing::info!("Submission worker started");
     loop {
-        let _ = tick(&db, &compiler).await;
+        let _ = tick(&db, compiler.as_ref()).await;
         tokio::time::sleep(POLL_INTERVAL).await;
     }
 }
 
-/// One polling pass. Public + generic over compiler so integration
-/// tests can drive it directly without a tokio sleep.
-pub async fn tick(db: &Database, compiler: &Arc<dyn BotCompiler>) -> Result<u32> {
+/// One polling pass. Generic over the compiler so integration tests
+/// can drive it without a real toolchain.
+pub async fn tick<C: BotCompiler + ?Sized>(db: &Database, compiler: &C) -> Result<u32> {
     let pending = poll_pending(db).await.unwrap_or_default();
     let mut handled = 0u32;
     for sub in pending {
@@ -75,7 +59,7 @@ pub async fn tick(db: &Database, compiler: &Arc<dyn BotCompiler>) -> Result<u32>
             continue;
         }
         handled += 1;
-        if let Err(e) = compile_one(db, compiler.as_ref(), &sub).await {
+        if let Err(e) = compile_one(db, compiler, &sub).await {
             tracing::warn!("Submission {} compile failed: {e:#}", sub.id.to_sql());
             let _ = mark_failed(db, &sub.id, &format!("{e:#}")).await;
         }
@@ -99,9 +83,9 @@ async fn claim(db: &Database, id: &RecordId) -> Result<bool> {
     Ok(!rows.is_empty())
 }
 
-async fn compile_one(
+async fn compile_one<C: BotCompiler + ?Sized>(
     db: &Database,
-    compiler: &dyn BotCompiler,
+    compiler: &C,
     sub: &PendingSubmission,
 ) -> Result<()> {
     let sid = sub.id.to_sql();
@@ -127,23 +111,4 @@ async fn mark_failed(db: &Database, id: &RecordId, err: &str) -> Result<()> {
         .bind(("err", err.to_string()))
         .await?;
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn poll_query_filters_pending() {
-        let q = "SELECT id, language, code FROM submission
-             WHERE status = 'pending' LIMIT 20;";
-        assert!(q.contains("status = 'pending'"));
-        assert!(q.contains("LIMIT 20"));
-    }
-
-    #[test]
-    fn claim_query_is_conditional() {
-        let q = "UPDATE $sid SET status = 'compiling'
-             WHERE status = 'pending' RETURN AFTER;";
-        assert!(q.contains("WHERE status = 'pending'"));
-        assert!(q.contains("status = 'compiling'"));
-    }
 }

@@ -1,6 +1,6 @@
 // Bot-vs-bot matches end-to-end through the production code path:
 // real source files compiled by `CompilerSandbox`, spawned as
-// sandboxed subprocesses through `BotConn`, then driven by
+// sandboxed subprocesses, then driven by
 // `services::room::bot::run_match` against a `LiveRoom<Rps>`.
 //
 // Requires Linux + cgroups v2 + the privileges the sandbox needs
@@ -13,9 +13,9 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use judge::games::Rps;
-use judge::services::room::bot::{run_match, BotConn, MatchOutcome};
+use judge::services::room::bot::{run_match, wrap, MatchOutcome};
 use judge::services::room::logic::{LiveRoom, RoomRegistry};
-use judge::services::sandbox::compiler::CompilerSandbox;
+use judge::services::sandbox::{BuildSandbox as CompilerSandbox, SandboxedBot};
 use judge::services::storage::Storage;
 use tempfile::TempDir;
 
@@ -62,8 +62,8 @@ async fn play(
     let pid_a = unique(bot_a);
     let pid_b = unique(bot_b);
 
-    let conn_a = Arc::new(BotConn::spawn(&pid_a, &bin_a).await.expect("spawn A"));
-    let conn_b = Arc::new(BotConn::spawn(&pid_b, &bin_b).await.expect("spawn B"));
+    let conn_a = wrap(SandboxedBot::spawn(&pid_a, &bin_a).await.expect("spawn A"));
+    let conn_b = wrap(SandboxedBot::spawn(&pid_b, &bin_b).await.expect("spawn B"));
 
     let (registry, room, room_id) = fresh_room().await;
     let outcome = run_match(

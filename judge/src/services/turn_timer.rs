@@ -1,10 +1,10 @@
 // Turn timer.
 //
-// Watches a `LiveRoom` and fires a callback when the current pending
-// players go too long without acting. Used by the human-vs-human flow
-// to enforce "miss your turn = lose" semantics. The callback is opaque:
-// the room layer doesn't know how losses are recorded; the api or
-// caller decides.
+// Pure watcher: subscribes to a `LiveRoom`, fires a callback when the
+// same set of pending players stays pending for the full timeout
+// window. The callback is opaque — the room layer doesn't know how
+// losses are recorded; the api or caller decides. The DB-finalising
+// callback lives in `services::match_writer`.
 
 use crate::services::room::logic::{LiveRoom, RoomLogic};
 use std::collections::HashSet;
@@ -12,142 +12,13 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::time::Instant;
 
-/// Fired when the same set of pending players stays pending for the
-/// full timeout window. `pending` is the player ID set at fire time;
-/// callers should mark these players faulted.
+/// Fired when the same pending player set stays pending for the full
+/// timeout window. `pending` is the player ID set at fire time.
 pub type TimeoutCallback =
     Arc<dyn Fn(String, Vec<String>) -> futures_util::future::BoxFuture<'static, ()> + Send + Sync>;
 
-/// Default timeout writer: marks the room finished and inserts a match
-/// row attributing the loss to the pending players. Surviving player
-/// (if exactly one non-pending member remains) becomes winner; if all
-/// players are pending, no winner is declared.
-pub fn db_timeout_callback(db: crate::db::Database) -> TimeoutCallback {
-    Arc::new(move |room_id, pending| {
-        let db = db.clone();
-        Box::pin(async move {
-            if let Err(e) = write_timeout_match(&db, &room_id, &pending).await {
-                tracing::warn!("turn timeout writer failed for {room_id}: {e:#}");
-            }
-        })
-    })
-}
-
-async fn write_timeout_match(
-    db: &crate::db::Database,
-    room_id: &str,
-    pending: &[String],
-) -> anyhow::Result<()> {
-    use surrealdb::types::{SurrealValue, ToSql};
-
-    #[derive(serde::Deserialize, SurrealValue)]
-    struct RoomRow {
-        players: Vec<surrealdb::types::RecordId>,
-        #[serde(default)]
-        tournament_id: Option<surrealdb::types::RecordId>,
-        game_id: String,
-        status: String,
-    }
-
-    // Fetch the room. `room_id` may be either a fully-qualified
-    // `room:abc` or a bare `abc`; normalise to record id.
-    let rid = parse_room_id(room_id);
-    let mut resp = db
-        .query("SELECT players, tournament_id, game_id, status FROM $rid")
-        .bind(("rid", rid.clone()))
-        .await?;
-    let rows: Vec<RoomRow> = match resp.take(0) {
-        Ok(r) => r,
-        Err(e) => {
-            tracing::warn!("turn_timeout: room decode failed for {room_id}: {e}");
-            return Ok(());
-        }
-    };
-    let Some(room) = rows.into_iter().next() else {
-        // Room not in api db (probably a transient AI-only room) — nothing to do.
-        tracing::debug!("turn_timeout: no room found for {room_id}, skipping");
-        return Ok(());
-    };
-    if room.status == "finished" {
-        return Ok(());
-    }
-
-    let pending_set: std::collections::HashSet<String> =
-        pending.iter().cloned().collect();
-    let is_pending = |p: &surrealdb::types::RecordId| pending_set.contains(&p.to_sql());
-    let pending_records: Vec<surrealdb::types::RecordId> =
-        room.players.iter().filter(|p| is_pending(p)).cloned().collect();
-    let surviving: Vec<&surrealdb::types::RecordId> =
-        room.players.iter().filter(|p| !is_pending(p)).collect();
-    let winner = if surviving.len() == 1 {
-        Some(surviving[0].clone())
-    } else {
-        None
-    };
-
-    // Build participant rows: faulted players score 0, winner 1, others 0.5.
-    #[derive(serde::Serialize, SurrealValue)]
-    struct Part {
-        user_id: surrealdb::types::RecordId,
-        submission_id: Option<surrealdb::types::RecordId>,
-        score: Option<f64>,
-    }
-    let participants: Vec<Part> = room
-        .players
-        .iter()
-        .map(|p| {
-            let score = if Some(p) == winner.as_ref() {
-                Some(1.0)
-            } else if is_pending(p) {
-                Some(0.0)
-            } else {
-                Some(0.5)
-            };
-            Part {
-                user_id: p.clone(),
-                submission_id: None,
-                score,
-            }
-        })
-        .collect();
-
-    db.query(
-        "CREATE match SET
-             tournament_id = $tid,
-             game_id = $gid,
-             room_id = $rid,
-             status = 'completed',
-             participants = $parts,
-             error_message = 'turn_timeout',
-             faulted_user_ids = $faulted,
-             created_at = time::now(),
-             updated_at = time::now(),
-             started_at = time::now(),
-             completed_at = time::now();",
-    )
-    .bind(("tid", room.tournament_id.clone()))
-    .bind(("gid", room.game_id.clone()))
-    .bind(("rid", rid.clone()))
-    .bind(("parts", participants))
-    .bind(("faulted", pending_records))
-    .await?;
-
-    db.query(
-        "UPDATE $rid SET status = 'finished',
-                          winner_id = $winner,
-                          updated_at = time::now()",
-    )
-    .bind(("rid", rid))
-    .bind(("winner", winner))
-    .await?;
-    Ok(())
-}
-
-fn parse_room_id(s: &str) -> surrealdb::types::RecordId {
-    surrealdb::types::RecordId::parse_simple(s)
-        .unwrap_or_else(|_| surrealdb::types::RecordId::new("room", s))
-}
-
+/// Spawn a watcher task. Returns the JoinHandle so callers can await
+/// the watcher in tests; production drops it.
 pub fn spawn_turn_watcher<L: RoomLogic>(
     room: Arc<LiveRoom<L>>,
     timeout: Duration,
@@ -167,7 +38,6 @@ pub fn spawn_turn_watcher<L: RoomLogic>(
                 ev = subscriber.recv() => {
                     match ev {
                         Ok(_) => {
-                            // Re-evaluate pending set after every committed event.
                             let now: HashSet<String> =
                                 room.pending_players().await.into_iter().collect();
                             if now != last_set {
@@ -180,7 +50,6 @@ pub fn spawn_turn_watcher<L: RoomLogic>(
                             }
                         }
                         Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {
-                            // Resync after lag.
                             let now: HashSet<String> =
                                 room.pending_players().await.into_iter().collect();
                             last_set = now;
@@ -191,14 +60,11 @@ pub fn spawn_turn_watcher<L: RoomLogic>(
                             };
                         }
                         Err(tokio::sync::broadcast::error::RecvError::Closed) => {
-                            // Room dropped; nothing to watch.
                             return;
                         }
                     }
                 }
                 _ = wait_until(deadline) => {
-                    // Timer fired with the same pending set still in
-                    // place. Mark them faulted and exit.
                     if !last_set.is_empty() {
                         let pending = last_set.iter().cloned().collect::<Vec<_>>();
                         on_timeout(room_id.clone(), pending).await;
@@ -324,7 +190,6 @@ mod tests {
         });
         let h = spawn_turn_watcher(live, Duration::from_secs(5), cb);
 
-        // Advance virtual time past the timeout.
         tokio::time::advance(Duration::from_secs(6)).await;
         let _ = h.await;
 
@@ -354,18 +219,13 @@ mod tests {
         });
         let _h = spawn_turn_watcher(live.clone(), Duration::from_secs(5), cb);
 
-        // Half the window passes, alice acts, half-window again.
         tokio::time::advance(Duration::from_secs(3)).await;
         live.handle_act("alice", "MOVE", "").await.unwrap();
-        // Pending now is just [bob] — timer must restart, not yet fire.
         tokio::time::advance(Duration::from_secs(3)).await;
-        // Need to yield so the watcher task processes the broadcast.
         tokio::task::yield_now().await;
         assert_eq!(fires.load(Ordering::SeqCst), 0);
 
-        // Push past the new window.
         tokio::time::advance(Duration::from_secs(5)).await;
-        // Watcher fires + exits.
         tokio::time::sleep(Duration::from_millis(1)).await;
         assert_eq!(fires.load(Ordering::SeqCst), 1);
     }
@@ -375,7 +235,6 @@ mod tests {
         let storage = Storage::memory();
         let registry = Arc::new(RoomRegistry::<Pair>::new(storage.clone(), "j3".into()));
         let live = registry.open("r3", Duration::from_secs(60)).await.unwrap();
-        // No START yet -> not playing -> no pending.
         live.handle_act("alice", "JOIN", "").await.unwrap();
         live.handle_act("bob", "JOIN", "").await.unwrap();
 

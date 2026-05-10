@@ -150,6 +150,11 @@ impl<L: RoomLogic> LiveRoom<L> {
     }
 }
 
+/// Per-room hook fired after a room is freshly loaded into the
+/// registry. Used by the human-vs-human flow to attach the turn-timer
+/// watcher; AI registries leave this unset.
+pub type OnRoomOpened<L> = Arc<dyn Fn(Arc<LiveRoom<L>>) + Send + Sync>;
+
 /// Per-game room registry. Holds loaded LiveRooms keyed by room_id.
 pub struct RoomRegistry<L: RoomLogic> {
     lease: Arc<dyn LeaseStore>,
@@ -157,18 +162,7 @@ pub struct RoomRegistry<L: RoomLogic> {
     meta: Arc<dyn MetaIndex>,
     owner_id: String,
     rooms: RwLock<HashMap<String, Arc<LiveRoom<L>>>>,
-    turn_watch: Option<TurnWatchConfig>,
-}
-
-/// When set on a registry, every freshly-opened room gets a turn-timer
-/// watcher attached. The callback is invoked with `(room_id, pending)`
-/// after the configured timeout if the same set of players remains
-/// pending. Bot/AI registries leave this `None` because match runners
-/// drive their own timers.
-#[derive(Clone)]
-pub struct TurnWatchConfig {
-    pub timeout: std::time::Duration,
-    pub on_timeout: crate::services::turn_timer::TimeoutCallback,
+    on_open: Option<OnRoomOpened<L>>,
 }
 
 impl<L: RoomLogic> RoomRegistry<L> {
@@ -179,12 +173,12 @@ impl<L: RoomLogic> RoomRegistry<L> {
             meta: storage.meta,
             owner_id,
             rooms: RwLock::new(HashMap::new()),
-            turn_watch: None,
+            on_open: None,
         }
     }
 
-    pub fn with_turn_watch(mut self, cfg: TurnWatchConfig) -> Self {
-        self.turn_watch = Some(cfg);
+    pub fn with_on_open(mut self, hook: OnRoomOpened<L>) -> Self {
+        self.on_open = Some(hook);
         self
     }
 
@@ -221,12 +215,8 @@ impl<L: RoomLogic> RoomRegistry<L> {
         drop(rooms);
         let snap = room.with_state(L::snapshot).await;
         room.refresh_meta(snap, room.head()).await;
-        if let Some(cfg) = &self.turn_watch {
-            crate::services::turn_timer::spawn_turn_watcher(
-                room.clone(),
-                cfg.timeout,
-                cfg.on_timeout.clone(),
-            );
+        if let Some(hook) = &self.on_open {
+            hook(room.clone());
         }
         Ok(room)
     }

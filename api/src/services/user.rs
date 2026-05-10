@@ -5,24 +5,25 @@ use crate::{
 };
 use surrealdb::types::{Datetime, RecordId};
 
-pub async fn create_user(
-    db: &Database,
-    email: String,
-    username: String,
-    password_hash: Option<String>,
-    location: String,
-    oauth_provider: Option<OAuthProvider>,
-    oauth_id: Option<String>,
-) -> ApiResult<User> {
+pub struct NewUser {
+    pub email: String,
+    pub username: String,
+    pub password_hash: Option<String>,
+    pub location: String,
+    pub oauth_provider: Option<OAuthProvider>,
+    pub oauth_id: Option<String>,
+}
+
+pub async fn create_user(db: &Database, new_user: NewUser) -> ApiResult<User> {
     let user = User {
         id: None,
-        email,
-        username,
-        password_hash,
+        email: new_user.email,
+        username: new_user.username,
+        password_hash: new_user.password_hash,
         role: UserRole::Player,
-        location,
-        oauth_provider,
-        oauth_id,
+        location: new_user.location,
+        oauth_provider: new_user.oauth_provider,
+        oauth_id: new_user.oauth_id,
         is_banned: false,
         ban_reason: None,
         created_at: Datetime::default(),
@@ -80,4 +81,41 @@ pub async fn list_users(
         .await?;
     let users: Vec<User> = result.take(0)?;
     Ok(users)
+}
+
+pub async fn get_user_by_id(db: &Database, user_id: RecordId) -> ApiResult<User> {
+    let user: Option<User> = db.select(&user_id).await?;
+    user.ok_or_else(|| ApiError::NotFound("User not found".to_string()))
+}
+
+pub async fn get_user_by_email(db: &Database, email: &str) -> ApiResult<Option<User>> {
+    let mut result = db
+        .query("SELECT * FROM user WHERE email = $email")
+        .bind(("email", email.to_string()))
+        .await?;
+    let users: Vec<User> = result.take(0)?;
+    Ok(users.into_iter().next())
+}
+
+pub async fn get_user_by_oauth(
+    db: &Database,
+    provider: &str,
+    oauth_id: &str,
+) -> ApiResult<Option<User>> {
+    let mut result = db
+        .query("SELECT * FROM user WHERE oauth_provider = $provider AND oauth_id = $oauth_id")
+        .bind(("provider", provider.to_string()))
+        .bind(("oauth_id", oauth_id.to_string()))
+        .await?;
+    let users: Vec<User> = result.take(0)?;
+    Ok(users.into_iter().next())
+}
+
+pub async fn get_user_by_username(db: &Database, username: &str) -> ApiResult<Option<User>> {
+    let mut result = db
+        .query("SELECT * FROM user WHERE username = $username")
+        .bind(("username", username.to_string()))
+        .await?;
+    let users: Vec<User> = result.take(0)?;
+    Ok(users.into_iter().next())
 }

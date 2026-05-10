@@ -99,7 +99,7 @@ pub async fn submission_stats(
     State(state): State<AppState>,
     Extension(claims): Extension<Claims>,
     Path(submission_id): Path<String>,
-) -> ApiResult<Json<services::submission::SubmissionStats>> {
+) -> ApiResult<Json<services::stats::SubmissionStats>> {
     let sid = rid("submission", submission_id);
     let submission = services::submission::get_submission(&state.db, sid.clone()).await?;
     if submission.user_id.to_sql() != claims.sub {
@@ -107,7 +107,7 @@ pub async fn submission_stats(
             "You don't have access to this submission".to_string(),
         ));
     }
-    let stats = services::submission::submission_stats(&state.db, sid).await?;
+    let stats = services::stats::submission_stats(&state.db, sid).await?;
     Ok(Json(stats))
 }
 

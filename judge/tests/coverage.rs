@@ -43,26 +43,26 @@ async fn config_from_env_provides_defaults() {
 // ---------- CapacityTracker — gaps in capacity.rs ----------
 
 #[tokio::test]
-async fn get_load_reports_fraction_of_capacity() {
+async fn load_reports_fraction_of_capacity() {
     let t = CapacityTracker::new(4, 1000);
-    assert_eq!(t.get_load().await, 0.0);
+    assert_eq!(t.load(), 0.0);
 
-    t.increment_rooms().await;
-    t.increment_matches().await;
-    assert!((t.get_load().await - 0.5).abs() < 1e-9);
+    let _r = t.room_slot();
+    let _m = t.match_slot();
+    assert!((t.load() - 0.5).abs() < 1e-9);
 
-    t.increment_rooms().await;
-    t.increment_matches().await;
-    assert_eq!(t.get_load().await, 1.0);
+    let _r2 = t.room_slot();
+    let _m2 = t.match_slot();
+    assert_eq!(t.load(), 1.0);
 }
 
 #[tokio::test]
-async fn get_stats_reflects_room_and_match_counts() {
+async fn snapshot_reflects_room_and_match_counts() {
     let t = CapacityTracker::new(10, 1000);
-    t.increment_rooms().await;
-    t.increment_rooms().await;
-    t.increment_matches().await;
-    let s = t.get_stats().await;
+    let _r1 = t.room_slot();
+    let _r2 = t.room_slot();
+    let _m1 = t.match_slot();
+    let s = t.snapshot();
     assert_eq!(s.active_rooms, 2);
     assert_eq!(s.active_matches, 1);
     assert_eq!(s.total_active, 3);
@@ -71,30 +71,37 @@ async fn get_stats_reflects_room_and_match_counts() {
 }
 
 #[tokio::test]
-async fn decrement_rooms_saturates_at_zero() {
+async fn dropping_room_guard_decrements() {
     let t = CapacityTracker::new(4, 1000);
-    t.decrement_rooms().await;
-    t.decrement_rooms().await;
-    let s = t.get_stats().await;
-    assert_eq!(s.active_rooms, 0);
+    {
+        let _r = t.room_slot();
+        let _r2 = t.room_slot();
+        assert_eq!(t.snapshot().active_rooms, 2);
+    }
+    assert_eq!(t.snapshot().active_rooms, 0);
 }
 
 #[tokio::test]
-async fn decrement_matches_saturates_at_zero() {
+async fn dropping_match_guard_decrements() {
     let t = CapacityTracker::new(4, 1000);
-    t.decrement_matches().await;
-    let s = t.get_stats().await;
-    assert_eq!(s.active_matches, 0);
+    {
+        let _m = t.match_slot();
+        assert_eq!(t.snapshot().active_matches, 1);
+    }
+    assert_eq!(t.snapshot().active_matches, 0);
 }
 
 #[tokio::test]
-async fn increment_then_decrement_room_round_trip() {
+async fn nested_room_guards_round_trip() {
     let t = CapacityTracker::new(4, 1000);
-    t.increment_rooms().await;
-    t.increment_rooms().await;
-    t.decrement_rooms().await;
-    let s = t.get_stats().await;
-    assert_eq!(s.active_rooms, 1);
+    let r1 = t.room_slot();
+    {
+        let _r2 = t.room_slot();
+        assert_eq!(t.snapshot().active_rooms, 2);
+    }
+    assert_eq!(t.snapshot().active_rooms, 1);
+    drop(r1);
+    assert_eq!(t.snapshot().active_rooms, 0);
 }
 
 // ---------- judge game registry ----------

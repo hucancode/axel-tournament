@@ -1,8 +1,8 @@
-use nix::sched::{unshare, CloneFlags};
-use nix::mount::{mount, MsFlags};
-use nix::unistd::{Uid, Gid};
-use std::fs;
 use crate::services::sandbox::{Result, SandboxError};
+use nix::mount::{mount, MsFlags};
+use nix::sched::{unshare, CloneFlags};
+use nix::unistd::{Gid, Uid};
+use std::fs;
 
 pub fn create_namespaces(include_network: bool) -> Result<(u32, u32)> {
     let host_uid = Uid::current().as_raw();
@@ -17,10 +17,7 @@ pub fn create_namespaces(include_network: bool) -> Result<(u32, u32)> {
         flags |= CloneFlags::CLONE_NEWNET;
     }
 
-    unshare(flags).map_err(|e| {
-        SandboxError::NamespaceError(format!("Failed to unshare namespaces: {}", e))
-    })?;
-
+    unshare(flags).map_err(|e| SandboxError::setup("unshare", e))?;
     Ok((host_uid, host_gid))
 }
 
@@ -31,9 +28,8 @@ pub fn setup_mount_namespace() -> Result<()> {
         None::<&str>,
         MsFlags::MS_REC | MsFlags::MS_PRIVATE,
         None::<&str>,
-    ).map_err(|e| {
-        SandboxError::NamespaceError(format!("Failed to make root mount private: {}", e))
-    })?;
+    )
+    .map_err(|e| SandboxError::setup("mount root private", e))?;
     Ok(())
 }
 
@@ -47,17 +43,9 @@ pub fn setup_self_uid_mapping(host_uid: u32, host_gid: u32) -> Result<()> {
         }
     }
 
-    let uid_mapping = format!("1000 {} 1", host_uid);
-    fs::write("/proc/self/uid_map", uid_mapping).map_err(|e| {
-        SandboxError::NamespaceError(format!("Failed to write uid_map: {}", e))
-    })?;
-
-    let gid_mapping = format!("1000 {} 1", host_gid);
-    fs::write("/proc/self/gid_map", gid_mapping).map_err(|e| {
-        SandboxError::NamespaceError(format!("Failed to write gid_map: {}", e))
-    })?;
-
+    fs::write("/proc/self/uid_map", format!("1000 {} 1", host_uid))
+        .map_err(|e| SandboxError::setup("write uid_map", e))?;
+    fs::write("/proc/self/gid_map", format!("1000 {} 1", host_gid))
+        .map_err(|e| SandboxError::setup("write gid_map", e))?;
     Ok(())
 }
-
-

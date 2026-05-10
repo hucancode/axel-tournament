@@ -30,6 +30,8 @@ pub enum ApiError {
     PasswordHash,
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
+    #[error("Email error: {0}")]
+    Email(String),
 }
 
 impl IntoResponse for ApiError {
@@ -55,6 +57,7 @@ impl IntoResponse for ApiError {
                 StatusCode::INTERNAL_SERVER_ERROR,
                 format!("IO error: {}", err),
             ),
+            ApiError::Email(msg) => (StatusCode::BAD_GATEWAY, format!("Email error: {}", msg)),
         };
         let body = Json(json!({
             "error": error_message,

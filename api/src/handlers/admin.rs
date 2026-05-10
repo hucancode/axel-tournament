@@ -2,7 +2,7 @@ use crate::{
     AppState,
     error::ApiResult,
     models::{UserInfo, rid},
-    services::{self, AuthService},
+    services::user,
 };
 use axum::{
     Json,
@@ -25,10 +25,9 @@ pub async fn list_users(
     State(state): State<AppState>,
     Query(query): Query<ListUsersQuery>,
 ) -> ApiResult<Json<Vec<UserInfo>>> {
-    let users = services::user::list_users(&state.db, query.limit, query.offset).await?;
-    let user_infos: Result<Vec<UserInfo>, _> =
-        users.iter().map(|u| AuthService::user_to_info(u)).collect();
-    Ok(Json(user_infos?))
+    let users = user::list_users(&state.db, query.limit, query.offset).await?;
+    let infos: Result<Vec<UserInfo>, _> = users.iter().map(|u| u.to_info()).collect();
+    Ok(Json(infos?))
 }
 
 pub async fn ban_user(
@@ -36,16 +35,14 @@ pub async fn ban_user(
     Path(user_id): Path<String>,
     Json(payload): Json<BanUserRequest>,
 ) -> ApiResult<Json<UserInfo>> {
-    let user = services::user::ban_user(&state.db, rid("user", user_id), payload.reason).await?;
-    let user_info = AuthService::user_to_info(&user)?;
-    Ok(Json(user_info))
+    let u = user::ban_user(&state.db, rid("user", user_id), payload.reason).await?;
+    Ok(Json(u.to_info()?))
 }
 
 pub async fn unban_user(
     State(state): State<AppState>,
     Path(user_id): Path<String>,
 ) -> ApiResult<Json<UserInfo>> {
-    let user = services::user::unban_user(&state.db, rid("user", user_id)).await?;
-    let user_info = AuthService::user_to_info(&user)?;
-    Ok(Json(user_info))
+    let u = user::unban_user(&state.db, rid("user", user_id)).await?;
+    Ok(Json(u.to_info()?))
 }

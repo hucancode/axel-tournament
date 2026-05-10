@@ -1,88 +1,69 @@
-// AI-vs-AI tournament runner.
+// Bot-vs-bot tournament runner.
 //
 // Same wire protocol + same RoomLogic + same EventLog as human rooms.
 // One match = one room. Bots speak the stdio transport described in
-// `judge/protocols/wire.md`. State, replay, and failover behave
-// identically to human rooms.
+// `judge/protocols/wire.md`.
+//
+// Per-game dispatch is via `HashMap<game_id, Arc<dyn BotMatchHost>>`
+// — adding a new game means registering an impl, not editing this file.
 
-use crate::games::{Pd, Rps, Ttt};
+use crate::db::Database;
+use crate::models::{Match, MatchParticipant, Submission};
 use crate::services::capacity::CapacityTracker;
-use crate::services::room::bot::{run_match, BotConn, MatchOutcome};
-use crate::services::room::logic::RoomRegistry;
+use crate::services::room::bot::{run_match, wrap, Bot, MatchOutcome};
+use crate::services::room::logic::{RoomLogic, RoomRegistry};
+use crate::services::sandbox::SandboxedBot;
 use anyhow::{anyhow, Context, Result};
-use serde::{Deserialize, Serialize};
+use async_trait::async_trait;
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
-use surrealdb::types::{Datetime, RecordId, SurrealValue, ToSql};
-
-use crate::db::Database;
+use surrealdb::types::{RecordId, ToSql};
 
 const POLL_INTERVAL: Duration = Duration::from_secs(2);
 const LEASE_TTL: Duration = Duration::from_secs(15);
 
-#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
-struct Match {
-    id: RecordId,
-    tournament_id: RecordId,
-    game_id: String,
-    status: String,
-    participants: Vec<MatchParticipant>,
-    #[serde(default)]
-    metadata: Option<serde_json::Value>,
-    #[serde(default)]
-    room_id: Option<RecordId>,
-    created_at: Datetime,
-    updated_at: Datetime,
-    #[serde(default)]
-    started_at: Option<Datetime>,
-    #[serde(default)]
-    completed_at: Option<Datetime>,
+/// Erasure over per-game `RoomRegistry<L>`. Lets the claim loop run any
+/// registered game without knowing its concrete `L`. Implementations
+/// open the room, run the match, drop the room — the trait owns the
+/// full lease lifecycle so we can't leak on error.
+#[async_trait]
+pub trait BotMatchHost: Send + Sync + 'static {
+    async fn run(
+        &self,
+        match_id: &str,
+        bots: Vec<Bot>,
+        player_ids: Vec<String>,
+        turn_timeout: Duration,
+    ) -> Result<MatchOutcome>;
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
-struct MatchParticipant {
-    #[serde(default)]
-    pub user_id: Option<RecordId>,
-    submission_id: RecordId,
-    #[serde(default)]
-    score: Option<f64>,
-    #[serde(default)]
-    metadata: Option<serde_json::Value>,
+#[async_trait]
+impl<L: RoomLogic> BotMatchHost for Arc<RoomRegistry<L>> {
+    async fn run(
+        &self,
+        match_id: &str,
+        bots: Vec<Bot>,
+        player_ids: Vec<String>,
+        turn_timeout: Duration,
+    ) -> Result<MatchOutcome> {
+        let room = self.open(match_id, LEASE_TTL).await?;
+        let outcome = run_match(room, bots, player_ids, turn_timeout).await;
+        // Drop the room regardless of outcome: lease released, in-memory
+        // state evicted. Log remains for audit / replay.
+        RoomRegistry::drop_room(self, match_id).await;
+        outcome
+    }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
-struct Submission {
-    #[serde(default)]
-    id: Option<RecordId>,
-    #[serde(default)]
-    compiled_binary_path: Option<String>,
-    language: String,
-    code: String,
-    #[serde(default)]
-    status: Option<String>,
-    #[serde(default)]
-    error_message: Option<String>,
-}
+/// Map of `game_id` → host. The watcher dispatches on `Match::game_id`.
+pub type BotMatchRegistries = HashMap<&'static str, Arc<dyn BotMatchHost>>;
 
-/// Per-game registry handles bundled so the claim loop can dispatch
-/// on `game_id` without knowing the per-game type. The same registry
-/// instance is shared with the WebSocket handler so AI and human
-/// rooms ride the exact same state.
-#[derive(Clone)]
-pub struct AiRegistries {
-    pub rps: Arc<RoomRegistry<Rps>>,
-    pub ttt: Arc<RoomRegistry<Ttt>>,
-    pub pd: Arc<RoomRegistry<Pd>>,
-}
-
-/// Spawn the AI match watcher loop. Polls for pending matches across
-/// all known games and runs them through the same pipeline as human
-/// rooms.
-pub fn spawn(db: Database, capacity: CapacityTracker, registries: AiRegistries) {
+pub fn spawn(db: Database, capacity: CapacityTracker, registries: BotMatchRegistries) {
     tokio::spawn(async move {
         if let Err(e) = run(db, capacity, registries).await {
-            tracing::error!("AI match watcher exited: {e:#}");
+            tracing::error!("bot match watcher exited: {e:#}");
         }
     });
 }
@@ -90,9 +71,9 @@ pub fn spawn(db: Database, capacity: CapacityTracker, registries: AiRegistries) 
 async fn run(
     db: Database,
     capacity: CapacityTracker,
-    registries: AiRegistries,
+    registries: BotMatchRegistries,
 ) -> Result<()> {
-    tracing::info!("AI match watcher started");
+    tracing::info!("bot match watcher started");
     loop {
         let matches = poll_pending(&db).await.unwrap_or_else(|e| {
             tracing::error!("poll pending matches: {e}");
@@ -100,10 +81,10 @@ async fn run(
         });
 
         for m in matches {
-            if !capacity.can_accept_work().await {
+            if !capacity.can_accept_work() {
                 break;
             }
-            let delay_ms = capacity.calculate_claim_delay().await;
+            let delay_ms = capacity.claim_delay_ms();
             if delay_ms > 0 {
                 tokio::time::sleep(Duration::from_millis(delay_ms)).await;
             }
@@ -111,10 +92,9 @@ async fn run(
                 continue;
             }
             tracing::info!("Claimed match: {}", m.id.to_sql());
-            capacity.increment_matches().await;
+            let slot = capacity.match_slot();
 
             let db_c = db.clone();
-            let cap_c = capacity.clone();
             let regs = registries.clone();
             tokio::spawn(async move {
                 let mid = m.id.clone();
@@ -122,7 +102,7 @@ async fn run(
                     tracing::error!("Match {} failed: {e:#}", mid.to_sql());
                     let _ = mark_failed(&db_c, &mid, &e.to_string()).await;
                 }
-                cap_c.decrement_matches().await;
+                drop(slot);
             });
         }
 
@@ -139,74 +119,66 @@ async fn poll_pending(db: &Database) -> Result<Vec<Match>> {
     Ok(rows)
 }
 
-async fn claim(db: &Database, match_id: &RecordId) -> Result<bool> {
+async fn claim(db: &Database, mid: &RecordId) -> Result<bool> {
     let q = "UPDATE $mid SET status = 'queued', updated_at = time::now()
              WHERE status = 'pending' RETURN AFTER;";
-    let mut resp = db.query(q).bind(("mid", match_id.clone())).await?;
-    let rows: Vec<Match> = resp.take(0)?;
+    let mut resp = db.query(q).bind(("mid", mid.clone())).await?;
+    let rows: Vec<serde_json::Value> = resp.take(0).unwrap_or_default();
     Ok(!rows.is_empty())
 }
 
-async fn execute(db: &Database, regs: &AiRegistries, m: Match) -> Result<()> {
+async fn mark_running(db: &Database, mid: &RecordId) -> Result<()> {
+    db.query(
+        "UPDATE $mid SET status = 'running',
+                          started_at = time::now(),
+                          updated_at = time::now();",
+    )
+    .bind(("mid", mid.clone()))
+    .await?;
+    Ok(())
+}
+
+async fn execute(db: &Database, regs: &BotMatchRegistries, m: Match) -> Result<()> {
     let id_str = m.id.to_sql();
-    db.query("UPDATE $mid SET status = 'running', started_at = time::now(), updated_at = time::now();")
-        .bind(("mid", m.id.clone()))
-        .await?;
+    mark_running(db, &m.id).await?;
 
     let metadata = crate::games::find_game_by_id(&m.game_id)
         .ok_or_else(|| anyhow!("unknown game_id: {}", m.game_id))?;
     let turn_timeout = Duration::from_millis(metadata.bot_turn_timeout_ms);
 
-    let binaries = compile_all(db, &m.participants).await?;
+    let host = regs
+        .get(m.game_id.as_str())
+        .ok_or_else(|| anyhow!("unsupported game: {}", m.game_id))?
+        .clone();
+
+    let binaries = resolve_binaries(db, &m.participants).await?;
     let player_ids: Vec<String> = m
         .participants
         .iter()
         .map(|p| p.submission_id.to_sql())
         .collect();
 
-    let mut bots: Vec<Arc<BotConn>> = Vec::with_capacity(binaries.len());
+    let mut bots: Vec<Bot> = Vec::with_capacity(binaries.len());
     for (pid, bin) in player_ids.iter().zip(&binaries) {
-        let conn = BotConn::spawn(pid, bin)
+        let sb = SandboxedBot::spawn(pid, bin)
             .await
             .with_context(|| format!("spawn bot {pid}"))?;
-        bots.push(Arc::new(conn));
+        bots.push(wrap(sb));
     }
 
-    let outcome = match m.game_id.as_str() {
-        "rock-paper-scissors" => {
-            let room = regs.rps.open(&id_str, LEASE_TTL).await?;
-            run_match(room, bots, player_ids, turn_timeout).await?
-        }
-        "tic-tac-toe" => {
-            let room = regs.ttt.open(&id_str, LEASE_TTL).await?;
-            run_match(room, bots, player_ids, turn_timeout).await?
-        }
-        "prisoners-dilemma" => {
-            let room = regs.pd.open(&id_str, LEASE_TTL).await?;
-            run_match(room, bots, player_ids, turn_timeout).await?
-        }
-        other => return Err(anyhow!("unsupported game: {other}")),
-    };
-
+    let outcome = host.run(&id_str, bots, player_ids, turn_timeout).await?;
     write_scores(db, &m, outcome).await?;
-
-    // Drop the room: lease released, in-memory state evicted. Log
-    // remains for audit / replay.
-    match m.game_id.as_str() {
-        "rock-paper-scissors" => regs.rps.drop_room(&id_str).await,
-        "tic-tac-toe" => regs.ttt.drop_room(&id_str).await,
-        "prisoners-dilemma" => regs.pd.drop_room(&id_str).await,
-        _ => {}
-    }
     Ok(())
 }
 
-/// Resolve every participant's compiled binary. By the time a match
-/// reaches the runner, `start_tournament` has already filtered out
-/// participants whose submission is not in the `accepted` state — so
-/// missing or failed submissions here are a data-integrity bug, not a
-/// user fault.
-async fn compile_all(db: &Database, participants: &[MatchParticipant]) -> Result<Vec<PathBuf>> {
+/// Resolve every participant's compiled binary path. By the time a
+/// match reaches the runner, `start_tournament` has already filtered
+/// out participants whose submission is not in the `accepted` state —
+/// missing or failed submissions here are a data-integrity bug.
+async fn resolve_binaries(
+    db: &Database,
+    participants: &[MatchParticipant],
+) -> Result<Vec<PathBuf>> {
     let mut paths = Vec::with_capacity(participants.len());
     for p in participants {
         let sid = p.submission_id.to_sql();
@@ -219,10 +191,13 @@ async fn compile_all(db: &Database, participants: &[MatchParticipant]) -> Result
             .await
             .with_context(|| format!("query submission {sid}"))?;
         let rows: Vec<Submission> = resp.take(0)?;
-        let s = rows.into_iter().next().ok_or_else(|| anyhow!("submission {sid} missing"))?;
+        let s = rows
+            .into_iter()
+            .next()
+            .ok_or_else(|| anyhow!("submission {sid} missing"))?;
         if s.status.as_deref() != Some("accepted") {
             return Err(anyhow!(
-                "submission {sid} not accepted (status={:?}); start_tournament should have filtered",
+                "submission {sid} not accepted (status={:?})",
                 s.status
             ));
         }
@@ -244,9 +219,7 @@ async fn write_scores(db: &Database, m: &Match, outcome: MatchOutcome) -> Result
         .filter_map(|i| m.participants.get(*i))
         .filter_map(|p| p.user_id.clone())
         .collect();
-    let any_fault = !faulted.is_empty();
-    let status = if any_fault { "failed" } else { "completed" };
-    let err = outcome.fault_reason.clone();
+    let status = if faulted.is_empty() { "completed" } else { "failed" };
     db.query(
         "UPDATE $mid SET
              status = $status,
@@ -261,7 +234,7 @@ async fn write_scores(db: &Database, m: &Match, outcome: MatchOutcome) -> Result
     .bind(("s0", s0))
     .bind(("s1", s1))
     .bind(("status", status.to_string()))
-    .bind(("err", err))
+    .bind(("err", outcome.fault_reason))
     .bind(("faulted", faulted))
     .await?;
     tracing::info!(

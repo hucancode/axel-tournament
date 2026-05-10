@@ -21,7 +21,7 @@ use crate::{
         tournament::{MatchGenerationType, Tournament, TournamentKind},
     },
 };
-use surrealdb::types::{RecordId, ToSql};
+use surrealdb::types::RecordId;
 
 pub async fn advance_brackets(db: &Database, tournament_id: RecordId) -> ApiResult<u32> {
     let tournament: Tournament = {
@@ -106,12 +106,12 @@ async fn advance_single(
         }
         let (pa, ma) = chunk[0];
         let (_, mb) = chunk[1];
-        let wa = ma.winner().ok_or_else(|| {
-            ApiError::Internal(format!("match {} has no winner", ma.id.as_ref().map(|i| i.to_sql()).unwrap_or_default()))
-        })?;
-        let wb = mb.winner().ok_or_else(|| {
-            ApiError::Internal(format!("match {} has no winner", mb.id.as_ref().map(|i| i.to_sql()).unwrap_or_default()))
-        })?;
+        let wa = ma
+            .winner()
+            .ok_or_else(|| ApiError::Internal("bracket advance: missing winner".to_string()))?;
+        let wb = mb
+            .winner()
+            .ok_or_else(|| ApiError::Internal("bracket advance: missing winner".to_string()))?;
         write_bracket_match(
             db,
             tournament,
@@ -186,7 +186,7 @@ async fn advance_losers(
         {
             continue; // Already generated this round.
         }
-        let pairs = lb_round_pairs(matches, lb_round, k);
+        let pairs = lb_round_pairs(matches, lb_round);
         let Some(pairs) = pairs else {
             // Inputs not yet available (a feeder match still pending).
             break;
@@ -213,7 +213,6 @@ async fn advance_losers(
 fn lb_round_pairs(
     matches: &[Match],
     r: u32,
-    k: u32,
 ) -> Option<Vec<(MatchParticipant, MatchParticipant)>> {
     if r == 0 {
         // Pair WB R0 losers position 2p with 2p+1.
@@ -251,7 +250,6 @@ fn lb_round_pairs(
         }
         pairs.push((chunk[0].clone(), chunk[1].clone()));
     }
-    let _ = k; // silenced (k currently informational)
     Some(pairs)
 }
 
@@ -344,18 +342,18 @@ async fn advance_grand_final(
     }
 
     // GF exists; if completed and LB-side won, spawn reset.
-    if reset.is_none() {
-        let gf = gf.unwrap();
+    if let (Some(gf), None) = (gf, reset) {
         if !matches!(gf.status, MatchStatus::Completed | MatchStatus::Failed) {
             return Ok(0);
         }
-        let winner = match gf.winner() {
-            Some(w) => w,
-            None => return Ok(0),
+        let Some(winner) = gf.winner() else {
+            return Ok(0);
         };
         // GF is laid out [WB-side, LB-side]: index 0 was the WB final winner.
-        let wb_side = &gf.participants[0];
-        let lb_side = &gf.participants.get(1);
+        let Some(wb_side) = gf.participants.first() else {
+            return Ok(0);
+        };
+        let lb_side = gf.participants.get(1);
         if winner.user_id == wb_side.user_id {
             return Ok(0); // WB-side won, no reset.
         }
@@ -364,7 +362,7 @@ async fn advance_grand_final(
                 db,
                 tournament,
                 wb_side.clone(),
-                Some((*lb_side).clone()),
+                Some(lb_side.clone()),
                 0,
                 "grand_final_reset",
                 0,
@@ -410,40 +408,7 @@ async fn write_bracket_match(
 mod tests {
     use super::*;
     use crate::models::matches::test_helpers::finished;
-    use crate::services::tournament::single_elim_round_zero;
-
-    #[test]
-    fn round_zero_two_players_pairs_them() {
-        let pairs = single_elim_round_zero(2);
-        assert_eq!(pairs, vec![(0, Some(1))]);
-    }
-
-    #[test]
-    fn round_zero_eight_players_uses_standard_seeding() {
-        let pairs = single_elim_round_zero(8);
-        // (1,8), (4,5), (2,7), (3,6) by 1-vs-N — zero-indexed:
-        assert_eq!(
-            pairs,
-            vec![(0, Some(7)), (3, Some(4)), (1, Some(6)), (2, Some(5))]
-        );
-    }
-
-    #[test]
-    fn round_zero_three_players_gives_top_seed_a_bye() {
-        let pairs = single_elim_round_zero(3);
-        // Bracket 4. Seed 0 vs (3=BYE) -> top seed bye; (1,2) plays.
-        assert_eq!(pairs[0], (0, None));
-        assert_eq!(pairs[1], (1, Some(2)));
-    }
-
-    #[test]
-    fn round_zero_five_players_two_get_byes() {
-        let pairs = single_elim_round_zero(5);
-        let byes = pairs.iter().filter(|(_, b)| b.is_none()).count();
-        assert_eq!(byes, 3);
-        let played = pairs.iter().filter(|(_, b)| b.is_some()).count();
-        assert_eq!(played, 1);
-    }
+    use surrealdb::types::ToSql;
 
     #[test]
     fn winner_of_completed_picks_higher_score() {

@@ -20,8 +20,8 @@ use api::{
         SubmissionStatus, TournamentStatus,
     },
     services::{
-        self, auth as auth_svc, matches as match_svc, submission as sub_svc,
-        tournament as tour_svc, user as user_svc, AuthService, EmailService,
+        auth as auth_svc, email as email_svc, matches as match_svc, submission as sub_svc,
+        tournament as tour_svc, user as user_svc,
     },
 };
 use surrealdb::types::RecordId;
@@ -35,12 +35,14 @@ async fn fresh_player(db: &api::db::Database) -> api::models::User {
     let username = unique("user");
     user_svc::create_user(
         db,
-        email,
-        username,
-        Some("hashed".to_string()),
-        "US".to_string(),
-        None,
-        None,
+        user_svc::NewUser {
+            email,
+            username,
+            password_hash: Some("hashed".to_string()),
+            location: "US".to_string(),
+            oauth_provider: None,
+            oauth_id: None,
+        },
     )
     .await
     .unwrap()
@@ -64,13 +66,13 @@ async fn fresh_tournament(db: &api::db::Database, game_id: &str) -> RecordId {
     t.id.unwrap()
 }
 
-// ---------- AuthService::user_to_info ----------
+// ---------- User::to_info ----------
 
 #[tokio::test]
 async fn user_to_info_projects_user_fields() {
     let db = db::setup_test_db().await;
     let user = fresh_player(&db).await;
-    let info = AuthService::user_to_info(&user).unwrap();
+    let info = user.to_info().unwrap();
     assert_eq!(info.email, user.email);
     assert_eq!(info.username, user.username);
     assert_eq!(info.location, user.location);
@@ -84,7 +86,7 @@ async fn user_to_info_projects_user_fields() {
 async fn get_user_by_id_returns_user() {
     let db = db::setup_test_db().await;
     let user = fresh_player(&db).await;
-    let by_id = auth_svc::get_user_by_id(&db, user.id.clone().unwrap()).await.unwrap();
+    let by_id = user_svc::get_user_by_id(&db, user.id.clone().unwrap()).await.unwrap();
     assert_eq!(by_id.email, user.email);
 }
 
@@ -92,23 +94,23 @@ async fn get_user_by_id_returns_user() {
 async fn get_user_by_id_not_found() {
     let db = db::setup_test_db().await;
     let bogus = RecordId::parse_simple("user:does_not_exist").unwrap();
-    assert!(auth_svc::get_user_by_id(&db, bogus).await.is_err());
+    assert!(user_svc::get_user_by_id(&db, bogus).await.is_err());
 }
 
 #[tokio::test]
 async fn get_user_by_email_none_for_unknown() {
     let db = db::setup_test_db().await;
     let unknown = format!("{}@nowhere.test", unique("nobody"));
-    assert!(auth_svc::get_user_by_email(&db, &unknown).await.unwrap().is_none());
+    assert!(user_svc::get_user_by_email(&db, &unknown).await.unwrap().is_none());
 }
 
 #[tokio::test]
 async fn get_user_by_username_round_trip() {
     let db = db::setup_test_db().await;
     let user = fresh_player(&db).await;
-    let by_name = auth_svc::get_user_by_username(&db, &user.username).await.unwrap();
+    let by_name = user_svc::get_user_by_username(&db, &user.username).await.unwrap();
     assert_eq!(by_name.unwrap().email, user.email);
-    let none = auth_svc::get_user_by_username(&db, &unique("ghost")).await.unwrap();
+    let none = user_svc::get_user_by_username(&db, &unique("ghost")).await.unwrap();
     assert!(none.is_none());
 }
 
@@ -118,20 +120,22 @@ async fn get_user_by_oauth_round_trip() {
     let oauth_id = unique("g");
     let user = user_svc::create_user(
         &db,
-        format!("{}@oauth.test", unique("u")),
-        unique("oauth"),
-        None,
-        "US".to_string(),
-        Some(OAuthProvider::Google),
-        Some(oauth_id.clone()),
+        user_svc::NewUser {
+            email: format!("{}@oauth.test", unique("u")),
+            username: unique("oauth"),
+            password_hash: None,
+            location: "US".to_string(),
+            oauth_provider: Some(OAuthProvider::Google),
+            oauth_id: Some(oauth_id.clone()),
+        },
     )
     .await
     .unwrap();
 
-    let found = auth_svc::get_user_by_oauth(&db, "google", &oauth_id).await.unwrap();
+    let found = user_svc::get_user_by_oauth(&db, "google", &oauth_id).await.unwrap();
     assert_eq!(found.unwrap().id, user.id);
 
-    let missing = auth_svc::get_user_by_oauth(&db, "google", &unique("ghost"))
+    let missing = user_svc::get_user_by_oauth(&db, "google", &unique("ghost"))
         .await
         .unwrap();
     assert!(missing.is_none());
@@ -514,44 +518,25 @@ async fn email_service_rejects_when_credentials_missing() {
     email_cfg.smtp_use_tls = true; // exercise the TLS path's credential check
     email_cfg.smtp_username = "".to_string();
     email_cfg.smtp_password = "".to_string();
-    let svc = EmailService::new(email_cfg);
-    let r = svc.send_password_reset("anyone@example.com", "tok").await;
-    assert!(matches!(r, Err(api::error::ApiError::Internal(_))));
+    let r = email_svc::send_password_reset(&email_cfg, "anyone@example.com", "tok").await;
+    assert!(matches!(r, Err(api::error::ApiError::Email(_))));
 }
 
 #[tokio::test]
 async fn email_service_sends_via_local_smtp() {
-    // Uses SMTP settings from Config::from_env() — points at Mailpit by
-    // default (`make test-mail-server-up`). If Mailpit is down, the test
-    // will fail loudly rather than silently — that is the intended
-    // assumption: services are running.
     let cfg = Config::from_env();
-    let svc = EmailService::new(cfg.email.clone());
     let recipient = format!("{}@example.com", unique("u"));
-    let r = svc.send_password_reset(&recipient, "test-token").await;
+    let r = email_svc::send_password_reset(&cfg.email, &recipient, "test-token").await;
     assert!(r.is_ok(), "send_password_reset failed: {:?}", r.err());
 }
 
-// ---------- AuthService reset token hash determinism ----------
+// ---------- auth reset token hash determinism ----------
 
 #[tokio::test]
 async fn hash_reset_token_is_deterministic() {
-    let auth = AuthService::new("secret".into(), 60);
     let raw = "deadbeef";
-    let h1 = auth.hash_reset_token(raw);
-    let h2 = auth.hash_reset_token(raw);
+    let h1 = auth_svc::hash_reset_token(raw);
+    let h2 = auth_svc::hash_reset_token(raw);
     assert_eq!(h1, h2);
-    assert_ne!(h1, auth.hash_reset_token("other"));
-}
-
-// ---------- HealerService construction ----------
-//
-// `HealerService::run` is an infinite loop, so we don't drive it
-// directly. We do verify that the service constructs cleanly against a
-// real DB handle, which is the only contract `new` promises.
-
-#[tokio::test]
-async fn healer_service_constructs() {
-    let db = db::setup_test_db().await;
-    let _h = services::HealerService::new(db);
+    assert_ne!(h1, auth_svc::hash_reset_token("other"));
 }

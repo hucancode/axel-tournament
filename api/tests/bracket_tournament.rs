@@ -10,7 +10,7 @@ use api::{
         matches::{Match, MatchStatus},
         MatchGenerationType, ProgrammingLanguage, TournamentKind, TournamentStatus,
     },
-    services::{auth, bracket, finalization, submission, tournament},
+    services::{bracket, finalization, submission, tournament, user},
 };
 use surrealdb::types::RecordId;
 
@@ -25,7 +25,7 @@ fn unique(prefix: &str) -> String {
 }
 
 async fn seeded_user(db: &api::db::Database, email: &str) -> RecordId {
-    auth::get_user_by_email(db, email)
+    user::get_user_by_email(db, email)
         .await
         .unwrap()
         .unwrap()
@@ -38,7 +38,7 @@ async fn ensure_user(db: &api::db::Database, suffix: u32) -> RecordId {
     // forge user rows directly.
     let username = format!("bracket_user_{suffix}");
     let email = format!("{username}@test.local");
-    if let Some(u) = auth::get_user_by_email(db, &email).await.unwrap() {
+    if let Some(u) = user::get_user_by_email(db, &email).await.unwrap() {
         return u.id.unwrap();
     }
     let mut resp = db

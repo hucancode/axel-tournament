@@ -34,7 +34,9 @@ fn record_key_to_string(rid: &RecordId) -> String {
     match &rid.key {
         RecordIdKey::String(s) => s.clone(),
         RecordIdKey::Number(n) => n.to_string(),
-        other => format!("{other:?}"),
+        // Crash early: any other key kind in our schema is a data
+        // bug, and a `Debug` fallback would silently mangle IDs.
+        other => panic!("unsupported RecordIdKey variant: {other:?}"),
     }
 }
 

@@ -14,7 +14,7 @@ use api::{
         matches::Match, MatchGenerationType, ProgrammingLanguage, TournamentKind,
         TournamentStatus,
     },
-    services::{auth, healer, matchmaking, submission, tournament},
+    services::{healer, matchmaking, submission, tournament, user},
 };
 use surrealdb::types::SurrealValue;
 use chrono::{Duration as ChDuration, Utc};
@@ -31,7 +31,7 @@ fn unique(p: &str) -> String {
 }
 
 async fn user_id(db: &api::db::Database, email: &str) -> RecordId {
-    auth::get_user_by_email(db, email)
+    user::get_user_by_email(db, email)
         .await
         .unwrap()
         .unwrap()
@@ -232,7 +232,7 @@ async fn healer_tick_advances_single_elim_bracket_without_explicit_call() {
     async fn ensure_user(db: &api::db::Database, suffix: u32) -> surrealdb::types::RecordId {
         let username = format!("healer_user_{suffix}");
         let email = format!("{username}@test.local");
-        if let Some(u) = auth::get_user_by_email(db, &email).await.unwrap() {
+        if let Some(u) = user::get_user_by_email(db, &email).await.unwrap() {
             return u.id.unwrap();
         }
         let mut resp = db
@@ -341,7 +341,7 @@ async fn concurrent_matchmaking_ticks_do_not_double_pair() {
     async fn ensure_user(db: &api::db::Database, suffix: &str) -> RecordId {
         let username = format!("mm_user_{suffix}");
         let email = format!("{username}@test.local");
-        if let Some(u) = auth::get_user_by_email(db, &email).await.unwrap() {
+        if let Some(u) = user::get_user_by_email(db, &email).await.unwrap() {
             return u.id.unwrap();
         }
         let mut resp = db

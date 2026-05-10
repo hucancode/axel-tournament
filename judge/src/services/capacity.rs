@@ -1,123 +1,132 @@
-use std::sync::Arc;
-use tokio::sync::RwLock;
+// Capacity tracker: counts active rooms and matches against a global
+// budget. Mutators are RAII guards (`RoomGuard`/`MatchGuard`) so the
+// caller can't leak a slot by forgetting to decrement.
 
-/// Tracks server capacity for rooms and matches
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
+
 #[derive(Debug, Clone)]
 pub struct CapacityTracker {
-    state: Arc<RwLock<CapacityState>>,
-    max_capacity: usize,
-    max_claim_delay_ms: u64,
+    state: Arc<State>,
 }
 
 #[derive(Debug)]
-struct CapacityState {
-    active_rooms: usize,
-    active_matches: usize,
+struct State {
+    active_rooms: AtomicUsize,
+    active_matches: AtomicUsize,
+    max_capacity: usize,
+    max_claim_delay_ms: u64,
 }
 
 impl CapacityTracker {
     pub fn new(max_capacity: usize, max_claim_delay_ms: u64) -> Self {
         Self {
-            state: Arc::new(RwLock::new(CapacityState {
-                active_rooms: 0,
-                active_matches: 0,
-            })),
-            max_capacity,
-            max_claim_delay_ms,
+            state: Arc::new(State {
+                active_rooms: AtomicUsize::new(0),
+                active_matches: AtomicUsize::new(0),
+                max_capacity,
+                max_claim_delay_ms,
+            }),
         }
     }
 
-    /// Get current load (0.0 = idle, 1.0 = full capacity)
-    pub async fn get_load(&self) -> f64 {
-        let state = self.state.read().await;
-        let total = state.active_rooms + state.active_matches;
-        (total as f64) / (self.max_capacity as f64)
-    }
-
-    /// Calculate claim delay based on current load
-    /// - 0% load = 0ms delay (immediate claim)
-    /// - 90% load = 1000ms delay (or configured max)
-    /// - 100% load = max delay
-    pub async fn calculate_claim_delay(&self) -> u64 {
-        let load = self.get_load().await;
-        if load >= 1.0 {
-            self.max_claim_delay_ms
-        } else {
-            (load * self.max_claim_delay_ms as f64) as u64
-        }
-    }
-
-    /// Increment active room count
-    pub async fn increment_rooms(&self) {
-        let mut state = self.state.write().await;
-        state.active_rooms += 1;
-        tracing::debug!(
-            "Room created. Active: {} rooms, {} matches (total: {}/{})",
-            state.active_rooms,
-            state.active_matches,
-            state.active_rooms + state.active_matches,
-            self.max_capacity
-        );
-    }
-
-    /// Decrement active room count
-    pub async fn decrement_rooms(&self) {
-        let mut state = self.state.write().await;
-        state.active_rooms = state.active_rooms.saturating_sub(1);
-        tracing::debug!(
-            "Room deleted. Active: {} rooms, {} matches (total: {}/{})",
-            state.active_rooms,
-            state.active_matches,
-            state.active_rooms + state.active_matches,
-            self.max_capacity
-        );
-    }
-
-    /// Increment active match count
-    pub async fn increment_matches(&self) {
-        let mut state = self.state.write().await;
-        state.active_matches += 1;
-        tracing::debug!(
-            "Match claimed. Active: {} rooms, {} matches (total: {}/{})",
-            state.active_rooms,
-            state.active_matches,
-            state.active_rooms + state.active_matches,
-            self.max_capacity
-        );
-    }
-
-    /// Decrement active match count
-    pub async fn decrement_matches(&self) {
-        let mut state = self.state.write().await;
-        state.active_matches = state.active_matches.saturating_sub(1);
-        tracing::debug!(
-            "Match released. Active: {} rooms, {} matches (total: {}/{})",
-            state.active_rooms,
-            state.active_matches,
-            state.active_rooms + state.active_matches,
-            self.max_capacity
-        );
-    }
-
-    /// Check if server can accept more work
-    pub async fn can_accept_work(&self) -> bool {
-        let state = self.state.read().await;
-        let total = state.active_rooms + state.active_matches;
-        total < self.max_capacity
-    }
-
-    /// Get current statistics
-    pub async fn get_stats(&self) -> CapacityStats {
-        let state = self.state.read().await;
+    pub fn snapshot(&self) -> CapacityStats {
+        let rooms = self.state.active_rooms.load(Ordering::Relaxed);
+        let matches = self.state.active_matches.load(Ordering::Relaxed);
+        let max = self.state.max_capacity;
         CapacityStats {
-            active_rooms: state.active_rooms,
-            active_matches: state.active_matches,
-            total_active: state.active_rooms + state.active_matches,
-            max_capacity: self.max_capacity,
-            load_percentage: ((state.active_rooms + state.active_matches) as f64
-                / self.max_capacity as f64
-                * 100.0) as u32,
+            active_rooms: rooms,
+            active_matches: matches,
+            total_active: rooms + matches,
+            max_capacity: max,
+            load_percentage: if max == 0 {
+                0
+            } else {
+                ((rooms + matches) as f64 / max as f64 * 100.0) as u32
+            },
         }
+    }
+
+    /// 0.0 idle .. 1.0 saturated.
+    pub fn load(&self) -> f64 {
+        let snap = self.snapshot();
+        if snap.max_capacity == 0 {
+            return 0.0;
+        }
+        snap.total_active as f64 / snap.max_capacity as f64
+    }
+
+    /// Backoff delay scaled by load. Saturates at `max_claim_delay_ms`.
+    pub fn claim_delay_ms(&self) -> u64 {
+        let load = self.load();
+        if load >= 1.0 {
+            self.state.max_claim_delay_ms
+        } else {
+            (load * self.state.max_claim_delay_ms as f64) as u64
+        }
+    }
+
+    pub fn can_accept_work(&self) -> bool {
+        self.snapshot().total_active < self.state.max_capacity
+    }
+
+    /// Acquire a room slot. Drop the returned guard to release.
+    pub fn room_slot(&self) -> RoomGuard {
+        self.state.active_rooms.fetch_add(1, Ordering::Relaxed);
+        self.log_change("Room created");
+        RoomGuard {
+            state: self.state.clone(),
+        }
+    }
+
+    /// Acquire a match slot. Drop the returned guard to release.
+    pub fn match_slot(&self) -> MatchGuard {
+        self.state.active_matches.fetch_add(1, Ordering::Relaxed);
+        self.log_change("Match claimed");
+        MatchGuard {
+            state: self.state.clone(),
+        }
+    }
+
+    fn log_change(&self, event: &str) {
+        let snap = self.snapshot();
+        tracing::debug!(
+            "{event}. Active: {} rooms, {} matches (total: {}/{})",
+            snap.active_rooms,
+            snap.active_matches,
+            snap.total_active,
+            snap.max_capacity
+        );
+    }
+}
+
+pub struct RoomGuard {
+    state: Arc<State>,
+}
+
+impl Drop for RoomGuard {
+    fn drop(&mut self) {
+        self.state
+            .active_rooms
+            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |n| {
+                Some(n.saturating_sub(1))
+            })
+            .ok();
+    }
+}
+
+pub struct MatchGuard {
+    state: Arc<State>,
+}
+
+impl Drop for MatchGuard {
+    fn drop(&mut self) {
+        self.state
+            .active_matches
+            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |n| {
+                Some(n.saturating_sub(1))
+            })
+            .ok();
     }
 }
 
@@ -129,5 +138,3 @@ pub struct CapacityStats {
     pub max_capacity: usize,
     pub load_percentage: u32,
 }
-
-

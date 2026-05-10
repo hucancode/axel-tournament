@@ -16,7 +16,7 @@ use api::{
         matches::{Match, MatchStatus},
         ProgrammingLanguage, TournamentKind, TournamentStatus,
     },
-    services::{auth, finalization, matches, submission, tournament},
+    services::{finalization, matches, stats, submission, tournament, user},
 };
 use surrealdb::types::{Datetime, RecordId};
 
@@ -32,7 +32,7 @@ fn unique(prefix: &str) -> String {
 
 async fn bob(db: &api::db::Database) -> api::models::User {
     let cfg = Config::from_env();
-    auth::get_user_by_email(db, &cfg.bob.email)
+    user::get_user_by_email(db, &cfg.bob.email)
         .await
         .unwrap()
         .expect("bob exists")
@@ -40,7 +40,7 @@ async fn bob(db: &api::db::Database) -> api::models::User {
 
 async fn alice(db: &api::db::Database) -> api::models::User {
     let cfg = Config::from_env();
-    auth::get_user_by_email(db, &cfg.alice.email)
+    user::get_user_by_email(db, &cfg.alice.email)
         .await
         .unwrap()
         .expect("alice exists")
@@ -814,7 +814,7 @@ async fn submission_stats_reports_per_bot_record() {
     let _: Option<Match> = db.create("match").content(make(2.0, 0.0)).await.unwrap();
     let _: Option<Match> = db.create("match").content(make(1.0, 1.0)).await.unwrap();
 
-    let stats = submission::submission_stats(&db, bob_sub.id.unwrap())
+    let stats = stats::submission_stats(&db, bob_sub.id.unwrap())
         .await
         .unwrap();
     assert_eq!(stats.matches_played, 2);

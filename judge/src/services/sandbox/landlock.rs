@@ -1,20 +1,19 @@
+use crate::services::sandbox::{Result, SandboxError};
 use landlock::*;
 use std::path::Path;
-use crate::services::sandbox::{Result, SandboxError};
 
 pub fn apply_execution_rules(binary: &Path) -> Result<()> {
     let abi = ABI::V3;
     let mut ruleset = Ruleset::default()
         .handle_access(AccessFs::from_all(abi))
-        .map_err(|e| SandboxError::LandlockError(format!("Failed to create ruleset: {}", e)))?
+        .map_err(|e| SandboxError::setup("landlock ruleset", e))?
         .create()
-        .map_err(|e| SandboxError::LandlockError(format!("Failed to create ruleset: {}", e)))?
+        .map_err(|e| SandboxError::setup("landlock create", e))?
         .add_rule(PathBeneath::new(
-            PathFd::new(binary)
-                .map_err(|e| SandboxError::LandlockError(format!("Failed to open binary path: {}", e)))?,
+            PathFd::new(binary).map_err(|e| SandboxError::setup("landlock open binary", e))?,
             AccessFs::Execute | AccessFs::ReadFile | AccessFs::ReadDir,
         ))
-        .map_err(|e| SandboxError::LandlockError(format!("Failed to add binary rule: {}", e)))?;
+        .map_err(|e| SandboxError::setup("landlock add binary rule", e))?;
 
     tracing::debug!("Added Landlock rule for binary: {:?}", binary);
 
@@ -22,10 +21,10 @@ pub fn apply_execution_rules(binary: &Path) -> Result<()> {
         ruleset = ruleset
             .add_rule(PathBeneath::new(
                 PathFd::new("/usr")
-                    .map_err(|e| SandboxError::LandlockError(format!("Failed to open /usr: {}", e)))?,
+                    .map_err(|e| SandboxError::setup("landlock open /usr", e))?,
                 AccessFs::from_read(abi) | AccessFs::Execute,
             ))
-            .map_err(|e| SandboxError::LandlockError(format!("Failed to add /usr rule: {}", e)))?;
+            .map_err(|e| SandboxError::setup("landlock add /usr rule", e))?;
         tracing::debug!("Added Landlock rule for /usr (libraries)");
     }
 
@@ -38,7 +37,9 @@ pub fn apply_execution_rules(binary: &Path) -> Result<()> {
                             path_fd,
                             AccessFs::from_read(abi) | AccessFs::Execute,
                         ))
-                        .map_err(|e| SandboxError::LandlockError(format!("Failed to add {} rule: {}", lib_path, e)))?;
+                        .map_err(|e| {
+                            SandboxError::setup("landlock add lib rule", e)
+                        })?;
                     tracing::debug!("Added Landlock rule for {}", lib_path);
                 }
                 Err(e) => {
@@ -50,15 +51,13 @@ pub fn apply_execution_rules(binary: &Path) -> Result<()> {
 
     let status = ruleset
         .restrict_self()
-        .map_err(|e| SandboxError::LandlockError(format!("Failed to restrict self: {}", e)))?;
+        .map_err(|e| SandboxError::setup("landlock restrict_self", e))?;
 
     tracing::debug!("Landlock execution rules applied: {:?}", status);
     Ok(())
 }
 
-/// Check if landlock is supported on this system
 pub fn is_supported() -> bool {
-    // Try to create a simple ruleset to check if landlock is supported
     Ruleset::default()
         .handle_access(AccessFs::from_all(ABI::V3))
         .and_then(|r| r.create())

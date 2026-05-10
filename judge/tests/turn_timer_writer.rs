@@ -3,7 +3,7 @@
 
 mod db;
 
-use judge::services::turn_timer::db_timeout_callback;
+use judge::services::match_writer::db_timeout_callback;
 use serde::{Deserialize, Serialize};
 use surrealdb::types::{Datetime, RecordId, SurrealValue, ToSql};
 

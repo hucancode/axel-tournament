@@ -1,5 +1,7 @@
 pub mod auth;
 pub mod bracket;
+pub mod common;
+pub mod elo;
 pub mod email;
 pub mod finalization;
 pub mod healer;
@@ -7,15 +9,7 @@ pub mod leaderboard;
 pub mod matches;
 pub mod matchmaking;
 pub mod room;
+pub mod stats;
 pub mod submission;
 pub mod tournament;
 pub mod user;
-
-pub use auth::*;
-pub use email::*;
-pub use healer::*;
-pub use leaderboard::*;
-pub use matches::*;
-pub use submission::*;
-pub use tournament::*;
-pub use user::*;

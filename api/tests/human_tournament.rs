@@ -13,7 +13,7 @@ mod db;
 use api::{
     config::Config,
     models::{TournamentKind, TournamentStatus, RoomStatus},
-    services::{auth, matchmaking, room as room_svc, tournament},
+    services::{matchmaking, room as room_svc, tournament, user},
 };
 use surrealdb::types::RecordId;
 
@@ -29,7 +29,7 @@ fn unique(prefix: &str) -> String {
 
 async fn bob(db: &api::db::Database) -> RecordId {
     let cfg = Config::from_env();
-    auth::get_user_by_email(db, &cfg.bob.email)
+    user::get_user_by_email(db, &cfg.bob.email)
         .await
         .unwrap()
         .unwrap()
@@ -39,7 +39,7 @@ async fn bob(db: &api::db::Database) -> RecordId {
 
 async fn alice(db: &api::db::Database) -> RecordId {
     let cfg = Config::from_env();
-    auth::get_user_by_email(db, &cfg.alice.email)
+    user::get_user_by_email(db, &cfg.alice.email)
         .await
         .unwrap()
         .unwrap()
@@ -87,13 +87,12 @@ async fn user_creates_unranked_room_then_other_joins() {
     let bob = bob(&db).await;
     let alice = alice(&db).await;
 
-    let room = room_svc::create_unranked_room_for_user(
+    let room = room_svc::create_room(
         &db,
         bob.clone(),
         GAME.into(),
         unique("UR "),
-        4,
-    )
+        4, None, false, Vec::new(), None)
     .await
     .unwrap();
     let rid = room.id.clone().unwrap();
@@ -174,13 +173,12 @@ async fn only_host_can_start_room() {
     let bob = bob(&db).await;
     let alice = alice(&db).await;
 
-    let room = room_svc::create_unranked_room_for_user(
+    let room = room_svc::create_room(
         &db,
         bob.clone(),
         GAME.into(),
         unique("Start "),
-        4,
-    )
+        4, None, false, Vec::new(), None)
     .await
     .unwrap();
     let rid = room.id.unwrap();
@@ -199,13 +197,12 @@ async fn only_host_can_start_room() {
 async fn start_room_requires_at_least_two_players() {
     let db = db::setup_test_db().await;
     let bob = bob(&db).await;
-    let room = room_svc::create_unranked_room_for_user(
+    let room = room_svc::create_room(
         &db,
         bob.clone(),
         GAME.into(),
         unique("Lonely "),
-        4,
-    )
+        4, None, false, Vec::new(), None)
     .await
     .unwrap();
     let r = room_svc::start_room(&db, room.id.unwrap(), bob).await;
@@ -217,13 +214,12 @@ async fn finish_room_disconnect_timeout_makes_other_player_winner() {
     let db = db::setup_test_db().await;
     let bob = bob(&db).await;
     let alice = alice(&db).await;
-    let room = room_svc::create_unranked_room_for_user(
+    let room = room_svc::create_room(
         &db,
         bob.clone(),
         GAME.into(),
         unique("DC "),
-        2,
-    )
+        2, None, false, Vec::new(), None)
     .await
     .unwrap();
     let rid = room.id.unwrap();

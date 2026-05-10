@@ -1,111 +1,59 @@
-// Subprocess transport for the room wire protocol.
+// Subprocess transport + match runner for the room wire protocol.
 // Spec: judge/protocols/wire.md ("Stdio" transport).
 //
-// A `BotConn` owns one sandboxed subprocess. The orchestrator writes
-// `EVENT seq kind payload\n` lines to its stdin and reads
-// `ACT kind [payload]\n` lines from its stdout. Bots are pre-authorized
-// (no HELLO/WELCOME/since_seq) and cannot reconnect — they are torn
-// down on disconnect. Same parser, same kinds, same RoomLogic as the
-// WebSocket handler.
+// One sandboxed subprocess per bot. The orchestrator writes
+// `EVENT seq kind payload\n` lines to stdin and reads `ACT kind [payload]\n`
+// lines from stdout. Bots are pre-authorized (no HELLO/WELCOME/since_seq)
+// and cannot reconnect.
 
 use crate::protocol::{parse_client, ClientFrame};
 use crate::services::room::logic::{LiveRoom, RoomLogic};
-use crate::services::sandbox::cgroup::CgroupHandle;
-use crate::services::sandbox::executor::{fd_to_file, spawn_sandboxed};
+use crate::services::sandbox::SandboxedBot;
 use crate::services::storage::Event;
-use anyhow::{anyhow, Context, Result};
-use nix::sys::signal::{kill, Signal};
-use nix::unistd::Pid;
-use std::path::Path;
+use anyhow::{anyhow, Result};
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::fs::File as TokioFile;
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt};
 use tokio::sync::Mutex;
 
-/// One sandboxed bot wired to its stdio pipes. Drop kills the subprocess.
-pub struct BotConn {
-    pid: Option<Pid>,
-    stdin: Mutex<TokioFile>,
-    stdout: Mutex<BufReader<TokioFile>>,
-    _cgroup: CgroupHandle,
+pub type Bot = Arc<Mutex<SandboxedBot>>;
+
+pub fn wrap(bot: SandboxedBot) -> Bot {
+    Arc::new(Mutex::new(bot))
 }
 
-impl BotConn {
-    pub async fn spawn(label: &str, binary_path: &Path) -> Result<Self> {
-        let label = label.to_string();
-        let path = binary_path.to_path_buf();
-        let process = tokio::task::spawn_blocking(move || spawn_sandboxed(&label, &path))
-            .await
-            .context("spawn task join")??;
-        let stdin = TokioFile::from_std(fd_to_file(process.stdin_fd));
-        let stdout = BufReader::new(TokioFile::from_std(fd_to_file(process.stdout_fd)));
-        Ok(Self {
-            pid: Some(process.pid),
-            stdin: Mutex::new(stdin),
-            stdout: Mutex::new(stdout),
-            _cgroup: process.cgroup,
-        })
-    }
-
-    /// Write one frame line to bot stdin. The trailing `\n` is added here.
-    pub async fn send_line(&self, line: &str) -> Result<()> {
-        let mut g = self.stdin.lock().await;
-        g.write_all(line.as_bytes()).await?;
-        g.write_all(b"\n").await?;
-        g.flush().await?;
-        Ok(())
-    }
-
-    /// Read one frame line from bot stdout, with timeout.
-    pub async fn recv_line(&self, timeout: Duration) -> Result<String> {
-        let mut g = self.stdout.lock().await;
-        let mut line = String::new();
-        let n = tokio::time::timeout(timeout, g.read_line(&mut line))
-            .await
-            .map_err(|_| anyhow!("bot read timeout"))??;
-        if n == 0 {
-            return Err(anyhow!("bot eof"));
-        }
-        Ok(line.trim_end_matches(['\n', '\r']).to_string())
-    }
+async fn send_line(bot: &Mutex<SandboxedBot>, line: &str) -> Result<()> {
+    let mut g = bot.lock().await;
+    g.stdin.write_all(line.as_bytes()).await?;
+    g.stdin.write_all(b"\n").await?;
+    g.stdin.flush().await?;
+    Ok(())
 }
 
-impl Drop for BotConn {
-    fn drop(&mut self) {
-        if let Some(pid) = self.pid.take() {
-            let _ = kill(pid, Signal::SIGTERM);
-            std::thread::sleep(Duration::from_millis(200));
-            let _ = kill(pid, Signal::SIGKILL);
-        }
+async fn recv_line(bot: &Mutex<SandboxedBot>, timeout: Duration) -> Result<String> {
+    let mut g = bot.lock().await;
+    let mut line = String::new();
+    let n = tokio::time::timeout(timeout, g.stdout.read_line(&mut line))
+        .await
+        .map_err(|_| anyhow!("bot read timeout"))??;
+    if n == 0 {
+        return Err(anyhow!("bot eof"));
     }
+    Ok(line.trim_end_matches(['\n', '\r']).to_string())
 }
 
-/// Outcome of a finished AI-vs-AI match.
 #[derive(Debug, Clone)]
 pub struct MatchOutcome {
-    /// Final score per participant, in JOIN order (= participant index).
     pub scores: Vec<f64>,
-    /// Indices of participants at fault (runtime error, illegal move,
-    /// turn timeout). Empty when the match played out normally.
     pub faulted_indices: Vec<usize>,
-    /// Human-readable reason for the fault, if any.
     pub fault_reason: Option<String>,
 }
 
-/// Drive a fully-loaded `LiveRoom<L>` to completion using N bots in
-/// JOIN order. Each player_id corresponds 1:1 with a `BotConn`.
-///
-/// Steps (server-driven, no HELLO):
-/// 1. JOIN each bot in order. The host (index 0) STARTs.
-/// 2. Subscribe to room events; replay all current events to each bot
-///    (so bots that need to see PLAYER_JOINED do).
-/// 3. Forward live events to all bots.
-/// 4. Per bot: read ACT lines, dispatch via `LiveRoom::handle_act`.
-/// 5. Resolve when `GAME_END` or `WINNER`/`DRAW` event lands.
+/// Drive a freshly-loaded `LiveRoom<L>` to completion using N bots in
+/// JOIN order.
 pub async fn run_match<L: RoomLogic>(
     room: Arc<LiveRoom<L>>,
-    bots: Vec<Arc<BotConn>>,
+    bots: Vec<Bot>,
     player_ids: Vec<String>,
     turn_timeout: Duration,
 ) -> Result<MatchOutcome> {
@@ -113,21 +61,19 @@ pub async fn run_match<L: RoomLogic>(
         return Err(anyhow!("bots/player_ids length mismatch"));
     }
 
-    // Per-bot fault tracker shared with reader tasks.
     let faults: Arc<Mutex<Vec<Option<String>>>> =
         Arc::new(Mutex::new(vec![None; bots.len()]));
 
     let mut subscriber = room.subscribe();
 
-    // Replay any committed events to each bot (gap-fill equivalent).
     let backlog = room.read_since(0).await?;
     for ev in &backlog {
+        let line = format_event(ev);
         for b in &bots {
-            let _ = b.send_line(&format_event(ev)).await;
+            let _ = send_line(b, &line).await;
         }
     }
 
-    // JOIN every bot, then host START.
     for pid in &player_ids {
         room.handle_act(pid, "JOIN", "").await.ok();
     }
@@ -135,8 +81,6 @@ pub async fn run_match<L: RoomLogic>(
         room.handle_act(host, "START", "").await.ok();
     }
 
-    // Per-bot ACT reader task. Records the first fault we see so the
-    // orchestrator can attribute losses correctly.
     let mut readers = Vec::with_capacity(bots.len());
     for (idx, bot) in bots.iter().enumerate() {
         let bot = bot.clone();
@@ -154,7 +98,7 @@ pub async fn run_match<L: RoomLogic>(
                 }
             };
             loop {
-                let line = match bot.recv_line(turn_timeout).await {
+                let line = match recv_line(&bot, turn_timeout).await {
                     Ok(l) => l,
                     Err(e) => {
                         let reason = if e.to_string().contains("timeout") {
@@ -187,12 +131,11 @@ pub async fn run_match<L: RoomLogic>(
         }));
     }
 
-    // Pump events to all bots; finish on terminal kind.
     let outcome = loop {
         let event = match subscriber.recv().await {
             Ok(e) => e,
             Err(tokio::sync::broadcast::error::RecvError::Lagged(n)) => {
-                tracing::warn!("AI match subscriber lagged by {n}; aborting");
+                tracing::warn!("bot match subscriber lagged by {n}; aborting");
                 return Err(anyhow!("event stream lagged"));
             }
             Err(tokio::sync::broadcast::error::RecvError::Closed) => {
@@ -201,7 +144,7 @@ pub async fn run_match<L: RoomLogic>(
         };
         let line = format_event(&event);
         for b in &bots {
-            let _ = b.send_line(&line).await;
+            let _ = send_line(b, &line).await;
         }
         if let Some(scores) = parse_terminal(&event, player_ids.len()) {
             let faults_g = faults.lock().await;
@@ -235,10 +178,10 @@ fn format_event(e: &Event) -> String {
     }
 }
 
-/// Decode a terminal event into per-player scores. Recognises:
-/// - `GAME_END <s0> <s1> ...` — space-separated decimals per side
-/// - `WINNER <pid_or_idx>`    — winner gets 1.0, others 0.0
-/// - `DRAW`                   — all 0.0
+/// Decode terminal event into per-player scores. Recognises:
+/// - `GAME_END <s0> <s1> ...`
+/// - `WINNER <idx>`
+/// - `DRAW`
 fn parse_terminal(e: &Event, n_players: usize) -> Option<Vec<f64>> {
     match e.kind.as_str() {
         "GAME_END" => {

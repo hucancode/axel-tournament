@@ -1,7 +1,9 @@
-pub mod ai_match;
+pub mod bot_match;
 pub mod capacity;
+pub mod match_writer;
+pub mod playground;
 pub mod room;
 pub mod sandbox;
 pub mod storage;
-pub mod submission_compiler;
+pub mod submission;
 pub mod turn_timer;

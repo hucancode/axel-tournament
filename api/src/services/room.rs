@@ -18,6 +18,7 @@ use crate::{
         room::{Room, RoomStatus},
         tournament::{Tournament, TournamentKind, TournamentStatus},
     },
+    services::elo,
 };
 use surrealdb::types::{Datetime, RecordId};
 
@@ -35,9 +36,7 @@ pub async fn create_room(
     find_game_by_id(&game_id)
         .ok_or_else(|| ApiError::NotFound("Game not found".to_string()))?;
     if !(2..=16).contains(&max_players) {
-        return Err(ApiError::Validation(
-            "Max players must be 2-16".to_string(),
-        ));
+        return Err(ApiError::Validation("Max players must be 2-16".to_string()));
     }
 
     let room = Room {
@@ -59,16 +58,6 @@ pub async fn create_room(
     };
     let created: Option<Room> = db.create("room").content(room).await?;
     created.ok_or_else(|| ApiError::Internal("Failed to create room".to_string()))
-}
-
-pub async fn create_unranked_room_for_user(
-    db: &Database,
-    host_id: RecordId,
-    game_id: String,
-    name: String,
-    max_players: u32,
-) -> ApiResult<Room> {
-    create_room(db, host_id, game_id, name, max_players, None, false, Vec::new(), None).await
 }
 
 /// Create a ranked tournament room with a fixed participant list.
@@ -101,7 +90,7 @@ pub async fn create_ranked_room(
     let max = allowed_user_ids.len() as u32;
     create_room(
         db,
-        host_id.clone(),
+        host_id,
         tournament.game_id.clone(),
         format!("ranked-{}", uuid::Uuid::new_v4().simple()),
         max,
@@ -119,12 +108,12 @@ pub async fn get_room(db: &Database, room_id: RecordId) -> ApiResult<Room> {
 }
 
 pub async fn list_open_rooms(db: &Database, game_id: Option<String>) -> ApiResult<Vec<Room>> {
-    let q = if game_id.is_some() {
+    let q = if let Some(gid) = game_id {
         db.query(
             "SELECT * FROM room WHERE status = 'lobby' AND game_id = $game_id
              ORDER BY created_at DESC LIMIT 200",
         )
-        .bind(("game_id", game_id.unwrap()))
+        .bind(("game_id", gid))
     } else {
         db.query(
             "SELECT * FROM room WHERE status = 'lobby'
@@ -179,12 +168,10 @@ pub async fn leave_room(
     room_id: RecordId,
     user_id: RecordId,
 ) -> ApiResult<()> {
-    db.query(
-        "UPDATE $rid SET players -= $uid, updated_at = time::now()",
-    )
-    .bind(("rid", room_id))
-    .bind(("uid", user_id))
-    .await?;
+    db.query("UPDATE $rid SET players -= $uid, updated_at = time::now()")
+        .bind(("rid", room_id))
+        .bind(("uid", user_id))
+        .await?;
     Ok(())
 }
 
@@ -200,9 +187,7 @@ pub async fn start_room(
         ));
     }
     if room.status != RoomStatus::Lobby {
-        return Err(ApiError::BadRequest(
-            "Room is not in lobby".to_string(),
-        ));
+        return Err(ApiError::BadRequest("Room is not in lobby".to_string()));
     }
     if (room.players.len() as u32) < 2 {
         return Err(ApiError::BadRequest(
@@ -253,7 +238,6 @@ pub async fn finish_room(
         return Ok(room);
     }
 
-    // Persist a match row mirroring the room's outcome.
     let participants = room
         .players
         .iter()
@@ -270,10 +254,6 @@ pub async fn finish_room(
         })
         .collect::<Vec<_>>();
 
-    let match_status = match reason {
-        FinishReason::Played => MatchStatus::Completed,
-        FinishReason::DisconnectTimeout => MatchStatus::Completed,
-    };
     let error_message = match reason {
         FinishReason::DisconnectTimeout => Some("disconnect_timeout".to_string()),
         FinishReason::Played => None,
@@ -282,7 +262,7 @@ pub async fn finish_room(
     let m = Match {
         tournament_id: room.tournament_id.clone(),
         game_id: room.game_id.clone(),
-        status: match_status,
+        status: MatchStatus::Completed,
         participants,
         room_id: Some(room_id.clone()),
         error_message,
@@ -308,115 +288,13 @@ pub async fn finish_room(
         .next()
         .ok_or_else(|| ApiError::Internal("Failed to finish room".to_string()))?;
 
-    // Ranked rooms feed their result into the tournament leaderboard.
     if updated.is_ranked {
         if let Some(tid) = updated.tournament_id.clone() {
-            apply_ranked_result(db, &tid, &updated.players, &winner_id).await?;
-            // Try finalizing the tournament if every ranked room is done.
-            let _ = crate::services::finalization::finalize_if_done(db, tid).await;
+            elo::apply_ranked_result(db, &tid, &updated.players, &winner_id).await?;
+            if let Err(e) = crate::services::finalization::finalize_if_done(db, tid).await {
+                tracing::warn!("finalize_if_done after ranked room: {e}");
+            }
         }
     }
     Ok(updated)
-}
-
-/// Apply ELO-style adjustment to participants based on the room result.
-/// Default starting ELO is 1000; K-factor 32. Draws are 0.5/0.5.
-pub async fn apply_ranked_result(
-    db: &Database,
-    tournament_id: &RecordId,
-    players: &[RecordId],
-    winner: &Option<RecordId>,
-) -> ApiResult<()> {
-    if players.len() != 2 {
-        return Ok(()); // ELO formula here only handles 1v1
-    }
-    let a = &players[0];
-    let b = &players[1];
-
-    let elo_a = current_elo(db, tournament_id, a).await?;
-    let elo_b = current_elo(db, tournament_id, b).await?;
-
-    let (sa, sb) = match winner {
-        Some(w) if w == a => (1.0, 0.0),
-        Some(w) if w == b => (0.0, 1.0),
-        _ => (0.5, 0.5),
-    };
-    let (na, nb) = update_elo_pair(elo_a, elo_b, sa, sb);
-    write_elo(db, tournament_id, a, na).await?;
-    write_elo(db, tournament_id, b, nb).await?;
-    Ok(())
-}
-
-async fn current_elo(
-    db: &Database,
-    tournament_id: &RecordId,
-    user_id: &RecordId,
-) -> ApiResult<f64> {
-    Ok(crate::services::tournament::get_participant(db, tournament_id, user_id)
-        .await?
-        .and_then(|p| p.elo)
-        .unwrap_or(DEFAULT_ELO))
-}
-
-async fn write_elo(
-    db: &Database,
-    tournament_id: &RecordId,
-    user_id: &RecordId,
-    elo: f64,
-) -> ApiResult<()> {
-    db.query(
-        "UPDATE tournament_participant SET elo = $elo
-         WHERE tournament_id = $tid AND user_id = $uid",
-    )
-    .bind(("tid", tournament_id.clone()))
-    .bind(("uid", user_id.clone()))
-    .bind(("elo", elo))
-    .await?;
-    Ok(())
-}
-
-pub const DEFAULT_ELO: f64 = 1000.0;
-pub const ELO_K: f64 = 32.0;
-
-/// Pure ELO update for a 1v1 result. `sa`/`sb` are the realised scores
-/// (1 win, 0.5 draw, 0 loss) and must sum to 1.
-pub fn update_elo_pair(elo_a: f64, elo_b: f64, sa: f64, sb: f64) -> (f64, f64) {
-    let ea = expected_score(elo_a, elo_b);
-    let eb = 1.0 - ea;
-    let na = elo_a + ELO_K * (sa - ea);
-    let nb = elo_b + ELO_K * (sb - eb);
-    (na, nb)
-}
-
-fn expected_score(rating_a: f64, rating_b: f64) -> f64 {
-    1.0 / (1.0 + 10f64.powf((rating_b - rating_a) / 400.0))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn equal_elo_winner_gains_loser_drops() {
-        let (na, nb) = update_elo_pair(1000.0, 1000.0, 1.0, 0.0);
-        assert!((na - 1016.0).abs() < 0.01);
-        assert!((nb - 984.0).abs() < 0.01);
-    }
-
-    #[test]
-    fn draw_between_equal_changes_nothing() {
-        let (na, nb) = update_elo_pair(1000.0, 1000.0, 0.5, 0.5);
-        assert!((na - 1000.0).abs() < 0.01);
-        assert!((nb - 1000.0).abs() < 0.01);
-    }
-
-    #[test]
-    fn upset_costs_favourite_more_than_routine_win() {
-        // 1300 beats 1000: small move.
-        let (a_routine, _) = update_elo_pair(1300.0, 1000.0, 1.0, 0.0);
-        // 1000 beats 1300: big swing for both sides.
-        let (a_upset, b_upset) = update_elo_pair(1000.0, 1300.0, 1.0, 0.0);
-        assert!(a_routine - 1300.0 < a_upset - 1000.0);
-        assert!(b_upset < 1300.0);
-    }
 }

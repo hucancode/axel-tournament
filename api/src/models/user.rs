@@ -1,3 +1,4 @@
+use crate::error::{ApiError, ApiResult};
 use serde::{Deserialize, Serialize};
 use surrealdb::types::{Datetime, RecordId, SurrealValue};
 use validator::Validate;
@@ -82,6 +83,24 @@ pub struct UserInfo {
     pub role: UserRole,
     pub location: String,
     pub is_banned: bool,
+}
+
+impl User {
+    pub fn to_info(&self) -> ApiResult<UserInfo> {
+        let id = super::bare_key(
+            self.id
+                .as_ref()
+                .ok_or_else(|| ApiError::Internal("User ID is missing".to_string()))?,
+        );
+        Ok(UserInfo {
+            id,
+            email: self.email.clone(),
+            username: self.username.clone(),
+            role: self.role.clone(),
+            location: self.location.clone(),
+            is_banned: self.is_banned,
+        })
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -13,7 +13,7 @@ use crate::{
     db::Database,
     error::{ApiError, ApiResult},
     models::tournament::{TournamentKind, TournamentStatus},
-    services::{room as room_svc, tournament as tournament_svc},
+    services::{elo::DEFAULT_ELO, room as room_svc, tournament as tournament_svc},
 };
 use surrealdb::types::{Datetime, RecordId, SurrealValue};
 #[cfg(test)]
@@ -39,7 +39,7 @@ pub async fn enqueue(
     let part = tournament_svc::get_participant(db, &tournament_id, &user_id)
         .await?
         .ok_or_else(|| ApiError::Forbidden("You must join the tournament first".to_string()))?;
-    let elo = part.elo.unwrap_or(crate::services::room::DEFAULT_ELO);
+    let elo = part.elo.unwrap_or(DEFAULT_ELO);
 
     let mut existing_resp = db
         .query(
@@ -103,32 +103,16 @@ pub async fn tick(db: &Database, tournament_id: RecordId) -> ApiResult<u32> {
         )
         .bind(("tid", tournament_id.clone()))
         .await?;
-    let mut queue: Vec<MatchmakingTicket> = tickets_resp.take(0)?;
+    let queue: Vec<MatchmakingTicket> = tickets_resp.take(0)?;
     let mut paired = 0u32;
 
-    while queue.len() >= 2 {
-        let a = queue.remove(0);
-        // Pick the closest-ELO partner from the remaining queue.
-        let mut best_idx = 0usize;
-        let mut best_diff = f64::INFINITY;
-        for (i, t) in queue.iter().enumerate() {
-            let diff = (t.elo - a.elo).abs();
-            if diff < best_diff {
-                best_diff = diff;
-                best_idx = i;
-            }
-        }
-        let b = queue.remove(best_idx);
-
+    for (a, b) in pair_tickets(queue) {
+        let (Some(aid), Some(bid)) = (a.id.clone(), b.id.clone()) else {
+            continue;
+        };
         // Atomically claim both tickets so two ticks racing on the same
         // queue can never double-pair. If we don't get exactly 2 rows
         // back, another tick beat us — skip without creating a room.
-        let Some((aid, bid)) = (match (a.id.clone(), b.id.clone()) {
-            (Some(aid), Some(bid)) => Some((aid, bid)),
-            _ => None,
-        }) else {
-            continue;
-        };
         let mut claim = db
             .query("DELETE $aid, $bid RETURN BEFORE")
             .bind(("aid", aid))
@@ -150,11 +134,10 @@ pub async fn tick(db: &Database, tournament_id: RecordId) -> ApiResult<u32> {
     Ok(paired)
 }
 
-
-/// Pair queue purely from in-memory tickets — exposed for unit tests
-/// that don't want to touch the DB.
-pub fn pair_queue(mut q: Vec<MatchmakingTicket>) -> Vec<(RecordId, RecordId)> {
-    let mut out = Vec::new();
+/// Closest-ELO pairing over a queue ordered by `queued_at`. Pure: no DB
+/// calls, exposed for unit tests and reused by `tick`.
+pub fn pair_tickets(mut q: Vec<MatchmakingTicket>) -> Vec<(MatchmakingTicket, MatchmakingTicket)> {
+    let mut out = Vec::with_capacity(q.len() / 2);
     while q.len() >= 2 {
         let a = q.remove(0);
         let mut best = 0usize;
@@ -167,7 +150,7 @@ pub fn pair_queue(mut q: Vec<MatchmakingTicket>) -> Vec<(RecordId, RecordId)> {
             }
         }
         let b = q.remove(best);
-        out.push((a.user_id, b.user_id));
+        out.push((a, b));
     }
     out
 }
@@ -190,18 +173,17 @@ mod tests {
     }
 
     #[test]
-    fn pair_queue_picks_closest_elo() {
+    fn pair_tickets_picks_closest_elo() {
         let q = vec![
-            ticket("a", 1000.0), // must pick d (1010, closest to a)
+            ticket("a", 1000.0),
             ticket("b", 1500.0),
             ticket("c", 1480.0),
             ticket("d", 1010.0),
         ];
-        let pairs = pair_queue(q);
-        // First pairing is a + d. Next b + c.
+        let pairs = pair_tickets(q);
         let names: Vec<(String, String)> = pairs
             .into_iter()
-            .map(|(a, b)| (a.to_sql(), b.to_sql()))
+            .map(|(a, b)| (a.user_id.to_sql(), b.user_id.to_sql()))
             .collect();
         assert!(names[0].0.contains(":a"));
         assert!(names[0].1.contains(":d"));
@@ -210,9 +192,13 @@ mod tests {
     }
 
     #[test]
-    fn pair_queue_leaves_odd_one_out() {
-        let q = vec![ticket("a", 1000.0), ticket("b", 1100.0), ticket("c", 1200.0)];
-        let pairs = pair_queue(q);
+    fn pair_tickets_leaves_odd_one_out() {
+        let q = vec![
+            ticket("a", 1000.0),
+            ticket("b", 1100.0),
+            ticket("c", 1200.0),
+        ];
+        let pairs = pair_tickets(q);
         assert_eq!(pairs.len(), 1);
     }
 }

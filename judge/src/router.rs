@@ -2,7 +2,7 @@ use crate::app_state::AppState;
 use crate::config::Config;
 use crate::games;
 use crate::handlers;
-use crate::handlers::PlaygroundRegistries;
+use crate::services::playground::PlaygroundRegistries;
 use crate::middleware::auth::auth_middleware;
 use crate::services::room::ws::{handle_ws, WsContext};
 use crate::services::room::logic::RoomLogic;
