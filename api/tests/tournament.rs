@@ -47,6 +47,7 @@ async fn test_create_and_get_tournament() {
         None,
         None,
         None,
+        None,
     )
     .await
     .unwrap();
@@ -68,6 +69,7 @@ async fn test_update_tournament_status() {
         "Test tournament".to_string(),
         2,
         8,
+        None,
         None,
         None,
         None,
@@ -100,6 +102,7 @@ async fn test_join_and_leave_tournament() {
         "Test tournament".to_string(),
         2,
         8,
+        None,
         None,
         None,
         None,
@@ -140,6 +143,7 @@ fn test_create_tournament_request_validation() {
         start_time: None,
         end_time: None,
         match_generation_type: None,
+        kind: None,
     };
     assert!(valid_request.validate().is_ok());
     let low_min = CreateTournamentRequest {
@@ -151,6 +155,7 @@ fn test_create_tournament_request_validation() {
         start_time: None,
         end_time: None,
         match_generation_type: None,
+        kind: None,
     };
     assert!(low_min.validate().is_err());
     let high_max = CreateTournamentRequest {
@@ -162,6 +167,7 @@ fn test_create_tournament_request_validation() {
         start_time: None,
         end_time: None,
         match_generation_type: None,
+        kind: None,
     };
     assert!(high_max.validate().is_err());
 }
@@ -198,6 +204,7 @@ async fn test_start_tournament_all_vs_all() {
         None,
         None,
         Some(MatchGenerationType::AllVsAll),
+        None,
     )
     .await
     .unwrap();
@@ -214,7 +221,7 @@ async fn test_start_tournament_all_vs_all() {
             .await
             .unwrap();
 
-        submission::create_submission(
+        let s = submission::create_submission(
             &db,
             user_id.clone(),
             tournament_id.clone(),
@@ -222,6 +229,15 @@ async fn test_start_tournament_all_vs_all() {
             api::models::ProgrammingLanguage::Rust,
             "fn main() {}".to_string(),
         )
+        .await
+        .unwrap();
+        // Pretend the judge compiler accepted this submission so
+        // start_tournament doesn't filter it out.
+        db.query(
+            "UPDATE $sid SET status = 'accepted',
+                              compiled_binary_path = '/tmp/test-bin'",
+        )
+        .bind(("sid", s.id.unwrap()))
         .await
         .unwrap();
     }
@@ -257,6 +273,7 @@ async fn test_start_tournament_round_robin() {
         None,
         None,
         Some(MatchGenerationType::RoundRobin),
+        None,
     )
     .await
     .unwrap();
@@ -273,7 +290,7 @@ async fn test_start_tournament_round_robin() {
             .await
             .unwrap();
 
-        submission::create_submission(
+        let s = submission::create_submission(
             &db,
             user_id.clone(),
             tournament_id.clone(),
@@ -281,6 +298,15 @@ async fn test_start_tournament_round_robin() {
             api::models::ProgrammingLanguage::Rust,
             "fn main() {}".to_string(),
         )
+        .await
+        .unwrap();
+        // Pretend the judge compiler accepted this submission so
+        // start_tournament doesn't filter it out.
+        db.query(
+            "UPDATE $sid SET status = 'accepted',
+                              compiled_binary_path = '/tmp/test-bin'",
+        )
+        .bind(("sid", s.id.unwrap()))
         .await
         .unwrap();
     }
@@ -313,6 +339,7 @@ async fn test_start_tournament_without_submissions_fails() {
         "Test tournament".to_string(),
         2,
         10,
+        None,
         None,
         None,
         None,
@@ -353,6 +380,7 @@ async fn test_start_tournament_not_enough_players_fails() {
         None,
         None,
         None,
+        None,
     )
     .await
     .unwrap();
@@ -375,6 +403,7 @@ async fn test_tournament_participant_management() {
         "Test tournament".to_string(),
         2,
         16,
+        None,
         None,
         None,
         None,

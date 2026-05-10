@@ -94,6 +94,16 @@
         return games.find((g) => g.id === selectedGameId);
     }
 
+    async function joinAndEnter(room: Room) {
+        try {
+            error = null;
+            await roomService.join(room.id);
+            goto(`/room?id=${encodeURIComponent(room.id)}&game=${encodeURIComponent(room.game_id)}`);
+        } catch (err) {
+            error = err instanceof Error ? err.message : "Failed to join room";
+        }
+    }
+
     function isUserInRoom(room: Room): boolean {
         const currentUser = authState.user;
         if (!currentUser) return false;
@@ -147,7 +157,12 @@
                     {#each rooms as room}
                         <div class="room-card">
                             <div class="room-info">
-                                <h3>{room.name}</h3>
+                                <h3>
+                                    {room.name}
+                                    {#if room.is_ranked}
+                                        <span class="badge-ranked">RANKED</span>
+                                    {/if}
+                                </h3>
                                 <span class="game-name"
                                     >{getGameName(room.game_id)}</span
                                 >
@@ -162,7 +177,7 @@
                                 >
                             </div>
                             <div>
-                                {#if room.status === "waiting"}
+                                {#if room.status === "lobby"}
                                     {#if isUserInRoom(room)}
                                         <button
                                             data-variant="primary"
@@ -174,8 +189,7 @@
                                     {:else if room.players.length < room.max_players}
                                         <button
                                             data-variant="success"
-                                            onclick={() =>
-                                                goto(`/room?id=${encodeURIComponent(room.id)}&game=${encodeURIComponent(room.game_id)}`)}
+                                            onclick={() => joinAndEnter(room)}
                                         >
                                             Join Room
                                         </button>
@@ -348,9 +362,22 @@
         text-transform: capitalize;
     }
 
-    .status-waiting {
+    .status-lobby {
         background-color: var(--color-info);
         color: var(--color-bg);
+    }
+
+    .status-abandoned {
+        background-color: var(--color-error);
+        color: var(--color-bg);
+    }
+
+    .badge-ranked {
+        background-color: var(--color-warning);
+        color: var(--color-bg);
+        padding: 0.15rem 0.4rem;
+        font-size: 0.7rem;
+        margin-left: 0.5rem;
     }
 
     .status-playing {

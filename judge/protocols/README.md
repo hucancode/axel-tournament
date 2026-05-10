@@ -26,6 +26,8 @@ The protocol is one document set:
    - [`rock-paper-scissors.md`](rock-paper-scissors.md)
    - [`tic-tac-toe.md`](tic-tac-toe.md)
    - [`prisoners-dilemma.md`](prisoners-dilemma.md)
+4. [`brackets.md`](brackets.md) — single + double elimination bracket
+   generation, advancement, and grand-final reset rules.
 
 ## Design rules
 

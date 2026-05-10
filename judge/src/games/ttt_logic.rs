@@ -3,7 +3,7 @@
 // 3x3 board. Player 0 = X, player 1 = O (assigned by join order).
 // Single source of truth: event log.
 
-use crate::services::room_logic::RoomLogic;
+use crate::services::room::logic::RoomLogic;
 use crate::services::storage::RoomSnapshot;
 
 const MAX_PLAYERS: usize = 2;
@@ -226,6 +226,18 @@ impl RoomLogic for Ttt {
 
     fn game_id() -> &'static str {
         "tic-tac-toe"
+    }
+
+    fn pending_players(state: &Self::State) -> Vec<String> {
+        if state.phase != Phase::Playing {
+            return Vec::new();
+        }
+        state
+            .players
+            .get(state.turn as usize)
+            .cloned()
+            .into_iter()
+            .collect()
     }
 
     fn snapshot(state: &Self::State) -> RoomSnapshot {

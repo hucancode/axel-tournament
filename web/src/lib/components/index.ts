@@ -10,4 +10,5 @@ export { default as Popover } from './Popover.svelte';
 export { default as Segmented } from './Segmented.svelte';
 export { default as Statistic } from './Statistic.svelte';
 export { default as Badge } from './Badge.svelte';
+export { default as BracketView } from './BracketView.svelte';
 export { default as TimePicker } from './TimePicker.svelte';

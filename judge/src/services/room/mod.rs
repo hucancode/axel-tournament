@@ -3,4 +3,5 @@
 // (`bot`). Spec: judge/protocols/architecture.md.
 
 pub mod bot;
+pub mod logic;
 pub mod ws;

@@ -9,7 +9,7 @@
 // WebSocket handler.
 
 use crate::protocol::{parse_client, ClientFrame};
-use crate::services::room_logic::{LiveRoom, RoomLogic};
+use crate::services::room::logic::{LiveRoom, RoomLogic};
 use crate::services::sandbox::cgroup::CgroupHandle;
 use crate::services::sandbox::executor::{fd_to_file, spawn_sandboxed};
 use crate::services::storage::Event;
@@ -86,6 +86,11 @@ impl Drop for BotConn {
 pub struct MatchOutcome {
     /// Final score per participant, in JOIN order (= participant index).
     pub scores: Vec<f64>,
+    /// Indices of participants at fault (runtime error, illegal move,
+    /// turn timeout). Empty when the match played out normally.
+    pub faulted_indices: Vec<usize>,
+    /// Human-readable reason for the fault, if any.
+    pub fault_reason: Option<String>,
 }
 
 /// Drive a fully-loaded `LiveRoom<L>` to completion using N bots in
@@ -108,6 +113,10 @@ pub async fn run_match<L: RoomLogic>(
         return Err(anyhow!("bots/player_ids length mismatch"));
     }
 
+    // Per-bot fault tracker shared with reader tasks.
+    let faults: Arc<Mutex<Vec<Option<String>>>> =
+        Arc::new(Mutex::new(vec![None; bots.len()]));
+
     let mut subscriber = room.subscribe();
 
     // Replay any committed events to each bot (gap-fill equivalent).
@@ -126,18 +135,35 @@ pub async fn run_match<L: RoomLogic>(
         room.handle_act(host, "START", "").await.ok();
     }
 
-    // Per-bot ACT reader task.
+    // Per-bot ACT reader task. Records the first fault we see so the
+    // orchestrator can attribute losses correctly.
     let mut readers = Vec::with_capacity(bots.len());
     for (idx, bot) in bots.iter().enumerate() {
         let bot = bot.clone();
         let pid = player_ids[idx].clone();
         let room = room.clone();
+        let faults = faults.clone();
         readers.push(tokio::spawn(async move {
+            let mark = |reason: String| {
+                let faults = faults.clone();
+                async move {
+                    let mut g = faults.lock().await;
+                    if g[idx].is_none() {
+                        g[idx] = Some(reason);
+                    }
+                }
+            };
             loop {
                 let line = match bot.recv_line(turn_timeout).await {
                     Ok(l) => l,
                     Err(e) => {
-                        tracing::debug!("bot {pid} read end: {e}");
+                        let reason = if e.to_string().contains("timeout") {
+                            "turn_timeout"
+                        } else {
+                            "runtime_error"
+                        };
+                        tracing::debug!("bot {pid} read end ({reason}): {e}");
+                        mark(reason.to_string()).await;
                         return;
                     }
                 };
@@ -148,10 +174,14 @@ pub async fn run_match<L: RoomLogic>(
                     Ok(ClientFrame::Act { kind, payload }) => {
                         if let Err(e) = room.handle_act(&pid, &kind, &payload).await {
                             tracing::debug!("bot {pid} ACT rejected: {e}");
+                            mark("illegal_move".to_string()).await;
                         }
                     }
                     Ok(_) => {}
-                    Err(e) => tracing::debug!("bot {pid} bad frame {line:?}: {e}"),
+                    Err(e) => {
+                        tracing::debug!("bot {pid} bad frame {line:?}: {e}");
+                        mark("malformed_frame".to_string()).await;
+                    }
                 }
             }
         }));
@@ -174,7 +204,20 @@ pub async fn run_match<L: RoomLogic>(
             let _ = b.send_line(&line).await;
         }
         if let Some(scores) = parse_terminal(&event, player_ids.len()) {
-            break MatchOutcome { scores };
+            let faults_g = faults.lock().await;
+            let faulted_indices: Vec<usize> = faults_g
+                .iter()
+                .enumerate()
+                .filter_map(|(i, r)| r.as_ref().map(|_| i))
+                .collect();
+            let fault_reason = faulted_indices
+                .first()
+                .and_then(|i| faults_g[*i].clone());
+            break MatchOutcome {
+                scores,
+                faulted_indices,
+                fault_reason,
+            };
         }
     };
 

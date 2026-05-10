@@ -7,9 +7,8 @@
 
 use crate::games::{Pd, Rps, Ttt};
 use crate::services::capacity::CapacityTracker;
-use crate::services::compiler::Compiler;
 use crate::services::room::bot::{run_match, BotConn, MatchOutcome};
-use crate::services::room_logic::{LiveRoom, RoomLogic, RoomRegistry};
+use crate::services::room::logic::RoomRegistry;
 use anyhow::{anyhow, Context, Result};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -44,7 +43,7 @@ struct Match {
 #[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
 struct MatchParticipant {
     #[serde(default)]
-    user_id: Option<RecordId>,
+    pub user_id: Option<RecordId>,
     submission_id: RecordId,
     #[serde(default)]
     score: Option<f64>,
@@ -60,6 +59,10 @@ struct Submission {
     compiled_binary_path: Option<String>,
     language: String,
     code: String,
+    #[serde(default)]
+    status: Option<String>,
+    #[serde(default)]
+    error_message: Option<String>,
 }
 
 /// Per-game registry handles bundled so the claim loop can dispatch
@@ -114,10 +117,10 @@ async fn run(
             let cap_c = capacity.clone();
             let regs = registries.clone();
             tokio::spawn(async move {
-                let id_str = m.id.to_sql();
+                let mid = m.id.clone();
                 if let Err(e) = execute(&db_c, &regs, m).await {
-                    tracing::error!("Match {id_str} failed: {e:#}");
-                    let _ = mark_failed(&db_c, &id_str, &e.to_string()).await;
+                    tracing::error!("Match {} failed: {e:#}", mid.to_sql());
+                    let _ = mark_failed(&db_c, &mid, &e.to_string()).await;
                 }
                 cap_c.decrement_matches().await;
             });
@@ -155,10 +158,6 @@ async fn execute(db: &Database, regs: &AiRegistries, m: Match) -> Result<()> {
     let turn_timeout = Duration::from_millis(metadata.bot_turn_timeout_ms);
 
     let binaries = compile_all(db, &m.participants).await?;
-    if binaries.len() != m.participants.len() {
-        return Err(anyhow!("binary count mismatch"));
-    }
-
     let player_ids: Vec<String> = m
         .participants
         .iter()
@@ -176,18 +175,18 @@ async fn execute(db: &Database, regs: &AiRegistries, m: Match) -> Result<()> {
     let outcome = match m.game_id.as_str() {
         "rock-paper-scissors" => {
             let room = regs.rps.open(&id_str, LEASE_TTL).await?;
-            run_one(room, bots, player_ids, turn_timeout).await
+            run_match(room, bots, player_ids, turn_timeout).await?
         }
         "tic-tac-toe" => {
             let room = regs.ttt.open(&id_str, LEASE_TTL).await?;
-            run_one(room, bots, player_ids, turn_timeout).await
+            run_match(room, bots, player_ids, turn_timeout).await?
         }
         "prisoners-dilemma" => {
             let room = regs.pd.open(&id_str, LEASE_TTL).await?;
-            run_one(room, bots, player_ids, turn_timeout).await
+            run_match(room, bots, player_ids, turn_timeout).await?
         }
         other => return Err(anyhow!("unsupported game: {other}")),
-    }?;
+    };
 
     write_scores(db, &m, outcome).await?;
 
@@ -202,44 +201,35 @@ async fn execute(db: &Database, regs: &AiRegistries, m: Match) -> Result<()> {
     Ok(())
 }
 
-async fn run_one<L: RoomLogic>(
-    room: Arc<LiveRoom<L>>,
-    bots: Vec<Arc<BotConn>>,
-    player_ids: Vec<String>,
-    turn_timeout: Duration,
-) -> Result<MatchOutcome> {
-    run_match(room, bots, player_ids, turn_timeout).await
-}
-
+/// Resolve every participant's compiled binary. By the time a match
+/// reaches the runner, `start_tournament` has already filtered out
+/// participants whose submission is not in the `accepted` state — so
+/// missing or failed submissions here are a data-integrity bug, not a
+/// user fault.
 async fn compile_all(db: &Database, participants: &[MatchParticipant]) -> Result<Vec<PathBuf>> {
-    let compiler = Compiler::new()?;
     let mut paths = Vec::with_capacity(participants.len());
     for p in participants {
         let sid = p.submission_id.to_sql();
         let mut resp = db
-            .query("SELECT compiled_binary_path, language, code FROM $sid;")
+            .query(
+                "SELECT compiled_binary_path, language, code, status, error_message
+                 FROM $sid;",
+            )
             .bind(("sid", p.submission_id.clone()))
             .await
             .with_context(|| format!("query submission {sid}"))?;
         let rows: Vec<Submission> = resp.take(0)?;
         let s = rows.into_iter().next().ok_or_else(|| anyhow!("submission {sid} missing"))?;
-        let path = match s.compiled_binary_path {
-            Some(p) if !p.is_empty() => p,
-            _ => {
-                tracing::info!("Compiling submission {sid}");
-                let compiled = compiler
-                    .compile_submission(&sid, &s.language, &s.code)
-                    .await
-                    .with_context(|| format!("compile {sid}"))?;
-                db.query(
-                    "UPDATE $sid SET compiled_binary_path = $bin, status = 'accepted';",
-                )
-                .bind(("sid", p.submission_id.clone()))
-                .bind(("bin", compiled.clone()))
-                .await?;
-                compiled
-            }
-        };
+        if s.status.as_deref() != Some("accepted") {
+            return Err(anyhow!(
+                "submission {sid} not accepted (status={:?}); start_tournament should have filtered",
+                s.status
+            ));
+        }
+        let path = s
+            .compiled_binary_path
+            .filter(|p| !p.is_empty())
+            .ok_or_else(|| anyhow!("submission {sid} accepted but no binary path"))?;
         paths.push(PathBuf::from(path));
     }
     Ok(paths)
@@ -248,31 +238,48 @@ async fn compile_all(db: &Database, participants: &[MatchParticipant]) -> Result
 async fn write_scores(db: &Database, m: &Match, outcome: MatchOutcome) -> Result<()> {
     let s0 = outcome.scores.first().copied().unwrap_or(0.0);
     let s1 = outcome.scores.get(1).copied().unwrap_or(0.0);
+    let faulted: Vec<RecordId> = outcome
+        .faulted_indices
+        .iter()
+        .filter_map(|i| m.participants.get(*i))
+        .filter_map(|p| p.user_id.clone())
+        .collect();
+    let any_fault = !faulted.is_empty();
+    let status = if any_fault { "failed" } else { "completed" };
+    let err = outcome.fault_reason.clone();
     db.query(
         "UPDATE $mid SET
-             status = 'completed',
+             status = $status,
              participants[0].score = $s0,
              participants[1].score = $s1,
+             error_message = $err,
+             faulted_user_ids = $faulted,
              completed_at = time::now(),
              updated_at = time::now();",
     )
     .bind(("mid", m.id.clone()))
     .bind(("s0", s0))
     .bind(("s1", s1))
+    .bind(("status", status.to_string()))
+    .bind(("err", err))
+    .bind(("faulted", faulted))
     .await?;
-    tracing::info!("Match {} completed: {} {}", m.id.to_sql(), s0, s1);
+    tracing::info!(
+        "Match {} -> {}: scores [{}, {}]",
+        m.id.to_sql(),
+        status,
+        s0,
+        s1
+    );
     Ok(())
 }
 
-async fn mark_failed(db: &Database, match_id: &str, err: &str) -> Result<()> {
+async fn mark_failed(db: &Database, mid: &RecordId, err: &str) -> Result<()> {
     db.query(
-        "UPDATE type::record('match', $mid) SET
-             status = 'failed',
-             error_message = $err,
-             completed_at = time::now(),
-             updated_at = time::now();",
+        "UPDATE $mid SET status = 'failed', error_message = $err,
+                          completed_at = time::now(), updated_at = time::now();",
     )
-    .bind(("mid", match_id.to_string()))
+    .bind(("mid", mid.clone()))
     .bind(("err", err.to_string()))
     .await?;
     Ok(())

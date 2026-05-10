@@ -45,6 +45,7 @@ async fn test_leaderboard_ordering_and_limit() {
         None,
         None,
         None,
+        None,
     )
     .await
     .unwrap();
@@ -92,6 +93,7 @@ async fn test_tournament_specific_leaderboard() {
         "Test tournament".to_string(),
         2,
         8,
+        None,
         None,
         None,
         None,

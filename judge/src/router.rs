@@ -3,7 +3,7 @@ use crate::config::Config;
 use crate::games;
 use crate::handlers;
 use crate::services::room::ws::{handle_ws, WsContext};
-use crate::services::room_logic::RoomLogic;
+use crate::services::room::logic::RoomLogic;
 use axum::extract::{Path, State, ws::WebSocketUpgrade};
 use axum::http::{header, Method};
 use axum::response::Response;

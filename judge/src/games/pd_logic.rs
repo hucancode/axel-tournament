@@ -9,7 +9,7 @@
 //   (D,C) = (5,0)
 //   (D,D) = (1,1)
 
-use crate::services::room_logic::RoomLogic;
+use crate::services::room::logic::RoomLogic;
 use crate::services::storage::RoomSnapshot;
 
 const MAX_PLAYERS: usize = 2;
@@ -252,6 +252,19 @@ impl RoomLogic for Pd {
 
     fn game_id() -> &'static str {
         "prisoners-dilemma"
+    }
+
+    fn pending_players(state: &Self::State) -> Vec<String> {
+        if state.phase != Phase::Playing {
+            return Vec::new();
+        }
+        state
+            .players
+            .iter()
+            .enumerate()
+            .filter(|(i, _)| state.pending_move.get(*i).copied().flatten().is_none())
+            .map(|(_, p)| p.clone())
+            .collect()
     }
 
     fn snapshot(state: &Self::State) -> RoomSnapshot {

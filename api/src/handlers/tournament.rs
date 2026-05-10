@@ -2,8 +2,8 @@ use crate::{
     AppState,
     error::ApiResult,
     models::{
-        Claims, CreateTournamentRequest, TournamentParticipant, TournamentResponse, TournamentStatus,
-        UpdateTournamentRequest, UserRole,
+        Claims, CreateTournamentRequest, TournamentParticipantResponse, TournamentResponse,
+        TournamentStatus, UpdateTournamentRequest, UserRole, rid,
     },
     services,
 };
@@ -34,7 +34,6 @@ pub async fn create_tournament(
     Extension(claims): Extension<Claims>,
     Json(payload): Json<CreateTournamentRequest>,
 ) -> ApiResult<(StatusCode, Json<TournamentResponse>)> {
-    // Only admins can create tournaments
     if claims.role != UserRole::Admin {
         return Err(crate::error::ApiError::Forbidden(
             "Only admins can create tournaments".to_string(),
@@ -60,6 +59,7 @@ pub async fn create_tournament(
         payload.start_time,
         payload.end_time,
         payload.match_generation_type,
+        payload.kind,
     )
     .await?;
     Ok((StatusCode::CREATED, Json(tournament.into())))
@@ -69,12 +69,8 @@ pub async fn get_tournament(
     State(state): State<AppState>,
     Path(tournament_id): Path<String>,
 ) -> ApiResult<Json<TournamentResponse>> {
-    let tournament = services::tournament::get_tournament(
-        &state.db,
-        RecordId::parse_simple(&tournament_id)
-            .map_err(|_| crate::error::ApiError::BadRequest("Invalid tournament id".to_string()))?,
-    )
-    .await?;
+    let tournament =
+        services::tournament::get_tournament(&state.db, rid("tournament", tournament_id)).await?;
     Ok(Json(tournament.into()))
 }
 
@@ -100,8 +96,7 @@ pub async fn list_tournaments(
     let tournaments =
         services::tournament::list_tournaments(&state.db, status, query.limit, query.offset)
             .await?;
-    let response: Vec<TournamentResponse> = tournaments.into_iter().map(Into::into).collect();
-    Ok(Json(response))
+    Ok(Json(tournaments.into_iter().map(Into::into).collect()))
 }
 
 pub async fn update_tournament(
@@ -113,10 +108,8 @@ pub async fn update_tournament(
     payload
         .validate()
         .map_err(|e| crate::error::ApiError::Validation(e.to_string()))?;
-    let tournament_id: RecordId = RecordId::parse_simple(&tournament_id)
-        .map_err(|_| crate::error::ApiError::BadRequest("Invalid tournament id".to_string()))?;
+    let tournament_id = rid("tournament", tournament_id);
 
-    // Only admins can update tournaments
     ensure_tournament_owner(&state, tournament_id.clone(), &claims).await?;
 
     let tournament = services::tournament::update_tournament(
@@ -136,16 +129,15 @@ pub async fn join_tournament(
     State(state): State<AppState>,
     Path(tournament_id): Path<String>,
     Extension(claims): Extension<Claims>,
-) -> ApiResult<(StatusCode, Json<TournamentParticipant>)> {
+) -> ApiResult<(StatusCode, Json<TournamentParticipantResponse>)> {
     let participant = services::tournament::join_tournament(
         &state.db,
-        RecordId::parse_simple(&tournament_id)
-            .map_err(|_| crate::error::ApiError::BadRequest("Invalid tournament id".to_string()))?,
+        rid("tournament", tournament_id),
         RecordId::parse_simple(&claims.sub)
             .map_err(|_| crate::error::ApiError::BadRequest("Invalid user id".to_string()))?,
     )
     .await?;
-    Ok((StatusCode::CREATED, Json(participant)))
+    Ok((StatusCode::CREATED, Json(participant.into())))
 }
 
 pub async fn leave_tournament(
@@ -155,8 +147,7 @@ pub async fn leave_tournament(
 ) -> ApiResult<StatusCode> {
     services::tournament::leave_tournament(
         &state.db,
-        RecordId::parse_simple(&tournament_id)
-            .map_err(|_| crate::error::ApiError::BadRequest("Invalid tournament id".to_string()))?,
+        rid("tournament", tournament_id),
         RecordId::parse_simple(&claims.sub)
             .map_err(|_| crate::error::ApiError::BadRequest("Invalid user id".to_string()))?,
     )
@@ -167,32 +158,24 @@ pub async fn leave_tournament(
 pub async fn get_tournament_participants(
     State(state): State<AppState>,
     Path(tournament_id): Path<String>,
-) -> ApiResult<Json<Vec<TournamentParticipant>>> {
+) -> ApiResult<Json<Vec<TournamentParticipantResponse>>> {
     let participants = services::tournament::get_tournament_participants(
         &state.db,
-        RecordId::parse_simple(&tournament_id)
-            .map_err(|_| crate::error::ApiError::BadRequest("Invalid tournament id".to_string()))?,
+        rid("tournament", tournament_id),
     )
     .await?;
-    Ok(Json(participants))
+    Ok(Json(participants.into_iter().map(Into::into).collect()))
 }
 
-/// Start a tournament and generate matches (admin only)
 pub async fn start_tournament(
     State(state): State<AppState>,
     Extension(claims): Extension<Claims>,
     Path(tournament_id): Path<String>,
 ) -> ApiResult<Json<TournamentResponse>> {
-    let tournament_id: RecordId = RecordId::parse_simple(&tournament_id)
-        .map_err(|_| crate::error::ApiError::BadRequest("Invalid tournament id".to_string()))?;
+    let tournament_id = rid("tournament", tournament_id);
 
-    // Only admins can start tournaments
     ensure_tournament_owner(&state, tournament_id.clone(), &claims).await?;
 
-    let tournament = services::tournament::start_tournament(
-        &state.db,
-        tournament_id,
-    )
-    .await?;
+    let tournament = services::tournament::start_tournament(&state.db, tournament_id).await?;
     Ok(Json(tournament.into()))
 }

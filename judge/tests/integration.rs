@@ -15,7 +15,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use judge::games::{Pd, Rps, Ttt};
-use judge::services::room_logic::{LiveRoom, RoomLogic, RoomRegistry};
+use judge::services::room::logic::{LiveRoom, RoomLogic, RoomRegistry};
 use judge::services::storage::{Event, Storage};
 
 const LEASE: Duration = Duration::from_secs(15);

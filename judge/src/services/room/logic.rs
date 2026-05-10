@@ -34,6 +34,14 @@ pub trait RoomLogic: Send + Sync + 'static {
     fn max_players() -> usize;
     fn game_id() -> &'static str;
     fn snapshot(state: &Self::State) -> RoomSnapshot;
+
+    /// Players whose action is currently expected. Empty when nobody is
+    /// blocking progress (lobby phase, between rounds, finished). The
+    /// turn-timer watcher uses this to decide who to mark faulted on a
+    /// timeout. Default: empty (turn enforcement disabled).
+    fn pending_players(_state: &Self::State) -> Vec<String> {
+        Vec::new()
+    }
 }
 
 pub struct LiveRoom<L: RoomLogic> {
@@ -133,6 +141,13 @@ impl<L: RoomLogic> LiveRoom<L> {
         let state = self.state.read().await;
         f(&state)
     }
+
+    /// Snapshot of the current pending players. Cheap; reads under the
+    /// state lock and returns the trait's projection.
+    pub async fn pending_players(&self) -> Vec<String> {
+        let state = self.state.read().await;
+        L::pending_players(&state)
+    }
 }
 
 /// Per-game room registry. Holds loaded LiveRooms keyed by room_id.
@@ -142,6 +157,18 @@ pub struct RoomRegistry<L: RoomLogic> {
     meta: Arc<dyn MetaIndex>,
     owner_id: String,
     rooms: RwLock<HashMap<String, Arc<LiveRoom<L>>>>,
+    turn_watch: Option<TurnWatchConfig>,
+}
+
+/// When set on a registry, every freshly-opened room gets a turn-timer
+/// watcher attached. The callback is invoked with `(room_id, pending)`
+/// after the configured timeout if the same set of players remains
+/// pending. Bot/AI registries leave this `None` because match runners
+/// drive their own timers.
+#[derive(Clone)]
+pub struct TurnWatchConfig {
+    pub timeout: std::time::Duration,
+    pub on_timeout: crate::services::turn_timer::TimeoutCallback,
 }
 
 impl<L: RoomLogic> RoomRegistry<L> {
@@ -152,7 +179,13 @@ impl<L: RoomLogic> RoomRegistry<L> {
             meta: storage.meta,
             owner_id,
             rooms: RwLock::new(HashMap::new()),
+            turn_watch: None,
         }
+    }
+
+    pub fn with_turn_watch(mut self, cfg: TurnWatchConfig) -> Self {
+        self.turn_watch = Some(cfg);
+        self
     }
 
     pub fn owner_id(&self) -> &str {
@@ -188,6 +221,13 @@ impl<L: RoomLogic> RoomRegistry<L> {
         drop(rooms);
         let snap = room.with_state(L::snapshot).await;
         room.refresh_meta(snap, room.head()).await;
+        if let Some(cfg) = &self.turn_watch {
+            crate::services::turn_timer::spawn_turn_watcher(
+                room.clone(),
+                cfg.timeout,
+                cfg.on_timeout.clone(),
+            );
+        }
         Ok(room)
     }
 

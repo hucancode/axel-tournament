@@ -4,7 +4,7 @@
 // used for validation and display. It must be reconstructible by replaying
 // events from seq=1 in order.
 
-use crate::services::room_logic::RoomLogic;
+use crate::services::room::logic::RoomLogic;
 use crate::services::storage::RoomSnapshot;
 
 const DEFAULT_ROUNDS: u32 = 5;
@@ -276,6 +276,19 @@ impl RoomLogic for Rps {
 
     fn game_id() -> &'static str {
         "rock-paper-scissors"
+    }
+
+    fn pending_players(state: &Self::State) -> Vec<String> {
+        if state.phase != Phase::Playing {
+            return Vec::new();
+        }
+        state
+            .players
+            .iter()
+            .enumerate()
+            .filter(|(i, _)| state.pending_move.get(*i).copied().flatten().is_none())
+            .map(|(_, p)| p.clone())
+            .collect()
     }
 
     fn snapshot(state: &Self::State) -> RoomSnapshot {

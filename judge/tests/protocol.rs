@@ -12,7 +12,7 @@ use std::time::Duration;
 use judge::games::{Pd, Rps, Ttt};
 use judge::protocol::{parse_client, parse_server, serialize_client, serialize_server,
                       ClientFrame, ServerFrame};
-use judge::services::room_logic::{LiveRoom, RoomLogic, RoomRegistry};
+use judge::services::room::logic::{LiveRoom, RoomLogic, RoomRegistry};
 use judge::services::storage::Storage;
 
 const LEASE: Duration = Duration::from_secs(60);

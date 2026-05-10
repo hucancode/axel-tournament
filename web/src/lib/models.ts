@@ -47,6 +47,8 @@ export type MatchGenerationType =
   | "single_elimination"
   | "double_elimination";
 
+export type TournamentKind = "bot" | "human";
+
 export interface Tournament {
   id: string;
   game_id: string;
@@ -58,6 +60,7 @@ export interface Tournament {
   start_time?: string;
   end_time?: string;
   match_generation_type: MatchGenerationType;
+  kind: TournamentKind;
   created_at: string;
   updated_at: string;
 }
@@ -68,6 +71,10 @@ export interface TournamentParticipant {
   user_id: string;
   submission_id?: string;
   score: number;
+  wins: number;
+  losses: number;
+  draws: number;
+  elo?: number;
   rank?: number;
   joined_at: string;
   username?: string;
@@ -82,6 +89,7 @@ export interface CreateTournamentRequest {
   start_time?: string;
   end_time?: string;
   match_generation_type?: MatchGenerationType;
+  kind?: TournamentKind;
 }
 
 export interface UpdateTournamentRequest {
@@ -108,22 +116,6 @@ export interface Game {
   bot_turn_timeout_ms: number;
   human_turn_timeout_ms: number;
   memory_limit_mb: number;
-}
-
-// Game Template types
-export interface GameTemplate {
-  id: string;
-  game_id: string;
-  language: ProgrammingLanguage;
-  template_code: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface CreateGameTemplateRequest {
-  game_id: string;
-  language: string;
-  template_code: string;
 }
 
 // Submission types
@@ -155,6 +147,15 @@ export interface SubmissionResponse {
   created_at: string;
 }
 
+export interface SubmissionStats {
+  submission_id: string;
+  matches_played: number;
+  wins: number;
+  losses: number;
+  draws: number;
+  total_score: number;
+}
+
 // Match types
 export type MatchStatus =
   | "pending"
@@ -179,6 +180,13 @@ export interface Match {
   participants: MatchParticipant[];
   metadata?: Record<string, any> | null;
   room_id?: string;
+  error_message?: string;
+  /// Users at fault (runtime error, illegal move, disconnect timeout).
+  /// Frontend uses this to badge the row e.g. "crashed: alice".
+  faulted_user_ids: string[];
+  round?: number | null;
+  bracket?: string | null;
+  bracket_position?: number | null;
   created_at: string;
   updated_at: string;
   started_at?: string;
@@ -212,7 +220,7 @@ export interface LeaderboardEntry {
 }
 
 // Room types
-export type RoomStatus = "waiting" | "playing" | "finished";
+export type RoomStatus = "lobby" | "playing" | "finished" | "abandoned";
 
 export interface Room {
   id: string;
@@ -222,6 +230,10 @@ export interface Room {
   max_players: number;
   status: RoomStatus;
   players: string[];
+  tournament_id?: string;
+  allowed_user_ids: string[];
+  is_ranked: boolean;
+  winner_id?: string;
   human_timeout_ms?: number;
   created_at: string;
   updated_at: string;
@@ -231,7 +243,12 @@ export interface CreateRoomRequest {
   game_id: string;
   name: string;
   max_players: number;
+  tournament_id?: string;
   human_timeout_ms?: number;
+}
+
+export interface MatchmakingRequest {
+  tournament_id: string;
 }
 
 export interface UpdateRoomRequest {

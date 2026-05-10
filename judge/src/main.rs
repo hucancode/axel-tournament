@@ -4,8 +4,11 @@ use judge::{
     db, games, router,
     services::ai_match::{self, AiRegistries},
     services::capacity::CapacityTracker,
+    services::room::logic::TurnWatchConfig,
+    services::submission_compiler,
+    services::turn_timer,
     services::room::ws::WsContext,
-    services::room_logic::RoomRegistry,
+    services::room::logic::RoomRegistry,
     services::storage::Storage,
 };
 use std::sync::Arc;
@@ -47,11 +50,41 @@ async fn main() -> anyhow::Result<()> {
         meta: storage.meta.clone(),
     });
 
+    // Per-game turn-timeout from GameMetadata. The watcher attached to
+    // each opened room finalises the room with the pending players
+    // marked faulted when they go past the human turn budget.
+    let timeout_cb = turn_timer::db_timeout_callback(db.clone());
+    let rps_meta = games::find_game_by_id("rock-paper-scissors").expect("rps metadata");
+    let ttt_meta = games::find_game_by_id("tic-tac-toe").expect("ttt metadata");
+    let pd_meta = games::find_game_by_id("prisoners-dilemma").expect("pd metadata");
+    let rps_cfg = TurnWatchConfig {
+        timeout: Duration::from_millis(rps_meta.human_turn_timeout_ms),
+        on_timeout: timeout_cb.clone(),
+    };
+    let ttt_cfg = TurnWatchConfig {
+        timeout: Duration::from_millis(ttt_meta.human_turn_timeout_ms),
+        on_timeout: timeout_cb.clone(),
+    };
+    let pd_cfg = TurnWatchConfig {
+        timeout: Duration::from_millis(pd_meta.human_turn_timeout_ms),
+        on_timeout: timeout_cb,
+    };
+
     // One per-game registry shared by both transports (WebSocket for
-    // humans, stdio for AI bots).
-    let rps_registry = Arc::new(RoomRegistry::<games::Rps>::new(storage.clone(), owner_id.clone()));
-    let ttt_registry = Arc::new(RoomRegistry::<games::Ttt>::new(storage.clone(), owner_id.clone()));
-    let pd_registry = Arc::new(RoomRegistry::<games::Pd>::new(storage.clone(), owner_id.clone()));
+    // humans, stdio for AI bots). AI matches do NOT need turn watchers
+    // because the bot runner enforces its own turn timeout.
+    let rps_registry = Arc::new(
+        RoomRegistry::<games::Rps>::new(storage.clone(), owner_id.clone())
+            .with_turn_watch(rps_cfg),
+    );
+    let ttt_registry = Arc::new(
+        RoomRegistry::<games::Ttt>::new(storage.clone(), owner_id.clone())
+            .with_turn_watch(ttt_cfg),
+    );
+    let pd_registry = Arc::new(
+        RoomRegistry::<games::Pd>::new(storage.clone(), owner_id.clone())
+            .with_turn_watch(pd_cfg),
+    );
 
     let rps_ctx = Arc::new(WsContext {
         registry: rps_registry.clone(),
@@ -73,6 +106,10 @@ async fn main() -> anyhow::Result<()> {
         pd: pd_registry.clone(),
     };
     ai_match::spawn(db.clone(), capacity.clone(), ai_regs);
+
+    // Compile pending submissions upfront so match runners can reuse
+    // the cached binary across every match the bot plays.
+    submission_compiler::spawn(db.clone());
 
     // Renew leases for owned rooms every 5s with 15s TTL.
     let hb_rps = rps_registry.clone();

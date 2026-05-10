@@ -7,10 +7,11 @@ pub fn apply_execution_filter() -> Result<()> {
     apply_filter(filter)
 }
 
-fn execution_filter() -> Result<BpfProgram> {
-    let mut rules: BTreeMap<i64, Vec<SeccompRule>> = BTreeMap::new();
-
-    let allowed_syscalls = vec![
+/// Whitelisted syscalls for sandboxed execution. Anything not on this
+/// list is denied with EPERM. Public so an integration test can
+/// snapshot the set and catch accidental drift during refactors.
+pub fn allowed_syscalls() -> Vec<i64> {
+    vec![
         nix::libc::SYS_read,
         nix::libc::SYS_write,
         nix::libc::SYS_writev,
@@ -80,9 +81,12 @@ fn execution_filter() -> Result<BpfProgram> {
         nix::libc::SYS_dup,
         nix::libc::SYS_dup2,
         nix::libc::SYS_dup3,
-    ];
+    ]
+}
 
-    for syscall in allowed_syscalls {
+fn execution_filter() -> Result<BpfProgram> {
+    let mut rules: BTreeMap<i64, Vec<SeccompRule>> = BTreeMap::new();
+    for syscall in allowed_syscalls() {
         rules.insert(syscall, vec![]);
     }
 
@@ -102,4 +106,76 @@ fn apply_filter(program: BpfProgram) -> Result<()> {
     apply_filter_all_threads(&program)
         .map_err(|e| SandboxError::SeccompError(format!("Failed to apply seccomp filter: {:?}", e)))?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Drift detector: deny-list expansions and accidental removals
+    /// both change this count. Bump intentionally when the policy
+    /// changes — the bump is a code-review hook.
+    #[test]
+    fn allowlist_size_is_locked() {
+        let n = allowed_syscalls().len();
+        assert_eq!(
+            n, 69,
+            "syscall allowlist size changed (now {n}). \
+             Review the diff: each addition expands attack surface, \
+             each removal may break legitimate runtimes. Update the \
+             expected count after intentional policy change."
+        );
+    }
+
+    #[test]
+    fn allowlist_has_no_duplicates() {
+        let mut v = allowed_syscalls();
+        let before = v.len();
+        v.sort();
+        v.dedup();
+        assert_eq!(v.len(), before, "duplicate syscall numbers in allowlist");
+    }
+
+    /// Block-list: syscalls we never want to allow even by accident.
+    /// Adding any of these would let user code escape the sandbox.
+    #[test]
+    fn allowlist_excludes_dangerous_syscalls() {
+        let allowed = allowed_syscalls();
+        let banned = [
+            ("ptrace", nix::libc::SYS_ptrace),
+            ("mount", nix::libc::SYS_mount),
+            ("setuid", nix::libc::SYS_setuid),
+            ("setgid", nix::libc::SYS_setgid),
+            ("seteuid", nix::libc::SYS_setresuid),
+            ("clone", nix::libc::SYS_clone),
+            ("fork", nix::libc::SYS_fork),
+            ("vfork", nix::libc::SYS_vfork),
+            ("socket", nix::libc::SYS_socket),
+            ("connect", nix::libc::SYS_connect),
+            ("bind", nix::libc::SYS_bind),
+            ("listen", nix::libc::SYS_listen),
+            ("accept", nix::libc::SYS_accept),
+            ("sendto", nix::libc::SYS_sendto),
+            ("recvfrom", nix::libc::SYS_recvfrom),
+            ("unshare", nix::libc::SYS_unshare),
+            ("setns", nix::libc::SYS_setns),
+            ("kexec_load", nix::libc::SYS_kexec_load),
+            ("init_module", nix::libc::SYS_init_module),
+            ("delete_module", nix::libc::SYS_delete_module),
+            ("reboot", nix::libc::SYS_reboot),
+            ("bpf", nix::libc::SYS_bpf),
+            ("perf_event_open", nix::libc::SYS_perf_event_open),
+            ("kill", nix::libc::SYS_kill),
+            ("tkill", nix::libc::SYS_tkill),
+            ("tgkill", nix::libc::SYS_tgkill),
+            ("process_vm_readv", nix::libc::SYS_process_vm_readv),
+            ("process_vm_writev", nix::libc::SYS_process_vm_writev),
+        ];
+        for (name, num) in banned {
+            assert!(
+                !allowed.contains(&num),
+                "dangerous syscall {name} (#{num}) is in allowlist"
+            );
+        }
+    }
 }

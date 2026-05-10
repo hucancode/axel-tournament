@@ -1,8 +1,12 @@
 pub mod auth;
+pub mod bracket;
 pub mod email;
+pub mod finalization;
 pub mod healer;
 pub mod leaderboard;
 pub mod matches;
+pub mod matchmaking;
+pub mod room;
 pub mod submission;
 pub mod tournament;
 pub mod user;

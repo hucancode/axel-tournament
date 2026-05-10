@@ -60,7 +60,8 @@ pub fn create_router(state: AppState) -> Router {
         )
         .route("/api/matches", get(handlers::list_matches))
         .route("/api/matches/{id}", get(handlers::get_match))
-        .route("/api/leaderboard", get(handlers::get_leaderboard));
+        .route("/api/leaderboard", get(handlers::get_leaderboard))
+        .route("/api/rooms", get(handlers::room::list_rooms));
     // Protected routes (require authentication)
     let protected_routes = Router::new()
         .route("/api/users/profile", get(handlers::get_profile))
@@ -76,6 +77,20 @@ pub fn create_router(state: AppState) -> Router {
         .route("/api/submissions", post(handlers::create_submission))
         .route("/api/submissions", get(handlers::list_submissions))
         .route("/api/submissions/{id}", get(handlers::get_submission))
+        .route(
+            "/api/submissions/{id}/select",
+            post(handlers::select_submission),
+        )
+        .route(
+            "/api/submissions/{id}/stats",
+            get(handlers::submission_stats),
+        )
+        .route("/api/rooms", post(handlers::room::create_room))
+        .route("/api/rooms/{id}/join", post(handlers::room::join_room))
+        .route("/api/rooms/{id}/leave", delete(handlers::room::leave_room))
+        .route("/api/rooms/{id}/start", post(handlers::room::start_room))
+        .route("/api/matchmaking/enqueue", post(handlers::room::enqueue_match))
+        .route("/api/matchmaking/dequeue", post(handlers::room::dequeue_match))
         .route_layer(axum_middleware::from_fn_with_state(
             state.clone(),
             middleware::auth_middleware,

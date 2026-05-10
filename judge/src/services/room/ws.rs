@@ -3,7 +3,7 @@
 use crate::middleware::auth::validate_jwt;
 use crate::protocol::{parse_client, serialize_server, ClientFrame, ParseError, ServerFrame};
 use crate::services::storage::Event;
-use crate::services::room_logic::{LiveRoom, RoomLogic, RoomRegistry};
+use crate::services::room::logic::{LiveRoom, RoomLogic, RoomRegistry};
 use axum::extract::ws::{Message, WebSocket};
 use futures_util::{SinkExt, StreamExt};
 use std::sync::Arc;

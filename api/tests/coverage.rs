@@ -57,6 +57,7 @@ async fn fresh_tournament(db: &api::db::Database, game_id: &str) -> RecordId {
         None,
         None,
         Some(MatchGenerationType::RoundRobin),
+        None,
     )
     .await
     .unwrap();
@@ -203,6 +204,7 @@ async fn create_tournament_rejects_unknown_game() {
         "x".into(),
         2,
         2,
+        None,
         None,
         None,
         None,

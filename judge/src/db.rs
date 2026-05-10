@@ -57,7 +57,37 @@ pub async fn connect(
 async fn init_schema(db: &Database) -> Result<()> {
     db.query(
         "DEFINE TABLE IF NOT EXISTS match SCHEMAFULL;
+         DEFINE FIELD IF NOT EXISTS tournament_id ON match TYPE option<record<tournament>>;
+         DEFINE FIELD IF NOT EXISTS game_id ON match TYPE string;
+         DEFINE FIELD IF NOT EXISTS room_id ON match TYPE option<record<room>>;
+         DEFINE FIELD IF NOT EXISTS status ON match TYPE string;
+         DEFINE FIELD IF NOT EXISTS participants ON match TYPE array<{
+             user_id: record<user>,
+             submission_id: option<record<submission>>,
+             score: option<float>
+         }>;
+         DEFINE FIELD IF NOT EXISTS metadata ON match TYPE option<object>;
+         DEFINE FIELD IF NOT EXISTS error_message ON match TYPE option<string>;
+         DEFINE FIELD IF NOT EXISTS faulted_user_ids ON match TYPE array<record<user>> DEFAULT [];
+         DEFINE FIELD IF NOT EXISTS round ON match TYPE option<number>;
+         DEFINE FIELD IF NOT EXISTS bracket ON match TYPE option<string>;
+         DEFINE FIELD IF NOT EXISTS bracket_position ON match TYPE option<number>;
+         DEFINE FIELD IF NOT EXISTS game_event_source ON match TYPE option<string>;
+         DEFINE FIELD IF NOT EXISTS judge_server_name ON match TYPE option<string>;
+         DEFINE FIELD IF NOT EXISTS created_at ON match TYPE datetime;
+         DEFINE FIELD IF NOT EXISTS updated_at ON match TYPE datetime;
+         DEFINE FIELD IF NOT EXISTS started_at ON match TYPE option<datetime>;
+         DEFINE FIELD IF NOT EXISTS completed_at ON match TYPE option<datetime>;
          DEFINE TABLE IF NOT EXISTS submission SCHEMAFULL;
+         DEFINE FIELD IF NOT EXISTS user_id ON submission TYPE record<user>;
+         DEFINE FIELD IF NOT EXISTS tournament_id ON submission TYPE record<tournament>;
+         DEFINE FIELD IF NOT EXISTS game_id ON submission TYPE string;
+         DEFINE FIELD IF NOT EXISTS language ON submission TYPE string;
+         DEFINE FIELD IF NOT EXISTS code ON submission TYPE string;
+         DEFINE FIELD IF NOT EXISTS status ON submission TYPE string DEFAULT 'pending';
+         DEFINE FIELD IF NOT EXISTS error_message ON submission TYPE option<string>;
+         DEFINE FIELD IF NOT EXISTS compiled_binary_path ON submission TYPE option<string>;
+         DEFINE FIELD IF NOT EXISTS created_at ON submission TYPE datetime;
          DEFINE TABLE IF NOT EXISTS room_lease SCHEMALESS;
          DEFINE TABLE IF NOT EXISTS room_event SCHEMALESS;
          DEFINE TABLE IF NOT EXISTS room_meta SCHEMALESS;

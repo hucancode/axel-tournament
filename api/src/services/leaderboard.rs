@@ -1,4 +1,8 @@
-use crate::{db::Database, error::ApiResult, models::LeaderboardEntry};
+use crate::{
+    db::Database,
+    error::ApiResult,
+    models::{LeaderboardEntry, bare_key},
+};
 use surrealdb::types::{RecordId, SurrealValue, ToSql};
 
 pub async fn get_leaderboard(
@@ -60,12 +64,12 @@ pub async fn get_leaderboard(
         .enumerate()
         .map(|(idx, entry)| LeaderboardEntry {
             rank: (idx + 1) as u32,
-            user_id: entry.user_id.to_sql(),
+            user_id: bare_key(&entry.user_id),
             username: entry.username.unwrap_or_default(),
             location: entry.location.unwrap_or_default(),
             score: entry.score,
             tournament_name: entry.tournament_name.unwrap_or_default(),
-            tournament_id: entry.tournament_id.to_sql(),
+            tournament_id: bare_key(&entry.tournament_id),
         })
         .collect();
     Ok(entries)

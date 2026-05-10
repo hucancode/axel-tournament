@@ -82,11 +82,11 @@ impl AuthService {
         format!("{:x}", digest)
     }
     pub fn user_to_info(user: &User) -> ApiResult<UserInfo> {
-        let id = user
-            .id
-            .as_ref()
-            .ok_or_else(|| ApiError::Internal("User ID is missing".to_string()))?
-            .to_sql();
+        let id = crate::models::bare_key(
+            user.id
+                .as_ref()
+                .ok_or_else(|| ApiError::Internal("User ID is missing".to_string()))?,
+        );
         Ok(UserInfo {
             id,
             email: user.email.clone(),

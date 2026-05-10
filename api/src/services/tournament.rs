@@ -2,7 +2,9 @@ use crate::{
     db::Database,
     error::{ApiError, ApiResult},
     models::{
-        tournament::{MatchGenerationType, Tournament, TournamentParticipant, TournamentStatus},
+        tournament::{
+            MatchGenerationType, Tournament, TournamentKind, TournamentParticipant, TournamentStatus,
+        },
         matches::{Match, MatchParticipant, MatchStatus},
         game::find_game_by_id,
     },
@@ -20,6 +22,7 @@ pub async fn create_tournament(
     start_time: Option<DateTime<Utc>>,
     end_time: Option<DateTime<Utc>>,
     match_generation_type: Option<MatchGenerationType>,
+    kind: Option<TournamentKind>,
 ) -> ApiResult<Tournament> {
     // Verify game exists in hardcoded registry
     find_game_by_id(&game_id)
@@ -36,6 +39,7 @@ pub async fn create_tournament(
         start_time: start_time.map(|dt| dt.into()),
         end_time: end_time.map(|dt| dt.into()),
         match_generation_type: match_generation_type.unwrap_or_default(),
+        kind: kind.unwrap_or_default(),
         created_at: Datetime::default(),
         updated_at: Datetime::default(),
     };
@@ -129,11 +133,7 @@ pub async fn join_tournament(
     }
 
     // Get current participants count
-    let mut participants_result = db
-        .query("SELECT * FROM tournament_participant WHERE tournament_id = $tournament_id")
-        .bind(("tournament_id", tournament_id.clone()))
-        .await?;
-    let participants: Vec<TournamentParticipant> = participants_result.take(0)?;
+    let participants = get_tournament_participants(db, tournament_id.clone()).await?;
 
     // Check if tournament is full
     if participants.len() as u32 >= tournament.max_players {
@@ -153,6 +153,10 @@ pub async fn join_tournament(
         user_id: user_id.clone(),
         submission_id: None,
         score: 0.0,
+        wins: 0,
+        losses: 0,
+        draws: 0,
+        elo: None,
         rank: None,
         joined_at: Datetime::default(),
     };
@@ -175,6 +179,24 @@ pub async fn get_tournament_participants(
     Ok(participants)
 }
 
+/// Single participant lookup by `(tournament, user)`. None if absent.
+pub async fn get_participant(
+    db: &Database,
+    tournament_id: &RecordId,
+    user_id: &RecordId,
+) -> ApiResult<Option<TournamentParticipant>> {
+    let mut resp = db
+        .query(
+            "SELECT * FROM tournament_participant
+             WHERE tournament_id = $tid AND user_id = $uid LIMIT 1",
+        )
+        .bind(("tid", tournament_id.clone()))
+        .bind(("uid", user_id.clone()))
+        .await?;
+    let rows: Vec<TournamentParticipant> = resp.take(0)?;
+    Ok(rows.into_iter().next())
+}
+
 pub async fn leave_tournament(
     db: &Database,
     tournament_id: RecordId,
@@ -187,16 +209,11 @@ pub async fn leave_tournament(
             "Cannot leave tournament after registration has closed".to_string(),
         ));
     }
-    // Find participant first to avoid matching issues and validate ownership
-    let mut existing = db
-        .query("SELECT * FROM tournament_participant WHERE tournament_id = $tournament_id AND user_id = $user_id")
-        .bind(("tournament_id", tournament_id.clone()))
-        .bind(("user_id", user_id.clone()))
-        .await?;
-    let participants: Vec<TournamentParticipant> = existing.take(0)?;
-    let participant = participants.into_iter().next().ok_or_else(|| {
-        ApiError::NotFound("You are not a participant in this tournament".to_string())
-    })?;
+    let participant = get_participant(db, &tournament_id, &user_id)
+        .await?
+        .ok_or_else(|| {
+            ApiError::NotFound("You are not a participant in this tournament".to_string())
+        })?;
 
     // Delete by specific participant id
     if let Some(pid) = participant.id.clone() {
@@ -228,16 +245,31 @@ pub async fn start_tournament(db: &Database, tournament_id: RecordId) -> ApiResu
         )));
     }
 
-    // Filter participants who have submitted code
-    let participants_with_submissions: Vec<TournamentParticipant> = participants
-        .into_iter()
-        .filter(|p| p.submission_id.is_some())
-        .collect();
+    // Filter participants whose selected submission compiled cleanly.
+    // Failed-compile bots never enter matches — that's the contract.
+    let mut participants_with_submissions: Vec<TournamentParticipant> = Vec::new();
+    for p in participants.into_iter() {
+        let Some(sid) = p.submission_id.clone() else {
+            continue;
+        };
+        let sub: Option<crate::models::Submission> = db.select(&sid).await?;
+        let Some(sub) = sub else { continue };
+        if sub.status == crate::models::SubmissionStatus::Accepted {
+            participants_with_submissions.push(p);
+        }
+    }
 
     if participants_with_submissions.is_empty() {
         return Err(ApiError::BadRequest(
-            "No participants have submitted code yet".to_string(),
+            "No participants with a compiled submission. Wait for compilation to finish or upload a fixed bot.".to_string(),
         ));
+    }
+    if (participants_with_submissions.len() as u32) < tournament.min_players {
+        return Err(ApiError::BadRequest(format!(
+            "Not enough compiled submissions. Need {}, have {}.",
+            tournament.min_players,
+            participants_with_submissions.len()
+        )));
     }
 
     // Claim tournament start to prevent duplicate match generation
@@ -347,10 +379,8 @@ async fn create_match_for_participants(
         .clone()
         .ok_or_else(|| ApiError::Internal("Tournament missing id".to_string()))?;
     let match_data = Match {
-        id: None,
         tournament_id: Some(tournament_id),
         game_id: tournament.game_id.clone(),
-        status: MatchStatus::Pending,
         participants: vec![
             MatchParticipant {
                 user_id: p1.user_id.clone(),
@@ -363,14 +393,7 @@ async fn create_match_for_participants(
                 score: None,
             },
         ],
-        metadata: None,
-        room_id: None,
-        game_event_source: None,
-        judge_server_name: None,
-        created_at: Datetime::default(),
-        updated_at: Datetime::default(),
-        started_at: None,
-        completed_at: None,
+        ..Default::default()
     };
 
     let _: Option<Match> = db.create("match").content(match_data).await?;
@@ -419,27 +442,164 @@ async fn generate_round_robin_matches(
     Ok(matches_created)
 }
 
-/// Generate single elimination matches (bracket tournament)
+/// Single elimination: pair players for round 0; healer / judge will
+/// generate round N+1 once round N is complete. Non-power-of-2 fields
+/// get byes — top-seeded players are paired against placeholder
+/// "BYE" slots (encoded as a one-participant match that auto-resolves
+/// in their favour).
+///
+/// Returns the count of round-0 matches created.
 async fn generate_single_elimination_matches(
-    _db: &Database,
-    _tournament: &Tournament,
-    _participants: &[TournamentParticipant],
+    db: &Database,
+    tournament: &Tournament,
+    participants: &[TournamentParticipant],
 ) -> ApiResult<usize> {
-    // TODO: Implement single elimination bracket generation
-    // This requires more complex logic for bracket seeding
-    Err(ApiError::BadRequest(
-        "Single elimination not yet implemented".to_string(),
-    ))
+    let pairs = single_elim_round_zero(participants.len());
+    let mut created = 0;
+    for (pos, (a, b)) in pairs.iter().enumerate() {
+        let p1 = &participants[*a];
+        let p2_opt = b.map(|i| &participants[i]);
+        create_bracket_match(
+            db,
+            tournament,
+            p1,
+            p2_opt,
+            0,
+            "winners",
+            pos as u32,
+        )
+        .await?;
+        created += 1;
+    }
+    Ok(created)
 }
 
-/// Generate double elimination matches (double bracket tournament)
+/// Double elimination: round 0 of the winners bracket only. The losers
+/// bracket is materialised as players drop down, by `advance_brackets`
+/// in `services::bracket`.
 async fn generate_double_elimination_matches(
-    _db: &Database,
-    _tournament: &Tournament,
-    _participants: &[TournamentParticipant],
+    db: &Database,
+    tournament: &Tournament,
+    participants: &[TournamentParticipant],
 ) -> ApiResult<usize> {
-    // TODO: Implement double elimination bracket generation
-    Err(ApiError::BadRequest(
-        "Double elimination not yet implemented".to_string(),
-    ))
+    // Round 0 is identical to single-elim; difference is downstream
+    // routing of losers.
+    let pairs = single_elim_round_zero(participants.len());
+    let mut created = 0;
+    for (pos, (a, b)) in pairs.iter().enumerate() {
+        let p1 = &participants[*a];
+        let p2_opt = b.map(|i| &participants[i]);
+        create_bracket_match(
+            db,
+            tournament,
+            p1,
+            p2_opt,
+            0,
+            "winners",
+            pos as u32,
+        )
+        .await?;
+        created += 1;
+    }
+    Ok(created)
+}
+
+/// Standard 1-vs-N seeding. For 8 players: (0,7), (3,4), (2,5), (1,6).
+/// For non-power-of-2, top seeds receive byes (b = None).
+pub fn single_elim_round_zero(n: usize) -> Vec<(usize, Option<usize>)> {
+    if n < 2 {
+        return Vec::new();
+    }
+    // Bracket size = next power of two.
+    let bracket_size = n.next_power_of_two();
+    // Standard seeding order for that size.
+    let order = seed_order(bracket_size);
+    let mut pairs = Vec::with_capacity(bracket_size / 2);
+    for chunk in order.chunks(2) {
+        let a = chunk[0];
+        let b = chunk[1];
+        let a_real = if a < n { Some(a) } else { None };
+        let b_real = if b < n { Some(b) } else { None };
+        match (a_real, b_real) {
+            (Some(ai), Some(bi)) => pairs.push((ai, Some(bi))),
+            (Some(ai), None) => pairs.push((ai, None)),
+            (None, Some(bi)) => pairs.push((bi, None)),
+            (None, None) => {} // both byes, drop
+        }
+    }
+    pairs
+}
+
+/// Iterative seed order. For 4: [0,3,1,2]. For 8: [0,7,3,4,1,6,2,5].
+fn seed_order(size: usize) -> Vec<usize> {
+    let mut v = vec![0usize, 1];
+    let mut s = 2usize;
+    while s < size {
+        let mut next = Vec::with_capacity(s * 2);
+        for &x in &v {
+            next.push(x);
+            next.push(s * 2 - 1 - x);
+        }
+        v = next;
+        s *= 2;
+    }
+    v
+}
+
+async fn create_bracket_match(
+    db: &Database,
+    tournament: &Tournament,
+    p1: &TournamentParticipant,
+    p2: Option<&TournamentParticipant>,
+    round: u32,
+    bracket: &str,
+    position: u32,
+) -> ApiResult<()> {
+    let tournament_id = tournament
+        .id
+        .clone()
+        .ok_or_else(|| ApiError::Internal("Tournament missing id".to_string()))?;
+
+    let mut participants = vec![MatchParticipant {
+        user_id: p1.user_id.clone(),
+        submission_id: p1.submission_id.clone(),
+        score: None,
+    }];
+    if let Some(p2) = p2 {
+        participants.push(MatchParticipant {
+            user_id: p2.user_id.clone(),
+            submission_id: p2.submission_id.clone(),
+            score: None,
+        });
+    }
+
+    // BYE: only one participant. Mark the match Completed immediately,
+    // award the score, so bracket advancement picks the winner up on
+    // the next healer tick.
+    let (status, score, completed_at) = if p2.is_none() {
+        (
+            MatchStatus::Completed,
+            Some(1.0_f64),
+            Some(Datetime::default()),
+        )
+    } else {
+        (MatchStatus::Pending, None, None)
+    };
+    if let Some(s) = score {
+        participants[0].score = Some(s);
+    }
+
+    let match_data = Match {
+        tournament_id: Some(tournament_id),
+        game_id: tournament.game_id.clone(),
+        status,
+        participants,
+        round: Some(round),
+        bracket: Some(bracket.to_string()),
+        bracket_position: Some(position),
+        completed_at,
+        ..Default::default()
+    };
+    let _: Option<Match> = db.create("match").content(match_data).await?;
+    Ok(())
 }

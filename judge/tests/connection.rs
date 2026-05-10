@@ -8,7 +8,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use judge::games::Rps;
-use judge::services::room_logic::RoomRegistry;
+use judge::services::room::logic::RoomRegistry;
 use judge::services::storage::Storage;
 
 fn unique_room_id() -> String {

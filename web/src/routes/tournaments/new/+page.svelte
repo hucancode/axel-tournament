@@ -20,6 +20,7 @@
         start_time: "",
         end_time: "",
         match_generation_type: "all_vs_all",
+        kind: "bot",
     });
     let formLoading = $state(false);
     let formError = $state("");
@@ -243,19 +244,35 @@
                         </div>
                     </div>
 
-                    <div class="form-field">
-                        <label for="match-type">Match Generation Type</label>
-                        <select
-                            id="match-type"
-                            class="input"
-                            bind:value={formData.match_generation_type}
-                            disabled={formLoading}
-                            required
-                        >
-                            {#each matchTypes as type}
-                                <option value={type.value}>{type.label}</option>
-                            {/each}
-                        </select>
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label for="kind">Tournament Kind</label>
+                            <select
+                                id="kind"
+                                class="input"
+                                bind:value={formData.kind}
+                                disabled={formLoading}
+                                required
+                            >
+                                <option value="bot">Bot vs Bot</option>
+                                <option value="human">Human vs Human</option>
+                            </select>
+                        </div>
+
+                        <div class="form-field">
+                            <label for="match-type">Match Generation Type</label>
+                            <select
+                                id="match-type"
+                                class="input"
+                                bind:value={formData.match_generation_type}
+                                disabled={formLoading || formData.kind === "human"}
+                                required
+                            >
+                                {#each matchTypes as type}
+                                    <option value={type.value}>{type.label}</option>
+                                {/each}
+                            </select>
+                        </div>
                     </div>
 
                     <div class="form-row">

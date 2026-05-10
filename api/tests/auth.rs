@@ -6,6 +6,61 @@ use api::{
     services::{AuthService, auth, user},
 };
 
+mod jwt_clock_skew {
+    use api::models::{Claims, UserRole};
+    use api::services::AuthService;
+    use chrono::Utc;
+    use jsonwebtoken::{encode, EncodingKey, Header};
+
+    const SECRET: &str = "test-secret-key-min-32-bytes-please";
+
+    fn make_token(secret: &str, exp_offset_secs: i64, iat_offset_secs: i64) -> String {
+        let now = Utc::now().timestamp();
+        let claims = Claims {
+            sub: "user:test".into(),
+            email: "test@local".into(),
+            role: UserRole::Player,
+            exp: (now + exp_offset_secs) as usize,
+            iat: (now + iat_offset_secs) as usize,
+        };
+        encode(
+            &Header::default(),
+            &claims,
+            &EncodingKey::from_secret(secret.as_bytes()),
+        )
+        .unwrap()
+    }
+
+    fn svc() -> AuthService {
+        AuthService::new(SECRET.to_string(), 3600)
+    }
+
+    #[test]
+    fn validate_token_accepts_fresh_token() {
+        let tok = make_token(SECRET, 3600, 0);
+        let claims = svc().validate_token(&tok).unwrap();
+        assert_eq!(claims.sub, "user:test");
+    }
+
+    #[test]
+    fn validate_token_rejects_expired() {
+        let tok = make_token(SECRET, -3600, -7200);
+        assert!(svc().validate_token(&tok).is_err(), "expired must fail");
+    }
+
+    #[test]
+    fn validate_token_rejects_wrong_secret() {
+        let tok = make_token("totally-different-secret-xxxxxxxx", 3600, 0);
+        assert!(svc().validate_token(&tok).is_err());
+    }
+
+    #[test]
+    fn validate_token_rejects_garbage() {
+        assert!(svc().validate_token("not.a.token").is_err());
+        assert!(svc().validate_token("").is_err());
+    }
+}
+
 async fn get_bob_user(db: &api::db::Database) -> api::models::User {
     let config = Config::from_env();
     auth::get_user_by_email(db, &config.bob.email)

@@ -1,9 +1,7 @@
 use crate::{
     AppState,
     error::ApiResult,
-    models::{
-        Claims, CreateSubmissionRequest, ProgrammingLanguage, SubmissionResponse,
-    },
+    models::{Claims, CreateSubmissionRequest, ProgrammingLanguage, SubmissionResponse, rid},
     services,
 };
 use axum::{
@@ -24,7 +22,6 @@ pub async fn create_submission(
         .validate()
         .map_err(|e| crate::error::ApiError::Validation(e.to_string()))?;
 
-    // Validate code size
     let max_bytes = state.config.app.max_code_size_mb * 1024 * 1024;
     if payload.code.len() > max_bytes {
         return Err(crate::error::ApiError::Validation(format!(
@@ -33,50 +30,34 @@ pub async fn create_submission(
         )));
     }
 
-    // Validate language
     let language = ProgrammingLanguage::from_str(&payload.language).ok_or_else(|| {
         crate::error::ApiError::Validation("Invalid programming language".to_string())
     })?;
-    // Get tournament to verify it exists and get game_id
-    let tournament = services::tournament::get_tournament(
-        &state.db,
-        RecordId::parse_simple(&payload.tournament_id)
-            .map_err(|_| crate::error::ApiError::BadRequest("Invalid tournament id".to_string()))?,
-    )
-    .await?;
+    let tournament_id = rid("tournament", payload.tournament_id);
+    let tournament =
+        services::tournament::get_tournament(&state.db, tournament_id.clone()).await?;
     let game_id = tournament.game_id.clone();
 
-    // Verify game exists and language is supported
     let game = crate::models::game::find_game_by_id(&game_id)
         .ok_or_else(|| crate::error::ApiError::NotFound("Game not found".to_string()))?;
 
     if !game.supported_languages.contains(&language) {
         return Err(crate::error::ApiError::Validation(format!(
             "Language {:?} is not supported by this game. Supported languages: {:?}",
-            language,
-            game.supported_languages,
+            language, game.supported_languages,
         )));
     }
-    // Create submission
     let submission = services::submission::create_submission(
         &state.db,
         RecordId::parse_simple(&claims.sub)
             .map_err(|_| crate::error::ApiError::BadRequest("Invalid user id".to_string()))?,
-        RecordId::parse_simple(&payload.tournament_id)
-            .map_err(|_| crate::error::ApiError::BadRequest("Invalid tournament id".to_string()))?,
+        tournament_id,
         game_id,
         language,
         payload.code,
     )
     .await?;
-    let response = SubmissionResponse {
-        id: submission.id.as_ref().unwrap().to_sql(),
-        tournament_id: submission.tournament_id.to_sql(),
-        language: submission.language,
-        status: submission.status,
-        created_at: submission.created_at,
-    };
-    Ok((StatusCode::CREATED, Json(response)))
+    Ok((StatusCode::CREATED, Json(submission.into())))
 }
 
 pub async fn get_submission(
@@ -84,13 +65,8 @@ pub async fn get_submission(
     Extension(claims): Extension<Claims>,
     Path(submission_id): Path<String>,
 ) -> ApiResult<Json<SubmissionResponse>> {
-    let submission = services::submission::get_submission(
-        &state.db,
-        RecordId::parse_simple(&submission_id)
-            .map_err(|_| crate::error::ApiError::BadRequest("Invalid submission id".to_string()))?,
-    )
-    .await?;
-    // Check if user owns this submission
+    let submission =
+        services::submission::get_submission(&state.db, rid("submission", submission_id)).await?;
     if submission.user_id.to_sql() != claims.sub {
         return Err(crate::error::ApiError::Forbidden(
             "You don't have access to this submission".to_string(),
@@ -104,6 +80,37 @@ pub struct ListSubmissionsQuery {
     tournament_id: Option<String>,
 }
 
+pub async fn select_submission(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Claims>,
+    Path(submission_id): Path<String>,
+) -> ApiResult<Json<SubmissionResponse>> {
+    let submission = services::submission::select_active_submission(
+        &state.db,
+        RecordId::parse_simple(&claims.sub)
+            .map_err(|_| crate::error::ApiError::BadRequest("Invalid user id".to_string()))?,
+        rid("submission", submission_id),
+    )
+    .await?;
+    Ok(Json(submission.into()))
+}
+
+pub async fn submission_stats(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Claims>,
+    Path(submission_id): Path<String>,
+) -> ApiResult<Json<services::submission::SubmissionStats>> {
+    let sid = rid("submission", submission_id);
+    let submission = services::submission::get_submission(&state.db, sid.clone()).await?;
+    if submission.user_id.to_sql() != claims.sub {
+        return Err(crate::error::ApiError::Forbidden(
+            "You don't have access to this submission".to_string(),
+        ));
+    }
+    let stats = services::submission::submission_stats(&state.db, sid).await?;
+    Ok(Json(stats))
+}
+
 pub async fn list_submissions(
     State(state): State<AppState>,
     Extension(claims): Extension<Claims>,
@@ -113,15 +120,7 @@ pub async fn list_submissions(
         &state.db,
         RecordId::parse_simple(&claims.sub)
             .map_err(|_| crate::error::ApiError::BadRequest("Invalid user id".to_string()))?,
-        query
-            .tournament_id
-            .as_deref()
-            .map(|id| {
-                RecordId::parse_simple(id).map_err(|_| {
-                    crate::error::ApiError::BadRequest("Invalid tournament id".to_string())
-                })
-            })
-            .transpose()?,
+        query.tournament_id.map(|id| rid("tournament", id)),
     )
     .await?;
     Ok(Json(submissions.into_iter().map(Into::into).collect()))

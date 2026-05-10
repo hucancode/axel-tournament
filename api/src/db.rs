@@ -90,6 +90,7 @@ pub async fn init_schema(db: &Database) -> Result<(), surrealdb::Error> {
          DEFINE FIELD IF NOT EXISTS start_time ON tournament TYPE option<datetime>;
          DEFINE FIELD IF NOT EXISTS end_time ON tournament TYPE option<datetime>;
          DEFINE FIELD IF NOT EXISTS match_generation_type ON tournament TYPE string DEFAULT 'all_vs_all';
+         DEFINE FIELD IF NOT EXISTS kind ON tournament TYPE string DEFAULT 'bot';
          DEFINE FIELD IF NOT EXISTS created_at ON tournament TYPE datetime;
          DEFINE FIELD IF NOT EXISTS updated_at ON tournament TYPE datetime;",
     )
@@ -101,6 +102,10 @@ pub async fn init_schema(db: &Database) -> Result<(), surrealdb::Error> {
          DEFINE FIELD IF NOT EXISTS user_id ON tournament_participant TYPE record<user>;
          DEFINE FIELD IF NOT EXISTS submission_id ON tournament_participant TYPE option<record<submission>>;
          DEFINE FIELD IF NOT EXISTS score ON tournament_participant TYPE number DEFAULT 0;
+         DEFINE FIELD IF NOT EXISTS wins ON tournament_participant TYPE number DEFAULT 0;
+         DEFINE FIELD IF NOT EXISTS losses ON tournament_participant TYPE number DEFAULT 0;
+         DEFINE FIELD IF NOT EXISTS draws ON tournament_participant TYPE number DEFAULT 0;
+         DEFINE FIELD IF NOT EXISTS elo ON tournament_participant TYPE option<number>;
          DEFINE FIELD IF NOT EXISTS rank ON tournament_participant TYPE option<number>;
          DEFINE FIELD IF NOT EXISTS joined_at ON tournament_participant TYPE datetime;
          DEFINE INDEX IF NOT EXISTS unique_tournament_user ON tournament_participant COLUMNS tournament_id, user_id UNIQUE;"
@@ -129,11 +134,28 @@ pub async fn init_schema(db: &Database) -> Result<(), surrealdb::Error> {
          DEFINE FIELD IF NOT EXISTS status ON room TYPE string;
          DEFINE FIELD IF NOT EXISTS players ON room TYPE array<record<user>>;
          DEFINE FIELD IF NOT EXISTS human_timeout_ms ON room TYPE option<number>;
+         DEFINE FIELD IF NOT EXISTS tournament_id ON room TYPE option<record<tournament>>;
+         DEFINE FIELD IF NOT EXISTS allowed_user_ids ON room TYPE array<record<user>> DEFAULT [];
+         DEFINE FIELD IF NOT EXISTS is_ranked ON room TYPE bool DEFAULT false;
+         DEFINE FIELD IF NOT EXISTS winner_id ON room TYPE option<record<user>>;
          DEFINE FIELD IF NOT EXISTS created_at ON room TYPE datetime;
          DEFINE FIELD IF NOT EXISTS updated_at ON room TYPE datetime;
-         DEFINE FIELD IF NOT EXISTS event_history ON room TYPE array<string>;
+         DEFINE FIELD IF NOT EXISTS event_history ON room TYPE array<string> DEFAULT [];
          DEFINE INDEX IF NOT EXISTS idx_room_game ON room COLUMNS game_id;
-         DEFINE INDEX IF NOT EXISTS idx_room_status ON room COLUMNS status;",
+         DEFINE INDEX IF NOT EXISTS idx_room_status ON room COLUMNS status;
+         DEFINE INDEX IF NOT EXISTS idx_room_tournament ON room COLUMNS tournament_id;",
+    )
+    .await?;
+
+    // Matchmaking ticket: per-tournament ranked queue for human flows.
+    db.query(
+        "DEFINE TABLE IF NOT EXISTS matchmaking_ticket SCHEMAFULL;
+         DEFINE FIELD IF NOT EXISTS tournament_id ON matchmaking_ticket TYPE record<tournament>;
+         DEFINE FIELD IF NOT EXISTS user_id ON matchmaking_ticket TYPE record<user>;
+         DEFINE FIELD IF NOT EXISTS elo ON matchmaking_ticket TYPE number;
+         DEFINE FIELD IF NOT EXISTS queued_at ON matchmaking_ticket TYPE datetime;
+         DEFINE INDEX IF NOT EXISTS idx_mm_ticket_unique
+             ON matchmaking_ticket COLUMNS tournament_id, user_id UNIQUE;",
     )
     .await?;
 
@@ -143,13 +165,17 @@ pub async fn init_schema(db: &Database) -> Result<(), surrealdb::Error> {
          DEFINE FIELD IF NOT EXISTS game_id ON match TYPE string;
          DEFINE FIELD IF NOT EXISTS room_id ON match TYPE option<record<room>>;
          DEFINE FIELD IF NOT EXISTS status ON match TYPE string;
-         DEFINE FIELD IF NOT EXISTS participants ON match TYPE array<{
+         DEFINE FIELD OVERWRITE participants ON match TYPE array<{
              user_id: record<user>,
              submission_id: option<record<submission>>,
-             score: option<number>
+             score: option<float>
          }>;
          DEFINE FIELD IF NOT EXISTS metadata ON match TYPE option<object>;
-         DEFINE FIELD IF NOT EXISTS error_message ON match TYPE option<string>;
+         DEFINE FIELD IF NOT EXISTS error_message ON match TYPE option<string> DEFAULT NONE;
+         DEFINE FIELD IF NOT EXISTS faulted_user_ids ON match TYPE array<record<user>> DEFAULT [];
+         DEFINE FIELD IF NOT EXISTS round ON match TYPE option<number>;
+         DEFINE FIELD IF NOT EXISTS bracket ON match TYPE option<string>;
+         DEFINE FIELD IF NOT EXISTS bracket_position ON match TYPE option<number>;
          DEFINE FIELD IF NOT EXISTS game_event_source ON match TYPE option<string>;
          DEFINE FIELD IF NOT EXISTS judge_server_name ON match TYPE option<string>;
          DEFINE FIELD IF NOT EXISTS created_at ON match TYPE datetime;
@@ -170,6 +196,26 @@ pub async fn init_schema(db: &Database) -> Result<(), surrealdb::Error> {
          DEFINE INDEX IF NOT EXISTS idx_tournament_created ON tournament COLUMNS created_at;
          DEFINE INDEX IF NOT EXISTS idx_submission_user ON submission COLUMNS user_id;
          DEFINE INDEX IF NOT EXISTS idx_submission_tournament ON submission COLUMNS tournament_id;",
+    )
+    .await?;
+
+    // Best-effort backfill for legacy rows that predate the new schema
+    // fields. Idempotent: rows already filled keep their values.
+    db.query("UPDATE tournament SET kind = 'bot' WHERE kind = NONE;").await?;
+    db.query("UPDATE match SET faulted_user_ids = [] WHERE faulted_user_ids = NONE;")
+        .await?;
+    // Coerce existing integer scores to float by re-assigning. Surreal
+    // re-evaluates field type on UPDATE so the new `option<float>`
+    // schema constrains the row.
+    db.query(
+        "UPDATE match SET participants = array::map(
+             participants,
+             |$p| {
+                 user_id: $p.user_id,
+                 submission_id: $p.submission_id,
+                 score: IF $p.score = NONE THEN NONE ELSE <float> $p.score END
+             }
+         ) WHERE participants[*].score IS NOT NONE;",
     )
     .await?;
 

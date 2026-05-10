@@ -18,7 +18,7 @@ use judge::{
     models::game_metadata::GAMES,
     services::{
         capacity::CapacityTracker,
-        room_logic::RoomLogic,
+        room::logic::RoomLogic,
         storage::Storage,
     },
     Config,

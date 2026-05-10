@@ -3,13 +3,13 @@ use crate::{
     error::{ApiError, ApiResult},
     models::{
         game::find_game_by_id,
-        matches::{Match, MatchParticipant, MatchStatus},
+        matches::{Match, MatchParticipant},
         submission::Submission,
     },
 };
 use serde::Deserialize;
 use std::collections::HashSet;
-use surrealdb::types::{Datetime, RecordId, SurrealValue, ToSql};
+use surrealdb::types::{RecordId, SurrealValue, ToSql};
 
 pub async fn create_match(
     db: &Database,
@@ -45,19 +45,10 @@ pub async fn create_match(
 
     // 3. Create Match
     let new_match = Match {
-        id: None,
         tournament_id: Some(tournament_id),
         game_id: game_id.clone(),
-        status: MatchStatus::Pending,
         participants,
-        metadata: None,
-        room_id: None,
-        game_event_source: None,
-        judge_server_name: None,
-        created_at: Datetime::default(),
-        updated_at: Datetime::default(),
-        started_at: None,
-        completed_at: None,
+        ..Default::default()
     };
 
     let created: Option<Match> = db.create("match").content(new_match).await?;

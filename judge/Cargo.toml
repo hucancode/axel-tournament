@@ -51,3 +51,6 @@ cgroups-rs = "0.5"
 tokio-pipe = "0.2"
 caps = "0.5"
 seccompiler = "0.5"
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util"] }
