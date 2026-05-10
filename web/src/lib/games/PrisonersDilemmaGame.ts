@@ -5,6 +5,8 @@ import { COLORS } from './types';
 type Choice = 'C' | 'D';
 
 /** Spec: judge/protocols/prisoners-dilemma.md. */
+interface PdRound { my: Choice; opp: Choice }
+
 export class PrisonersDilemmaGame extends BasePixiGame {
   private myChoice: Choice | null = null;
   private opponentChoice: Choice | null = null;
@@ -12,6 +14,7 @@ export class PrisonersDilemmaGame extends BasePixiGame {
   private currentRound = 0;
   private totalRounds = 0;
   private revealing = false;
+  private history: PdRound[] = [];
 
   public handleEvent(kind: string, payload: string, ctx: GameContext): void {
     this.ctx = ctx;
@@ -26,6 +29,7 @@ export class PrisonersDilemmaGame extends BasePixiGame {
         this.myChoice = null;
         this.opponentChoice = null;
         this.revealing = false;
+        this.history = [];
         this.refresh();
         break;
       case 'ROUND_RESULT': {
@@ -40,6 +44,7 @@ export class PrisonersDilemmaGame extends BasePixiGame {
         this.scores = { player: me === 0 ? s0 : s1, opponent: me === 0 ? s1 : s0 };
         this.currentRound = round;
         this.revealing = true;
+        this.history.push({ my: this.myChoice, opp: this.opponentChoice });
         this.refresh();
         setTimeout(() => {
           this.myChoice = null;
@@ -123,6 +128,8 @@ export class PrisonersDilemmaGame extends BasePixiGame {
   protected render(): void {
     this.container.removeChildren();
 
+    this.renderHistory();
+
     if (this.gameState.status === 'finished') {
       this.renderFinalReveal();
       return;
@@ -133,6 +140,47 @@ export class PrisonersDilemmaGame extends BasePixiGame {
       this.renderWaiting();
     } else if (this.gameState.status === 'playing') {
       this.renderChoices();
+    }
+  }
+
+  private renderHistory(): void {
+    if (this.history.length === 0) return;
+    const cellW = Math.min(36, Math.floor(380 / this.history.length));
+    const totalW = this.history.length * cellW;
+    const startX = 200 - totalW / 2;
+    const y = 6;
+    for (let i = 0; i < this.history.length; i++) {
+      const r = this.history[i];
+      const cx = startX + i * cellW + cellW / 2;
+      let borderColor: number;
+      if (r.my === 'C' && r.opp === 'C') borderColor = COLORS.GREEN;
+      else if (r.my === 'D' && r.opp === 'D') borderColor = COLORS.GRAY;
+      else if (r.my === 'D' && r.opp === 'C') borderColor = COLORS.BLUE;
+      else borderColor = COLORS.RED;
+      const bg = new Graphics();
+      bg.roundRect(cx - cellW / 2 + 2, y, cellW - 4, 60, 6);
+      bg.fill(COLORS.LIGHT_GRAY);
+      bg.stroke({ width: 2, color: borderColor });
+      this.container.addChild(bg);
+
+      const myEmoji = r.my === 'C' ? '🤝' : '⚔️';
+      const oppEmoji = r.opp === 'C' ? '🤝' : '⚔️';
+      const my = new Text({ text: myEmoji, style: { fontSize: 14 } });
+      my.x = cx - my.width / 2;
+      my.y = y + 4;
+      this.container.addChild(my);
+      const opp = new Text({ text: oppEmoji, style: { fontSize: 14 } });
+      opp.x = cx - opp.width / 2;
+      opp.y = y + 26;
+      this.container.addChild(opp);
+
+      const num = new Text({
+        text: String(i + 1),
+        style: { fontSize: 9, fill: COLORS.GRAY },
+      });
+      num.x = cx - num.width / 2;
+      num.y = y + 48;
+      this.container.addChild(num);
     }
   }
 

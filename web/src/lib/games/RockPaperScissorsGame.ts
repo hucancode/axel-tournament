@@ -5,13 +5,17 @@ import { COLORS } from './types';
 type Choice = 'ROCK' | 'PAPER' | 'SCISSORS';
 
 /** Spec: judge/protocols/rock-paper-scissors.md. */
+type RoundOutcome = 'WIN' | 'LOSE' | 'DRAW';
+interface RpsRound { my: Choice; opp: Choice; outcome: RoundOutcome }
+
 export class RockPaperScissorsGame extends BasePixiGame {
   private myChoice: Choice | null = null;
   private opponentChoice: Choice | null = null;
-  private roundResult: 'WIN' | 'LOSE' | 'DRAW' | null = null;
+  private roundResult: RoundOutcome | null = null;
   private scores = { player: 0, opponent: 0 };
   private currentRound = 0;
   private totalRounds = 0;
+  private history: RpsRound[] = [];
 
   private choices = [
     { value: 'ROCK' as Choice, emoji: '🪨', label: 'Rock', x: 80 },
@@ -32,6 +36,7 @@ export class RockPaperScissorsGame extends BasePixiGame {
         this.myChoice = null;
         this.opponentChoice = null;
         this.roundResult = null;
+        this.history = [];
         this.refresh();
         break;
       case 'ROUND_RESULT': {
@@ -49,6 +54,7 @@ export class RockPaperScissorsGame extends BasePixiGame {
         else this.roundResult = 'DRAW';
         this.scores = newScores;
         this.currentRound = round;
+        this.history.push({ my: this.myChoice, opp: this.opponentChoice, outcome: this.roundResult });
         this.refresh();
         setTimeout(() => {
           this.myChoice = null;
@@ -130,6 +136,8 @@ export class RockPaperScissorsGame extends BasePixiGame {
   protected render(): void {
     this.container.removeChildren();
 
+    this.renderHistory();
+
     if (this.gameState.status === 'finished') {
       this.renderFinalReveal();
       return;
@@ -140,6 +148,45 @@ export class RockPaperScissorsGame extends BasePixiGame {
       this.renderWaiting();
     } else if (this.gameState.status === 'playing') {
       this.renderChoices();
+    }
+  }
+
+  private renderHistory(): void {
+    if (this.history.length === 0) return;
+    const cellW = Math.min(36, Math.floor(380 / this.history.length));
+    const totalW = this.history.length * cellW;
+    const startX = 200 - totalW / 2;
+    const y = 6;
+    for (let i = 0; i < this.history.length; i++) {
+      const r = this.history[i];
+      const cx = startX + i * cellW + cellW / 2;
+      const borderColor =
+        r.outcome === 'WIN' ? COLORS.GREEN :
+        r.outcome === 'LOSE' ? COLORS.RED : COLORS.GRAY;
+      const bg = new Graphics();
+      bg.roundRect(cx - cellW / 2 + 2, y, cellW - 4, 60, 6);
+      bg.fill(COLORS.LIGHT_GRAY);
+      bg.stroke({ width: 2, color: borderColor });
+      this.container.addChild(bg);
+
+      const myEmoji = this.choices.find((c) => c.value === r.my)?.emoji ?? '';
+      const oppEmoji = this.choices.find((c) => c.value === r.opp)?.emoji ?? '';
+      const my = new Text({ text: myEmoji, style: { fontSize: 16 } });
+      my.x = cx - my.width / 2;
+      my.y = y + 4;
+      this.container.addChild(my);
+      const opp = new Text({ text: oppEmoji, style: { fontSize: 16 } });
+      opp.x = cx - opp.width / 2;
+      opp.y = y + 26;
+      this.container.addChild(opp);
+
+      const num = new Text({
+        text: String(i + 1),
+        style: { fontSize: 9, fill: COLORS.GRAY },
+      });
+      num.x = cx - num.width / 2;
+      num.y = y + 48;
+      this.container.addChild(num);
     }
   }
 
