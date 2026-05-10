@@ -1,21 +1,23 @@
-// Reference RPS bot. Always plays ROCK.
-//
-// Wire protocol: judge/protocols/wire.md (stdio transport).
-// Reads `EVENT seq kind payload` from stdin, writes `ACT kind payload`
-// to stdout. The orchestrator JOINs and STARTs the bot; this binary
-// only needs to react to GAME_STARTED + ROUND_RESULT with a move.
-//
-// Tracks total rounds from `GAME_STARTED <rounds>` so the move that
-// would chase the final ROUND_RESULT is suppressed — the server
-// rejects it (phase=Finished) and the orchestrator would mark the bot
-// faulted otherwise.
+// Reference RPS bot. Cycles ROCK -> PAPER -> SCISSORS across rounds.
+// Spec: judge/protocols/wire.md. Tracks total rounds from GAME_STARTED
+// so the post-final move is suppressed (phase=Finished would reject).
 
 use std::io::{self, BufRead, Write};
+
+const MOVES: [&str; 3] = ["ROCK", "PAPER", "SCISSORS"];
+
+fn play(stdout: &mut io::Stdout, step: &mut usize) {
+    let pick = MOVES[*step % MOVES.len()];
+    *step += 1;
+    let _ = writeln!(stdout, "ACT MOVE {}", pick);
+    let _ = stdout.flush();
+}
 
 fn main() {
     let stdin = io::stdin();
     let mut stdout = io::stdout();
     let mut total_rounds: u32 = 0;
+    let mut step: usize = 0;
     for line in stdin.lock().lines() {
         let line = match line {
             Ok(l) => l,
@@ -29,14 +31,12 @@ fn main() {
         match tok.next() {
             Some("GAME_STARTED") => {
                 total_rounds = tok.next().and_then(|s| s.parse().ok()).unwrap_or(0);
-                let _ = writeln!(stdout, "ACT MOVE ROCK");
-                let _ = stdout.flush();
+                play(&mut stdout, &mut step);
             }
             Some("ROUND_RESULT") => {
                 let round: u32 = tok.next().and_then(|s| s.parse().ok()).unwrap_or(0);
                 if round < total_rounds {
-                    let _ = writeln!(stdout, "ACT MOVE ROCK");
-                    let _ = stdout.flush();
+                    play(&mut stdout, &mut step);
                 }
             }
             Some("GAME_END") => break,
