@@ -29,36 +29,34 @@
 
 <div role="navigation" aria-label="Progress steps">
   {#each steps as step, index (index)}
-    <div>
-      <button
-        type="button"
-        data-status={getStepStatus(index)}
-        data-clickable={clickable || undefined}
-        disabled={!clickable}
-        onclick={() => handleStepClick(index)}
-        aria-current={getStepStatus(index) === 'current' ? 'step' : undefined}
-      >
-        <div>
-          {#if getStepStatus(index) === 'completed'}
-            <svg class="icon"><use href="/icons.svg#i-check" /></svg>
-          {:else}
-            <span>{index + 1}</span>
-          {/if}
-        </div>
-        <div>
-          <div>{step.label}</div>
-          {#if step.description}
-            <div>{step.description}</div>
-          {/if}
-        </div>
-      </button>
-      {#if index < steps.length - 1}
-        <div
-          data-connector
-          data-completed={index < current || undefined}
-        ></div>
-      {/if}
-    </div>
+    <button
+      type="button"
+      data-status={getStepStatus(index)}
+      data-clickable={clickable || undefined}
+      disabled={!clickable}
+      onclick={() => handleStepClick(index)}
+      aria-current={getStepStatus(index) === 'current' ? 'step' : undefined}
+    >
+      <div>
+        {#if getStepStatus(index) === 'completed'}
+          <svg class="icon"><use href="/icons.svg#i-check" /></svg>
+        {:else}
+          <span>{index + 1}</span>
+        {/if}
+      </div>
+      <div>
+        <div>{step.label}</div>
+        {#if step.description}
+          <div>{step.description}</div>
+        {/if}
+      </div>
+    </button>
+    {#if index < steps.length - 1}
+      <div
+        data-connector
+        data-completed={index < current || undefined}
+      ></div>
+    {/if}
   {/each}
 </div>
 
@@ -66,13 +64,7 @@
   div[role="navigation"] {
     display: flex;
     width: 100%;
-  }
-
-  div[role="navigation"] > div {
-    display: flex;
-    flex: 1;
     align-items: center;
-    min-width: 0;
   }
 
   button {
@@ -84,7 +76,7 @@
     border: var(--border-thin) solid var(--color-border);
     cursor: default;
     transition: border-color var(--transition-fast);
-    flex: 1;
+    flex: 1 1 0;
     min-width: 0;
     color: var(--color-fg);
   }
@@ -180,10 +172,9 @@
 
   div[data-connector] {
     height: 1px;
-    flex: 1;
+    flex: 0 0 1rem;
     background: var(--color-border);
     margin: 0 var(--spacing-2);
-    min-width: 1rem;
   }
 
   div[data-connector][data-completed] {
@@ -193,20 +184,19 @@
   @media (max-width: 768px) {
     div[role="navigation"] {
       flex-direction: column;
+      align-items: stretch;
       gap: var(--spacing-2);
     }
 
-    div[role="navigation"] > div {
-      flex-direction: column;
-      align-items: stretch;
+    button {
+      flex: none;
     }
 
     div[data-connector] {
+      flex: none;
       width: 1px;
       height: 1rem;
-      margin: 0;
-      align-self: flex-start;
-      margin-left: var(--spacing-4);
+      margin: 0 0 0 var(--spacing-4);
     }
 
     button > div:last-child > div {
