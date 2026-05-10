@@ -5,7 +5,7 @@
   import { gameService } from '$services/games';
   import { RoomSocket, type RoomEvent, type RoomError } from '$services/roomSocket';
   import { createGame } from '$lib/games/registry';
-  import type { BasePixiGame } from '$lib/games/BasePixiGame';
+  import type { BasePixiGame, GameStatus, GameResult } from '$lib/games/BasePixiGame';
   import { Alert } from '$components';
   import type { Game } from '$lib/models';
 
@@ -28,6 +28,10 @@
 
   let canvas = $state<HTMLCanvasElement | undefined>(undefined);
   let pixiGame: BasePixiGame | null = null;
+
+  let gameStatus = $state<GameStatus | null>(null);
+  let gameResult = $state<GameResult | null>(null);
+  let resultDismissed = $state(false);
 
   let chatMessages = $state<{ userId: string; message: string }[]>([]);
   let chatInput = $state('');
@@ -66,6 +70,10 @@
       (kind, payload) => roomSocket!.act(kind, payload),
       wsConnected,
     );
+    pixiGame?.setOnUpdate(() => {
+      gameStatus = pixiGame?.getStatus() ?? null;
+      gameResult = pixiGame?.getResult() ?? null;
+    });
   }
 
   /** Fold the room-kernel envelope (PLAYER_JOINED/LEFT/HOST/START/END/CHAT)
@@ -85,6 +93,8 @@
         break;
       case 'GAME_STARTED':
         phase = 'playing';
+        gameResult = null;
+        resultDismissed = false;
         await tick();
         if (canvas && !pixiGame) initializeGame();
         break;
@@ -171,6 +181,7 @@
   const statusLabel = $derived(
     phase === 'lobby' ? 'waiting' : phase === 'playing' ? 'playing' : 'finished',
   );
+  const showResult = $derived(phase === 'finished' && gameResult !== null && !resultDismissed);
 </script>
 
 {#if loading}
@@ -208,11 +219,42 @@
 
     <div class="room-content">
       <div class="game-area">
-        {#if phase === 'playing'}
+        {#if phase === 'playing' || phase === 'finished'}
           <div class="playing-area">
-            <canvas bind:this={canvas}></canvas>
+            {#if gameStatus}
+              <div class="status-banner" data-tone={gameStatus.tone}>
+                <div class="status-text">{gameStatus.text}</div>
+                {#if gameStatus.detail}
+                  <div class="status-detail">{gameStatus.detail}</div>
+                {/if}
+              </div>
+            {/if}
+            <div class="canvas-wrap">
+              <canvas bind:this={canvas}></canvas>
+              {#if showResult && gameResult}
+                <div class="result-overlay" data-outcome={gameResult.outcome}>
+                  <div class="result-card">
+                    <div class="result-icon">
+                      {gameResult.outcome === 'win' ? '🏆' : gameResult.outcome === 'lose' ? '💔' : '🤝'}
+                    </div>
+                    <h2 class="result-title">{gameResult.title}</h2>
+                    <ul class="result-details">
+                      {#each gameResult.details as line}
+                        <li>{line}</li>
+                      {/each}
+                    </ul>
+                    <div class="result-actions">
+                      <button data-variant="secondary" onclick={() => (resultDismissed = true)}>
+                        Close
+                      </button>
+                      <button data-variant="primary" onclick={leaveRoom}>Leave Room</button>
+                    </div>
+                  </div>
+                </div>
+              {/if}
+            </div>
           </div>
-        {:else if phase === 'lobby'}
+        {:else}
           <div class="waiting-area">
             <h2>Waiting for game to start...</h2>
             <p>Players in room:</p>
@@ -224,10 +266,6 @@
             {#if players.length < 2}
               <p class="hint">Need at least 2 players to start</p>
             {/if}
-          </div>
-        {:else}
-          <div class="game-finished">
-            <h2>Game Finished</h2>
           </div>
         {/if}
       </div>
@@ -340,17 +378,17 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    background: white;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
+    background: var(--color-bg-light);
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius-lg);
     max-width: 300px;
   }
 
   .chat-header {
     padding: 1rem;
-    border-bottom: 1px solid #e0e0e0;
-    background: #f5f5f5;
-    border-radius: 8px 8px 0 0;
+    border-bottom: 1px solid var(--color-border-light);
+    background: var(--color-bg-popup);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   }
 
   .chat-header h3 {
@@ -369,31 +407,33 @@
   .chat-message {
     margin-bottom: 0.5rem;
     padding: 0.5rem;
-    background: #f9f9f9;
-    border-radius: 4px;
+    background: var(--color-bg);
+    border-radius: var(--radius-md);
     font-size: 0.9rem;
   }
 
   .chat-input {
     display: flex;
     padding: 1rem;
-    border-top: 1px solid #e0e0e0;
+    border-top: 1px solid var(--color-border-light);
     gap: 0.5rem;
   }
 
   .chat-input input {
     flex: 1;
     padding: 0.5rem;
-    border: 1px solid #ddd;
-    border-radius: 4px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-bg);
+    color: var(--color-fg);
   }
 
   .chat-input button {
     padding: 0.5rem 1rem;
-    background: #1976d2;
-    color: white;
+    background: var(--color-primary);
+    color: var(--color-bg);
     border: none;
-    border-radius: 4px;
+    border-radius: var(--radius-md);
     cursor: pointer;
   }
 
@@ -401,24 +441,149 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     height: 100%;
-    background: #f9f9f9;
-    padding: 2rem;
+    background: var(--color-bg-light);
+    padding: 1.5rem;
+    gap: 1rem;
+  }
+
+  .status-banner {
+    width: 100%;
+    max-width: 500px;
+    padding: 1rem 1.25rem;
+    border-radius: var(--radius-lg);
+    border: var(--border-thick) solid var(--color-border);
+    background: var(--color-bg);
+    text-align: center;
+    transition: background var(--transition-normal), border-color var(--transition-normal);
+  }
+
+  .status-banner[data-tone="idle"] {
+    border-color: var(--color-border);
+    background: var(--color-bg);
+  }
+  .status-banner[data-tone="turn"] {
+    border-color: var(--color-warning);
+    background: color-mix(in srgb, var(--color-warning) 12%, var(--color-bg));
+  }
+  .status-banner[data-tone="wait"] {
+    border-color: var(--color-info);
+    background: color-mix(in srgb, var(--color-info) 12%, var(--color-bg));
+  }
+  .status-banner[data-tone="win"] {
+    border-color: var(--color-success);
+    background: color-mix(in srgb, var(--color-success) 18%, var(--color-bg));
+  }
+  .status-banner[data-tone="lose"] {
+    border-color: var(--color-error);
+    background: color-mix(in srgb, var(--color-error) 18%, var(--color-bg));
+  }
+  .status-banner[data-tone="draw"] {
+    border-color: var(--color-accent);
+    background: color-mix(in srgb, var(--color-accent) 14%, var(--color-bg));
+  }
+
+  .status-text {
+    font-size: var(--font-size-2xl);
+    font-weight: 700;
+    line-height: var(--line-height-tight);
+    color: var(--color-fg);
+  }
+
+  .status-detail {
+    margin-top: 0.25rem;
+    font-size: var(--font-size-sm);
+    color: var(--color-fg-dim);
+  }
+
+  .canvas-wrap {
+    position: relative;
   }
 
   canvas {
-    border: 1px solid #ddd;
-    border-radius: 8px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    display: block;
   }
 
-  .waiting-area, .game-finished {
+  .result-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgb(0 0 0 / 0.6);
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.2s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .result-card {
+    background: var(--color-bg);
+    border: var(--border-thick) solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    min-width: 280px;
+    text-align: center;
+    box-shadow: var(--shadow-popup);
+    animation: pop 0.25s ease;
+  }
+
+  @keyframes pop {
+    from { transform: scale(0.85); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  .result-overlay[data-outcome="win"] .result-card { border-color: var(--color-success); }
+  .result-overlay[data-outcome="lose"] .result-card { border-color: var(--color-error); }
+  .result-overlay[data-outcome="draw"] .result-card { border-color: var(--color-accent); }
+
+  .result-icon {
+    font-size: 3rem;
+    line-height: 1;
+  }
+
+  .result-title {
+    margin: 0.5rem 0 0.75rem;
+    font-size: var(--font-size-3xl);
+    font-weight: 700;
+    color: var(--color-fg);
+  }
+
+  .result-overlay[data-outcome="win"] .result-title { color: var(--color-success); }
+  .result-overlay[data-outcome="lose"] .result-title { color: var(--color-error); }
+  .result-overlay[data-outcome="draw"] .result-title { color: var(--color-accent); }
+
+  .result-details {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1.25rem;
+    color: var(--color-fg-muted);
+    font-size: var(--font-size-md);
+  }
+
+  .result-details li {
+    padding: 0.2rem 0;
+  }
+
+  .result-actions {
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem;
+  }
+
+  .waiting-area {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     height: 100%;
-    background: #f9f9f9;
+    background: var(--color-bg-light);
     padding: 2rem;
   }
 
@@ -429,7 +594,7 @@
 
   .player-list li {
     padding: 0.5rem;
-    background: white;
+    background: var(--color-bg);
     margin: 0.25rem 0;
   }
 
@@ -439,6 +604,6 @@
     justify-content: center;
     height: 100vh;
     font-size: 1.2rem;
-    color: #666;
+    color: var(--color-fg-dim);
   }
 </style>

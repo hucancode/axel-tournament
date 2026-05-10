@@ -13,6 +13,21 @@ export interface GameContext {
   players: string[];
 }
 
+/** Tone of the headline status banner shown above the canvas. */
+export type StatusTone = 'idle' | 'turn' | 'wait' | 'win' | 'lose' | 'draw';
+
+export interface GameStatus {
+  text: string;
+  tone: StatusTone;
+  detail?: string;
+}
+
+export interface GameResult {
+  outcome: 'win' | 'lose' | 'draw';
+  title: string;
+  details: string[];
+}
+
 export abstract class BasePixiGame {
   protected app!: Application;
   protected act: ((kind: string, payload: string) => void) | null;
@@ -20,11 +35,12 @@ export abstract class BasePixiGame {
   protected gameState: GameState = { status: 'waiting' };
   protected container: Container;
   protected ctx: GameContext = { myIndex: -1, players: [] };
+  protected onUpdate: () => void = () => {};
 
   constructor(
     canvas: HTMLCanvasElement,
     act: ((kind: string, payload: string) => void) | null,
-    wsConnected: boolean
+    wsConnected: boolean,
   ) {
     this.act = act;
     this.wsConnected = wsConnected;
@@ -42,7 +58,26 @@ export abstract class BasePixiGame {
   /** Apply a committed protocol event. State changes flow through here. */
   public abstract handleEvent(kind: string, payload: string, ctx: GameContext): void;
 
+  /** Headline status for the banner above the canvas. */
+  public abstract getStatus(): GameStatus;
+
+  /** Final outcome screen, or null while game is in progress. */
+  public getResult(): GameResult | null {
+    return null;
+  }
+
+  public setOnUpdate(cb: () => void) {
+    this.onUpdate = cb;
+    cb();
+  }
+
   protected abstract render(): void;
+
+  /** Re-render canvas and notify Svelte to refresh status/result. */
+  protected refresh() {
+    this.render();
+    this.onUpdate();
+  }
 
   protected sendMove(payload: string) {
     this.act?.('MOVE', payload);
