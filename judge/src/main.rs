@@ -127,7 +127,19 @@ async fn main() -> anyhow::Result<()> {
         }
     });
 
-    let app = router::create_router(&config, app_state, rps_ctx, ttt_ctx, pd_ctx);
+    let playground_regs = judge::handlers::PlaygroundRegistries {
+        rps: rps_registry.clone(),
+        ttt: ttt_registry.clone(),
+        pd: pd_registry.clone(),
+    };
+    let app = router::create_router(
+        &config,
+        app_state,
+        rps_ctx,
+        ttt_ctx,
+        pd_ctx,
+        playground_regs,
+    );
 
     let addr = format!("{}:{}", config.server_host, config.server_port);
     let listener = tokio::net::TcpListener::bind(&addr).await?;

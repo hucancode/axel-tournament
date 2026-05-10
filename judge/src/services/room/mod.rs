@@ -4,4 +4,5 @@
 
 pub mod bot;
 pub mod logic;
+pub mod playground;
 pub mod ws;

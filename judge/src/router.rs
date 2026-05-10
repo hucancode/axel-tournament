@@ -2,12 +2,15 @@ use crate::app_state::AppState;
 use crate::config::Config;
 use crate::games;
 use crate::handlers;
+use crate::handlers::PlaygroundRegistries;
+use crate::middleware::auth::auth_middleware;
 use crate::services::room::ws::{handle_ws, WsContext};
 use crate::services::room::logic::RoomLogic;
 use axum::extract::{Path, State, ws::WebSocketUpgrade};
 use axum::http::{header, Method};
+use axum::middleware::from_fn_with_state;
 use axum::response::Response;
-use axum::routing::get;
+use axum::routing::{get, post};
 use axum::Router;
 use std::sync::Arc;
 use tower_http::cors::CorsLayer;
@@ -26,6 +29,7 @@ pub fn create_router(
     rps_ctx: Arc<WsContext<games::Rps>>,
     ttt_ctx: Arc<WsContext<games::Ttt>>,
     pd_ctx: Arc<WsContext<games::Pd>>,
+    playground_regs: PlaygroundRegistries,
 ) -> Router {
     tracing::info!("CORS: Allowing origin: {}", config.frontend_url);
 
@@ -33,7 +37,12 @@ pub fn create_router(
         .route("/health", get(handlers::health))
         .route("/capacity", get(handlers::get_capacity))
         .route("/api/rooms", get(handlers::list_rooms))
-        .with_state(app_state);
+        .with_state(app_state.clone());
+
+    let playground_routes = Router::new()
+        .route("/api/playground/start", post(handlers::playground_start))
+        .layer(from_fn_with_state(app_state.clone(), auth_middleware))
+        .with_state(playground_regs);
 
     let rps_ws = Router::new()
         .route("/ws/rock-paper-scissors/{room_id}", get(ws_entry::<games::Rps>))
@@ -48,6 +57,7 @@ pub fn create_router(
 
     Router::new()
         .merge(public_routes)
+        .merge(playground_routes)
         .merge(websocket_routes)
         .layer(
             CorsLayer::new()

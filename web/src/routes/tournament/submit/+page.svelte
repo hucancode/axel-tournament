@@ -166,6 +166,19 @@
         display: flex;
         gap: var(--spacing-2);
     }
+
+    .playground-callout {
+        margin-top: var(--spacing-4);
+        padding: var(--spacing-3) var(--spacing-4);
+        background-color: var(--color-bg-popup);
+        border-left: 4px solid var(--color-primary);
+        font-size: 0.875rem;
+    }
+
+    .playground-callout p {
+        margin: 0 0 var(--spacing-2) 0;
+        color: var(--color-fg-muted);
+    }
 </style>
 
 <main>
@@ -247,6 +260,21 @@
                         />
                     </div>
                 </form>
+
+                {#if tournament}
+                    <aside class="playground-callout">
+                        <p>
+                            New to the protocol? Open the playground and act as
+                            a bot against a built-in sample. Every wire frame
+                            between the server and both clients is shown live.
+                        </p>
+                        <LinkButton
+                            href="/playground?game={tournament.game_id}"
+                            variant="secondary"
+                            label="Open protocol playground"
+                        />
+                    </aside>
+                {/if}
             </section>
         {/if}
     </div>
