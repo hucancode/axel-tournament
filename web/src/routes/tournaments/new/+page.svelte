@@ -86,7 +86,12 @@
         }
 
         try {
-            await tournamentService.create(formData);
+            const payload: CreateTournamentRequest = {
+                ...formData,
+                start_time: formData.start_time ? new Date(formData.start_time).toISOString() : undefined,
+                end_time: formData.end_time ? new Date(formData.end_time).toISOString() : undefined,
+            };
+            await tournamentService.create(payload);
             goto("/tournaments");
         } catch (err) {
             formError = err instanceof Error ? err.message : "Failed to create tournament";
