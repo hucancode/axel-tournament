@@ -176,6 +176,7 @@ pub async fn init_schema(db: &Database) -> Result<(), surrealdb::Error> {
          DEFINE FIELD IF NOT EXISTS round ON match TYPE option<number>;
          DEFINE FIELD IF NOT EXISTS bracket ON match TYPE option<string>;
          DEFINE FIELD IF NOT EXISTS bracket_position ON match TYPE option<number>;
+         DEFINE FIELD IF NOT EXISTS elo_applied ON match TYPE bool DEFAULT false;
          DEFINE FIELD IF NOT EXISTS game_event_source ON match TYPE option<string>;
          DEFINE FIELD IF NOT EXISTS judge_server_name ON match TYPE option<string>;
          DEFINE FIELD IF NOT EXISTS created_at ON match TYPE datetime;

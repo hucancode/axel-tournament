@@ -182,7 +182,7 @@ fn format_event(e: &Event) -> String {
 /// - `GAME_END <s0> <s1> ...`
 /// - `WINNER <idx>`
 /// - `DRAW`
-fn parse_terminal(e: &Event, n_players: usize) -> Option<Vec<f64>> {
+pub fn parse_terminal(e: &Event, n_players: usize) -> Option<Vec<f64>> {
     match e.kind.as_str() {
         "GAME_END" => {
             let mut scores: Vec<f64> = e

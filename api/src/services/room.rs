@@ -224,12 +224,18 @@ pub enum FinishReason {
 /// `faulted_user_ids` lists players who lost by fault (e.g. timed out
 /// missing their turn after disconnecting). A disconnect that the
 /// player recovers from in time is NOT a fault — pass an empty vec.
+///
+/// `per_player_scores` (optional): for score-based games (poker chips,
+/// rps round-wins, pd points), the judge can pass actual per-player
+/// score deltas keyed by user_id. When `None`, defaults to 1.0/0.0/0.5
+/// from `winner_id` (good for win/lose games).
 pub async fn finish_room(
     db: &Database,
     room_id: RecordId,
     winner_id: Option<RecordId>,
     reason: FinishReason,
     faulted_user_ids: Vec<RecordId>,
+    per_player_scores: Option<Vec<(RecordId, f64)>>,
 ) -> ApiResult<Room> {
     use crate::models::matches::{Match, MatchParticipant, MatchStatus};
 
@@ -238,19 +244,30 @@ pub async fn finish_room(
         return Ok(room);
     }
 
+    let score_for = |uid: &RecordId| -> Option<f64> {
+        if let Some(scores) = per_player_scores.as_ref() {
+            return scores
+                .iter()
+                .find(|(u, _)| u == uid)
+                .map(|(_, s)| *s)
+                .or(Some(0.0));
+        }
+        Some(if Some(uid) == winner_id.as_ref() {
+            1.0
+        } else if winner_id.is_some() {
+            0.0
+        } else {
+            0.5
+        })
+    };
+
     let participants = room
         .players
         .iter()
         .map(|uid| MatchParticipant {
             user_id: uid.clone(),
             submission_id: None,
-            score: Some(if Some(uid) == winner_id.as_ref() {
-                1.0
-            } else if winner_id.is_some() {
-                0.0
-            } else {
-                0.5
-            }),
+            score: score_for(uid),
         })
         .collect::<Vec<_>>();
 
@@ -290,7 +307,28 @@ pub async fn finish_room(
 
     if updated.is_ranked {
         if let Some(tid) = updated.tournament_id.clone() {
-            elo::apply_ranked_result(db, &tid, &updated.players, &winner_id).await?;
+            // Score-aligned-by-player-index for elo's Score path.
+            let aligned: Option<Vec<f64>> = per_player_scores.as_ref().map(|ps| {
+                updated
+                    .players
+                    .iter()
+                    .map(|uid| {
+                        ps.iter()
+                            .find(|(u, _)| u == uid)
+                            .map(|(_, s)| *s)
+                            .unwrap_or(0.0)
+                    })
+                    .collect()
+            });
+            elo::apply_ranked_result(
+                db,
+                &tid,
+                &updated.game_id,
+                &updated.players,
+                &winner_id,
+                aligned.as_deref(),
+            )
+            .await?;
             if let Err(e) = crate::services::finalization::finalize_if_done(db, tid).await {
                 tracing::warn!("finalize_if_done after ranked room: {e}");
             }

@@ -244,6 +244,30 @@
       }
       return cells;
     }
+    if (gameId === "chess") {
+      return [
+        { label: "e2 e4", kind: "MOVE", payload: "e2 e4 -" },
+        { label: "g1 f3", kind: "MOVE", payload: "g1 f3 -" },
+        { label: "e7 e5", kind: "MOVE", payload: "e7 e5 -" },
+      ];
+    }
+    if (gameId === "xiangqi") {
+      return [
+        { label: "b3 e3", kind: "MOVE", payload: "b3 e3" },
+        { label: "h3 e3", kind: "MOVE", payload: "h3 e3" },
+        { label: "b8 e8", kind: "MOVE", payload: "b8 e8" },
+      ];
+    }
+    if (gameId === "poker") {
+      return [
+        { label: "FOLD", kind: "FOLD", payload: "" },
+        { label: "CHECK", kind: "CHECK", payload: "" },
+        { label: "CALL", kind: "CALL", payload: "" },
+        { label: "BET 50", kind: "BET", payload: "50" },
+        { label: "RAISE 100", kind: "RAISE", payload: "100" },
+        { label: "ALLIN", kind: "ALLIN", payload: "" },
+      ];
+    }
     return [];
   });
 </script>

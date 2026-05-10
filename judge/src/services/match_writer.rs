@@ -9,6 +9,7 @@
 //   - everyone else scores 0.5
 
 use crate::db::Database;
+use crate::services::match_finalizer::{FinishCallback, MatchOutcome};
 use crate::services::turn_timer::TimeoutCallback;
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -134,4 +135,99 @@ async fn write_timeout_match(
 
 fn parse_room_id(s: &str) -> RecordId {
     RecordId::parse_simple(s).unwrap_or_else(|_| RecordId::new("room", s))
+}
+
+/// Build a `FinishCallback` that records a finished match row and
+/// updates the room's status. Chip-aware: per-player scores from the
+/// terminal event are written into `match.participants[].score` so
+/// downstream ELO/score accumulation can use them.
+pub fn db_finish_callback(db: Database) -> FinishCallback {
+    Arc::new(move |room_id, outcome| {
+        let db = db.clone();
+        Box::pin(async move {
+            if let Err(e) = write_finished_match(&db, &room_id, &outcome).await {
+                tracing::warn!("match finish writer failed for {room_id}: {e:#}");
+            }
+        })
+    })
+}
+
+async fn write_finished_match(
+    db: &Database,
+    room_id: &str,
+    outcome: &MatchOutcome,
+) -> anyhow::Result<()> {
+    let rid = parse_room_id(room_id);
+    let mut resp = db
+        .query("SELECT players, tournament_id, game_id, status FROM $rid")
+        .bind(("rid", rid.clone()))
+        .await?;
+    let rows: Vec<RoomRow> = match resp.take(0) {
+        Ok(r) => r,
+        Err(e) => {
+            tracing::warn!("match_finish: room decode failed for {room_id}: {e}");
+            return Ok(());
+        }
+    };
+    let Some(room) = rows.into_iter().next() else {
+        // Room is not in api db (transient AI-only room).
+        tracing::debug!("match_finish: no room found for {room_id}, skipping");
+        return Ok(());
+    };
+    if room.status == "finished" {
+        return Ok(());
+    }
+    if room.players.len() != outcome.scores.len() {
+        tracing::warn!(
+            "match_finish: player count mismatch for {room_id} ({} vs {})",
+            room.players.len(),
+            outcome.scores.len(),
+        );
+        return Ok(());
+    }
+
+    let winner = outcome
+        .winner_idx
+        .and_then(|i| room.players.get(i))
+        .cloned();
+
+    let participants: Vec<Part> = room
+        .players
+        .iter()
+        .enumerate()
+        .map(|(i, p)| Part {
+            user_id: p.clone(),
+            submission_id: None,
+            score: Some(outcome.scores[i]),
+        })
+        .collect();
+
+    db.query(
+        "CREATE match SET
+             tournament_id = $tid,
+             game_id = $gid,
+             room_id = $rid,
+             status = 'completed',
+             participants = $parts,
+             faulted_user_ids = [],
+             created_at = time::now(),
+             updated_at = time::now(),
+             started_at = time::now(),
+             completed_at = time::now();",
+    )
+    .bind(("tid", room.tournament_id.clone()))
+    .bind(("gid", room.game_id.clone()))
+    .bind(("rid", rid.clone()))
+    .bind(("parts", participants))
+    .await?;
+
+    db.query(
+        "UPDATE $rid SET status = 'finished',
+                          winner_id = $winner,
+                          updated_at = time::now()",
+    )
+    .bind(("rid", rid))
+    .bind(("winner", winner))
+    .await?;
+    Ok(())
 }

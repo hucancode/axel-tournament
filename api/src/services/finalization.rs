@@ -165,11 +165,29 @@ pub async fn finalize_if_done(
         })
         .count();
 
-    if remaining > 0 {
-        let tournament: Option<Tournament> = db.select(&tournament_id).await?;
-        return tournament.ok_or_else(|| {
-            crate::error::ApiError::NotFound("Tournament not found".to_string())
-        });
+    // Continuous tournaments never finalize on "no matches remaining" —
+    // players keep enqueueing until end_time. Only end_time triggers
+    // finalization for that mode.
+    let tournament_now: Option<Tournament> = db.select(&tournament_id).await?;
+    let tournament_now = tournament_now.ok_or_else(|| {
+        crate::error::ApiError::NotFound("Tournament not found".to_string())
+    })?;
+    if tournament_now.match_generation_type
+        == crate::models::tournament::MatchGenerationType::Continuous
+    {
+        let past_end = tournament_now
+            .end_time
+            .as_ref()
+            .map(|et| {
+                let now = surrealdb::types::Datetime::default();
+                et.to_string() <= now.to_string()
+            })
+            .unwrap_or(false);
+        if !past_end {
+            return Ok(tournament_now);
+        }
+    } else if remaining > 0 {
+        return Ok(tournament_now);
     }
 
     // No remaining matches — assign ranks by score (desc, ties share rank).

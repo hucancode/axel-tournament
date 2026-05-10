@@ -1,5 +1,6 @@
 pub mod bot_match;
 pub mod capacity;
+pub mod match_finalizer;
 pub mod match_writer;
 pub mod playground;
 pub mod room;

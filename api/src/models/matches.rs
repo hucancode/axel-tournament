@@ -34,6 +34,11 @@ pub struct Match {
     /// of this match into participant slot of the next round's match.
     #[serde(default)]
     pub bracket_position: Option<u32>,
+    /// Set to true once `apply_ranked_result` has consumed this row,
+    /// so the healer's ELO/score-accumulator pass is idempotent. Only
+    /// meaningful for ranked matches.
+    #[serde(default)]
+    pub elo_applied: bool,
     pub created_at: Datetime,
     pub updated_at: Datetime,
     pub started_at: Option<Datetime>,

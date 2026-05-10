@@ -307,6 +307,7 @@ async fn write_completed_match(
         updated_at: Datetime::default(),
         started_at: None,
         completed_at: Some(Datetime::default()),
+        elo_applied: false,
     };
     let created: Option<Match> = db.create("match").content(m).await.unwrap();
     created.unwrap().id.unwrap()
@@ -350,6 +351,7 @@ async fn write_failed_match(
         updated_at: Datetime::default(),
         started_at: None,
         completed_at: Some(Datetime::default()),
+        elo_applied: false,
     };
     let created: Option<Match> = db.create("match").content(m).await.unwrap();
     created.unwrap().id.unwrap()
@@ -611,6 +613,7 @@ async fn runtime_error_only_punishes_the_faulted_bot() {
         updated_at: Datetime::default(),
         started_at: None,
         completed_at: Some(Datetime::default()),
+        elo_applied: false,
     };
     let _: Option<Match> = db.create("match").content(m).await.unwrap();
 
@@ -682,6 +685,7 @@ async fn illegal_move_only_punishes_the_offender() {
         updated_at: Datetime::default(),
         started_at: None,
         completed_at: Some(Datetime::default()),
+        elo_applied: false,
     };
     let _: Option<Match> = db.create("match").content(m).await.unwrap();
 
@@ -810,6 +814,7 @@ async fn submission_stats_reports_per_bot_record() {
         updated_at: Datetime::default(),
         started_at: None,
         completed_at: Some(Datetime::default()),
+        elo_applied: false,
     };
     let _: Option<Match> = db.create("match").content(make(2.0, 0.0)).await.unwrap();
     let _: Option<Match> = db.create("match").content(make(1.0, 1.0)).await.unwrap();

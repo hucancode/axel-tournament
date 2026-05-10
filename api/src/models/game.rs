@@ -1,6 +1,18 @@
 use serde::{Deserialize, Serialize};
 use surrealdb::types::SurrealValue;
 
+/// How a finished match contributes to the leaderboard.
+/// `Elo` = 1v1 win/lose ELO update.
+/// `Score` = accumulate per-player score (e.g. chips for poker, rounds won
+/// for RPS/PD) into the participant's `elo` column. Score-based games also
+/// use a different matchmaker (continuous score-pairing rather than bracket).
+#[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum ScoringKind {
+    Elo,
+    Score,
+}
+
 // Hardcoded game metadata (only serialized, never deserialized)
 // All games support both automated (bot) and interactive (human) modes
 #[derive(Debug, Clone, Serialize)]
@@ -17,6 +29,7 @@ pub struct GameMetadata {
     pub bot_turn_timeout_ms: u64,
     pub human_turn_timeout_ms: u64,
     pub memory_limit_mb: u64,
+    pub scoring_kind: ScoringKind,
 }
 
 // Static game registry
@@ -38,6 +51,7 @@ pub static GAMES: &[GameMetadata] = &[
         bot_turn_timeout_ms: 2000,
         human_turn_timeout_ms: 10000,
         memory_limit_mb: 64,
+        scoring_kind: ScoringKind::Score,
     },
     GameMetadata {
         id: "prisoners-dilemma",
@@ -56,6 +70,7 @@ pub static GAMES: &[GameMetadata] = &[
         bot_turn_timeout_ms: 2000,
         human_turn_timeout_ms: 10000,
         memory_limit_mb: 64,
+        scoring_kind: ScoringKind::Score,
     },
     GameMetadata {
         id: "tic-tac-toe",
@@ -74,6 +89,64 @@ pub static GAMES: &[GameMetadata] = &[
         bot_turn_timeout_ms: 30000,
         human_turn_timeout_ms: 60000,
         memory_limit_mb: 64,
+        scoring_kind: ScoringKind::Elo,
+    },
+    GameMetadata {
+        id: "chess",
+        name: "Chess",
+        description: "Standard chess for 2 players",
+        supported_languages: &[
+            ProgrammingLanguage::Rust,
+            ProgrammingLanguage::Go,
+            ProgrammingLanguage::C,
+        ],
+        rounds_per_match: 1,
+        repetitions: 1,
+        bot_timeout_ms: 600000,
+        human_timeout_ms: 1800000,
+        cpu_limit: 2.0,
+        bot_turn_timeout_ms: 60000,
+        human_turn_timeout_ms: 120000,
+        memory_limit_mb: 128,
+        scoring_kind: ScoringKind::Elo,
+    },
+    GameMetadata {
+        id: "xiangqi",
+        name: "Xiangqi",
+        description: "Chinese chess for 2 players",
+        supported_languages: &[
+            ProgrammingLanguage::Rust,
+            ProgrammingLanguage::Go,
+            ProgrammingLanguage::C,
+        ],
+        rounds_per_match: 1,
+        repetitions: 1,
+        bot_timeout_ms: 600000,
+        human_timeout_ms: 1800000,
+        cpu_limit: 2.0,
+        bot_turn_timeout_ms: 60000,
+        human_turn_timeout_ms: 120000,
+        memory_limit_mb: 128,
+        scoring_kind: ScoringKind::Elo,
+    },
+    GameMetadata {
+        id: "poker",
+        name: "Poker",
+        description: "Heads-up no-limit Texas Hold'em",
+        supported_languages: &[
+            ProgrammingLanguage::Rust,
+            ProgrammingLanguage::Go,
+            ProgrammingLanguage::C,
+        ],
+        rounds_per_match: 1,
+        repetitions: 1,
+        bot_timeout_ms: 600000,
+        human_timeout_ms: 1800000,
+        cpu_limit: 1.0,
+        bot_turn_timeout_ms: 15000,
+        human_turn_timeout_ms: 60000,
+        memory_limit_mb: 128,
+        scoring_kind: ScoringKind::Score,
     },
 ];
 

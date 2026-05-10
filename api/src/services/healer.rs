@@ -1,7 +1,10 @@
 use crate::db::Database;
+use crate::models::matches::Match;
 use crate::models::tournament::Tournament;
 use crate::services::bracket::advance_brackets;
+use crate::services::elo;
 use crate::services::finalization::finalize_if_done;
+use crate::services::matchmaking;
 use std::time::Duration;
 use tracing::{error, info};
 
@@ -34,9 +37,143 @@ pub async fn tick(db: &Database) {
     if let Err(e) = promote_scheduled_tournaments(db).await {
         error!("scheduled -> registration: {e}");
     }
+    if let Err(e) = apply_pending_elo(db).await {
+        error!("apply pending elo: {e}");
+    }
+    if let Err(e) = requeue_continuous_players(db).await {
+        error!("requeue continuous players: {e}");
+    }
+    if let Err(e) = run_matchmaker_for_continuous(db).await {
+        error!("matchmaker tick: {e}");
+    }
     if let Err(e) = advance_running_tournaments(db).await {
         error!("advance running tournaments: {e}");
     }
+}
+
+/// Run the matchmaker pairing pass for every running Continuous
+/// tournament. Pairs queued players (closest score) into ranked rooms.
+async fn run_matchmaker_for_continuous(db: &Database) -> Result<(), surrealdb::Error> {
+    let mut resp = db
+        .query(
+            "SELECT * FROM tournament
+             WHERE status = 'running'
+               AND match_generation_type = 'continuous'",
+        )
+        .await?;
+    let running: Vec<Tournament> = resp.take(0).unwrap_or_default();
+    for t in running {
+        let Some(tid) = t.id else { continue };
+        if let Err(e) = matchmaking::tick(db, tid).await {
+            error!("matchmaker: {e}");
+        }
+    }
+    Ok(())
+}
+
+/// For each running `Continuous` tournament, re-enqueue any joined
+/// participant who isn't currently queued and isn't currently in a
+/// non-terminal ranked room. Keeps the score-pairing matchmaker fed
+/// without players manually re-clicking "queue" between hands.
+async fn requeue_continuous_players(db: &Database) -> Result<(), surrealdb::Error> {
+    let mut resp = db
+        .query(
+            "SELECT * FROM tournament
+             WHERE status = 'running'
+               AND match_generation_type = 'continuous'",
+        )
+        .await?;
+    let running: Vec<Tournament> = resp.take(0).unwrap_or_default();
+    for t in running {
+        let Some(tid) = t.id.clone() else { continue };
+        // Past end_time? Skip — finalization will close it.
+        if let Some(et) = t.end_time.as_ref() {
+            let now = surrealdb::types::Datetime::default();
+            if et.to_string() <= now.to_string() {
+                continue;
+            }
+        }
+        if let Err(e) = db
+            .query(
+                "LET $busy = (SELECT VALUE players FROM room
+                              WHERE tournament_id = $tid
+                                AND status IN ['lobby', 'playing']);
+                 LET $queued = (SELECT VALUE user_id FROM matchmaking_ticket
+                                WHERE tournament_id = $tid);
+                 LET $busy_set = array::flatten($busy);
+                 FOR $p IN (SELECT VALUE user_id FROM tournament_participant
+                            WHERE tournament_id = $tid) {
+                     IF !($p IN $queued) AND !($p IN $busy_set) {
+                         CREATE matchmaking_ticket SET
+                             tournament_id = $tid,
+                             user_id = $p,
+                             elo = (SELECT VALUE elo FROM tournament_participant
+                                    WHERE tournament_id = $tid
+                                      AND user_id = $p
+                                    LIMIT 1)[0] ?? 1000.0,
+                             queued_at = time::now();
+                     }
+                 };",
+            )
+            .bind(("tid", tid))
+            .await
+        {
+            error!("requeue: {e}");
+        }
+    }
+    Ok(())
+}
+
+/// Process every ranked terminal match that hasn't yet had its ELO /
+/// score adjustment applied. Idempotent — guarded by `match.elo_applied`.
+/// The judge writes match rows for ranked human rooms via
+/// `match_writer::db_finish_callback`; this pass picks them up and
+/// updates the rating column.
+async fn apply_pending_elo(db: &Database) -> Result<(), surrealdb::Error> {
+    let mut resp = db
+        .query(
+            "SELECT * FROM match
+             WHERE elo_applied = false
+               AND status IN ['completed', 'failed']
+               AND tournament_id != NONE
+               AND room_id != NONE
+               AND room_id.is_ranked = true
+             LIMIT 200",
+        )
+        .await?;
+    let rows: Vec<Match> = resp.take(0).unwrap_or_default();
+    for m in rows {
+        let Some(mid) = m.id.clone() else { continue };
+        let Some(tid) = m.tournament_id.clone() else { continue };
+        let players: Vec<_> = m.participants.iter().map(|p| p.user_id.clone()).collect();
+        let winner = m.winner().map(|p| p.user_id);
+        let aligned: Vec<f64> = m
+            .participants
+            .iter()
+            .map(|p| p.score.unwrap_or(0.0))
+            .collect();
+        if let Err(e) = elo::apply_ranked_result(
+            db,
+            &tid,
+            &m.game_id,
+            &players,
+            &winner,
+            Some(aligned.as_slice()),
+        )
+        .await
+        {
+            error!("apply_ranked_result for {mid:?}: {e}");
+            continue;
+        }
+        if let Err(e) = db
+            .query("UPDATE $mid SET elo_applied = true")
+            .bind(("mid", mid))
+            .await
+        {
+            error!("mark elo_applied: {e}");
+        }
+    }
+    Ok(())
 }
 
 /// Match queued > 5m: re-bump to pending so a free judge picks it up.

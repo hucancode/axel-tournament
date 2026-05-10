@@ -94,6 +94,13 @@ pub enum MatchGenerationType {
     /// Double elimination bracket
     #[surreal(rename = "double_elimination")]
     DoubleElimination,
+    /// Continuous score-pairing (no bracket). Players queue and get
+    /// paired by closest score; matches keep flowing until the
+    /// tournament's `end_time` is reached. Used for score-based games
+    /// (rps, prisoners-dilemma, poker) where the leaderboard is the
+    /// accumulated score column.
+    #[surreal(rename = "continuous")]
+    Continuous,
 }
 
 impl Default for MatchGenerationType {

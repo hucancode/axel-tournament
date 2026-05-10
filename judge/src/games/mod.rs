@@ -1,15 +1,27 @@
+pub mod chess_logic;
+pub mod chess_playground;
 pub mod pd_logic;
 pub mod pd_playground;
+pub mod poker_logic;
+pub mod poker_playground;
 pub mod rps_logic;
 pub mod rps_playground;
 pub mod ttt_logic;
 pub mod ttt_playground;
+pub mod xiangqi_logic;
+pub mod xiangqi_playground;
 
+pub use chess_logic::Chess;
+pub use chess_playground::ChessStrategy;
 pub use pd_logic::Pd;
 pub use pd_playground::PdStrategy;
+pub use poker_logic::Poker;
+pub use poker_playground::PokerStrategy;
 pub use rps_logic::Rps;
 pub use rps_playground::RpsStrategy;
 pub use ttt_logic::Ttt;
 pub use ttt_playground::TttStrategy;
+pub use xiangqi_logic::Xiangqi;
+pub use xiangqi_playground::XiangqiStrategy;
 
 pub use crate::models::game_metadata::find_game_by_id;

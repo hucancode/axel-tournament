@@ -234,6 +234,7 @@ async fn finish_room_disconnect_timeout_makes_other_player_winner() {
         Some(bob.clone()),
         room_svc::FinishReason::DisconnectTimeout,
         vec![alice.clone()],
+        None,
     )
     .await
     .unwrap();
@@ -282,6 +283,7 @@ async fn ranked_finish_updates_elo_for_both_players() {
         Some(bob.clone()),
         room_svc::FinishReason::Played,
         Vec::new(),
+        None,
     )
     .await
     .unwrap();

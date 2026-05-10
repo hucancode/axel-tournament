@@ -23,8 +23,24 @@ pub async fn create_tournament(
     match_generation_type: Option<MatchGenerationType>,
     kind: Option<TournamentKind>,
 ) -> ApiResult<Tournament> {
-    crate::models::game::find_game_by_id(&game_id)
+    let game = crate::models::game::find_game_by_id(&game_id)
         .ok_or_else(|| ApiError::NotFound("Game not found".to_string()))?;
+
+    // Score-based games (rps, pd, poker) accumulate score; bracket
+    // elimination is incompatible with that — losers would drop out
+    // before their score had time to converge. Default them to AllVsAll
+    // and reject explicit elim choices.
+    let mgt = match (game.scoring_kind, match_generation_type) {
+        (crate::models::game::ScoringKind::Score,
+         Some(MatchGenerationType::SingleElimination | MatchGenerationType::DoubleElimination)) => {
+            return Err(ApiError::Validation(
+                "Score-based games cannot use elimination brackets".to_string(),
+            ));
+        }
+        (crate::models::game::ScoringKind::Score, None) => MatchGenerationType::AllVsAll,
+        (_, Some(m)) => m,
+        (_, None) => MatchGenerationType::default(),
+    };
 
     let tournament = Tournament {
         id: None,
@@ -36,7 +52,7 @@ pub async fn create_tournament(
         max_players,
         start_time: start_time.map(|dt| dt.into()),
         end_time: end_time.map(|dt| dt.into()),
-        match_generation_type: match_generation_type.unwrap_or_default(),
+        match_generation_type: mgt,
         kind: kind.unwrap_or_default(),
         created_at: Datetime::default(),
         updated_at: Datetime::default(),

@@ -27,6 +27,12 @@ pub async fn generate_matches(
         | MatchGenerationType::DoubleElimination => {
             generate_elimination_round_zero(db, tournament, participants).await
         }
+        MatchGenerationType::Continuous => {
+            // No upfront generation. Matches arise from the matchmaker
+            // pairing queued players, one room per pair, ad infinitum
+            // until the tournament's `end_time` is reached.
+            Ok(0)
+        }
     }
 }
 

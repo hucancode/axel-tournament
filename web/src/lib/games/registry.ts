@@ -2,6 +2,9 @@ import { BasePixiGame } from './BasePixiGame';
 import { TicTacToeGame } from './TicTacToeGame';
 import { RockPaperScissorsGame } from './RockPaperScissorsGame';
 import { PrisonersDilemmaGame } from './PrisonersDilemmaGame';
+import { ChessGame } from './ChessGame';
+import { XiangqiGame } from './XiangqiGame';
+import { PokerGame } from './PokerGame';
 
 export type ActFn = (kind: string, payload: string) => void;
 
@@ -15,6 +18,9 @@ export const gameRegistry: Record<string, GameConstructor> = {
   'tic-tac-toe': TicTacToeGame,
   'rock-paper-scissors': RockPaperScissorsGame,
   'prisoners-dilemma': PrisonersDilemmaGame,
+  'chess': ChessGame,
+  'xiangqi': XiangqiGame,
+  'poker': PokerGame,
 };
 
 export function createGame(

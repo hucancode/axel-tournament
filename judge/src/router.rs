@@ -23,12 +23,16 @@ pub async fn ws_entry<L: RoomLogic>(
     ws.on_upgrade(move |socket| handle_ws(socket, room_id, ctx))
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn create_router(
     config: &Config,
     app_state: Arc<AppState>,
     rps_ctx: Arc<WsContext<games::Rps>>,
     ttt_ctx: Arc<WsContext<games::Ttt>>,
     pd_ctx: Arc<WsContext<games::Pd>>,
+    chess_ctx: Arc<WsContext<games::Chess>>,
+    xiangqi_ctx: Arc<WsContext<games::Xiangqi>>,
+    poker_ctx: Arc<WsContext<games::Poker>>,
     playground_regs: PlaygroundRegistries,
 ) -> Router {
     tracing::info!("CORS: Allowing origin: {}", config.frontend_url);
@@ -53,7 +57,22 @@ pub fn create_router(
     let pd_ws = Router::new()
         .route("/ws/prisoners-dilemma/{room_id}", get(ws_entry::<games::Pd>))
         .with_state(pd_ctx);
-    let websocket_routes = Router::new().merge(rps_ws).merge(ttt_ws).merge(pd_ws);
+    let chess_ws = Router::new()
+        .route("/ws/chess/{room_id}", get(ws_entry::<games::Chess>))
+        .with_state(chess_ctx);
+    let xiangqi_ws = Router::new()
+        .route("/ws/xiangqi/{room_id}", get(ws_entry::<games::Xiangqi>))
+        .with_state(xiangqi_ctx);
+    let poker_ws = Router::new()
+        .route("/ws/poker/{room_id}", get(ws_entry::<games::Poker>))
+        .with_state(poker_ctx);
+    let websocket_routes = Router::new()
+        .merge(rps_ws)
+        .merge(ttt_ws)
+        .merge(pd_ws)
+        .merge(chess_ws)
+        .merge(xiangqi_ws)
+        .merge(poker_ws);
 
     Router::new()
         .merge(public_routes)
