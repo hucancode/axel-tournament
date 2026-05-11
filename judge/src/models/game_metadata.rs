@@ -135,6 +135,23 @@ pub static GAMES: &[Metadata] = &[
         game_round_variance: None,
         scoring_kind: ScoringKind::Score,
     },
+    Metadata {
+        id: "jar-of-greed",
+        name: "Jar of Greed",
+        description: "2-8 players secretly contribute to a shared jar that grows by a configurable factor before being split evenly",
+        supported_languages: &["rust", "go", "c"],
+        rounds_per_match: 50,
+        repetitions: 1,
+        bot_timeout_ms: 5000,
+        human_timeout_ms: 30000,
+        cpu_limit: 1.0,
+        bot_turn_timeout_ms: 2000,
+        human_turn_timeout_ms: 15000,
+        memory_limit_mb: 64,
+        game_rounds: Some(5),
+        game_round_variance: Some(2),
+        scoring_kind: ScoringKind::Score,
+    },
 ];
 
 pub fn find_game_by_id(id: &str) -> Option<&'static Metadata> {

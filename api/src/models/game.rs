@@ -148,6 +148,25 @@ pub static GAMES: &[GameMetadata] = &[
         memory_limit_mb: 128,
         scoring_kind: ScoringKind::Score,
     },
+    GameMetadata {
+        id: "jar-of-greed",
+        name: "Jar of Greed",
+        description: "2-8 players secretly contribute to a shared jar that grows by a configurable factor before being split evenly",
+        supported_languages: &[
+            ProgrammingLanguage::Rust,
+            ProgrammingLanguage::Go,
+            ProgrammingLanguage::C,
+        ],
+        rounds_per_match: 50,
+        repetitions: 1,
+        bot_timeout_ms: 5000,
+        human_timeout_ms: 30000,
+        cpu_limit: 1.0,
+        bot_turn_timeout_ms: 2000,
+        human_turn_timeout_ms: 15000,
+        memory_limit_mb: 64,
+        scoring_kind: ScoringKind::Score,
+    },
 ];
 
 // Helper function to find a game by ID

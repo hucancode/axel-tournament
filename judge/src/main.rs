@@ -66,6 +66,7 @@ async fn main() -> anyhow::Result<()> {
     let chess_meta = games::find_game_by_id("chess").expect("chess metadata");
     let xiangqi_meta = games::find_game_by_id("xiangqi").expect("xiangqi metadata");
     let poker_meta = games::find_game_by_id("poker").expect("poker metadata");
+    let jog_meta = games::find_game_by_id("jar-of-greed").expect("jar-of-greed metadata");
 
     let rps_registry = Arc::new(
         RoomRegistry::<games::Rps>::new(storage.clone(), owner_id.clone()).with_on_open(
@@ -116,6 +117,15 @@ async fn main() -> anyhow::Result<()> {
         RoomRegistry::<games::Poker>::new(storage.clone(), owner_id.clone()).with_on_open(
             room_open_hook(
                 Duration::from_millis(poker_meta.human_turn_timeout_ms),
+                timeout_cb.clone(),
+                finish_cb.clone(),
+            ),
+        ),
+    );
+    let jog_registry = Arc::new(
+        RoomRegistry::<games::Jog>::new(storage.clone(), owner_id.clone()).with_on_open(
+            room_open_hook(
+                Duration::from_millis(jog_meta.human_turn_timeout_ms),
                 timeout_cb,
                 finish_cb,
             ),
@@ -146,6 +156,10 @@ async fn main() -> anyhow::Result<()> {
         registry: poker_registry.clone(),
         jwt_secret: config.jwt_secret.clone(),
     });
+    let jog_ctx = Arc::new(WsContext {
+        registry: jog_registry.clone(),
+        jwt_secret: config.jwt_secret.clone(),
+    });
 
     let mut bot_regs: BotMatchRegistries = BotMatchRegistries::new();
     bot_regs.insert(
@@ -172,6 +186,10 @@ async fn main() -> anyhow::Result<()> {
         "poker",
         Arc::new(poker_registry.clone()) as Arc<dyn BotMatchHost>,
     );
+    bot_regs.insert(
+        "jar-of-greed",
+        Arc::new(jog_registry.clone()) as Arc<dyn BotMatchHost>,
+    );
     bot_match::spawn(db.clone(), capacity.clone(), bot_regs);
 
     let workspace_root = std::env::var("COMPILER_WORKSPACE")
@@ -188,6 +206,7 @@ async fn main() -> anyhow::Result<()> {
     let hb_chess = chess_registry.clone();
     let hb_xiangqi = xiangqi_registry.clone();
     let hb_poker = poker_registry.clone();
+    let hb_jog = jog_registry.clone();
     tokio::spawn(async move {
         let mut tick = tokio::time::interval(Duration::from_secs(5));
         loop {
@@ -199,6 +218,7 @@ async fn main() -> anyhow::Result<()> {
                 hb_chess.heartbeat(Duration::from_secs(15)),
                 hb_xiangqi.heartbeat(Duration::from_secs(15)),
                 hb_poker.heartbeat(Duration::from_secs(15)),
+                hb_jog.heartbeat(Duration::from_secs(15)),
             );
         }
     });
@@ -228,6 +248,10 @@ async fn main() -> anyhow::Result<()> {
         "poker",
         playground::host(poker_registry.clone(), games::PokerStrategy::default),
     );
+    playground_regs.insert(
+        "jar-of-greed",
+        playground::host(jog_registry.clone(), games::JogStrategy::default),
+    );
     let app = router::create_router(
         &config,
         app_state,
@@ -237,6 +261,7 @@ async fn main() -> anyhow::Result<()> {
         chess_ctx,
         xiangqi_ctx,
         poker_ctx,
+        jog_ctx,
         playground_regs,
     );
 

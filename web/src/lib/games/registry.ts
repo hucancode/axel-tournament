@@ -5,6 +5,7 @@ import { PrisonersDilemmaGame } from './PrisonersDilemmaGame';
 import { ChessGame } from './ChessGame';
 import { XiangqiGame } from './XiangqiGame';
 import { PokerGame } from './PokerGame';
+import { JarOfGreedGame } from './JarOfGreedGame';
 
 export type ActFn = (kind: string, payload: string) => void;
 
@@ -21,6 +22,7 @@ export const gameRegistry: Record<string, GameConstructor> = {
   'chess': ChessGame,
   'xiangqi': XiangqiGame,
   'poker': PokerGame,
+  'jar-of-greed': JarOfGreedGame,
 };
 
 export function createGame(

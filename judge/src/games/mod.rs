@@ -1,5 +1,7 @@
 pub mod chess_logic;
 pub mod chess_playground;
+pub mod jog_logic;
+pub mod jog_playground;
 pub mod pd_logic;
 pub mod pd_playground;
 pub mod poker_logic;
@@ -13,6 +15,8 @@ pub mod xiangqi_playground;
 
 pub use chess_logic::Chess;
 pub use chess_playground::ChessStrategy;
+pub use jog_logic::Jog;
+pub use jog_playground::JogStrategy;
 pub use pd_logic::Pd;
 pub use pd_playground::PdStrategy;
 pub use poker_logic::Poker;

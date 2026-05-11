@@ -33,6 +33,7 @@ pub fn create_router(
     chess_ctx: Arc<WsContext<games::Chess>>,
     xiangqi_ctx: Arc<WsContext<games::Xiangqi>>,
     poker_ctx: Arc<WsContext<games::Poker>>,
+    jog_ctx: Arc<WsContext<games::Jog>>,
     playground_regs: PlaygroundRegistries,
 ) -> Router {
     tracing::info!("CORS: Allowing origin: {}", config.frontend_url);
@@ -66,13 +67,17 @@ pub fn create_router(
     let poker_ws = Router::new()
         .route("/ws/poker/{room_id}", get(ws_entry::<games::Poker>))
         .with_state(poker_ctx);
+    let jog_ws = Router::new()
+        .route("/ws/jar-of-greed/{room_id}", get(ws_entry::<games::Jog>))
+        .with_state(jog_ctx);
     let websocket_routes = Router::new()
         .merge(rps_ws)
         .merge(ttt_ws)
         .merge(pd_ws)
         .merge(chess_ws)
         .merge(xiangqi_ws)
-        .merge(poker_ws);
+        .merge(poker_ws)
+        .merge(jog_ws);
 
     Router::new()
         .merge(public_routes)

@@ -79,12 +79,59 @@ const BOARD_TIME_FIELDS: GameConfigField[] = [
   },
 ];
 
+const JOG_FIELDS: GameConfigField[] = [
+  {
+    key: 'starting_coins',
+    label: 'Starting coins',
+    type: 'number',
+    min: 1,
+    max: 1_000_000,
+    step: 1,
+    default: 10,
+    help: 'Coins each player begins with.',
+  },
+  {
+    key: 'rounds',
+    label: 'Rounds per match',
+    type: 'number',
+    min: 1,
+    max: 1000,
+    step: 1,
+    default: 5,
+  },
+  {
+    key: 'multiplier',
+    label: 'Jar multiplier (>1)',
+    type: 'number',
+    min: 1.01,
+    max: 10,
+    step: 0.05,
+    default: 2,
+    help: 'Factor the jar grows by before being split. Floats allowed.',
+  },
+  {
+    key: 'random',
+    label: 'Random per round',
+    type: 'boolean',
+    default: false,
+    help: 'Pick a fresh multiplier each round, capped by the value above.',
+  },
+  {
+    key: 'blind',
+    label: 'Blind balances',
+    type: 'boolean',
+    default: true,
+    help: 'Hide every player\'s balance until the match ends. When off, balances are revealed after each round\'s payout.',
+  },
+];
+
 const SCHEMAS: Record<string, GameConfigField[]> = {
   'tic-tac-toe': TTT_FIELDS,
   'rock-paper-scissors': ROUNDS_FIELDS(5),
   'prisoners-dilemma': ROUNDS_FIELDS(10),
   chess: BOARD_TIME_FIELDS,
   xiangqi: BOARD_TIME_FIELDS,
+  'jar-of-greed': JOG_FIELDS,
 };
 
 export function configFieldsFor(gameId: string): GameConfigField[] {
@@ -117,6 +164,14 @@ export function startPayload(
       const perTurn = nonNegNumOr(cfg.time_per_turn_seconds, 0);
       const blind = cfg.blind ? 1 : 0;
       return `${pool} ${perTurn} ${blind}`;
+    }
+    case 'jar-of-greed': {
+      const coins = numOr(cfg.starting_coins, 10);
+      const rounds = numOr(cfg.rounds, 5);
+      const random = cfg.random ? 1 : 0;
+      const mult = numOr(cfg.multiplier, 2);
+      const blind = cfg.blind === false ? 0 : 1;
+      return `${coins} ${rounds} ${random} ${mult} ${blind}`;
     }
     default:
       return '';
