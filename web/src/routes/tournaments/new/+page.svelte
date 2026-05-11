@@ -6,6 +6,7 @@
     import { gameService } from "$services/games";
     import { LinkButton, Card, PageHeader, DateTimePicker } from "$components";
     import type { Game, CreateTournamentRequest, MatchGenerationType } from "$lib/models";
+    import { configFieldsFor, defaultConfig } from "$lib/games/gameConfig";
 
     let games = $state<Game[]>([]);
     let loading = $state(true);
@@ -21,6 +22,14 @@
         end_time: "",
         match_generation_type: "all_vs_all",
         kind: "bot",
+        config: {},
+    });
+
+    /// Reset per-game config defaults whenever the admin switches game.
+    $effect(() => {
+        if (formData.game_id) {
+            formData.config = defaultConfig(formData.game_id);
+        }
     });
     let formLoading = $state(false);
     let formError = $state("");
@@ -279,6 +288,45 @@
                             </select>
                         </div>
                     </div>
+
+                    {#if formData.game_id}
+                        {#each configFieldsFor(formData.game_id) as f}
+                            <div class="form-field">
+                                <label for="cfg-{f.key}">{f.label}</label>
+                                {#if f.type === 'boolean'}
+                                    <input
+                                        id="cfg-{f.key}"
+                                        type="checkbox"
+                                        checked={!!formData.config?.[f.key]}
+                                        disabled={formLoading}
+                                        onchange={(e) => {
+                                            const v = (e.currentTarget as HTMLInputElement).checked;
+                                            formData.config = { ...(formData.config ?? {}), [f.key]: v };
+                                        }}
+                                    />
+                                {:else}
+                                    <input
+                                        id="cfg-{f.key}"
+                                        class="input"
+                                        type="number"
+                                        min={f.min}
+                                        max={f.max}
+                                        step={f.step ?? 1}
+                                        value={(formData.config?.[f.key] ?? f.default) as number}
+                                        disabled={formLoading}
+                                        onchange={(e) => {
+                                            const n = Number((e.currentTarget as HTMLInputElement).value);
+                                            formData.config = {
+                                                ...(formData.config ?? {}),
+                                                [f.key]: Number.isFinite(n) ? n : f.default,
+                                            };
+                                        }}
+                                    />
+                                {/if}
+                                {#if f.help}<p class="form-help">{f.help}</p>{/if}
+                            </div>
+                        {/each}
+                    {/if}
 
                     <div class="form-row">
                         <div class="form-field">

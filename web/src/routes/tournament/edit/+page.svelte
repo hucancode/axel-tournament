@@ -7,6 +7,7 @@
     import { gameService } from "$services/games";
     import { LinkButton, Card } from "$components";
     import type { Tournament, Game, UpdateTournamentRequest, TournamentStatus } from "$lib/models";
+    import { configFieldsFor, defaultConfig } from "$lib/games/gameConfig";
 
     let tournamentId = $derived(page.url.searchParams.get('id') || '');
     let tournament = $state<Tournament | null>(null);
@@ -23,6 +24,11 @@
     });
     let formLoading = $state(false);
     let formError = $state("");
+    let configForm = $state<Record<string, unknown>>({});
+    let configSaving = $state(false);
+    const editableConfig = $derived(
+        tournament?.status === "scheduled" || tournament?.status === "registration"
+    );
 
     const auth = $derived($authStore);
     const statusOptions: { value: TournamentStatus; label: string }[] = [
@@ -66,6 +72,10 @@
                 start_time: tournament.start_time ? formatDateForInput(tournament.start_time) : "",
                 end_time: tournament.end_time ? formatDateForInput(tournament.end_time) : "",
             };
+            configForm = {
+                ...defaultConfig(tournament.game_id),
+                ...(tournament.config ?? {}),
+            };
         } catch (err) {
             error = err instanceof Error ? err.message : "Failed to load tournament";
         } finally {
@@ -89,6 +99,21 @@
             formError = err instanceof Error ? err.message : "Failed to update tournament";
         } finally {
             formLoading = false;
+        }
+    }
+
+    async function saveConfig() {
+        if (!tournament) return;
+        configSaving = true;
+        formError = "";
+        try {
+            const updated = await tournamentService.updateConfig(tournamentId, configForm);
+            tournament = updated;
+            configForm = { ...defaultConfig(updated.game_id), ...(updated.config ?? {}) };
+        } catch (err) {
+            formError = err instanceof Error ? err.message : "Failed to update config";
+        } finally {
+            configSaving = false;
         }
     }
 
@@ -259,6 +284,62 @@
                             />
                         </div>
                     </div>
+
+                    {#if tournament.game_id && configFieldsFor(tournament.game_id).length > 0}
+                        <fieldset class="form-field" disabled={!editableConfig}>
+                            <legend>Per-game settings</legend>
+                            {#if !editableConfig}
+                                <p class="subtitle">
+                                    Locked — config can only be edited while the tournament is
+                                    scheduled or in registration.
+                                </p>
+                            {/if}
+                            {#each configFieldsFor(tournament.game_id) as f}
+                                <div class="form-field">
+                                    <label for="cfg-{f.key}">{f.label}</label>
+                                    {#if f.type === 'boolean'}
+                                        <input
+                                            id="cfg-{f.key}"
+                                            type="checkbox"
+                                            checked={!!configForm[f.key]}
+                                            onchange={(e) => {
+                                                const v = (e.currentTarget as HTMLInputElement).checked;
+                                                configForm = { ...configForm, [f.key]: v };
+                                            }}
+                                        />
+                                    {:else}
+                                        <input
+                                            id="cfg-{f.key}"
+                                            class="input"
+                                            type="number"
+                                            min={f.min}
+                                            max={f.max}
+                                            step={f.step ?? 1}
+                                            value={(configForm[f.key] ?? f.default) as number}
+                                            onchange={(e) => {
+                                                const n = Number((e.currentTarget as HTMLInputElement).value);
+                                                configForm = {
+                                                    ...configForm,
+                                                    [f.key]: Number.isFinite(n) ? n : f.default,
+                                                };
+                                            }}
+                                        />
+                                    {/if}
+                                    {#if f.help}<p class="subtitle">{f.help}</p>{/if}
+                                </div>
+                            {/each}
+                            {#if editableConfig}
+                                <button
+                                    type="button"
+                                    data-variant="secondary"
+                                    onclick={saveConfig}
+                                    disabled={configSaving}
+                                >
+                                    {configSaving ? "Saving config…" : "Save per-game config"}
+                                </button>
+                            {/if}
+                        </fieldset>
+                    {/if}
 
                     <div class="form-actions">
                         <button

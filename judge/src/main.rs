@@ -12,6 +12,7 @@ use judge::{
     services::sandbox::BuildSandbox,
     services::storage::Storage,
     services::submission,
+    services::time_pool,
     services::turn_timer::{self, TimeoutCallback},
 };
 use std::path::PathBuf;
@@ -95,7 +96,7 @@ async fn main() -> anyhow::Result<()> {
     );
     let chess_registry = Arc::new(
         RoomRegistry::<games::Chess>::new(storage.clone(), owner_id.clone()).with_on_open(
-            room_open_hook(
+            room_open_hook_with_pool(
                 Duration::from_millis(chess_meta.human_turn_timeout_ms),
                 timeout_cb.clone(),
                 finish_cb.clone(),
@@ -104,7 +105,7 @@ async fn main() -> anyhow::Result<()> {
     );
     let xiangqi_registry = Arc::new(
         RoomRegistry::<games::Xiangqi>::new(storage.clone(), owner_id.clone()).with_on_open(
-            room_open_hook(
+            room_open_hook_with_pool(
                 Duration::from_millis(xiangqi_meta.human_turn_timeout_ms),
                 timeout_cb.clone(),
                 finish_cb.clone(),
@@ -260,6 +261,21 @@ fn room_open_hook<L: judge::services::room::logic::RoomLogic>(
 ) -> OnRoomOpened<L> {
     Arc::new(move |room| {
         turn_timer::spawn_turn_watcher(room.clone(), timeout, on_timeout.clone());
+        match_finalizer::spawn_finish_watcher(room, on_finish.clone());
+    })
+}
+
+/// Same as `room_open_hook` plus a pool-clock watcher. Used by chess +
+/// xiangqi where the host can pick a per-player time pool; games that
+/// don't override `time_pool_seconds` see the watcher sit idle.
+fn room_open_hook_with_pool<L: judge::services::room::logic::RoomLogic>(
+    timeout: Duration,
+    on_timeout: TimeoutCallback,
+    on_finish: FinishCallback,
+) -> OnRoomOpened<L> {
+    Arc::new(move |room| {
+        turn_timer::spawn_turn_watcher(room.clone(), timeout, on_timeout.clone());
+        time_pool::spawn_time_pool_watcher(room.clone());
         match_finalizer::spawn_finish_watcher(room, on_finish.clone());
     })
 }

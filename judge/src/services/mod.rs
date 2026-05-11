@@ -7,4 +7,5 @@ pub mod room;
 pub mod sandbox;
 pub mod storage;
 pub mod submission;
+pub mod time_pool;
 pub mod turn_timer;

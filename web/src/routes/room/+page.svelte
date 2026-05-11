@@ -3,11 +3,18 @@
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import { gameService } from '$services/games';
+  import { roomService } from '$services/rooms';
   import { RoomSocket, type RoomEvent, type RoomError } from '$services/roomSocket';
   import { createGame } from '$lib/games/registry';
   import type { BasePixiGame, GameStatus, GameResult } from '$lib/games/BasePixiGame';
   import { Alert } from '$components';
   import type { Game } from '$lib/models';
+  import {
+    configFieldsFor,
+    defaultConfig,
+    startPayload,
+    type GameConfigField,
+  } from '$lib/games/gameConfig';
 
   // URL: /room?id=<room_id>&game=<game_id>
   type Phase = 'lobby' | 'playing' | 'finished';
@@ -36,12 +43,21 @@
   let chatMessages = $state<{ userId: string; message: string }[]>([]);
   let chatInput = $state('');
 
+  /// Per-game config the host can edit while in the lobby. Loaded from
+  /// the api room row; falls back to game defaults if missing.
+  let roomConfig = $state<Record<string, unknown>>({});
+  let configEditing = $state(false);
+  let configSaving = $state(false);
+  const configFields = $derived<GameConfigField[]>(configFieldsFor(gameId));
+
   onMount(() => {
     if (!roomId || !gameId) {
       goto('/rooms');
       return;
     }
-    loadGame().then(() => setupSocket());
+    loadGame()
+      .then(() => loadRoomConfig())
+      .then(() => setupSocket());
     return () => {
       pixiGame?.destroy();
       roomSocket?.disconnect();
@@ -153,12 +169,46 @@
     roomSocket?.act('JOIN');
   }
 
+  async function loadRoomConfig() {
+    try {
+      const room = await roomService.get(roomId);
+      roomConfig = { ...defaultConfig(gameId), ...(room.config ?? {}) };
+    } catch (err) {
+      // Room rows aren't created for every game (e.g. playground); fall
+      // back to defaults silently.
+      roomConfig = defaultConfig(gameId);
+      console.warn('Could not load room config; using defaults:', err);
+    }
+  }
+
   function startGame() {
     if (!roomSocket?.isConnected()) {
       error = 'Not connected';
       return;
     }
-    roomSocket.act('START');
+    roomSocket.act('START', startPayload(gameId, roomConfig));
+  }
+
+  async function saveConfig() {
+    try {
+      configSaving = true;
+      const updated = await roomService.updateConfig(roomId, roomConfig);
+      roomConfig = { ...defaultConfig(gameId), ...(updated.config ?? {}) };
+      configEditing = false;
+    } catch (err) {
+      error = err instanceof Error ? err.message : 'Failed to save config';
+    } finally {
+      configSaving = false;
+    }
+  }
+
+  function setConfigField(key: string, raw: string | boolean, type: 'number' | 'boolean') {
+    if (type === 'boolean') {
+      roomConfig = { ...roomConfig, [key]: !!raw };
+    } else {
+      const n = Number(raw);
+      roomConfig = { ...roomConfig, [key]: Number.isFinite(n) ? n : 0 };
+    }
   }
 
   function leaveRoom() {
@@ -265,6 +315,74 @@
             </ul>
             {#if players.length < 2}
               <p class="hint">Need at least 2 players to start</p>
+            {/if}
+
+            {#if configFields.length > 0}
+              <section class="config-panel">
+                <header>
+                  <h3>Game settings</h3>
+                  {#if isHost && !configEditing}
+                    <button data-variant="secondary" onclick={() => (configEditing = true)}>
+                      Edit
+                    </button>
+                  {/if}
+                </header>
+
+                {#if !configEditing}
+                  <dl class="config-readout">
+                    {#each configFields as f}
+                      <dt>{f.label}</dt>
+                      <dd>
+                        {#if f.type === 'boolean'}
+                          {roomConfig[f.key] ? 'On' : 'Off'}
+                        {:else}
+                          {roomConfig[f.key] ?? f.default}
+                        {/if}
+                      </dd>
+                    {/each}
+                  </dl>
+                {:else}
+                  <form
+                    onsubmit={(e) => {
+                      e.preventDefault();
+                      saveConfig();
+                    }}
+                  >
+                    {#each configFields as f}
+                      <label class="config-row">
+                        <span>{f.label}</span>
+                        {#if f.type === 'boolean'}
+                          <input
+                            type="checkbox"
+                            checked={!!roomConfig[f.key]}
+                            onchange={(e) =>
+                              setConfigField(f.key, (e.currentTarget as HTMLInputElement).checked, 'boolean')}
+                          />
+                        {:else}
+                          <input
+                            type="number"
+                            min={f.min}
+                            max={f.max}
+                            step={f.step ?? 1}
+                            value={(roomConfig[f.key] ?? f.default) as number}
+                            onchange={(e) =>
+                              setConfigField(f.key, (e.currentTarget as HTMLInputElement).value, 'number')}
+                          />
+                        {/if}
+                        {#if f.help}<small>{f.help}</small>{/if}
+                      </label>
+                    {/each}
+                    <div class="config-actions">
+                      <button type="button" data-variant="secondary" onclick={() => (configEditing = false)}>
+                        Cancel
+                      </button>
+                      <button type="submit" data-variant="primary" disabled={configSaving}>
+                        {configSaving ? 'Saving…' : 'Save'}
+                      </button>
+                    </div>
+                  </form>
+                {/if}
+              </section>
             {/if}
           </div>
         {/if}

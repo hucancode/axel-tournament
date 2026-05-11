@@ -1,6 +1,6 @@
 import { env } from "$env/dynamic/public";
 import { api } from "../api";
-import type { Room, CreateRoomRequest, RoomStatus } from "$lib/models";
+import type { Room, CreateRoomRequest, RoomStatus, UpdateConfigRequest } from "$lib/models";
 
 const JUDGE_URL = env.PUBLIC_JUDGE_URL || "http://localhost:8081";
 
@@ -59,20 +59,15 @@ export const roomService = {
   },
 
   async get(id: string): Promise<Room> {
-    const now = new Date().toISOString();
-    return {
-      id,
-      game_id: "",
-      host_id: "",
-      name: id,
-      max_players: 2,
-      status: "lobby" as RoomStatus,
-      players: [],
-      allowed_user_ids: [],
-      is_ranked: false,
-      created_at: now,
-      updated_at: now,
-    };
+    return api.get<Room>(`/api/rooms/${encodeURIComponent(id)}`);
+  },
+
+  async updateConfig(id: string, config: Record<string, unknown>): Promise<Room> {
+    return api.patch<Room, UpdateConfigRequest>(
+      `/api/rooms/${encodeURIComponent(id)}/config`,
+      { config },
+      true,
+    );
   },
 
   async create(data: CreateRoomRequest): Promise<Room> {

@@ -6,6 +6,7 @@
     import type { Room, Game, CreateRoomRequest } from "$lib/models";
     import { Alert, PageHeader } from "$components";
     import { authStore } from "$lib/stores/auth";
+    import { configFieldsFor, defaultConfig } from "$lib/games/gameConfig";
 
     let rooms = $state<Room[]>([]);
     let games = $state<Game[]>([]);
@@ -17,6 +18,15 @@
     let maxPlayers = $state(4);
     let humanTimeoutMs = $state<number | undefined>(undefined);
     let filterGameId = $state<string>("");
+    let createConfig = $state<Record<string, unknown>>({});
+
+    /// Refresh the per-game config form whenever the user picks a different
+    /// game in the create dialog. New game = new defaults.
+    $effect(() => {
+        if (selectedGameId) {
+            createConfig = defaultConfig(selectedGameId);
+        }
+    });
 
     // Reactive auth state
     let authState = $state($authStore);
@@ -55,6 +65,7 @@
                 name: roomName.trim(),
                 max_players: maxPlayers,
                 human_timeout_ms: humanTimeoutMs,
+                config: createConfig,
             };
             const newRoom = await roomService.create(request);
             await loadData();
@@ -74,6 +85,7 @@
         selectedGameId = "";
         maxPlayers = 4;
         humanTimeoutMs = undefined;
+        createConfig = {};
     }
 
     function closeCreateModal() {
@@ -263,6 +275,42 @@
                     class="form-input"
                 />
             </div>
+            {#if selectedGameId}
+                {#each configFieldsFor(selectedGameId) as f}
+                    <div class="form-field">
+                        <label for="cfg-{f.key}">{f.label}</label>
+                        {#if f.type === 'boolean'}
+                            <input
+                                id="cfg-{f.key}"
+                                type="checkbox"
+                                checked={!!createConfig[f.key]}
+                                onchange={(e) => {
+                                    const v = (e.currentTarget as HTMLInputElement).checked;
+                                    createConfig = { ...createConfig, [f.key]: v };
+                                }}
+                            />
+                        {:else}
+                            <input
+                                id="cfg-{f.key}"
+                                type="number"
+                                min={f.min}
+                                max={f.max}
+                                step={f.step ?? 1}
+                                value={(createConfig[f.key] ?? f.default) as number}
+                                class="form-input"
+                                onchange={(e) => {
+                                    const n = Number((e.currentTarget as HTMLInputElement).value);
+                                    createConfig = {
+                                        ...createConfig,
+                                        [f.key]: Number.isFinite(n) ? n : f.default,
+                                    };
+                                }}
+                            />
+                        {/if}
+                        {#if f.help}<p class="form-help">{f.help}</p>{/if}
+                    </div>
+                {/each}
+            {/if}
             <div class="form-field">
                 <label for="human-timeout">Human Timeout (ms)</label>
                 <input

@@ -65,7 +65,7 @@ async fn matchmaking_dequeue_removes_user_from_queue() {
         None,
         None,
         None,
-        Some(TournamentKind::Human),
+        Some(TournamentKind::Human), None,
     )
     .await
     .unwrap();
@@ -111,7 +111,7 @@ async fn healer_promotes_scheduled_tournament_when_start_time_passes() {
         Some(past),
         None,
         None,
-        Some(TournamentKind::Bot),
+        Some(TournamentKind::Bot), None,
     )
     .await
     .unwrap();
@@ -144,7 +144,7 @@ async fn healer_does_not_promote_scheduled_with_future_start_time() {
         Some(future),
         None,
         None,
-        Some(TournamentKind::Bot),
+        Some(TournamentKind::Bot), None,
     )
     .await
     .unwrap();
@@ -177,7 +177,7 @@ async fn healer_finalizes_running_tournament_when_all_matches_terminal() {
         None,
         None,
         Some(MatchGenerationType::RoundRobin),
-        Some(TournamentKind::Bot),
+        Some(TournamentKind::Bot), None,
     )
     .await
     .unwrap();
@@ -267,7 +267,7 @@ async fn healer_tick_advances_single_elim_bracket_without_explicit_call() {
         None,
         None,
         Some(MatchGenerationType::SingleElimination),
-        Some(TournamentKind::Bot),
+        Some(TournamentKind::Bot), None,
     )
     .await
     .unwrap();
@@ -377,7 +377,7 @@ async fn concurrent_matchmaking_ticks_do_not_double_pair() {
         None,
         None,
         None,
-        Some(TournamentKind::Human),
+        Some(TournamentKind::Human), None,
     )
     .await
     .unwrap();
@@ -445,7 +445,7 @@ async fn submission_rate_limit_rejects_after_threshold() {
         None,
         None,
         None,
-        Some(TournamentKind::Bot),
+        Some(TournamentKind::Bot), None,
     )
     .await
     .unwrap();
@@ -496,7 +496,7 @@ async fn submission_size_cap_rejects_oversized_code() {
         None,
         None,
         None,
-        Some(TournamentKind::Bot),
+        Some(TournamentKind::Bot), None,
     )
     .await
     .unwrap();
@@ -555,7 +555,7 @@ async fn multi_bot_upload_then_select_makes_v2_active_for_start() {
         None,
         None,
         Some(MatchGenerationType::RoundRobin),
-        Some(TournamentKind::Bot),
+        Some(TournamentKind::Bot), None,
     )
     .await
     .unwrap();

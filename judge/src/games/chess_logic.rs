@@ -8,11 +8,66 @@
 
 use crate::services::room::logic::RoomLogic;
 use crate::services::storage::RoomSnapshot;
-use std::collections::HashMap;
+use rand::{rngs::StdRng, seq::SliceRandom, Rng, SeedableRng};
+use std::collections::{BTreeMap, HashMap};
 
 const MAX_PLAYERS: usize = 2;
 const BOARD: usize = 64;
 const FIFTY_MOVE_HALFMOVES: u32 = 100; // 50 full moves = 100 halfmoves
+
+/// Per-game configuration parsed from the START / GAME_STARTED payload.
+/// Format: `<pool_minutes> <per_turn_seconds> <blind 0|1>`. Missing or
+/// invalid tokens fall back to defaults (no time limit, no blind).
+///
+/// Time enforcement happens in an external watcher (see services::time_pool);
+/// the logic itself only stores the parameters so replay sees the same setup.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct TimeConfig {
+    pub pool_minutes: u32,
+    pub per_turn_seconds: u32,
+    pub blind: bool,
+}
+
+impl TimeConfig {
+    pub fn parse(payload: &str) -> Self {
+        let mut it = payload.split_whitespace();
+        let pool = it.next().and_then(|s| s.parse::<u32>().ok()).unwrap_or(0);
+        let per_turn = it.next().and_then(|s| s.parse::<u32>().ok()).unwrap_or(0);
+        let blind = matches!(it.next(), Some("1") | Some("true"));
+        Self { pool_minutes: pool, per_turn_seconds: per_turn, blind }
+    }
+
+    pub fn render(self) -> String {
+        format!(
+            "{} {} {}",
+            self.pool_minutes,
+            self.per_turn_seconds,
+            if self.blind { 1 } else { 0 }
+        )
+    }
+
+    /// Like `render`, but appends a fresh blind-shuffle seed when blind
+    /// mode is on. The seed is folded into the GAME_STARTED payload so
+    /// every replay reproduces the same shuffled back rank.
+    pub fn render_with_seed(self, seed: u64) -> String {
+        if self.blind {
+            format!(
+                "{} {} 1 {}",
+                self.pool_minutes, self.per_turn_seconds, seed
+            )
+        } else {
+            self.render()
+        }
+    }
+}
+
+/// Pull the trailing seed token out of a GAME_STARTED payload that
+/// was emitted in blind mode. Returns `None` when the seed is missing
+/// or unparseable; the fold then falls back to a deterministic default
+/// shuffle (seed 0).
+pub fn parse_blind_seed(payload: &str) -> Option<u64> {
+    payload.split_whitespace().nth(3).and_then(|s| s.parse::<u64>().ok())
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Color {
@@ -77,6 +132,17 @@ pub struct State {
     pub halfmove: u32,          // for 50-move rule
     pub winner: Option<u8>,     // None on draw or in-progress
     pub history: Vec<u64>,      // position hashes for threefold repetition
+    /// Time + variant config supplied via START / GAME_STARTED. Stored on
+    /// the state so clients can render the clock and the time-pool watcher
+    /// can read its parameters from a freshly-loaded room.
+    pub time_config: TimeConfig,
+    /// Blind variant: maps a back-rank square to the piece type that
+    /// piece pretends to be (its starting-square type) until it moves
+    /// for the first time. The `state.board` itself holds the *true*
+    /// piece type. Empty in non-blind games. Movement legality + attack
+    /// detection use the facade overlay (see `display_board`); piece
+    /// storage uses the true board.
+    pub facade: BTreeMap<u8, PieceType>,
 }
 
 impl Default for State {
@@ -92,6 +158,8 @@ impl Default for State {
             halfmove: 0,
             winner: None,
             history: Vec::new(),
+            time_config: TimeConfig::default(),
+            facade: BTreeMap::new(),
         }
     }
 }
@@ -100,6 +168,14 @@ impl State {
     fn player_index(&self, player_id: &str) -> Option<u8> {
         self.players.iter().position(|p| p == player_id).map(|i| i as u8)
     }
+
+    /// Clone with the board field swapped out. Used to feed the legal-
+    /// move generator a facade-overlaid view without mutating self.
+    fn with_board(&self, board: [Option<Piece>; BOARD]) -> State {
+        let mut s = self.clone();
+        s.board = board;
+        s
+    }
     fn reset_for_new_game(&mut self) {
         self.board = starting_board();
         self.turn = Color::White;
@@ -107,9 +183,68 @@ impl State {
         self.en_passant = None;
         self.halfmove = 0;
         self.winner = None;
+        self.facade = BTreeMap::new();
         self.history = vec![position_hash(&self.board, self.turn, self.castle, self.en_passant)];
     }
 }
+
+/// Back-rank squares whose true type is shuffled when blind mode is on.
+/// Pawns + king stay as themselves (king is the variant's only fixed
+/// landmark; pawns avoid the promotion/en-passant edge cases that come
+/// with mid-life facade swaps).
+const BLIND_SQUARES_WHITE: [u8; 7] = [0, 1, 2, 3, 5, 6, 7]; // a1..h1 minus e1
+const BLIND_SQUARES_BLACK: [u8; 7] = [56, 57, 58, 59, 61, 62, 63]; // a8..h8 minus e8
+
+/// True piece types these squares hold in the standard starting layout.
+/// Same order as BLIND_SQUARES_*; reused as the pool that gets shuffled
+/// in blind mode.
+const BLIND_TYPES: [PieceType; 7] = [
+    PieceType::Rook,
+    PieceType::Knight,
+    PieceType::Bishop,
+    PieceType::Queen,
+    PieceType::Bishop,
+    PieceType::Knight,
+    PieceType::Rook,
+];
+
+/// Apply a blind shuffle to the back rank seeded by `seed`. Sets the
+/// true types on `state.board` and populates `state.facade` so each
+/// shuffled square pretends to be its starting-position piece until it
+/// moves. Pawns and kings are left untouched.
+fn apply_blind_shuffle(state: &mut State, seed: u64) {
+    let mut rng = StdRng::seed_from_u64(seed);
+    state.facade.clear();
+    for (color, squares) in [
+        (Color::White, &BLIND_SQUARES_WHITE),
+        (Color::Black, &BLIND_SQUARES_BLACK),
+    ] {
+        let mut pool = BLIND_TYPES.to_vec();
+        pool.shuffle(&mut rng);
+        for (i, &square) in squares.iter().enumerate() {
+            state.board[square as usize] = Some((color, pool[i]));
+            state.facade.insert(square, BLIND_TYPES[i]);
+        }
+    }
+    // Reset the position-hash baseline so threefold detection works
+    // against the freshly-shuffled true board.
+    state.history = vec![position_hash(&state.board, state.turn, state.castle, state.en_passant)];
+}
+
+/// Project the true board through the facade overlay: every square
+/// whose facade is set shows the facade type instead of its true type.
+/// Used wherever movement legality or attack detection runs — both
+/// sides see the facade until pieces reveal themselves.
+pub fn display_board(state: &State) -> [Option<Piece>; BOARD] {
+    let mut b = state.board;
+    for (sq_idx, facade_type) in &state.facade {
+        if let Some((color, _)) = b[*sq_idx as usize] {
+            b[*sq_idx as usize] = Some((color, *facade_type));
+        }
+    }
+    b
+}
+
 
 pub struct Chess;
 
@@ -671,6 +806,11 @@ impl RoomLogic for Chess {
             "GAME_STARTED" => {
                 state.phase = Phase::Playing;
                 state.reset_for_new_game();
+                state.time_config = TimeConfig::parse(payload);
+                if state.time_config.blind {
+                    let seed = parse_blind_seed(payload).unwrap_or(0);
+                    apply_blind_shuffle(state, seed);
+                }
             }
             "MOVE" => {
                 // payload: "<pid> <from> <to> <flag>"
@@ -681,12 +821,22 @@ impl RoomLogic for Chess {
                 let Some(from) = parse_square(parts[1]) else { return };
                 let Some(to) = parse_square(parts[2]) else { return };
                 let Some(flag) = MoveFlag::parse(parts[3]) else { return };
-                let Some(piece) = state.board[from as usize] else { return };
+                let Some(true_piece) = state.board[from as usize] else { return };
+
+                // Castling-rights + en-passant bookkeeping uses the
+                // displayed (facade) piece type so blind games behave
+                // the same on replay as on validate.
+                let display_pt = state
+                    .facade
+                    .get(&from)
+                    .copied()
+                    .unwrap_or(true_piece.1);
+                let display_piece = (true_piece.0, display_pt);
 
                 let (b2, capture, pawn_move) = apply_move(&state.board, from, to, flag);
                 state.board = b2;
-                state.castle = update_castle_rights(state.castle, from, to, piece);
-                state.en_passant = ep_after_move(piece, from, to);
+                state.castle = update_castle_rights(state.castle, from, to, display_piece);
+                state.en_passant = ep_after_move(display_piece, from, to);
                 if capture || pawn_move {
                     state.halfmove = 0;
                     // Repetition counter resets on irreversible moves.
@@ -694,10 +844,14 @@ impl RoomLogic for Chess {
                 } else {
                     state.halfmove += 1;
                 }
+                let mover = true_piece.0;
+                let _revealed = update_facade_post_move(&mut state.facade, mover, from, to);
                 state.turn = state.turn.other();
-                let h = position_hash(&state.board, state.turn, state.castle, state.en_passant);
+                let display_b = overlay_facade(&state.board, &state.facade);
+                let h = position_hash(&display_b, state.turn, state.castle, state.en_passant);
                 state.history.push(h);
             }
+            "PIECE_REVEALED" => {} // bookkeeping; fold("MOVE") already updated facade.
             "CHECK" => {} // pure notification; state already in check.
             "WINNER" => {
                 if let Ok(w) = payload.trim().parse::<u8>() {
@@ -764,7 +918,13 @@ impl RoomLogic for Chess {
                 if state.players.len() < 2 {
                     return Err("need 2 players".into());
                 }
-                Ok(vec![("GAME_STARTED".into(), String::new())])
+                let cfg = TimeConfig::parse(payload);
+                let payload = if cfg.blind {
+                    cfg.render_with_seed(rand::rng().random::<u64>())
+                } else {
+                    cfg.render()
+                };
+                Ok(vec![("GAME_STARTED".into(), payload)])
             }
             "MOVE" => validate_move(state, player, payload),
             _ => Err(format!("unknown action: {kind}")),
@@ -789,6 +949,16 @@ impl RoomLogic for Chess {
             .cloned()
             .into_iter()
             .collect()
+    }
+
+    fn time_pool_seconds(state: &Self::State) -> Option<u64> {
+        let m = state.time_config.pool_minutes;
+        if m == 0 { None } else { Some(m as u64 * 60) }
+    }
+
+    fn per_turn_seconds(state: &Self::State) -> Option<u64> {
+        let s = state.time_config.per_turn_seconds;
+        if s == 0 { None } else { Some(s as u64) }
     }
 
     fn snapshot(state: &Self::State) -> RoomSnapshot {
@@ -822,15 +992,22 @@ fn validate_move(
     let to = parse_square(parts[1]).ok_or_else(|| "bad to square".to_string())?;
     let promo = parts.get(2).and_then(|s| parse_promo(s));
 
-    let piece = state.board[from as usize].ok_or_else(|| "no piece on from square".to_string())?;
-    if piece.0 != mover {
+    // In blind mode the piece on `from` may have a hidden true type;
+    // legality + castling-rights bookkeeping always run against the
+    // displayed (facade) piece — that's what both players see and how
+    // the chess rules apply until the piece is revealed.
+    let display = display_board(state);
+    let display_piece = display[from as usize]
+        .ok_or_else(|| "no piece on from square".to_string())?;
+    if display_piece.0 != mover {
         return Err("not your piece".into());
     }
 
     // Find the matching legal move. We trust the legal-move generator
     // as the single source of truth for legality so castling, en
     // passant, and check-evasion all share one path.
-    let legals = legal_moves(state, mover);
+    let display_state = state.with_board(display);
+    let legals = legal_moves(&display_state, mover);
     let mut chosen: Option<(u8, u8, MoveFlag)> = None;
     for (f, t, fl) in &legals {
         if *f != from || *t != to {
@@ -855,18 +1032,26 @@ fn validate_move(
     }
     let (f, t, fl) = chosen.ok_or_else(|| "illegal move".to_string())?;
 
-    // Apply provisionally to detect terminal conditions.
+    // Apply provisionally to detect terminal conditions. We mutate the
+    // *true* board so the destination square holds the real piece type,
+    // not the facade — that matters once the piece reveals.
     let (b2, capture, pawn_move) = apply_move(&state.board, f, t, fl);
-    let new_castle = update_castle_rights(state.castle, f, t, piece);
-    let new_ep = ep_after_move(piece, f, t);
+    let new_castle = update_castle_rights(state.castle, f, t, display_piece);
+    let new_ep = ep_after_move(display_piece, f, t);
     let new_halfmove = if capture || pawn_move { 0 } else { state.halfmove + 1 };
     let new_turn = mover.other();
-    let new_hash = position_hash(&b2, new_turn, new_castle, new_ep);
 
-    let opponent_in_check = in_check(&b2, new_turn);
+    // Compute the post-move facade so the opponent's legality check sees
+    // the same board the players will see after this move resolves.
+    let mut next_facade = state.facade.clone();
+    let revealed_squares = update_facade_post_move(&mut next_facade, mover, f, t);
+
+    let display_b2 = overlay_facade(&b2, &next_facade);
+    let new_hash = position_hash(&display_b2, new_turn, new_castle, new_ep);
+    let opponent_in_check = in_check(&display_b2, new_turn);
     let next_state = synthetic_state(
         &b2, new_turn, new_castle, new_ep, &state.history,
-        new_halfmove, capture || pawn_move, new_hash,
+        new_halfmove, capture || pawn_move, new_hash, next_facade,
     );
     let opp_legals = legal_moves(&next_state, new_turn);
     let opponent_has_move = !opp_legals.is_empty();
@@ -876,6 +1061,18 @@ fn validate_move(
         format!("{player} {} {} {}", square_str(f), square_str(t), fl.as_str()),
     )];
 
+    // Emit one PIECE_REVEALED per square that just became visible. The
+    // payload carries the *true* type so clients can update their board
+    // mirror without having to know the seeded shuffle.
+    for sq_idx in revealed_squares {
+        if let Some((_, true_type)) = b2[sq_idx as usize] {
+            out.push((
+                "PIECE_REVEALED".into(),
+                format!("{} {}", square_str(sq_idx), piecetype_letter(true_type)),
+            ));
+        }
+    }
+
     if opponent_in_check && !opponent_has_move {
         out.push(("WINNER".into(), mover.idx().to_string()));
     } else if !opponent_in_check && !opponent_has_move {
@@ -884,7 +1081,7 @@ fn validate_move(
         out.push(("DRAW".into(), "FIFTY_MOVE".into()));
     } else if threefold(&next_state.history, new_hash) {
         out.push(("DRAW".into(), "THREEFOLD".into()));
-    } else if insufficient_material(&b2) {
+    } else if insufficient_material(&display_b2) {
         out.push(("DRAW".into(), "INSUFFICIENT".into()));
     } else if opponent_in_check {
         // Plain check (no mate, no other terminal). Notify after MOVE.
@@ -892,6 +1089,68 @@ fn validate_move(
     }
     Ok(out)
 }
+
+/// Strip facade entries for `from` and `to`, then auto-reveal the
+/// mover's last hidden piece if exactly one remains. Returns squares
+/// that newly became revealed, in emission order, so the validator can
+/// produce matching `PIECE_REVEALED` events. Pure: works on any facade
+/// map, no `&mut state` required.
+fn update_facade_post_move(
+    facade: &mut BTreeMap<u8, PieceType>,
+    mover: Color,
+    from: u8,
+    to: u8,
+) -> Vec<u8> {
+    let mut revealed = Vec::new();
+    if facade.remove(&from).is_some() {
+        revealed.push(to); // piece now lives on `to`
+    }
+    if facade.remove(&to).is_some() && !revealed.contains(&to) {
+        revealed.push(to);
+    }
+    let mover_squares: &[u8] = match mover {
+        Color::White => &BLIND_SQUARES_WHITE,
+        Color::Black => &BLIND_SQUARES_BLACK,
+    };
+    let remaining: Vec<u8> = mover_squares
+        .iter()
+        .copied()
+        .filter(|sq_idx| facade.contains_key(sq_idx))
+        .collect();
+    if remaining.len() == 1 {
+        let last = remaining[0];
+        facade.remove(&last);
+        if !revealed.contains(&last) {
+            revealed.push(last);
+        }
+    }
+    revealed
+}
+
+fn overlay_facade(
+    board: &[Option<Piece>; BOARD],
+    facade: &BTreeMap<u8, PieceType>,
+) -> [Option<Piece>; BOARD] {
+    let mut b = *board;
+    for (sq_idx, facade_type) in facade {
+        if let Some((color, _)) = b[*sq_idx as usize] {
+            b[*sq_idx as usize] = Some((color, *facade_type));
+        }
+    }
+    b
+}
+
+fn piecetype_letter(pt: PieceType) -> &'static str {
+    match pt {
+        PieceType::Pawn => "P",
+        PieceType::Knight => "N",
+        PieceType::Bishop => "B",
+        PieceType::Rook => "R",
+        PieceType::Queen => "Q",
+        PieceType::King => "K",
+    }
+}
+
 
 /// Build a transient State just for the legal-move check after a move.
 /// Only the fields legal_moves consults need to be accurate.
@@ -905,6 +1164,7 @@ fn synthetic_state(
     halfmove: u32,
     irreversible: bool,
     new_hash: u64,
+    facade: BTreeMap<u8, PieceType>,
 ) -> State {
     let mut history = if irreversible { Vec::new() } else { prev_history.to_vec() };
     history.push(new_hash);
@@ -919,6 +1179,8 @@ fn synthetic_state(
         halfmove,
         winner: None,
         history,
+        time_config: TimeConfig::default(),
+        facade,
     }
 }
 
@@ -1118,5 +1380,105 @@ mod tests {
         assert_eq!(s.board[sq(5, 6) as usize], Some((Color::White, PieceType::Queen)));
         // Black king still on e8.
         assert_eq!(s.board[sq(4, 7) as usize], Some((Color::Black, PieceType::King)));
+    }
+
+    fn join_and_start_blind(payload: &str) -> State {
+        let mut s = State::default();
+        drive(&mut s, "a", "JOIN", "");
+        drive(&mut s, "b", "JOIN", "");
+        drive(&mut s, "a", "START", payload);
+        s
+    }
+
+    #[test]
+    fn blind_shuffle_populates_facade_for_back_ranks() {
+        let s = join_and_start_blind("0 0 1");
+        for &sq_idx in &BLIND_SQUARES_WHITE {
+            assert!(s.facade.contains_key(&sq_idx));
+        }
+        for &sq_idx in &BLIND_SQUARES_BLACK {
+            assert!(s.facade.contains_key(&sq_idx));
+        }
+        // King squares stay revealed.
+        assert!(!s.facade.contains_key(&sq(4, 0)));
+        assert!(!s.facade.contains_key(&sq(4, 7)));
+        // Pawns stay revealed.
+        for f in 0..8u8 {
+            assert!(!s.facade.contains_key(&sq(f, 1)));
+            assert!(!s.facade.contains_key(&sq(f, 6)));
+        }
+    }
+
+    #[test]
+    fn blind_shuffle_is_deterministic_for_same_seed() {
+        // Drive both games with the same explicit seed token so the
+        // shuffle is reproducible.
+        let mut s1 = State::default();
+        drive(&mut s1, "a", "JOIN", "");
+        drive(&mut s1, "b", "JOIN", "");
+        Chess::fold(&mut s1, "GAME_STARTED", "0 0 1 12345");
+        let mut s2 = State::default();
+        drive(&mut s2, "a", "JOIN", "");
+        drive(&mut s2, "b", "JOIN", "");
+        Chess::fold(&mut s2, "GAME_STARTED", "0 0 1 12345");
+        assert_eq!(s1.board, s2.board);
+        assert_eq!(s1.facade, s2.facade);
+    }
+
+    #[test]
+    fn blind_facade_overlay_keeps_displayed_starting_pieces() {
+        let s = join_and_start_blind("0 0 1");
+        let display = display_board(&s);
+        let standard = starting_board();
+        assert_eq!(display, standard, "facade overlay must look like the standard starting position");
+    }
+
+    #[test]
+    fn blind_move_emits_piece_revealed_and_clears_facade() {
+        let mut s = State::default();
+        drive(&mut s, "a", "JOIN", "");
+        drive(&mut s, "b", "JOIN", "");
+        Chess::fold(&mut s, "GAME_STARTED", "0 0 1 7");
+        let from = sq(1, 0); // b1, facade=Knight
+        // Pick a legal display-Knight move (b1 -> c3).
+        let to = sq(2, 2);
+        let evs = Chess::validate(&s, "a", "MOVE", &format!("{} {}", square_str(from), square_str(to)))
+            .expect("validate ok");
+        let revealed: Vec<&(String, String)> = evs.iter().filter(|(k, _)| k == "PIECE_REVEALED").collect();
+        assert!(!revealed.is_empty(), "first move must reveal");
+        for (k, p) in &evs {
+            Chess::fold(&mut s, k, p);
+        }
+        // Source facade is cleared; destination has no facade either.
+        assert!(!s.facade.contains_key(&from));
+        assert!(!s.facade.contains_key(&to));
+    }
+
+    #[test]
+    fn blind_replay_reconstructs_post_move_state() {
+        let mut s = State::default();
+        drive(&mut s, "a", "JOIN", "");
+        drive(&mut s, "b", "JOIN", "");
+        Chess::fold(&mut s, "GAME_STARTED", "0 0 1 99");
+        // Capture the event sequence as the host plays b1 -> c3 (knight facade).
+        let from = sq(1, 0);
+        let to = sq(2, 2);
+        let evs = Chess::validate(&s, "a", "MOVE", &format!("{} {}", square_str(from), square_str(to)))
+            .expect("validate ok");
+        let mut prefix: Vec<(String, String)> = vec![
+            ("PLAYER_JOINED".into(), "a".into()),
+            ("PLAYER_JOINED".into(), "b".into()),
+            ("GAME_STARTED".into(), "0 0 1 99".into()),
+        ];
+        prefix.extend(evs.into_iter());
+        let mut replay = State::default();
+        for (k, p) in &prefix {
+            Chess::fold(&mut replay, k, p);
+        }
+        for (k, p) in &prefix {
+            Chess::fold(&mut s, k, p);
+        }
+        assert_eq!(replay.board, s.board);
+        assert_eq!(replay.facade, s.facade);
     }
 }

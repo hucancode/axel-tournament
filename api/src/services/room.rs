@@ -22,6 +22,7 @@ use crate::{
 };
 use surrealdb::types::{Datetime, RecordId};
 
+#[allow(clippy::too_many_arguments)]
 pub async fn create_room(
     db: &Database,
     host_id: RecordId,
@@ -32,7 +33,9 @@ pub async fn create_room(
     is_ranked: bool,
     allowed_user_ids: Vec<RecordId>,
     human_timeout_ms: Option<u32>,
+    config: Option<serde_json::Value>,
 ) -> ApiResult<Room> {
+    let config = config.unwrap_or_else(|| serde_json::Value::Object(serde_json::Map::new()));
     find_game_by_id(&game_id)
         .ok_or_else(|| ApiError::NotFound("Game not found".to_string()))?;
     if !(2..=16).contains(&max_players) {
@@ -53,6 +56,7 @@ pub async fn create_room(
         is_ranked,
         winner_id: None,
         event_history: Vec::new(),
+        config,
         created_at: Datetime::default(),
         updated_at: Datetime::default(),
     };
@@ -98,6 +102,7 @@ pub async fn create_ranked_room(
         true,
         allowed_user_ids,
         None,
+        Some(tournament.config.clone()),
     )
     .await
 }
@@ -173,6 +178,39 @@ pub async fn leave_room(
         .bind(("uid", user_id))
         .await?;
     Ok(())
+}
+
+/// Replace a room's per-game `config` blob. Only the host may edit, and
+/// only while the room is still in lobby.
+pub async fn update_room_config(
+    db: &Database,
+    room_id: RecordId,
+    leader_id: RecordId,
+    config: serde_json::Value,
+) -> ApiResult<Room> {
+    let room = get_room(db, room_id.clone()).await?;
+    if room.host_id != leader_id {
+        return Err(ApiError::Forbidden(
+            "Only the room host can edit config".to_string(),
+        ));
+    }
+    if room.status != RoomStatus::Lobby {
+        return Err(ApiError::BadRequest(
+            "Cannot edit config after game has started".to_string(),
+        ));
+    }
+    let mut resp = db
+        .query(
+            "UPDATE $rid SET config = $cfg, updated_at = time::now()
+             RETURN AFTER",
+        )
+        .bind(("rid", room_id.clone()))
+        .bind(("cfg", config))
+        .await?;
+    let rows: Vec<Room> = resp.take(0)?;
+    rows.into_iter()
+        .next()
+        .ok_or_else(|| ApiError::Internal("Failed to update room config".to_string()))
 }
 
 pub async fn start_room(

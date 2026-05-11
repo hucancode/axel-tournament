@@ -18,15 +18,19 @@ pub type TimeoutCallback =
     Arc<dyn Fn(String, Vec<String>) -> futures_util::future::BoxFuture<'static, ()> + Send + Sync>;
 
 /// Spawn a watcher task. Returns the JoinHandle so callers can await
-/// the watcher in tests; production drops it.
+/// the watcher in tests; production drops it. `default_timeout` is the
+/// game-wide default; `RoomLogic::per_turn_seconds` may override it
+/// per-room (chess/xiangqi expose this when the host configures a
+/// strict per-move clock).
 pub fn spawn_turn_watcher<L: RoomLogic>(
     room: Arc<LiveRoom<L>>,
-    timeout: Duration,
+    default_timeout: Duration,
     on_timeout: TimeoutCallback,
 ) -> tokio::task::JoinHandle<()> {
     let mut subscriber = room.subscribe();
     let room_id = room.room_id.clone();
     tokio::spawn(async move {
+        let mut timeout = current_timeout::<L>(&room, default_timeout).await;
         let mut last_set: HashSet<String> = room.pending_players().await.into_iter().collect();
         let mut deadline = if last_set.is_empty() {
             None
@@ -38,6 +42,7 @@ pub fn spawn_turn_watcher<L: RoomLogic>(
                 ev = subscriber.recv() => {
                     match ev {
                         Ok(_) => {
+                            timeout = current_timeout::<L>(&room, default_timeout).await;
                             let now: HashSet<String> =
                                 room.pending_players().await.into_iter().collect();
                             if now != last_set {
@@ -50,6 +55,7 @@ pub fn spawn_turn_watcher<L: RoomLogic>(
                             }
                         }
                         Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {
+                            timeout = current_timeout::<L>(&room, default_timeout).await;
                             let now: HashSet<String> =
                                 room.pending_players().await.into_iter().collect();
                             last_set = now;
@@ -74,6 +80,16 @@ pub fn spawn_turn_watcher<L: RoomLogic>(
             }
         }
     })
+}
+
+async fn current_timeout<L: RoomLogic>(
+    room: &Arc<LiveRoom<L>>,
+    default_timeout: Duration,
+) -> Duration {
+    match room.with_state(|s| L::per_turn_seconds(s)).await {
+        Some(secs) if secs > 0 => Duration::from_secs(secs),
+        _ => default_timeout,
+    }
 }
 
 async fn wait_until(deadline: Option<Instant>) {

@@ -42,6 +42,23 @@ pub trait RoomLogic: Send + Sync + 'static {
     fn pending_players(_state: &Self::State) -> Vec<String> {
         Vec::new()
     }
+
+    /// Per-player time-pool budget in seconds, applied while the player
+    /// is in `pending_players()`. Returns `None` when the game has no
+    /// pool-based time control (the default), or when the host hasn't
+    /// configured one. Same budget for every player — chess clocks are
+    /// symmetric.
+    fn time_pool_seconds(_state: &Self::State) -> Option<u64> {
+        None
+    }
+
+    /// Per-turn timeout override in seconds. Returns `Some` when the
+    /// host configured a strict per-move clock for this room. The turn
+    /// watcher prefers this over the game-wide default from
+    /// GameMetadata. `None` means "use the metadata default."
+    fn per_turn_seconds(_state: &Self::State) -> Option<u64> {
+        None
+    }
 }
 
 pub struct LiveRoom<L: RoomLogic> {
@@ -93,6 +110,24 @@ impl<L: RoomLogic> LiveRoom<L> {
 
     pub async fn read_since(&self, since: u64) -> Result<Vec<Event>> {
         self.log.read_since(&self.room_id, since).await
+    }
+
+    /// Server-authoritative event append. Bypasses `validate` — used by
+    /// watchers (turn timer, time-pool) that need to inject terminal
+    /// events the players never sent (e.g. WINNER on flag fall).
+    /// Holds the state lock across append/fold/broadcast so concurrent
+    /// `handle_act` calls observe the new state consistently.
+    pub async fn inject_event(&self, kind: &str, payload: &str) -> Result<()> {
+        let mut state = self.state.write().await;
+        let event = self.log.append(&self.room_id, &self.owner_id, kind, payload).await?;
+        L::fold(&mut state, &event.kind, &event.payload);
+        let last_seq = event.seq;
+        let _ = self.tx.send(event);
+        self.head.store(last_seq, Ordering::Release);
+        let snap = L::snapshot(&state);
+        drop(state);
+        self.refresh_meta(snap, last_seq).await;
+        Ok(())
     }
 
     pub async fn handle_act(&self, player_id: &str, kind: &str, payload: &str) -> Result<()> {

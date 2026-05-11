@@ -7,6 +7,8 @@
 
 use crate::services::room::logic::RoomLogic;
 use crate::services::storage::RoomSnapshot;
+use rand::{rngs::StdRng, seq::SliceRandom, Rng, SeedableRng};
+use std::collections::BTreeMap;
 
 const MAX_PLAYERS: usize = 2;
 const COLS: usize = 9;
@@ -46,6 +48,12 @@ pub struct State {
     pub board: [Option<Piece>; CELLS],
     pub turn: u8, // 0 = red to move, 1 = black to move
     pub winner: Option<u8>,
+    /// Time + variant config supplied via START / GAME_STARTED.
+    pub time_config: crate::games::chess_logic::TimeConfig,
+    /// Blind variant: maps a back-rank square (idx into `board`) to the
+    /// piece kind it pretends to be — its starting-square kind — until
+    /// it moves. `board` keeps the true kind. Empty for non-blind games.
+    pub facade: BTreeMap<usize, Kind>,
 }
 
 impl Default for State {
@@ -57,7 +65,115 @@ impl Default for State {
             board: [None; CELLS],
             turn: 0,
             winner: None,
+            time_config: crate::games::chess_logic::TimeConfig::default(),
+            facade: BTreeMap::new(),
         }
+    }
+}
+
+/// Back-rank squares whose true kind is shuffled in blind mode. The
+/// general (col 4) is excluded so each side keeps a fixed landmark to
+/// orient around — same exception as chess's king.
+const BLIND_BACK_COLS: [usize; 8] = [0, 1, 2, 3, 5, 6, 7, 8];
+
+/// Starting kinds at the back-rank squares above, used as the shuffle
+/// pool *and* as the initial facade for each square.
+const BLIND_BACK_KINDS: [Kind; 8] = [
+    Kind::Rook,
+    Kind::Horse,
+    Kind::Elephant,
+    Kind::Advisor,
+    Kind::Advisor,
+    Kind::Elephant,
+    Kind::Horse,
+    Kind::Rook,
+];
+
+/// Apply a blind shuffle to both players' back ranks seeded by `seed`.
+/// Sets the true kinds on `state.board` and populates `state.facade` so
+/// each shuffled square pretends to be its starting-position kind until
+/// it moves. Cannons + pawns are left untouched.
+fn apply_blind_shuffle(state: &mut State, seed: u64) {
+    let mut rng = StdRng::seed_from_u64(seed);
+    state.facade.clear();
+    for (side, row) in [(0u8, 0usize), (1, 9)] {
+        let mut pool = BLIND_BACK_KINDS.to_vec();
+        pool.shuffle(&mut rng);
+        for (i, &col) in BLIND_BACK_COLS.iter().enumerate() {
+            let sq_idx = idx(row, col);
+            state.board[sq_idx] = Some(Piece { side, kind: pool[i] });
+            state.facade.insert(sq_idx, BLIND_BACK_KINDS[i]);
+        }
+    }
+}
+
+/// Project the true board through the facade overlay so legality
+/// checks see what the players see.
+fn display_board(state: &State) -> [Option<Piece>; CELLS] {
+    let mut b = state.board;
+    for (sq_idx, kind) in &state.facade {
+        if let Some(p) = b[*sq_idx] {
+            b[*sq_idx] = Some(Piece { side: p.side, kind: *kind });
+        }
+    }
+    b
+}
+
+fn overlay_facade(
+    board: &[Option<Piece>; CELLS],
+    facade: &BTreeMap<usize, Kind>,
+) -> [Option<Piece>; CELLS] {
+    let mut b = *board;
+    for (sq_idx, kind) in facade {
+        if let Some(p) = b[*sq_idx] {
+            b[*sq_idx] = Some(Piece { side: p.side, kind: *kind });
+        }
+    }
+    b
+}
+
+/// Strip facade entries for `from`/`to` and auto-reveal the mover's
+/// last hidden piece if exactly one remains. Returns squares that
+/// newly became revealed so callers can emit `PIECE_REVEALED`.
+fn update_facade_post_move(
+    facade: &mut BTreeMap<usize, Kind>,
+    side: u8,
+    from: usize,
+    to: usize,
+) -> Vec<usize> {
+    let mut revealed = Vec::new();
+    if facade.remove(&from).is_some() {
+        revealed.push(to);
+    }
+    if facade.remove(&to).is_some() && !revealed.contains(&to) {
+        revealed.push(to);
+    }
+    let row = if side == 0 { 0 } else { 9 };
+    let mover_squares: Vec<usize> = BLIND_BACK_COLS.iter().map(|c| idx(row, *c)).collect();
+    let remaining: Vec<usize> = mover_squares
+        .iter()
+        .copied()
+        .filter(|sq_idx| facade.contains_key(sq_idx))
+        .collect();
+    if remaining.len() == 1 {
+        let last = remaining[0];
+        facade.remove(&last);
+        if !revealed.contains(&last) {
+            revealed.push(last);
+        }
+    }
+    revealed
+}
+
+fn kind_letter(k: Kind) -> &'static str {
+    match k {
+        Kind::General => "G",
+        Kind::Advisor => "A",
+        Kind::Elephant => "E",
+        Kind::Horse => "H",
+        Kind::Rook => "R",
+        Kind::Cannon => "C",
+        Kind::Pawn => "P",
     }
 }
 
@@ -458,6 +574,14 @@ impl RoomLogic for Xiangqi {
                 state.board = initial_board();
                 state.turn = 0;
                 state.winner = None;
+                state.facade = BTreeMap::new();
+                state.time_config =
+                    crate::games::chess_logic::TimeConfig::parse(payload);
+                if state.time_config.blind {
+                    let seed =
+                        crate::games::chess_logic::parse_blind_seed(payload).unwrap_or(0);
+                    apply_blind_shuffle(state, seed);
+                }
             }
             "MOVE" => {
                 // payload: "<pid> <from> <to>"
@@ -473,10 +597,14 @@ impl RoomLogic for Xiangqi {
                 if piece.side != side {
                     return;
                 }
-                state.board[idx(fr, fc)] = None;
-                state.board[idx(tr, tc)] = Some(piece);
+                let from = idx(fr, fc);
+                let to = idx(tr, tc);
+                state.board[from] = None;
+                state.board[to] = Some(piece);
+                let _revealed = update_facade_post_move(&mut state.facade, side, from, to);
                 state.turn = 1 - side;
             }
+            "PIECE_REVEALED" => {} // bookkeeping; fold("MOVE") already updated facade.
             "WINNER" => {
                 if let Ok(w) = payload.trim().parse::<u8>() {
                     state.winner = Some(w);
@@ -536,7 +664,13 @@ impl RoomLogic for Xiangqi {
                 if state.players.len() < 2 {
                     return Err("need 2 players".into());
                 }
-                Ok(vec![("GAME_STARTED".into(), String::new())])
+                let cfg = crate::games::chess_logic::TimeConfig::parse(payload);
+                let payload_out = if cfg.blind {
+                    cfg.render_with_seed(rand::rng().random::<u64>())
+                } else {
+                    cfg.render()
+                };
+                Ok(vec![("GAME_STARTED".into(), payload_out)])
             }
             "MOVE" => {
                 if state.phase != Phase::Playing {
@@ -558,31 +692,57 @@ impl RoomLogic for Xiangqi {
                 if (fr, fc) == (tr, tc) {
                     return Err("from == to".into());
                 }
-                let piece = state.board[idx(fr, fc)].ok_or_else(|| "no piece at from".to_string())?;
+                // In blind mode the piece on `from` may have a hidden true
+                // kind; legality runs against the displayed (facade) kind.
+                let display = display_board(state);
+                let piece = display[idx(fr, fc)].ok_or_else(|| "no piece at from".to_string())?;
                 if piece.side != side {
                     return Err("not your piece".into());
                 }
-                if !pseudo_moves(&state.board, fr, fc)
+                if !pseudo_moves(&display, fr, fc)
                     .iter()
                     .any(|&(r, c)| r == tr && c == tc)
                 {
                     return Err("illegal move for piece".into());
                 }
-                let next = after_move(&state.board, fr, fc, tr, tc);
-                if in_check(&next, side) {
+
+                // Apply the move on the *true* board so the destination
+                // holds the real kind. Then overlay the post-move facade
+                // (with reveals stripped) before running check / flying-
+                // general / stalemate checks — the players see this
+                // overlaid board, so legality must agree with that view.
+                let true_next = after_move(&state.board, fr, fc, tr, tc);
+                let mut next_facade = state.facade.clone();
+                let from_idx = idx(fr, fc);
+                let to_idx = idx(tr, tc);
+                let revealed_squares =
+                    update_facade_post_move(&mut next_facade, side, from_idx, to_idx);
+                let display_next = overlay_facade(&true_next, &next_facade);
+
+                if in_check(&display_next, side) {
                     return Err("would leave own general in check".into());
                 }
-                if generals_face(&next) {
+                if generals_face(&display_next) {
                     return Err("flying general".into());
                 }
 
-                let captured = state.board[idx(tr, tc)];
+                let captured = state.board[to_idx];
                 let from_s = square_to_str(fr, fc);
                 let to_s = square_to_str(tr, tc);
                 let mut out = vec![(
                     "MOVE".into(),
                     format!("{player} {from_s} {to_s}"),
                 )];
+
+                for sq_idx in revealed_squares {
+                    if let Some(p) = true_next[sq_idx] {
+                        let (row, col) = (sq_idx / COLS, sq_idx % COLS);
+                        out.push((
+                            "PIECE_REVEALED".into(),
+                            format!("{} {}", square_to_str(row, col), kind_letter(p.kind)),
+                        ));
+                    }
+                }
 
                 if opposing_general_captured(captured, side) {
                     out.push(("WINNER".into(), side.to_string()));
@@ -591,7 +751,7 @@ impl RoomLogic for Xiangqi {
 
                 // Stalemate check: opponent has zero legal moves -> they lose.
                 let opp = 1 - side;
-                if legal_moves(&next, opp).is_empty() {
+                if legal_moves(&display_next, opp).is_empty() {
                     out.push(("WINNER".into(), side.to_string()));
                 }
                 Ok(out)
@@ -626,6 +786,16 @@ impl RoomLogic for Xiangqi {
             host: state.host.clone(),
             players: state.players.clone(),
         }
+    }
+
+    fn time_pool_seconds(state: &Self::State) -> Option<u64> {
+        let m = state.time_config.pool_minutes;
+        if m == 0 { None } else { Some(m as u64 * 60) }
+    }
+
+    fn per_turn_seconds(state: &Self::State) -> Option<u64> {
+        let s = state.time_config.per_turn_seconds;
+        if s == 0 { None } else { Some(s as u64) }
     }
 }
 

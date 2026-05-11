@@ -42,4 +42,14 @@ export const tournamentService = {
   async start(id: string): Promise<Tournament> {
     return api.post<Tournament>(`/api/admin/tournaments/${id}/start`, {}, true);
   },
+  async updateConfig(
+    id: string,
+    config: Record<string, unknown>,
+  ): Promise<Tournament> {
+    return api.patch<Tournament, { config: Record<string, unknown> }>(
+      `/api/admin/tournaments/${id}/config`,
+      { config },
+      true,
+    );
+  },
 };

@@ -13,7 +13,18 @@ use crate::services::room::logic::RoomLogic;
 use crate::services::storage::RoomSnapshot;
 
 const MAX_PLAYERS: usize = 2;
-const DEFAULT_ROUNDS: u32 = 10;
+pub const DEFAULT_ROUNDS: u32 = 10;
+const MIN_ROUNDS: u32 = 1;
+const MAX_ROUNDS: u32 = 1000;
+
+fn parse_rounds(payload: &str) -> u32 {
+    payload
+        .split_whitespace()
+        .next()
+        .and_then(|s| s.parse::<u32>().ok())
+        .unwrap_or(DEFAULT_ROUNDS)
+        .clamp(MIN_ROUNDS, MAX_ROUNDS)
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Move {
@@ -207,7 +218,8 @@ impl RoomLogic for Pd {
                 if state.players.len() < 2 {
                     return Err("need 2 players".into());
                 }
-                Ok(vec![("GAME_STARTED".into(), DEFAULT_ROUNDS.to_string())])
+                let rounds = parse_rounds(payload);
+                Ok(vec![("GAME_STARTED".into(), rounds.to_string())])
             }
             "MOVE" => {
                 if state.phase != Phase::Playing {

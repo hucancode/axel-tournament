@@ -127,7 +127,7 @@ async fn single_elim_two_players_finishes_in_one_match() {
         None,
         None,
         Some(MatchGenerationType::SingleElimination),
-        Some(TournamentKind::Bot),
+        Some(TournamentKind::Bot), None,
     )
     .await
     .unwrap();
@@ -169,7 +169,7 @@ async fn single_elim_four_players_runs_two_rounds() {
         None,
         None,
         Some(MatchGenerationType::SingleElimination),
-        Some(TournamentKind::Bot),
+        Some(TournamentKind::Bot), None,
     )
     .await
     .unwrap();
@@ -224,7 +224,7 @@ async fn double_elim_four_players_runs_full_bracket_with_grand_final() {
         None,
         None,
         Some(MatchGenerationType::DoubleElimination),
-        Some(TournamentKind::Bot),
+        Some(TournamentKind::Bot), None,
     )
     .await
     .unwrap();
@@ -312,7 +312,7 @@ async fn double_elim_grand_final_reset_fires_when_lb_side_wins() {
         None,
         None,
         Some(MatchGenerationType::DoubleElimination),
-        Some(TournamentKind::Bot),
+        Some(TournamentKind::Bot), None,
     )
     .await
     .unwrap();
@@ -390,7 +390,7 @@ async fn single_elim_three_players_top_seed_gets_bye_to_round_one() {
         None,
         None,
         Some(MatchGenerationType::SingleElimination),
-        Some(TournamentKind::Bot),
+        Some(TournamentKind::Bot), None,
     )
     .await
     .unwrap();

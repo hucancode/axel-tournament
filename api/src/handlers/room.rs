@@ -26,6 +26,37 @@ pub async fn list_rooms(
     Ok(Json(rooms.into_iter().map(Into::into).collect()))
 }
 
+pub async fn get_room(
+    State(state): State<AppState>,
+    Path(room_id): Path<String>,
+) -> ApiResult<Json<RoomResponse>> {
+    let room = services::room::get_room(&state.db, rid("room", room_id)).await?;
+    Ok(Json(room.into()))
+}
+
+#[derive(Deserialize)]
+pub struct UpdateConfigRequest {
+    pub config: serde_json::Value,
+}
+
+pub async fn update_config(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Claims>,
+    Path(room_id): Path<String>,
+    Json(payload): Json<UpdateConfigRequest>,
+) -> ApiResult<Json<RoomResponse>> {
+    let user_id = RecordId::parse_simple(&claims.sub)
+        .map_err(|_| crate::error::ApiError::BadRequest("Invalid user id".to_string()))?;
+    let room = services::room::update_room_config(
+        &state.db,
+        rid("room", room_id),
+        user_id,
+        payload.config,
+    )
+    .await?;
+    Ok(Json(room.into()))
+}
+
 pub async fn create_room(
     State(state): State<AppState>,
     Extension(claims): Extension<Claims>,
@@ -47,6 +78,7 @@ pub async fn create_room(
         false,
         Vec::new(),
         None,
+        payload.config,
     )
     .await?;
     Ok((StatusCode::CREATED, Json(room.into())))

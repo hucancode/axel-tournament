@@ -11,6 +11,7 @@ use surrealdb::types::{Datetime, RecordId, SurrealValue};
 
 use super::generation;
 
+#[allow(clippy::too_many_arguments)]
 pub async fn create_tournament(
     db: &Database,
     game_id: String,
@@ -22,7 +23,9 @@ pub async fn create_tournament(
     end_time: Option<DateTime<Utc>>,
     match_generation_type: Option<MatchGenerationType>,
     kind: Option<TournamentKind>,
+    config: Option<serde_json::Value>,
 ) -> ApiResult<Tournament> {
+    let config = config.unwrap_or_else(|| serde_json::Value::Object(serde_json::Map::new()));
     let game = crate::models::game::find_game_by_id(&game_id)
         .ok_or_else(|| ApiError::NotFound("Game not found".to_string()))?;
 
@@ -54,6 +57,7 @@ pub async fn create_tournament(
         end_time: end_time.map(|dt| dt.into()),
         match_generation_type: mgt,
         kind: kind.unwrap_or_default(),
+        config,
         created_at: Datetime::default(),
         updated_at: Datetime::default(),
     };
@@ -127,6 +131,35 @@ pub async fn update_tournament(
     tournament.updated_at = Datetime::default();
     let updated: Option<Tournament> = db.update(&tournament_id).content(tournament).await?;
     updated.ok_or_else(|| ApiError::NotFound("Tournament not found".to_string()))
+}
+
+/// Replace a tournament's per-game `config` blob. Only allowed before
+/// the tournament transitions out of registration.
+pub async fn update_tournament_config(
+    db: &Database,
+    tournament_id: RecordId,
+    config: serde_json::Value,
+) -> ApiResult<Tournament> {
+    let tournament = get_tournament(db, tournament_id.clone()).await?;
+    if tournament.status != TournamentStatus::Registration
+        && tournament.status != TournamentStatus::Scheduled
+    {
+        return Err(ApiError::BadRequest(
+            "Cannot edit config after tournament has started".to_string(),
+        ));
+    }
+    let mut resp = db
+        .query(
+            "UPDATE $tid SET config = $cfg, updated_at = time::now()
+             RETURN AFTER",
+        )
+        .bind(("tid", tournament_id.clone()))
+        .bind(("cfg", config))
+        .await?;
+    let rows: Vec<Tournament> = resp.take(0)?;
+    rows.into_iter()
+        .next()
+        .ok_or_else(|| ApiError::Internal("Failed to update tournament config".to_string()))
 }
 
 pub async fn join_tournament(

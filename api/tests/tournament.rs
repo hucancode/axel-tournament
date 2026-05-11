@@ -47,7 +47,7 @@ async fn test_create_and_get_tournament() {
         None,
         None,
         None,
-        None,
+        None, None,
     )
     .await
     .unwrap();
@@ -72,7 +72,7 @@ async fn test_update_tournament_status() {
         None,
         None,
         None,
-        None,
+        None, None,
     )
     .await
     .unwrap();
@@ -105,7 +105,7 @@ async fn test_join_and_leave_tournament() {
         None,
         None,
         None,
-        None,
+        None, None,
     )
     .await
     .unwrap();
@@ -144,6 +144,7 @@ fn test_create_tournament_request_validation() {
         end_time: None,
         match_generation_type: None,
         kind: None,
+        config: None,
     };
     assert!(valid_request.validate().is_ok());
     let low_min = CreateTournamentRequest {
@@ -156,6 +157,7 @@ fn test_create_tournament_request_validation() {
         end_time: None,
         match_generation_type: None,
         kind: None,
+        config: None,
     };
     assert!(low_min.validate().is_err());
     let high_max = CreateTournamentRequest {
@@ -168,6 +170,7 @@ fn test_create_tournament_request_validation() {
         end_time: None,
         match_generation_type: None,
         kind: None,
+        config: None,
     };
     assert!(high_max.validate().is_err());
 }
@@ -204,7 +207,7 @@ async fn test_start_tournament_all_vs_all() {
         None,
         None,
         Some(MatchGenerationType::AllVsAll),
-        None,
+        None, None,
     )
     .await
     .unwrap();
@@ -273,7 +276,7 @@ async fn test_start_tournament_round_robin() {
         None,
         None,
         Some(MatchGenerationType::RoundRobin),
-        None,
+        None, None,
     )
     .await
     .unwrap();
@@ -342,7 +345,7 @@ async fn test_start_tournament_without_submissions_fails() {
         None,
         None,
         None,
-        None,
+        None, None,
     )
     .await
     .unwrap();
@@ -380,7 +383,7 @@ async fn test_start_tournament_not_enough_players_fails() {
         None,
         None,
         None,
-        None,
+        None, None,
     )
     .await
     .unwrap();
@@ -406,7 +409,7 @@ async fn test_tournament_participant_management() {
         None,
         None,
         None,
-        None,
+        None, None,
     )
     .await
     .unwrap();

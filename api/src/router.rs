@@ -61,7 +61,8 @@ pub fn create_router(state: AppState) -> Router {
         .route("/api/matches", get(handlers::list_matches))
         .route("/api/matches/{id}", get(handlers::get_match))
         .route("/api/leaderboard", get(handlers::get_leaderboard))
-        .route("/api/rooms", get(handlers::room::list_rooms));
+        .route("/api/rooms", get(handlers::room::list_rooms))
+        .route("/api/rooms/{id}", get(handlers::room::get_room));
     // Protected routes (require authentication)
     let protected_routes = Router::new()
         .route("/api/users/profile", get(handlers::get_profile))
@@ -89,6 +90,7 @@ pub fn create_router(state: AppState) -> Router {
         .route("/api/rooms/{id}/join", post(handlers::room::join_room))
         .route("/api/rooms/{id}/leave", delete(handlers::room::leave_room))
         .route("/api/rooms/{id}/start", post(handlers::room::start_room))
+        .route("/api/rooms/{id}/config", patch(handlers::room::update_config))
         .route("/api/matchmaking/enqueue", post(handlers::room::enqueue_match))
         .route("/api/matchmaking/dequeue", post(handlers::room::dequeue_match))
         .route_layer(axum_middleware::from_fn_with_state(
@@ -101,6 +103,10 @@ pub fn create_router(state: AppState) -> Router {
         .route(
             "/api/admin/tournaments/{id}",
             patch(handlers::update_tournament),
+        )
+        .route(
+            "/api/admin/tournaments/{id}/config",
+            patch(handlers::update_tournament_config),
         )
         .route(
             "/api/admin/tournaments/{id}/start",

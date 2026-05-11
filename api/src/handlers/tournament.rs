@@ -60,6 +60,7 @@ pub async fn create_tournament(
         payload.end_time,
         payload.match_generation_type,
         payload.kind,
+        payload.config,
     )
     .await?;
     Ok((StatusCode::CREATED, Json(tournament.into())))
@@ -120,6 +121,28 @@ pub async fn update_tournament(
         payload.status,
         payload.start_time,
         payload.end_time,
+    )
+    .await?;
+    Ok(Json(tournament.into()))
+}
+
+#[derive(Deserialize)]
+pub struct UpdateTournamentConfigRequest {
+    pub config: serde_json::Value,
+}
+
+pub async fn update_tournament_config(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Claims>,
+    Path(tournament_id): Path<String>,
+    Json(payload): Json<UpdateTournamentConfigRequest>,
+) -> ApiResult<Json<TournamentResponse>> {
+    let tournament_id = rid("tournament", tournament_id);
+    ensure_tournament_owner(&state, tournament_id.clone(), &claims).await?;
+    let tournament = services::tournament::update_tournament_config(
+        &state.db,
+        tournament_id,
+        payload.config,
     )
     .await?;
     Ok(Json(tournament.into()))

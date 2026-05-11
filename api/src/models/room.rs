@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use surrealdb::types::{Datetime, RecordId, SurrealValue};
 use validator::Validate;
 
@@ -30,8 +31,18 @@ pub struct Room {
     pub winner_id: Option<RecordId>,
     #[serde(default)]
     pub event_history: Vec<String>,
+    /// Open per-game configuration blob. Each game's logic owns the
+    /// shape: ttt uses `{board_size, win_chain}`; rps/pd `{rounds}`;
+    /// chess/xiangqi `{time_pool_minutes, time_per_turn_seconds, blind}`.
+    /// The api never validates the shape — the judge logic does.
+    #[serde(default = "default_config")]
+    pub config: Value,
     pub created_at: Datetime,
     pub updated_at: Datetime,
+}
+
+fn default_config() -> Value {
+    Value::Object(serde_json::Map::new())
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -47,6 +58,7 @@ pub struct RoomResponse {
     pub allowed_user_ids: Vec<String>,
     pub is_ranked: bool,
     pub winner_id: Option<String>,
+    pub config: Value,
     pub created_at: Datetime,
     pub updated_at: Datetime,
 }
@@ -65,6 +77,7 @@ impl From<Room> for RoomResponse {
             allowed_user_ids: vec_bare_key(&r.allowed_user_ids),
             is_ranked: r.is_ranked,
             winner_id: opt_bare_key(&r.winner_id),
+            config: r.config,
             created_at: r.created_at,
             updated_at: r.updated_at,
         }
@@ -91,4 +104,6 @@ pub struct CreateRoomRequest {
     /// Optional tournament context. Provided rooms are ranked unless the
     /// caller is making an unranked friendly room from the lobby UI.
     pub tournament_id: Option<String>,
+    /// Free-form per-game configuration. Validation is the judge's job.
+    pub config: Option<Value>,
 }

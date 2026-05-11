@@ -92,6 +92,23 @@ export class XiangqiGame extends BasePixiGame {
         this.refresh();
         break;
       }
+      case 'PIECE_REVEALED': {
+        // Blind variant: server discloses a piece's true kind. Backend
+        // uses 'G' for the general; frontend stores it as 'K'.
+        const parts = payload.split(' ');
+        if (parts.length !== 2) return;
+        const sq = parseSquare(parts[0]);
+        if (!sq) return;
+        const raw = parts[1];
+        const kind: Kind = raw === 'G' ? 'K' : (raw as Kind);
+        const ix = sq.row * COLS + sq.col;
+        const cur = this.board[ix];
+        if (cur && 'KAEHRCP'.includes(kind)) {
+          this.board[ix] = { side: cur.side, kind };
+        }
+        this.refresh();
+        break;
+      }
       case 'WINNER': {
         const w = parseInt(payload, 10);
         this.gameState.status = 'finished';

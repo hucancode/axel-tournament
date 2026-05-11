@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use surrealdb::types::{Datetime, RecordId, SurrealValue};
 use validator::Validate;
 
@@ -19,8 +20,16 @@ pub struct Tournament {
     pub match_generation_type: MatchGenerationType,
     #[serde(default)]
     pub kind: TournamentKind,
+    /// Free-form per-game configuration. Copied to every ranked room
+    /// spawned by matchmaking; the judge logic owns the schema.
+    #[serde(default = "default_config")]
+    pub config: Value,
     pub created_at: Datetime,
     pub updated_at: Datetime,
+}
+
+fn default_config() -> Value {
+    Value::Object(serde_json::Map::new())
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -36,6 +45,7 @@ pub struct TournamentResponse {
     pub end_time: Option<Datetime>,
     pub match_generation_type: MatchGenerationType,
     pub kind: TournamentKind,
+    pub config: Value,
     pub created_at: Datetime,
     pub updated_at: Datetime,
 }
@@ -54,6 +64,7 @@ impl From<Tournament> for TournamentResponse {
             end_time: t.end_time,
             match_generation_type: t.match_generation_type,
             kind: t.kind,
+            config: t.config,
             created_at: t.created_at,
             updated_at: t.updated_at,
         }
@@ -202,6 +213,9 @@ pub struct CreateTournamentRequest {
     pub end_time: Option<DateTime<Utc>>,
     pub match_generation_type: Option<MatchGenerationType>, // Defaults to AllVsAll if not provided
     pub kind: Option<TournamentKind>, // Defaults to Bot if not provided
+    /// Free-form per-game configuration (board size, rounds, time, blind
+    /// mode, etc.). Each game's logic owns the schema; api passes through.
+    pub config: Option<Value>,
 }
 
 #[derive(Debug, Deserialize, Validate)]

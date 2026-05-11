@@ -61,6 +61,7 @@ export interface Tournament {
   end_time?: string;
   match_generation_type: MatchGenerationType;
   kind: TournamentKind;
+  config?: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 }
@@ -90,6 +91,11 @@ export interface CreateTournamentRequest {
   end_time?: string;
   match_generation_type?: MatchGenerationType;
   kind?: TournamentKind;
+  config?: Record<string, unknown>;
+}
+
+export interface UpdateConfigRequest {
+  config: Record<string, unknown>;
 }
 
 export interface UpdateTournamentRequest {
@@ -222,6 +228,16 @@ export interface LeaderboardEntry {
 // Room types
 export type RoomStatus = "lobby" | "playing" | "finished" | "abandoned";
 
+/// Free-form per-game configuration. Each game owns the keys it reads:
+///   tic-tac-toe: { board_size: number, win_chain: number }
+///   rock-paper-scissors / prisoners-dilemma: { rounds: number }
+///   chess / xiangqi: { time_pool_minutes?: number,
+///                      time_per_turn_seconds?: number,
+///                      blind?: boolean }
+/// The server never validates the shape; backend logic falls back to
+/// defaults for missing or invalid fields.
+export type GameConfig = Record<string, unknown>;
+
 export interface Room {
   id: string;
   game_id: string;
@@ -235,6 +251,7 @@ export interface Room {
   is_ranked: boolean;
   winner_id?: string;
   human_timeout_ms?: number;
+  config?: GameConfig;
   created_at: string;
   updated_at: string;
 }
@@ -245,6 +262,7 @@ export interface CreateRoomRequest {
   max_players: number;
   tournament_id?: string;
   human_timeout_ms?: number;
+  config?: GameConfig;
 }
 
 export interface MatchmakingRequest {

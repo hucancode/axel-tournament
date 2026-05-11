@@ -87,6 +87,20 @@ export class ChessGame extends BasePixiGame {
         this.refresh();
         break;
       }
+      case 'PIECE_REVEALED': {
+        // Blind variant: server discloses a piece's true type once it
+        // moves (or is auto-revealed as the last hidden one). Update the
+        // local board so the renderer shows the real piece from now on.
+        const parts = payload.split(' ');
+        if (parts.length !== 2) return;
+        const sqIdx = parseSquare(parts[0]);
+        const pt = parts[1] as PieceType;
+        if (sqIdx < 0 || !'PNBRQK'.includes(pt)) return;
+        const cur = this.board[sqIdx];
+        if (cur) this.board[sqIdx] = { color: cur.color, type: pt };
+        this.refresh();
+        break;
+      }
       case 'WINNER': {
         const w = parseInt(payload, 10);
         this.gameState.status = 'finished';

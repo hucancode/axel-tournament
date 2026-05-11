@@ -71,7 +71,7 @@ async fn fresh_tournament(db: &api::db::Database) -> RecordId {
         None,
         None,
         None,
-        Some(TournamentKind::Bot),
+        Some(TournamentKind::Bot), None,
     )
     .await
     .unwrap();
@@ -233,7 +233,7 @@ async fn admin_start_generates_matches_for_round_robin() {
         None,
         None,
         Some(MatchGenerationType::RoundRobin),
-        Some(TournamentKind::Bot),
+        Some(TournamentKind::Bot), None,
     )
     .await
     .unwrap();
@@ -373,7 +373,7 @@ async fn finalize_aggregates_scores_and_marks_completed() {
         None,
         None,
         Some(MatchGenerationType::RoundRobin),
-        Some(TournamentKind::Bot),
+        Some(TournamentKind::Bot), None,
     )
     .await
     .unwrap();
@@ -452,7 +452,7 @@ async fn finalize_does_not_complete_with_pending_matches() {
         None,
         None,
         Some(MatchGenerationType::AllVsAll),
-        Some(TournamentKind::Bot),
+        Some(TournamentKind::Bot), None,
     )
     .await
     .unwrap();
@@ -512,7 +512,7 @@ async fn finalize_treats_failed_match_as_loss_for_each_side() {
         None,
         None,
         None,
-        Some(TournamentKind::Bot),
+        Some(TournamentKind::Bot), None,
     )
     .await
     .unwrap();
@@ -563,7 +563,7 @@ async fn runtime_error_only_punishes_the_faulted_bot() {
         None,
         None,
         None,
-        Some(TournamentKind::Bot),
+        Some(TournamentKind::Bot), None,
     )
     .await
     .unwrap();
@@ -640,7 +640,7 @@ async fn illegal_move_only_punishes_the_offender() {
         None,
         None,
         None,
-        Some(TournamentKind::Bot),
+        Some(TournamentKind::Bot), None,
     )
     .await
     .unwrap();
@@ -711,7 +711,7 @@ async fn start_tournament_excludes_uncompiled_bots() {
         None,
         None,
         Some(MatchGenerationType::RoundRobin),
-        Some(TournamentKind::Bot),
+        Some(TournamentKind::Bot), None,
     )
     .await
     .unwrap();
@@ -750,7 +750,7 @@ async fn submission_stats_reports_per_bot_record() {
         None,
         None,
         None,
-        Some(TournamentKind::Bot),
+        Some(TournamentKind::Bot), None,
     )
     .await
     .unwrap();

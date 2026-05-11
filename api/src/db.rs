@@ -91,6 +91,7 @@ pub async fn init_schema(db: &Database) -> Result<(), surrealdb::Error> {
          DEFINE FIELD IF NOT EXISTS end_time ON tournament TYPE option<datetime>;
          DEFINE FIELD IF NOT EXISTS match_generation_type ON tournament TYPE string DEFAULT 'all_vs_all';
          DEFINE FIELD IF NOT EXISTS kind ON tournament TYPE string DEFAULT 'bot';
+         DEFINE FIELD IF NOT EXISTS config ON tournament TYPE object FLEXIBLE DEFAULT {};
          DEFINE FIELD IF NOT EXISTS created_at ON tournament TYPE datetime;
          DEFINE FIELD IF NOT EXISTS updated_at ON tournament TYPE datetime;",
     )
@@ -141,6 +142,7 @@ pub async fn init_schema(db: &Database) -> Result<(), surrealdb::Error> {
          DEFINE FIELD IF NOT EXISTS created_at ON room TYPE datetime;
          DEFINE FIELD IF NOT EXISTS updated_at ON room TYPE datetime;
          DEFINE FIELD IF NOT EXISTS event_history ON room TYPE array<string> DEFAULT [];
+         DEFINE FIELD IF NOT EXISTS config ON room TYPE object FLEXIBLE DEFAULT {};
          DEFINE INDEX IF NOT EXISTS idx_room_game ON room COLUMNS game_id;
          DEFINE INDEX IF NOT EXISTS idx_room_status ON room COLUMNS status;
          DEFINE INDEX IF NOT EXISTS idx_room_tournament ON room COLUMNS tournament_id;",

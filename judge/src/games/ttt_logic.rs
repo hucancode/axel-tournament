@@ -1,13 +1,21 @@
-// Tic-tac-toe as RoomLogic.
+// Tic-tac-toe (m,n,k variant) as RoomLogic.
 //
-// 3x3 board. Player 0 = X, player 1 = O (assigned by join order).
-// Single source of truth: event log.
+// Board is `board_size`x`board_size`; first player to align `win_chain`
+// marks horizontally, vertically, or diagonally wins. Defaults: 16x16
+// board with 5-in-a-row to win. Player 0 = X, player 1 = O.
+//
+// Single source of truth: event log. Config travels in the GAME_STARTED
+// payload (`<board_size> <win_chain>`) so replays reconstruct identically.
 
 use crate::services::room::logic::RoomLogic;
 use crate::services::storage::RoomSnapshot;
 
 const MAX_PLAYERS: usize = 2;
-const CELLS: usize = 9;
+pub const DEFAULT_BOARD_SIZE: u32 = 16;
+pub const DEFAULT_WIN_CHAIN: u32 = 5;
+const MIN_BOARD_SIZE: u32 = 3;
+const MAX_BOARD_SIZE: u32 = 32;
+const MIN_WIN_CHAIN: u32 = 3;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Phase {
@@ -21,18 +29,23 @@ pub struct State {
     pub phase: Phase,
     pub players: Vec<String>,
     pub host: Option<String>,
-    pub board: [Option<u8>; CELLS], // Some(0)=X, Some(1)=O
-    pub turn: u8,                    // 0 or 1
-    pub winner: Option<u8>,          // None on draw or in-progress
+    pub board_size: u32,
+    pub win_chain: u32,
+    pub board: Vec<Option<u8>>, // length = board_size * board_size; Some(0)=X, Some(1)=O
+    pub turn: u8,                // 0 or 1
+    pub winner: Option<u8>,      // None on draw or in-progress
 }
 
 impl Default for State {
     fn default() -> Self {
+        let size = DEFAULT_BOARD_SIZE as usize;
         Self {
             phase: Phase::Lobby,
             players: Vec::new(),
             host: None,
-            board: [None; CELLS],
+            board_size: DEFAULT_BOARD_SIZE,
+            win_chain: DEFAULT_WIN_CHAIN,
+            board: vec![None; size * size],
             turn: 0,
             winner: None,
         }
@@ -47,23 +60,52 @@ impl State {
 
 pub struct Ttt;
 
-fn check_winner(board: &[Option<u8>; CELLS]) -> Option<u8> {
-    const LINES: [[usize; 3]; 8] = [
-        [0, 1, 2], [3, 4, 5], [6, 7, 8],
-        [0, 3, 6], [1, 4, 7], [2, 5, 8],
-        [0, 4, 8], [2, 4, 6],
-    ];
-    for l in LINES {
-        if let (Some(a), Some(b), Some(c)) = (board[l[0]], board[l[1]], board[l[2]]) {
-            if a == b && b == c {
-                return Some(a);
-            }
-        }
-    }
-    None
+fn parse_config(payload: &str) -> (u32, u32) {
+    let mut it = payload.split_whitespace();
+    let size = it.next().and_then(|s| s.parse::<u32>().ok()).unwrap_or(DEFAULT_BOARD_SIZE);
+    let chain = it.next().and_then(|s| s.parse::<u32>().ok()).unwrap_or(DEFAULT_WIN_CHAIN);
+    let size = size.clamp(MIN_BOARD_SIZE, MAX_BOARD_SIZE);
+    let chain = chain.clamp(MIN_WIN_CHAIN, size);
+    (size, chain)
 }
 
-fn board_full(board: &[Option<u8>; CELLS]) -> bool {
+/// Did the move at (row, col) just complete a chain of `win_chain` marks
+/// for player `mark`? Scans the four directions through the placed cell.
+fn check_winner_at(
+    board: &[Option<u8>],
+    size: usize,
+    chain: usize,
+    row: usize,
+    col: usize,
+    mark: u8,
+) -> bool {
+    const DIRS: [(i32, i32); 4] = [(0, 1), (1, 0), (1, 1), (1, -1)];
+    for (dr, dc) in DIRS {
+        let mut count = 1;
+        for sign in [1i32, -1] {
+            let mut r = row as i32 + dr * sign;
+            let mut c = col as i32 + dc * sign;
+            while r >= 0 && r < size as i32 && c >= 0 && c < size as i32 {
+                if board[r as usize * size + c as usize] == Some(mark) {
+                    count += 1;
+                    if count >= chain {
+                        return true;
+                    }
+                    r += dr * sign;
+                    c += dc * sign;
+                } else {
+                    break;
+                }
+            }
+        }
+        if count >= chain {
+            return true;
+        }
+    }
+    false
+}
+
+fn board_full(board: &[Option<u8>]) -> bool {
     board.iter().all(|c| c.is_some())
 }
 
@@ -94,8 +136,11 @@ impl RoomLogic for Ttt {
                 state.host = Some(payload.trim().to_string());
             }
             "GAME_STARTED" => {
+                let (size, chain) = parse_config(payload);
+                state.board_size = size;
+                state.win_chain = chain;
+                state.board = vec![None; (size * size) as usize];
                 state.phase = Phase::Playing;
-                state.board = [None; CELLS];
                 state.turn = 0;
                 state.winner = None;
             }
@@ -111,10 +156,13 @@ impl RoomLogic for Ttt {
                     return;
                 };
                 let Some(idx) = state.player_index(pid) else { return };
-                let pos = row * 3 + col;
-                if pos < CELLS && state.board[pos].is_none() {
-                    state.board[pos] = Some(idx);
-                    state.turn = 1 - idx;
+                let size = state.board_size as usize;
+                if row < size && col < size {
+                    let pos = row * size + col;
+                    if state.board[pos].is_none() {
+                        state.board[pos] = Some(idx);
+                        state.turn = 1 - idx;
+                    }
                 }
             }
             "WINNER" => {
@@ -180,7 +228,8 @@ impl RoomLogic for Ttt {
                 if state.players.len() < 2 {
                     return Err("need 2 players".into());
                 }
-                Ok(vec![("GAME_STARTED".into(), String::new())])
+                let (size, chain) = parse_config(payload);
+                Ok(vec![("GAME_STARTED".into(), format!("{size} {chain}"))])
             }
             "MOVE" => {
                 if state.phase != Phase::Playing {
@@ -196,21 +245,21 @@ impl RoomLogic for Ttt {
                 }
                 let row: usize = parts[0].parse().map_err(|_| "bad row".to_string())?;
                 let col: usize = parts[1].parse().map_err(|_| "bad col".to_string())?;
-                if row >= 3 || col >= 3 {
+                let size = state.board_size as usize;
+                if row >= size || col >= size {
                     return Err("out of range".into());
                 }
-                let pos = row * 3 + col;
+                let pos = row * size + col;
                 if state.board[pos].is_some() {
                     return Err("cell occupied".into());
                 }
 
                 let mut out = vec![("MOVE".into(), format!("{player} {row} {col}"))];
 
-                // Apply provisionally to detect winner / draw.
-                let mut next = state.board;
+                let mut next = state.board.clone();
                 next[pos] = Some(idx);
-                if let Some(w) = check_winner(&next) {
-                    out.push(("WINNER".into(), w.to_string()));
+                if check_winner_at(&next, size, state.win_chain as usize, row, col, idx) {
+                    out.push(("WINNER".into(), idx.to_string()));
                 } else if board_full(&next) {
                     out.push(("DRAW".into(), String::new()));
                 }
@@ -283,12 +332,11 @@ mod tests {
     }
 
     #[test]
-    fn x_wins_top_row() {
+    fn x_wins_top_row_3x3() {
         let mut s = State::default();
         drive(&mut s, "a", "JOIN", "");
         drive(&mut s, "b", "JOIN", "");
-        drive(&mut s, "a", "START", "");
-        // a (X) row 0: 0,0; 0,1; 0,2 — interleave with b moves elsewhere
+        drive(&mut s, "a", "START", "3 3");
         drive(&mut s, "a", "MOVE", "0 0");
         drive(&mut s, "b", "MOVE", "1 0");
         drive(&mut s, "a", "MOVE", "0 1");
@@ -299,14 +347,11 @@ mod tests {
     }
 
     #[test]
-    fn draw_fills_board() {
+    fn draw_fills_board_3x3() {
         let mut s = State::default();
         drive(&mut s, "a", "JOIN", "");
         drive(&mut s, "b", "JOIN", "");
-        drive(&mut s, "a", "START", "");
-        // X O X
-        // X O O
-        // O X X
+        drive(&mut s, "a", "START", "3 3");
         for (player, row, col) in [
             ("a", 0, 0),
             ("b", 0, 1),
@@ -329,7 +374,7 @@ mod tests {
         let mut s = State::default();
         drive(&mut s, "a", "JOIN", "");
         drive(&mut s, "b", "JOIN", "");
-        drive(&mut s, "a", "START", "");
+        drive(&mut s, "a", "START", "3 3");
         assert!(Ttt::validate(&s, "b", "MOVE", "0 0").is_err());
     }
 
@@ -338,7 +383,7 @@ mod tests {
         let mut s = State::default();
         drive(&mut s, "a", "JOIN", "");
         drive(&mut s, "b", "JOIN", "");
-        drive(&mut s, "a", "START", "");
+        drive(&mut s, "a", "START", "3 3");
         drive(&mut s, "a", "MOVE", "0 0");
         assert!(Ttt::validate(&s, "b", "MOVE", "0 0").is_err());
     }
@@ -348,7 +393,7 @@ mod tests {
         let events: Vec<(&str, &str)> = vec![
             ("PLAYER_JOINED", "a"),
             ("PLAYER_JOINED", "b"),
-            ("GAME_STARTED", ""),
+            ("GAME_STARTED", "3 3"),
             ("MOVE", "a 0 0"),
             ("MOVE", "b 1 0"),
             ("MOVE", "a 0 1"),
@@ -362,5 +407,57 @@ mod tests {
         }
         assert_eq!(s.phase, Phase::Finished);
         assert_eq!(s.winner, Some(0));
+    }
+
+    #[test]
+    fn default_start_uses_16x16_chain5() {
+        let mut s = State::default();
+        drive(&mut s, "a", "JOIN", "");
+        drive(&mut s, "b", "JOIN", "");
+        drive(&mut s, "a", "START", "");
+        assert_eq!(s.board_size, 16);
+        assert_eq!(s.win_chain, 5);
+        assert_eq!(s.board.len(), 16 * 16);
+    }
+
+    #[test]
+    fn five_in_a_row_diagonal_wins() {
+        let mut s = State::default();
+        drive(&mut s, "a", "JOIN", "");
+        drive(&mut s, "b", "JOIN", "");
+        drive(&mut s, "a", "START", "16 5");
+        // a builds diagonal (0,0),(1,1),(2,2),(3,3),(4,4); b plays elsewhere.
+        for i in 0..5 {
+            drive(&mut s, "a", "MOVE", &format!("{i} {i}"));
+            if i < 4 {
+                drive(&mut s, "b", "MOVE", &format!("0 {}", i + 5));
+            }
+        }
+        assert_eq!(s.phase, Phase::Finished);
+        assert_eq!(s.winner, Some(0));
+    }
+
+    #[test]
+    fn four_in_a_row_does_not_win_when_chain_is_5() {
+        let mut s = State::default();
+        drive(&mut s, "a", "JOIN", "");
+        drive(&mut s, "b", "JOIN", "");
+        drive(&mut s, "a", "START", "16 5");
+        for i in 0..4 {
+            drive(&mut s, "a", "MOVE", &format!("0 {i}"));
+            drive(&mut s, "b", "MOVE", &format!("1 {i}"));
+        }
+        assert_eq!(s.phase, Phase::Playing);
+        assert_eq!(s.winner, None);
+    }
+
+    #[test]
+    fn config_clamps_chain_to_board_size() {
+        let mut s = State::default();
+        drive(&mut s, "a", "JOIN", "");
+        drive(&mut s, "b", "JOIN", "");
+        drive(&mut s, "a", "START", "5 99");
+        assert_eq!(s.board_size, 5);
+        assert_eq!(s.win_chain, 5);
     }
 }

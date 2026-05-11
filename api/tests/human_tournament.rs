@@ -58,7 +58,7 @@ async fn human_tournament(db: &api::db::Database, status: TournamentStatus) -> R
         None,
         None,
         None,
-        Some(TournamentKind::Human),
+        Some(TournamentKind::Human), None,
     )
     .await
     .unwrap();
@@ -92,7 +92,7 @@ async fn user_creates_unranked_room_then_other_joins() {
         bob.clone(),
         GAME.into(),
         unique("UR "),
-        4, None, false, Vec::new(), None)
+        4, None, false, Vec::new(), None, None)
     .await
     .unwrap();
     let rid = room.id.clone().unwrap();
@@ -178,7 +178,7 @@ async fn only_host_can_start_room() {
         bob.clone(),
         GAME.into(),
         unique("Start "),
-        4, None, false, Vec::new(), None)
+        4, None, false, Vec::new(), None, None)
     .await
     .unwrap();
     let rid = room.id.unwrap();
@@ -202,7 +202,7 @@ async fn start_room_requires_at_least_two_players() {
         bob.clone(),
         GAME.into(),
         unique("Lonely "),
-        4, None, false, Vec::new(), None)
+        4, None, false, Vec::new(), None, None)
     .await
     .unwrap();
     let r = room_svc::start_room(&db, room.id.unwrap(), bob).await;
@@ -219,7 +219,7 @@ async fn finish_room_disconnect_timeout_makes_other_player_winner() {
         bob.clone(),
         GAME.into(),
         unique("DC "),
-        2, None, false, Vec::new(), None)
+        2, None, false, Vec::new(), None, None)
     .await
     .unwrap();
     let rid = room.id.unwrap();
