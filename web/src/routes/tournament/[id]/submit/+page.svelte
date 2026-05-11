@@ -1,10 +1,11 @@
 <script lang="ts">
     import { goto } from "$app/navigation";
     import { page } from "$app/state";
-    import { onMount } from "svelte";
+    import { onMount, untrack } from "svelte";
     import { authStore } from "$lib/stores/auth";
     import { submissionService } from "$services/submissions";
     import { tournamentService } from "$services/tournaments";
+    import { gameService, type StarterCode } from "$services/games";
     import { LinkButton } from "$components";
     import type {
         Tournament,
@@ -19,8 +20,54 @@
     let error = $state("");
     let isParticipant = $state(false);
     let validationErrors = $state<{ language?: string; code?: string }>({});
-    const tournamentId = $derived(page.url.searchParams.get('id') || '');
+    let starter = $state<StarterCode | null>(null);
+    let starterLoading = $state(false);
+    let starterError = $state<string | null>(null);
+    const tournamentId = $derived(page.params.id ?? "");
     const auth = $derived($authStore);
+
+    async function loadStarter(gameId: string, lang: ProgrammingLanguage) {
+        starterLoading = true;
+        starterError = null;
+        const prevStarterCode = starter?.code ?? null;
+        try {
+            const next = await gameService.getStarter(gameId, lang);
+            starter = next;
+            // Replace textarea only when the user hasn't touched it
+            // (empty, or still matching the previously loaded starter).
+            if (code === "" || code === prevStarterCode) {
+                code = next.code;
+            }
+        } catch (err) {
+            starter = null;
+            starterError =
+                err instanceof Error
+                    ? err.message
+                    : "Starter code unavailable";
+            // If textarea was holding the prior starter, clear it so the
+            // user isn't stuck with a stale template for a different language.
+            if (prevStarterCode !== null && code === prevStarterCode) {
+                code = "";
+            }
+        } finally {
+            starterLoading = false;
+        }
+    }
+
+    function useStarter() {
+        if (starter) {
+            code = starter.code;
+        }
+    }
+
+    $effect(() => {
+        if (tournament && language) {
+            const gameId = tournament.game_id;
+            const lang = language;
+            untrack(() => loadStarter(gameId, lang));
+        }
+    });
+
     onMount(async () => {
         // Redirect if not authenticated
         if (!auth.isAuthenticated) {
@@ -88,7 +135,7 @@
                 code,
             });
             // Redirect to tournament page on success
-            goto(`/tournament?id=${tournamentId}`);
+            goto(`/tournament/${tournamentId}`);
         } catch (err) {
             error =
                 err instanceof Error ? err.message : "Failed to submit code";
@@ -156,6 +203,45 @@
         font-size: 0.875rem;
     }
 
+    .code-label-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--spacing-2);
+        margin-bottom: var(--spacing-2);
+        flex-wrap: wrap;
+    }
+
+    .code-label-row label {
+        margin-bottom: 0;
+    }
+
+    .starter-controls {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-2);
+        font-size: 0.8125rem;
+    }
+
+    .starter-hint {
+        color: var(--color-fg-muted);
+    }
+
+    .starter-hint code {
+        font-family: monospace;
+        background-color: var(--color-bg-popup);
+        padding: 0 var(--spacing-1);
+        border-radius: 2px;
+    }
+
+    .starter-hint-warn {
+        color: var(--color-warning, var(--color-fg-muted));
+    }
+
+    .starter-reset {
+        font-size: 0.8125rem;
+    }
+
     .character-count {
         font-size: 0.875rem;
         color: var(--color-fg-muted);
@@ -205,7 +291,7 @@
                 {#if !isParticipant}
                     <div class="participation-warning">
                         You must join this tournament before submitting code.
-                        <a href="/tournament?id={tournamentId}">Go back</a>
+                        <a href="/tournament/{tournamentId}">Go back</a>
                     </div>
                 {/if}
 
@@ -228,7 +314,31 @@
                     </div>
 
                     <div class="form-field">
-                        <label for="code">Code</label>
+                        <div class="code-label-row">
+                            <label for="code">Code</label>
+                            <div class="starter-controls">
+                                {#if starterLoading}
+                                    <span class="starter-hint">Loading starter code…</span>
+                                {:else if starter}
+                                    <span class="starter-hint">
+                                        Starter loaded from <code>{starter.filename}</code>
+                                    </span>
+                                    <button
+                                        type="button"
+                                        data-variant="ghost"
+                                        class="starter-reset"
+                                        onclick={useStarter}
+                                        disabled={loading || !isParticipant}
+                                    >
+                                        Reset to starter
+                                    </button>
+                                {:else if starterError}
+                                    <span class="starter-hint starter-hint-warn">
+                                        No starter code available for this game + language
+                                    </span>
+                                {/if}
+                            </div>
+                        </div>
                         <textarea
                             id="code"
                             class="code-textarea"
@@ -254,7 +364,7 @@
                             {loading ? "Submitting..." : "Submit Code"}
                         </button>
                         <LinkButton
-                            href="/tournament?id={tournamentId}"
+                            href="/tournament/{tournamentId}"
                             variant="secondary"
                             label="Cancel"
                         />

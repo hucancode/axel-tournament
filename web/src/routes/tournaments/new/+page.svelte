@@ -158,11 +158,11 @@
 
 <main>
     <div class="container">
-        <PageHeader 
-            title="Create New Tournament" 
+        <PageHeader
+            title="Create New Tournament"
             subtitle="Set up a new competitive tournament"
         >
-            <LinkButton variant="secondary" href="/tournaments" label="Back to Tournaments" />
+            <LinkButton variant="secondary" href="/tournaments" label="Back" />
         </PageHeader>
 
         {#if loading}

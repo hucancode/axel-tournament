@@ -180,7 +180,7 @@
             {:else}
                 <div class="tournaments-grid">
                     {#each tournaments.slice(0, 6) as tournament}
-                        <Card href="/tournament?id={tournament.id}">
+                        <Card href="/tournament/{tournament.id}">
                             <h3>{tournament.name}</h3>
                             <p>{tournament.description}</p>
                             <footer>

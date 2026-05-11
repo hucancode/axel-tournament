@@ -126,7 +126,7 @@ export interface Game {
 }
 
 // Submission types
-export type SubmissionStatus = "pending" | "accepted" | "failed";
+export type SubmissionStatus = "pending" | "compiling" | "accepted" | "failed";
 
 export interface Submission {
   id: string;
@@ -149,6 +149,7 @@ export interface CreateSubmissionRequest {
 export interface SubmissionResponse {
   id: string;
   tournament_id: string;
+  game_id: string;
   language: ProgrammingLanguage;
   status: SubmissionStatus;
   created_at: string;

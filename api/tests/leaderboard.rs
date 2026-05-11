@@ -73,7 +73,7 @@ async fn test_leaderboard_ordering_and_limit() {
             .unwrap();
     }
     let leaderboard_entries =
-        leaderboard::get_leaderboard(&db, 1, Some(tournament_id.clone()), None)
+        leaderboard::get_leaderboard(&db, tournament_id.clone(), 1)
             .await
             .unwrap();
     assert_eq!(leaderboard_entries.len(), 1);
@@ -130,7 +130,7 @@ async fn test_tournament_specific_leaderboard() {
     }
 
     // Get leaderboard for specific tournament
-    let leaderboard_entries = leaderboard::get_leaderboard(&db, 10, Some(tournament_id.clone()), None)
+    let leaderboard_entries = leaderboard::get_leaderboard(&db, tournament_id.clone(), 10)
         .await
         .unwrap();
 

@@ -19,13 +19,15 @@ pub struct Submission {
     pub created_at: Datetime,
 }
 
-/// HTTP-safe view: hides `user_id`, `game_id`, `code`,
-/// `error_message`, `compiled_binary_path` so source + private paths
-/// don't leak.
+/// HTTP-safe view: hides `user_id`, `code`, `error_message`,
+/// `compiled_binary_path` so source + private paths don't leak.
+/// `game_id` is exposed so clients (e.g. the playground "play vs your
+/// own bot" picker) can filter without doing a tournament lookup.
 #[derive(Debug, Clone, Serialize)]
 pub struct SubmissionResponse {
     pub id: Option<String>,
     pub tournament_id: String,
+    pub game_id: String,
     pub language: ProgrammingLanguage,
     pub status: SubmissionStatus,
     pub created_at: Datetime,
@@ -36,6 +38,7 @@ impl From<Submission> for SubmissionResponse {
         Self {
             id: opt_bare_key(&s.id),
             tournament_id: bare_key(&s.tournament_id),
+            game_id: s.game_id,
             language: s.language,
             status: s.status,
             created_at: s.created_at,

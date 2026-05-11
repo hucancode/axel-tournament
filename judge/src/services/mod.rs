@@ -3,6 +3,7 @@ pub mod capacity;
 pub mod match_finalizer;
 pub mod match_writer;
 pub mod playground;
+pub mod playground_submission;
 pub mod room;
 pub mod sandbox;
 pub mod storage;

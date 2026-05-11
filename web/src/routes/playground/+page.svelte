@@ -5,9 +5,10 @@
   import { env } from "$env/dynamic/public";
   import { playgroundService } from "$services/playground";
   import { gameService } from "$services/games";
+  import { submissionService } from "$services/submissions";
   import { authStore } from "$lib/stores/auth";
   import { Alert, LinkButton, PageHeader } from "$components";
-  import type { Game } from "$lib/models";
+  import type { Game, Submission } from "$lib/models";
   import { createGame } from "$lib/games/registry";
   import type { BasePixiGame, GameStatus, GameResult } from "$lib/games/BasePixiGame";
 
@@ -27,6 +28,10 @@
   let game = $state<Game | null>(null);
   let loading = $state(true);
   let error = $state<string | null>(null);
+
+  let mySubmissions = $state<Submission[]>([]);
+  // "" => built-in sample bot; otherwise the submission id.
+  let opponentSubmissionId = $state<string>("");
 
   let roomId = $state<string | null>(null);
   let humanPid = $state<string | null>(null);
@@ -64,7 +69,25 @@
     } finally {
       loading = false;
     }
+
+    // Fetch the caller's accepted submissions for this game so the
+    // user can opt to play against their own bot. Failures here are
+    // non-fatal — the built-in sample is still available.
+    try {
+      const all = await submissionService.list();
+      mySubmissions = all.filter(
+        (s) => s.game_id === gameId && s.status === "accepted",
+      );
+    } catch (e) {
+      tracingDebug("submission list failed", e);
+    }
   });
+
+  function tracingDebug(msg: string, e: unknown) {
+    if (typeof console !== "undefined") {
+      console.warn(msg, e);
+    }
+  }
 
   onDestroy(() => {
     ws?.close();
@@ -104,7 +127,12 @@
     frames = [];
     phase = "lobby";
     try {
-      const resp = await playgroundService.start(gameId);
+      const resp = opponentSubmissionId
+        ? await playgroundService.startWithSubmission(
+            gameId,
+            opponentSubmissionId,
+          )
+        : await playgroundService.start(gameId);
       roomId = resp.room_id;
       botPid = resp.bot_player_id;
       // The bot is now subscribed to room events; it will JOIN as soon
@@ -395,6 +423,20 @@
     padding: var(--spacing-6);
     text-align: center;
   }
+  .opponent-picker {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    margin: var(--spacing-3) 0;
+  }
+  .opponent-picker .select {
+    min-width: 280px;
+  }
+  .opponent-empty {
+    font-size: 0.85rem;
+    color: var(--color-fg-muted);
+    margin: var(--spacing-2) 0 var(--spacing-3);
+  }
   .protocol-help {
     font-size: 0.85rem;
     color: var(--color-fg-muted);
@@ -537,7 +579,31 @@
 
       {#if phase === "idle"}
         <section class="start-section">
-          <p>Start a sandbox session — the judge will spin up a fresh room and attach a sample bot.</p>
+          <p>
+            Start a sandbox session — the judge will spin up a fresh room
+            and attach the chosen opponent.
+          </p>
+          <div class="opponent-picker">
+            <label for="opponent">Opponent:</label>
+            <select
+              id="opponent"
+              class="select"
+              bind:value={opponentSubmissionId}
+            >
+              <option value="">Built-in sample bot</option>
+              {#each mySubmissions as s}
+                <option value={s.id}>
+                  My submission · {s.language} · {new Date(s.created_at).toLocaleString()}
+                </option>
+              {/each}
+            </select>
+          </div>
+          {#if mySubmissions.length === 0}
+            <p class="opponent-empty">
+              You have no accepted submissions for this game yet —
+              submit one from a tournament page to play against your own bot.
+            </p>
+          {/if}
           <button data-variant="primary" onclick={startSession}>Start playground</button>
         </section>
       {:else}

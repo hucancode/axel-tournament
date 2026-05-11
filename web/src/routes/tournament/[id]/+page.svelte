@@ -6,7 +6,7 @@
     import { roomService } from "$services/rooms";
     import { authStore } from "$lib/stores/auth";
     import { page } from "$app/state";
-    import { onMount } from "svelte";
+    import { onMount, onDestroy } from "svelte";
     import { goto } from "$app/navigation";
     import { LinkButton, BracketView } from "$components";
     import type {
@@ -17,7 +17,7 @@
         Submission,
         SubmissionStats,
     } from "$lib/models";
-    const tournamentId = $derived(page.url.searchParams.get('id') || '');
+    const tournamentId = $derived(page.params.id ?? "");
     let tournament = $state<Tournament | null>(null);
     let game = $state<Game | null>(null);
     let participants = $state<TournamentParticipant[]>([]);
@@ -76,16 +76,18 @@
             loading = false;
         }
     }
-    async function loadUserSubmissions() {
-        submissionsLoading = true;
-        submissionError = "";
-        userSubmissions = [];
-        submissionStats = {};
+    async function loadUserSubmissions(silent = false) {
+        if (!silent) {
+            submissionsLoading = true;
+            submissionError = "";
+            userSubmissions = [];
+            submissionStats = {};
+        }
         try {
-            userSubmissions = await submissionService.list(tournamentId);
+            const fresh = await submissionService.list(tournamentId);
             // Pull stats per bot in parallel; ignore individual failures.
             const entries = await Promise.all(
-                userSubmissions.map(async (s) => {
+                fresh.map(async (s) => {
                     try {
                         const stats = await submissionService.stats(s.id);
                         return [s.id, stats] as const;
@@ -94,18 +96,45 @@
                     }
                 }),
             );
+            userSubmissions = fresh;
             submissionStats = Object.fromEntries(
                 entries.filter(([, v]) => v !== null) as [string, SubmissionStats][],
             );
+            schedulePendingPoll();
         } catch (err) {
-            submissionError =
-                err instanceof Error
-                    ? err.message
-                    : "Failed to load your submissions";
+            if (!silent) {
+                submissionError =
+                    err instanceof Error
+                        ? err.message
+                        : "Failed to load your submissions";
+            }
         } finally {
-            submissionsLoading = false;
+            if (!silent) submissionsLoading = false;
         }
     }
+
+    // Worker compiles `pending` → `compiling` → `accepted`/`failed`
+    // asynchronously. Poll while any submission is non-terminal so the
+    // badge transitions without a manual reload.
+    let pendingPollTimer: ReturnType<typeof setTimeout> | null = null;
+    function schedulePendingPoll() {
+        if (pendingPollTimer) {
+            clearTimeout(pendingPollTimer);
+            pendingPollTimer = null;
+        }
+        const hasPending = userSubmissions.some(
+            (s) => s.status === "pending" || s.status === "compiling",
+        );
+        if (!hasPending) return;
+        pendingPollTimer = setTimeout(() => {
+            pendingPollTimer = null;
+            loadUserSubmissions(true);
+        }, 2000);
+    }
+
+    onDestroy(() => {
+        if (pendingPollTimer) clearTimeout(pendingPollTimer);
+    });
 
     async function loadMatches() {
         matchesLoading = true;
@@ -278,6 +307,11 @@
 
     .title-section h1 {
         font-size: 2rem;
+    }
+
+    .header-buttons {
+        display: flex;
+        gap: var(--spacing-2);
     }
 
     .loading-state, .error-state, .not-found {
@@ -527,6 +561,12 @@
         color: var(--color-bg);
     }
 
+    .badge-registration {
+        background-color: var(--color-accent);
+        color: var(--color-bg);
+        margin-left: var(--spacing-2);
+    }
+
     .matches-section,
     .bracket-section {
         padding: var(--spacing-6);
@@ -636,7 +676,14 @@
                             {tournament.status}
                         </span>
                     </div>
-                    <LinkButton href="/tournaments" variant="secondary" label="Back to Tournaments" />
+                    <div class="header-buttons">
+                        <LinkButton
+                            href="/tournament/{tournamentId}/leaderboard"
+                            variant="secondary"
+                            label="Leaderboard"
+                        />
+                        <LinkButton href="/tournaments" variant="secondary" label="Back" />
+                    </div>
                 </div>
             </header>
 
@@ -820,7 +867,7 @@
                             <h2>Your Submissions</h2>
                             {#if canSubmit()}
                                 <LinkButton
-                                    href="/tournament/submit?id={tournamentId}"
+                                    href="/tournament/{tournamentId}/submit"
                                     variant="primary"
                                     label="New Submission"
                                 />
@@ -920,7 +967,7 @@
                             {/if}
                             {#if canSubmit()}
                                 <LinkButton
-                                    href="/tournament/submit?id={tournamentId}"
+                                    href="/tournament/{tournamentId}/submit"
                                     variant="primary"
                                     label="Submit Code"
                                 />

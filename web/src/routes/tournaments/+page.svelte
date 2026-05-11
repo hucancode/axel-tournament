@@ -127,7 +127,7 @@
         {:else}
             <section class="tournaments-grid">
                 {#each visibleTournaments as tournament}
-                    <Card href="/tournament?id={tournament.id}">
+                    <Card href="/tournament/{tournament.id}">
                         <h3>{tournament.name}</h3>
                         <p>{tournament.description}</p>
                         <footer>

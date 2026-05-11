@@ -30,9 +30,6 @@
     >
     <a href="/games" class:active={currentPath.startsWith("/games")}>Games</a>
     <a href="/rooms" class:active={currentPath.startsWith("/rooms")}>Rooms</a>
-    <a href="/leaderboard" class:active={currentPath === "/leaderboard"}
-        >Leaderboard</a
-    >
     <span></span>
     {#if isAuthenticated}
         <a href="/profile" class:active={currentPath === "/profile"}

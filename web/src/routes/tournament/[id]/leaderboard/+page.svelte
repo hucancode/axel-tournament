@@ -1,53 +1,32 @@
 <script lang="ts">
     import { leaderboardService } from "$services/leaderboard";
     import { tournamentService } from "$services/tournaments";
-    import { gameService } from "$services/games";
+    import { page } from "$app/state";
     import { onMount } from "svelte";
-    import { Alert, PageHeader } from "$components";
-    import type { LeaderboardEntry, Tournament, Game } from "$lib/models";
+    import { Alert, PageHeader, LinkButton } from "$components";
+    import type { LeaderboardEntry, Tournament } from "$lib/models";
+
+    const tournamentId = $derived(page.params.id ?? "");
     let entries = $state<LeaderboardEntry[]>([]);
-    let tournaments = $state<Tournament[]>([]);
-    let games = $state<Game[]>([]);
+    let tournament = $state<Tournament | null>(null);
     let loading = $state(true);
     let error = $state("");
-    let selectedTournament = $state<string>("all");
-    let selectedGame = $state<string>("all");
     let limit = $state(100);
+
     onMount(async () => {
-        await loadFilters();
-        await loadLeaderboard();
+        await loadAll();
     });
-    async function loadFilters() {
-        try {
-            // Load tournaments and games for filter dropdowns
-            const [tournamentsData, gamesData] = await Promise.all([
-                tournamentService.list(),
-                gameService.list(),
-            ]);
-            tournaments = tournamentsData;
-            games = gamesData;
-        } catch (err) {
-            console.error("Failed to load filters:", err);
-        }
-    }
-    async function loadLeaderboard() {
+
+    async function loadAll() {
         loading = true;
         error = "";
         try {
-            const filters: {
-                tournament_id?: string;
-                game_id?: string;
-                limit?: number;
-            } = {
-                limit,
-            };
-            if (selectedTournament !== "all") {
-                filters.tournament_id = selectedTournament;
-            }
-            if (selectedGame !== "all") {
-                filters.game_id = selectedGame;
-            }
-            entries = await leaderboardService.get(filters);
+            const [tournamentData, entriesData] = await Promise.all([
+                tournamentService.get(tournamentId),
+                leaderboardService.get(tournamentId, limit),
+            ]);
+            tournament = tournamentData;
+            entries = entriesData;
         } catch (err) {
             error =
                 err instanceof Error
@@ -58,9 +37,22 @@
             loading = false;
         }
     }
-    async function handleFilterChange() {
-        await loadLeaderboard();
+
+    async function reloadEntries() {
+        loading = true;
+        error = "";
+        try {
+            entries = await leaderboardService.get(tournamentId, limit);
+        } catch (err) {
+            error =
+                err instanceof Error
+                    ? err.message
+                    : "Failed to load leaderboard";
+        } finally {
+            loading = false;
+        }
     }
+
     function getMedalEmoji(rank: number): string {
         if (rank === 1) return "🥇";
         if (rank === 2) return "🥈";
@@ -79,11 +71,6 @@
     .filters-section {
         padding: var(--spacing-6);
         background-color: var(--color-bg-light);
-        margin-bottom: var(--spacing-4);
-    }
-
-    .filters-section h2 {
-        font-size: 1.125rem;
         margin-bottom: var(--spacing-4);
     }
 
@@ -201,65 +188,43 @@
         color: var(--color-primary);
     }
 
-    .tournament-link {
-        font-size: 0.875rem;
-        color: var(--color-primary);
-        text-decoration: none;
-    }
-
     .results-count {
         text-align: center;
         margin-top: var(--spacing-4);
         font-size: 0.875rem;
         color: var(--color-fg-muted);
     }
+
+    .header-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: var(--spacing-4);
+    }
 </style>
 
 <main>
     <div class="container">
-        <PageHeader title="Leaderboard" />
+        <PageHeader title={tournament ? `Leaderboard — ${tournament.name}` : "Leaderboard"} />
+        <div class="header-actions">
+            <LinkButton
+                href="/tournament/{tournamentId}"
+                variant="secondary"
+                label="Back to Tournament"
+            />
+        </div>
         {#if error}
             <Alert message={error} />
         {/if}
         <section class="filters-section">
-            <h2>Filters</h2>
             <div class="filters-grid">
-                <div class="filter-group">
-                    <label for="tournament-filter">Tournament</label>
-                    <select
-                        id="tournament-filter"
-                        class="filter-select"
-                        bind:value={selectedTournament}
-                        onchange={handleFilterChange}
-                        disabled={loading}
-                    >
-                        <option value="all">All Tournaments</option>
-                        {#each tournaments as tournament}
-                            <option value={tournament.id}>{tournament.name}</option>
-                        {/each}
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label for="game-filter">Game</label>
-                    <select
-                        id="game-filter"
-                        bind:value={selectedGame}
-                        onchange={handleFilterChange}
-                        disabled={loading}
-                    >
-                        <option value="all">All Games</option>
-                        {#each games as game}
-                            <option value={game.id}>{game.name}</option>
-                        {/each}
-                    </select>
-                </div>
                 <div class="filter-group">
                     <label for="limit-filter">Limit</label>
                     <select
                         id="limit-filter"
                         class="filter-select"
                         bind:value={limit}
-                        onchange={handleFilterChange}
+                        onchange={reloadEntries}
                         disabled={loading}
                     >
                         <option value={10}>Top 10</option>
@@ -279,7 +244,7 @@
         {:else if entries.length === 0}
             <section class="empty-section">
                 <p>No leaderboard entries found</p>
-                <p class="empty-hint">Try adjusting your filters or check back later</p>
+                <p class="empty-hint">Tournament has no scored participants yet</p>
             </section>
         {:else}
             <section class="leaderboard-section">
@@ -291,11 +256,10 @@
                                 <th>Player</th>
                                 <th>Location</th>
                                 <th>Score</th>
-                                <th>Tournament</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {#each entries as entry, index}
+                            {#each entries as entry}
                                 <tr class="leaderboard-row">
                                     <td class="rank-cell {getRankClass(entry.rank)}">
                                         <span class="rank-content">
@@ -312,11 +276,6 @@
                                         {/if}
                                     </td>
                                     <td class="score-cell">{entry.score.toLocaleString()}</td>
-                                    <td class="tournament-cell">
-                                        <a href="/tournaments/{entry.tournament_id}" class="tournament-link">
-                                            {entry.tournament_name}
-                                        </a>
-                                    </td>
                                 </tr>
                             {/each}
                         </tbody>

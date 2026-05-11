@@ -35,4 +35,39 @@ export const playgroundService = {
     }
     return (await resp.json()) as PlaygroundStartResponse;
   },
+  /// Spawn the caller's accepted submission as the opponent bot in a
+  /// fresh playground room. Same response shape as `start`.
+  async startWithSubmission(
+    gameId: string,
+    submissionId: string,
+  ): Promise<PlaygroundStartResponse> {
+    const token =
+      typeof window !== "undefined"
+        ? localStorage.getItem("auth_token")
+        : null;
+    if (!token) {
+      throw new Error("not authenticated");
+    }
+    const resp = await fetch(
+      `${JUDGE_URL}/api/playground/start_with_submission`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          game_id: gameId,
+          submission_id: submissionId,
+        }),
+      },
+    );
+    if (!resp.ok) {
+      const body = await resp.text().catch(() => "");
+      throw new Error(
+        `playground start_with_submission failed: HTTP ${resp.status}${body ? ` — ${body}` : ""}`,
+      );
+    }
+    return (await resp.json()) as PlaygroundStartResponse;
+  },
 };

@@ -2,7 +2,9 @@ use crate::app_state::AppState;
 use crate::config::Config;
 use crate::games;
 use crate::handlers;
+use crate::handlers::SubmissionPlaygroundState;
 use crate::services::playground::PlaygroundRegistries;
+use crate::services::playground_submission::SubmissionPlaygroundRegistries;
 use crate::middleware::auth::auth_middleware;
 use crate::services::room::ws::{handle_ws, WsContext};
 use crate::services::room::logic::RoomLogic;
@@ -35,6 +37,7 @@ pub fn create_router(
     poker_ctx: Arc<WsContext<games::Poker>>,
     jog_ctx: Arc<WsContext<games::Jog>>,
     playground_regs: PlaygroundRegistries,
+    submission_playground_regs: SubmissionPlaygroundRegistries,
 ) -> Router {
     tracing::info!("CORS: Allowing origin: {}", config.frontend_url);
 
@@ -48,6 +51,18 @@ pub fn create_router(
         .route("/api/playground/start", post(handlers::playground_start))
         .layer(from_fn_with_state(app_state.clone(), auth_middleware))
         .with_state(playground_regs);
+
+    let submission_playground_state = SubmissionPlaygroundState {
+        registries: submission_playground_regs,
+        db: app_state.db.clone(),
+    };
+    let submission_playground_routes = Router::new()
+        .route(
+            "/api/playground/start_with_submission",
+            post(handlers::playground_start_with_submission),
+        )
+        .layer(from_fn_with_state(app_state.clone(), auth_middleware))
+        .with_state(submission_playground_state);
 
     let rps_ws = Router::new()
         .route("/ws/rock-paper-scissors/{room_id}", get(ws_entry::<games::Rps>))
@@ -82,6 +97,7 @@ pub fn create_router(
     Router::new()
         .merge(public_routes)
         .merge(playground_routes)
+        .merge(submission_playground_routes)
         .merge(websocket_routes)
         .layer(
             CorsLayer::new()

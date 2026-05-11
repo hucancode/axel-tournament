@@ -7,6 +7,7 @@ use judge::{
     services::match_finalizer::{self, FinishCallback},
     services::match_writer,
     services::playground,
+    services::playground_submission,
     services::room::logic::{OnRoomOpened, RoomRegistry},
     services::room::ws::WsContext,
     services::sandbox::BuildSandbox,
@@ -223,6 +224,37 @@ async fn main() -> anyhow::Result<()> {
         }
     });
 
+    let mut submission_playground_regs: playground_submission::SubmissionPlaygroundRegistries =
+        Default::default();
+    submission_playground_regs.insert(
+        "rock-paper-scissors",
+        playground_submission::host(rps_registry.clone()),
+    );
+    submission_playground_regs.insert(
+        "tic-tac-toe",
+        playground_submission::host(ttt_registry.clone()),
+    );
+    submission_playground_regs.insert(
+        "prisoners-dilemma",
+        playground_submission::host(pd_registry.clone()),
+    );
+    submission_playground_regs.insert(
+        "chess",
+        playground_submission::host(chess_registry.clone()),
+    );
+    submission_playground_regs.insert(
+        "xiangqi",
+        playground_submission::host(xiangqi_registry.clone()),
+    );
+    submission_playground_regs.insert(
+        "poker",
+        playground_submission::host(poker_registry.clone()),
+    );
+    submission_playground_regs.insert(
+        "jar-of-greed",
+        playground_submission::host(jog_registry.clone()),
+    );
+
     let mut playground_regs: playground::PlaygroundRegistries = Default::default();
     playground_regs.insert(
         "rock-paper-scissors",
@@ -263,6 +295,7 @@ async fn main() -> anyhow::Result<()> {
         poker_ctx,
         jog_ctx,
         playground_regs,
+        submission_playground_regs,
     );
 
     let addr = format!("{}:{}", config.server_host, config.server_port);

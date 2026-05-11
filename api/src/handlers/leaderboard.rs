@@ -6,17 +6,16 @@ use crate::{
 };
 use axum::{
     Json,
-    extract::{Query, State},
+    extract::{Path, Query, State},
 };
 
 pub async fn get_leaderboard(
     State(state): State<AppState>,
+    Path(tournament_id): Path<String>,
     Query(query): Query<LeaderboardQuery>,
 ) -> ApiResult<Json<Vec<LeaderboardEntry>>> {
     let limit = query.limit.unwrap_or(100);
-    let tournament_id = query.tournament_id.map(|id| rid("tournament", id));
-    let game_id = query.game_id.map(|id| rid("game", id));
-    let entries =
-        services::leaderboard::get_leaderboard(&state.db, limit, tournament_id, game_id).await?;
+    let tournament_id = rid("tournament", tournament_id);
+    let entries = services::leaderboard::get_leaderboard(&state.db, tournament_id, limit).await?;
     Ok(Json(entries))
 }

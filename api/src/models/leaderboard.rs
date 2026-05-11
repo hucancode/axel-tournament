@@ -13,7 +13,5 @@ pub struct LeaderboardEntry {
 
 #[derive(Debug, Deserialize)]
 pub struct LeaderboardQuery {
-    pub limit: Option<u32>, // Top K players
-    pub tournament_id: Option<String>,
-    pub game_id: Option<String>,
+    pub limit: Option<u32>,
 }

@@ -11,35 +11,20 @@ const SELECT_CLAUSE: &str = "SELECT id, score, user_id, tournament_id,
        user_id.username AS username,
        user_id.location AS location,
        tournament_id.name AS tournament_name
-FROM tournament_participant";
+FROM tournament_participant WHERE tournament_id = $tournament_id
+ORDER BY score DESC LIMIT $limit";
 
 pub async fn get_leaderboard(
     db: &Database,
+    tournament_id: RecordId,
     limit: u32,
-    tournament_id: Option<RecordId>,
-    game_id: Option<RecordId>,
 ) -> ApiResult<Vec<LeaderboardEntry>> {
     let limit = limit.min(MAX_LIMIT);
-    let where_clause = if tournament_id.is_some() {
-        " WHERE tournament_id = $tournament_id"
-    } else if game_id.is_some() {
-        " WHERE tournament_id.game_id = $game_id"
-    } else {
-        ""
-    };
-    let query = format!(
-        "{}{} ORDER BY score DESC LIMIT $limit",
-        SELECT_CLAUSE, where_clause
-    );
-
-    let mut q = db.query(query).bind(("limit", limit));
-    if let Some(tid) = tournament_id {
-        q = q.bind(("tournament_id", tid));
-    }
-    if let Some(gid) = game_id {
-        q = q.bind(("game_id", gid));
-    }
-    let mut response = q.await?;
+    let mut response = db
+        .query(SELECT_CLAUSE)
+        .bind(("tournament_id", tournament_id))
+        .bind(("limit", limit))
+        .await?;
 
     #[derive(serde::Deserialize, SurrealValue)]
     struct RawEntry {

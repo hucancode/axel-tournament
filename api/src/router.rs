@@ -52,6 +52,10 @@ pub fn create_router(state: AppState) -> Router {
         .route("/api/auth/google/callback", get(handlers::google_callback))
         .route("/api/games", get(handlers::list_games))
         .route("/api/games/{id}", get(handlers::get_game))
+        .route(
+            "/api/games/{id}/starter/{language}",
+            get(handlers::get_starter_code),
+        )
         .route("/api/tournaments", get(handlers::list_tournaments))
         .route("/api/tournaments/{id}", get(handlers::get_tournament))
         .route(
@@ -60,7 +64,10 @@ pub fn create_router(state: AppState) -> Router {
         )
         .route("/api/matches", get(handlers::list_matches))
         .route("/api/matches/{id}", get(handlers::get_match))
-        .route("/api/leaderboard", get(handlers::get_leaderboard))
+        .route(
+            "/api/tournaments/{id}/leaderboard",
+            get(handlers::get_leaderboard),
+        )
         .route("/api/rooms", get(handlers::room::list_rooms))
         .route("/api/rooms/{id}", get(handlers::room::get_room));
     // Protected routes (require authentication)
