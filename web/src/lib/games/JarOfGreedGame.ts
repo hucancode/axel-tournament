@@ -196,10 +196,7 @@ export class JarOfGreedGame extends BasePixiGame {
       return { text: 'Waiting for game to start', tone: 'idle' };
     }
     if (this.gameState.status === 'finished') {
-      const detail = this.scoreLine();
-      if (this.outcome === 'win') return { text: 'You Win!', tone: 'win', detail };
-      if (this.outcome === 'lose') return { text: 'You Lose', tone: 'lose', detail };
-      return { text: 'Draw', tone: 'draw', detail };
+      return { text: 'Final score', tone: 'idle', detail: this.scoreLine() };
     }
     if (this.lastResult) {
       const r = this.lastResult;
@@ -225,10 +222,9 @@ export class JarOfGreedGame extends BasePixiGame {
     const me = this.ctx.myIndex;
     const myCoins = this.coins[me] ?? 0;
     const sorted = [...this.coins].sort((a, b) => b - a);
-    const title = this.outcome === 'win' ? 'Victory' : this.outcome === 'lose' ? 'Defeat' : 'Draw';
     return {
-      outcome: this.outcome,
-      title,
+      outcome: 'draw',
+      title: 'Final score',
       details: [
         `Your coins: ${myCoins}`,
         `Top stacks: ${sorted.slice(0, Math.min(3, sorted.length)).join(' / ')}`,
@@ -627,7 +623,7 @@ export class JarOfGreedGame extends BasePixiGame {
     this.container.addChild(card);
 
     const heading = new Text({
-      text: this.outcome === 'win' ? 'You win!' : this.outcome === 'lose' ? 'You lose' : 'Draw',
+      text: 'Final score',
       style: { fontSize: 24, fill: COLORS.BLACK, fontWeight: 'bold' },
     });
     heading.x = (CANVAS_W - heading.width) / 2;

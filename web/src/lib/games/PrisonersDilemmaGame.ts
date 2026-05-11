@@ -72,10 +72,7 @@ export class PrisonersDilemmaGame extends BasePixiGame {
       return { text: 'Waiting for game to start', tone: 'idle' };
     }
     if (this.gameState.status === 'finished') {
-      const o = this.finalOutcome();
-      if (o === 'win') return { text: 'You Win!', tone: 'win', detail: this.scoreLine() };
-      if (o === 'lose') return { text: 'You Lose', tone: 'lose', detail: this.scoreLine() };
-      return { text: 'Draw', tone: 'draw', detail: this.scoreLine() };
+      return { text: 'Final score', tone: 'idle', detail: this.scoreLine() };
     }
     if (this.revealing && this.myChoice && this.opponentChoice) {
       const m = this.myChoice;
@@ -96,22 +93,14 @@ export class PrisonersDilemmaGame extends BasePixiGame {
 
   public getResult(): GameResult | null {
     if (this.gameState.status !== 'finished') return null;
-    const o = this.finalOutcome();
-    const title = o === 'win' ? 'Victory' : o === 'lose' ? 'Defeat' : 'Draw';
     return {
-      outcome: o,
-      title,
+      outcome: 'draw',
+      title: 'Final score',
       details: [
-        `Final score ${this.scores.player} – ${this.scores.opponent}`,
+        `${this.scores.player} – ${this.scores.opponent}`,
         `${this.totalRounds} rounds played`,
       ],
     };
-  }
-
-  private finalOutcome(): 'win' | 'lose' | 'draw' {
-    if (this.scores.player > this.scores.opponent) return 'win';
-    if (this.scores.player < this.scores.opponent) return 'lose';
-    return 'draw';
   }
 
   private scoreLine(): string {

@@ -244,9 +244,7 @@ export class PokerGame extends BasePixiGame {
     }
     if (this.gameState.status === 'finished') {
       const detail = `Chips ${this.finalStacks[this.ctx.myIndex] ?? 0} – ${this.finalStacks[1 - this.ctx.myIndex] ?? 0}`;
-      if (this.outcome === 'win') return { text: 'You Win!', tone: 'win', detail };
-      if (this.outcome === 'lose') return { text: 'You Lose', tone: 'lose', detail };
-      return { text: 'Draw', tone: 'draw', detail };
+      return { text: 'Final score', tone: 'idle', detail };
     }
     if (this.street === 'settled') {
       return { text: 'Hand resolving', tone: 'wait', detail: this.handLine() };
@@ -266,10 +264,9 @@ export class PokerGame extends BasePixiGame {
     const me = this.ctx.myIndex;
     const myStack = this.finalStacks[me] ?? 0;
     const oppStack = this.finalStacks[1 - me] ?? 0;
-    const title = this.outcome === 'win' ? 'Victory' : this.outcome === 'lose' ? 'Defeat' : 'Draw';
     return {
-      outcome: this.outcome,
-      title,
+      outcome: 'draw',
+      title: 'Final score',
       details: [
         `Your chips: ${myStack}`,
         `Opponent chips: ${oppStack}`,
@@ -618,12 +615,7 @@ export class PokerGame extends BasePixiGame {
     const oppStack = this.finalStacks[1 - me] ?? 0;
 
     const heading = new Text({
-      text:
-        this.outcome === 'win'
-          ? 'You win!'
-          : this.outcome === 'lose'
-            ? 'You lose'
-            : 'Draw',
+      text: 'Final score',
       style: { fontSize: 28, fill: COLORS.BLACK, fontWeight: 'bold' },
     });
     heading.x = (CANVAS_W - heading.width) / 2;
