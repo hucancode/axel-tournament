@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, onDestroy } from "svelte";
+  import { onMount, onDestroy, tick } from "svelte";
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
   import { env } from "$env/dynamic/public";
@@ -8,6 +8,8 @@
   import { authStore } from "$lib/stores/auth";
   import { Alert, LinkButton, PageHeader } from "$components";
   import type { Game } from "$lib/models";
+  import { createGame } from "$lib/games/registry";
+  import type { BasePixiGame, GameStatus, GameResult } from "$lib/games/BasePixiGame";
 
   type Side = "you" | "bot";
   type Direction = "send" | "recv";
@@ -36,6 +38,13 @@
   let phase = $state<"idle" | "lobby" | "playing" | "finished">("idle");
   let actInput = $state("");
 
+  let players = $state<string[]>([]);
+  let canvas = $state<HTMLCanvasElement | undefined>(undefined);
+  let pixiGame: BasePixiGame | null = null;
+  let gameStatus = $state<GameStatus | null>(null);
+  let gameResult = $state<GameResult | null>(null);
+  let resultDismissed = $state(false);
+
   const auth = $derived($authStore);
 
   onMount(async () => {
@@ -60,7 +69,30 @@
   onDestroy(() => {
     ws?.close();
     ws = null;
+    pixiGame?.destroy();
+    pixiGame = null;
   });
+
+  function initPixi() {
+    if (!canvas || pixiGame) return;
+    pixiGame = createGame(
+      gameId,
+      canvas,
+      (kind, payload) => sendAct(kind, payload),
+      connected,
+    );
+    pixiGame?.setOnUpdate(() => {
+      gameStatus = pixiGame?.getStatus() ?? null;
+      gameResult = pixiGame?.getResult() ?? null;
+    });
+  }
+
+  function feedPixi(kind: string, payload: string) {
+    pixiGame?.handleEvent(kind, payload, {
+      myIndex: humanPid ? players.indexOf(humanPid) : -1,
+      players,
+    });
+  }
 
   function logFrame(side: Side, direction: Direction, text: string, seq?: number) {
     frames = [...frames, { side, direction, text, seq, t: Date.now() }];
@@ -96,7 +128,6 @@
 
     ws.onopen = () => {
       const helloFrame = `HELLO ${token} 0`;
-      logFrame("you", "send", `HELLO <jwt> 0`);
       ws?.send(helloFrame);
     };
 
@@ -121,9 +152,7 @@
     const rest = sp < 0 ? "" : text.slice(sp + 1);
 
     if (verb === "PING") {
-      logFrame("you", "recv", "PING");
       ws?.send("PONG");
-      logFrame("you", "send", "PONG");
       return;
     }
 
@@ -131,9 +160,6 @@
       const [pid] = rest.split(" ");
       humanPid = pid ?? null;
       connected = true;
-      logFrame("you", "recv", text);
-      // Server broadcasts events to every connection in the room, so the
-      // bot also gets a WELCOME on its own (in-process) attach.
       return;
     }
 
@@ -159,10 +185,26 @@
       // accepted ACT is implicit when an EVENT lands carrying its pid.
       reflectBotAct(kind, payload);
 
-      if (kind === "GAME_STARTED") phase = "playing";
+      if (kind === "PLAYER_JOINED") {
+        if (!players.includes(payload)) players = [...players, payload];
+      } else if (kind === "PLAYER_LEFT") {
+        players = players.filter((p) => p !== payload);
+      }
+
+      if (kind === "GAME_STARTED") {
+        phase = "playing";
+        gameResult = null;
+        resultDismissed = false;
+        tick().then(() => {
+          initPixi();
+          feedPixi(kind, payload);
+        });
+        return;
+      }
       if (kind === "GAME_END" || kind === "WINNER" || kind === "DRAW") {
         phase = "finished";
       }
+      feedPixi(kind, payload);
       return;
     }
 
@@ -212,12 +254,18 @@
   function reset() {
     ws?.close();
     ws = null;
+    pixiGame?.destroy();
+    pixiGame = null;
     roomId = null;
     humanPid = null;
     botPid = null;
     connected = false;
     phase = "idle";
     frames = [];
+    players = [];
+    gameStatus = null;
+    gameResult = null;
+    resultDismissed = false;
   }
 
   // Quick-action presets keyed by game.
@@ -361,6 +409,105 @@
     font-size: 0.75rem;
     letter-spacing: 0.05em;
   }
+  .visualizer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-3);
+    margin-bottom: var(--spacing-4);
+    padding: var(--spacing-4);
+    background: var(--color-bg-light);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+  }
+  .status-banner {
+    width: 100%;
+    max-width: 500px;
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-lg);
+    border: var(--border-thick) solid var(--color-border);
+    background: var(--color-bg);
+    text-align: center;
+  }
+  .status-banner[data-tone="turn"] {
+    border-color: var(--color-warning);
+    background: color-mix(in srgb, var(--color-warning) 12%, var(--color-bg));
+  }
+  .status-banner[data-tone="wait"] {
+    border-color: var(--color-info);
+    background: color-mix(in srgb, var(--color-info) 12%, var(--color-bg));
+  }
+  .status-banner[data-tone="win"] {
+    border-color: var(--color-success);
+    background: color-mix(in srgb, var(--color-success) 18%, var(--color-bg));
+  }
+  .status-banner[data-tone="lose"] {
+    border-color: var(--color-error);
+    background: color-mix(in srgb, var(--color-error) 18%, var(--color-bg));
+  }
+  .status-banner[data-tone="draw"] {
+    border-color: var(--color-accent);
+    background: color-mix(in srgb, var(--color-accent) 14%, var(--color-bg));
+  }
+  .status-text {
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    color: var(--color-fg);
+  }
+  .status-detail {
+    margin-top: 0.2rem;
+    font-size: var(--font-size-sm);
+    color: var(--color-fg-dim);
+  }
+  .canvas-wrap {
+    position: relative;
+  }
+  canvas {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    display: block;
+  }
+  .result-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgb(0 0 0 / 0.6);
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .result-card {
+    background: var(--color-bg);
+    border: var(--border-thick) solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
+    min-width: 260px;
+    text-align: center;
+  }
+  .result-overlay[data-outcome="win"] .result-card { border-color: var(--color-success); }
+  .result-overlay[data-outcome="lose"] .result-card { border-color: var(--color-error); }
+  .result-overlay[data-outcome="draw"] .result-card { border-color: var(--color-accent); }
+  .result-icon { font-size: 2.5rem; line-height: 1; }
+  .result-title {
+    margin: 0.4rem 0 0.6rem;
+    font-size: var(--font-size-2xl);
+    font-weight: 700;
+  }
+  .result-overlay[data-outcome="win"] .result-title { color: var(--color-success); }
+  .result-overlay[data-outcome="lose"] .result-title { color: var(--color-error); }
+  .result-overlay[data-outcome="draw"] .result-title { color: var(--color-accent); }
+  .result-details {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1rem;
+    color: var(--color-fg-muted);
+    font-size: var(--font-size-sm);
+  }
+  .result-actions {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+  }
 </style>
 
 <main>
@@ -377,13 +524,6 @@
           Game: <strong>{game.name}</strong> ({game.id}). Act as a bot and play against a
           built-in sample bot. Every wire frame between the server and each client is
           shown below — the same protocol your submitted bot will use over stdio.
-        </p>
-        <p class="protocol-help">
-          Your transport here is WebSocket (HELLO / WELCOME / PING / PONG visible).
-          The submitted bot transport is stdio: drop HELLO, WELCOME, PING, PONG and
-          everything else (ACT, EVENT, ERR) is identical. See
-          <a href="https://github.com/anthropics/claude-code" onclick={(e) => e.preventDefault()}>protocols/wire.md</a>
-          in the repo for full spec.
         </p>
       </header>
 
@@ -429,6 +569,42 @@
           />
           <button data-variant="secondary" onclick={sendRaw}>Send</button>
         </div>
+
+        {#if phase === "playing" || phase === "finished"}
+          <section class="visualizer">
+            {#if gameStatus}
+              <div class="status-banner" data-tone={gameStatus.tone}>
+                <div class="status-text">{gameStatus.text}</div>
+                {#if gameStatus.detail}
+                  <div class="status-detail">{gameStatus.detail}</div>
+                {/if}
+              </div>
+            {/if}
+            <div class="canvas-wrap">
+              <canvas bind:this={canvas}></canvas>
+              {#if phase === "finished" && gameResult && !resultDismissed}
+                <div class="result-overlay" data-outcome={gameResult.outcome}>
+                  <div class="result-card">
+                    <div class="result-icon">
+                      {gameResult.outcome === "win" ? "🏆" : gameResult.outcome === "lose" ? "💔" : "🤝"}
+                    </div>
+                    <h2 class="result-title">{gameResult.title}</h2>
+                    <ul class="result-details">
+                      {#each gameResult.details as line}
+                        <li>{line}</li>
+                      {/each}
+                    </ul>
+                    <div class="result-actions">
+                      <button data-variant="secondary" onclick={() => (resultDismissed = true)}>
+                        Close
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              {/if}
+            </div>
+          </section>
+        {/if}
       {/if}
 
       <div class="panes">
