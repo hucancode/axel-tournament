@@ -162,7 +162,7 @@ async fn list_tournaments_filters_by_status() {
     let all_reg = tour_svc::list_tournaments(&db, Some(TournamentStatus::Registration), Some(200), None)
         .await
         .unwrap();
-    assert!(all_reg.iter().any(|t| t.id.as_ref() == Some(&tid)));
+    assert!(all_reg.iter().any(|(t, _)| t.id.as_ref() == Some(&tid)));
 
     tour_svc::update_tournament(
         &db,
@@ -179,12 +179,12 @@ async fn list_tournaments_filters_by_status() {
     let reg_after = tour_svc::list_tournaments(&db, Some(TournamentStatus::Registration), Some(200), None)
         .await
         .unwrap();
-    assert!(!reg_after.iter().any(|t| t.id.as_ref() == Some(&tid)));
+    assert!(!reg_after.iter().any(|(t, _)| t.id.as_ref() == Some(&tid)));
 
     let cancelled = tour_svc::list_tournaments(&db, Some(TournamentStatus::Cancelled), Some(200), None)
         .await
         .unwrap();
-    assert!(cancelled.iter().any(|t| t.id.as_ref() == Some(&tid)));
+    assert!(cancelled.iter().any(|(t, _)| t.id.as_ref() == Some(&tid)));
 }
 
 #[tokio::test]
@@ -196,6 +196,34 @@ async fn list_tournaments_paginates() {
 
     let page = tour_svc::list_tournaments(&db, None, Some(2), Some(0)).await.unwrap();
     assert_eq!(page.len(), 2);
+}
+
+#[tokio::test]
+async fn list_tournaments_returns_participant_counts() {
+    let db = db::setup_test_db().await;
+    let tid = fresh_tournament(&db, "rock-paper-scissors").await;
+    let alice = fresh_player(&db).await;
+    let bob = fresh_player(&db).await;
+    tour_svc::join_tournament(&db, tid.clone(), alice.id.clone().unwrap())
+        .await
+        .unwrap();
+    tour_svc::join_tournament(&db, tid.clone(), bob.id.clone().unwrap())
+        .await
+        .unwrap();
+
+    let listed = tour_svc::list_tournaments(
+        &db,
+        Some(TournamentStatus::Registration),
+        Some(200),
+        None,
+    )
+    .await
+    .unwrap();
+    let row = listed
+        .iter()
+        .find(|(t, _)| t.id.as_ref() == Some(&tid))
+        .expect("tournament present");
+    assert_eq!(row.1, 2);
 }
 
 #[tokio::test]

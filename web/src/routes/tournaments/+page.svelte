@@ -3,17 +3,25 @@
     import { gameService } from "$services/games";
     import { authStore } from "$lib/stores/auth";
     import { onMount } from "svelte";
-    import type { Tournament, TournamentParticipant, Game } from "$lib/models";
+    import type { Tournament, Game } from "$lib/models";
     import { LinkButton, Card, Badge, Alert, PageHeader } from "$components";
+
+    const ACTIVE_STATUSES = [
+        "scheduled",
+        "registration",
+        "generating",
+        "running",
+    ];
+    const RECENT_COMPLETED_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
     let tournaments = $state<Tournament[]>([]);
     let games = $state<Game[]>([]);
-    let participantCounts = $state<Record<string, TournamentParticipant[]>>({});
     let loading = $state(true);
     let error = $state("");
-    let selectedStatus = $state<string>("all");
+    let selectedStatus = $state<string>("default");
 
     const statusOptions = [
+        { value: "default", label: "Open + Recently Finished" },
         { value: "all", label: "All Tournaments" },
         { value: "scheduled", label: "Scheduled" },
         { value: "registration", label: "Registration Open" },
@@ -28,6 +36,17 @@
         auth.isAuthenticated && auth.user?.role === "admin",
     );
 
+    const visibleTournaments = $derived.by(() => {
+        if (selectedStatus !== "default") return tournaments;
+        const cutoff = Date.now() - RECENT_COMPLETED_WINDOW_MS;
+        return tournaments.filter((t) => {
+            if (ACTIVE_STATUSES.includes(t.status)) return true;
+            if (t.status !== "completed") return false;
+            const ts = Date.parse(t.end_time ?? t.updated_at);
+            return Number.isFinite(ts) && ts >= cutoff;
+        });
+    });
+
     onMount(async () => {
         await loadTournaments();
     });
@@ -37,37 +56,15 @@
         error = "";
         try {
             const status =
-                selectedStatus === "all" ? undefined : selectedStatus;
+                selectedStatus === "all" || selectedStatus === "default"
+                    ? undefined
+                    : selectedStatus;
             const [tournamentsData, gamesData] = await Promise.all([
                 tournamentService.list(status),
                 gameService.list(),
             ]);
             tournaments = tournamentsData;
             games = gamesData;
-
-            // Load participants for each tournament
-            const participantPromises = tournaments.map(async (tournament) => {
-                try {
-                    const participants =
-                        await tournamentService.getParticipants(tournament.id);
-                    return { tournamentId: tournament.id, participants };
-                } catch (err) {
-                    console.error(
-                        `Failed to load participants for tournament ${tournament.id}:`,
-                        err,
-                    );
-                    return { tournamentId: tournament.id, participants: [] };
-                }
-            });
-
-            const participantResults = await Promise.all(participantPromises);
-            participantCounts = participantResults.reduce(
-                (acc, { tournamentId, participants }) => {
-                    acc[tournamentId] = participants;
-                    return acc;
-                },
-                {} as Record<string, TournamentParticipant[]>,
-            );
         } catch (err) {
             error =
                 err instanceof Error
@@ -121,7 +118,7 @@
                     <p>Loading tournaments...</p>
                 </Card>
             </section>
-        {:else if tournaments.length === 0}
+        {:else if visibleTournaments.length === 0}
             <section class="empty-section">
                 <Card class="empty-card">
                     <p>No tournaments found</p>
@@ -129,7 +126,7 @@
             </section>
         {:else}
             <section class="tournaments-grid">
-                {#each tournaments as tournament}
+                {#each visibleTournaments as tournament}
                     <Card href="/tournament?id={tournament.id}">
                         <h3>{tournament.name}</h3>
                         <p>{tournament.description}</p>
@@ -139,8 +136,8 @@
                                 label={tournament.status}
                             />
                             <span class="player-count">
-                                {(participantCounts[tournament.id] || [])
-                                    .length}/{tournament.max_players} players
+                                {tournament.participant_count}/{tournament.max_players}
+                                players
                             </span>
                         </footer>
                     </Card>

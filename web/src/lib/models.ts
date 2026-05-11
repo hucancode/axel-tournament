@@ -64,6 +64,7 @@ export interface Tournament {
   config?: Record<string, unknown>;
   created_at: string;
   updated_at: string;
+  participant_count: number;
 }
 
 export interface TournamentParticipant {

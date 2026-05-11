@@ -75,15 +75,19 @@ pub async fn list_tournaments(
     status: Option<TournamentStatus>,
     limit: Option<u32>,
     offset: Option<u32>,
-) -> ApiResult<Vec<Tournament>> {
+) -> ApiResult<Vec<(Tournament, u32)>> {
     let limit = limit.unwrap_or(50).min(200);
     let offset = offset.unwrap_or(0);
     let mut result = if let Some(s) = status {
         db.query(
-            "SELECT * FROM tournament
-             WHERE status = $status
-             ORDER BY created_at DESC
-             LIMIT $limit START $offset",
+            "LET $ts = (SELECT * FROM tournament
+                         WHERE status = $status
+                         ORDER BY created_at DESC
+                         LIMIT $limit START $offset);
+             RETURN $ts;
+             SELECT tournament_id, count() AS n FROM tournament_participant
+             WHERE tournament_id IN $ts.id
+             GROUP BY tournament_id",
         )
         .bind(("status", enum_tag(&s)))
         .bind(("limit", limit))
@@ -91,16 +95,40 @@ pub async fn list_tournaments(
         .await?
     } else {
         db.query(
-            "SELECT * FROM tournament
-             ORDER BY created_at DESC
-             LIMIT $limit START $offset",
+            "LET $ts = (SELECT * FROM tournament
+                         ORDER BY created_at DESC
+                         LIMIT $limit START $offset);
+             RETURN $ts;
+             SELECT tournament_id, count() AS n FROM tournament_participant
+             WHERE tournament_id IN $ts.id
+             GROUP BY tournament_id",
         )
         .bind(("limit", limit))
         .bind(("offset", offset))
         .await?
     };
-    let tournaments: Vec<Tournament> = result.take(0)?;
-    Ok(tournaments)
+    let tournaments: Vec<Tournament> = result.take(1)?;
+    #[derive(serde::Deserialize, SurrealValue)]
+    struct CountRow {
+        tournament_id: RecordId,
+        n: i64,
+    }
+    let count_rows: Vec<CountRow> = result.take(2).unwrap_or_default();
+    let counts: std::collections::HashMap<RecordId, u32> = count_rows
+        .into_iter()
+        .map(|r| (r.tournament_id, r.n.max(0) as u32))
+        .collect();
+    Ok(tournaments
+        .into_iter()
+        .map(|t| {
+            let c = t
+                .id
+                .as_ref()
+                .and_then(|id| counts.get(id).copied())
+                .unwrap_or(0);
+            (t, c)
+        })
+        .collect())
 }
 
 pub async fn update_tournament(

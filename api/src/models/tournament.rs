@@ -48,10 +48,18 @@ pub struct TournamentResponse {
     pub config: Value,
     pub created_at: Datetime,
     pub updated_at: Datetime,
+    #[serde(default)]
+    pub participant_count: u32,
 }
 
 impl From<Tournament> for TournamentResponse {
     fn from(t: Tournament) -> Self {
+        Self::from((t, 0u32))
+    }
+}
+
+impl From<(Tournament, u32)> for TournamentResponse {
+    fn from((t, participant_count): (Tournament, u32)) -> Self {
         Self {
             id: opt_bare_key(&t.id),
             game_id: t.game_id,
@@ -67,6 +75,7 @@ impl From<Tournament> for TournamentResponse {
             config: t.config,
             created_at: t.created_at,
             updated_at: t.updated_at,
+            participant_count,
         }
     }
 }
