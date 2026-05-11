@@ -76,47 +76,68 @@
             loading = false;
         }
     }
-    async function loadUserSubmissions(silent = false) {
-        if (!silent) {
-            submissionsLoading = true;
-            submissionError = "";
-            userSubmissions = [];
-            submissionStats = {};
-        }
+    async function fetchStatsFor(ids: string[]): Promise<Record<string, SubmissionStats>> {
+        const entries = await Promise.all(
+            ids.map(async (id) => {
+                try {
+                    return [id, await submissionService.stats(id)] as const;
+                } catch {
+                    return [id, null] as const;
+                }
+            }),
+        );
+        return Object.fromEntries(
+            entries.filter(([, v]) => v !== null) as [string, SubmissionStats][],
+        );
+    }
+
+    async function loadUserSubmissions() {
+        submissionsLoading = true;
+        submissionError = "";
+        userSubmissions = [];
+        submissionStats = {};
         try {
             const fresh = await submissionService.list(tournamentId);
-            // Pull stats per bot in parallel; ignore individual failures.
-            const entries = await Promise.all(
-                fresh.map(async (s) => {
-                    try {
-                        const stats = await submissionService.stats(s.id);
-                        return [s.id, stats] as const;
-                    } catch {
-                        return [s.id, null] as const;
-                    }
-                }),
-            );
             userSubmissions = fresh;
-            submissionStats = Object.fromEntries(
-                entries.filter(([, v]) => v !== null) as [string, SubmissionStats][],
-            );
+            submissionStats = await fetchStatsFor(fresh.map((s) => s.id));
             schedulePendingPoll();
         } catch (err) {
-            if (!silent) {
-                submissionError =
-                    err instanceof Error
-                        ? err.message
-                        : "Failed to load your submissions";
-            }
+            submissionError =
+                err instanceof Error
+                    ? err.message
+                    : "Failed to load your submissions";
         } finally {
-            if (!silent) submissionsLoading = false;
+            submissionsLoading = false;
         }
     }
 
     // Worker compiles `pending` → `compiling` → `accepted`/`failed`
-    // asynchronously. Poll while any submission is non-terminal so the
-    // badge transitions without a manual reload.
+    // asynchronously. Poll list-only while any submission is non-terminal;
+    // refetch stats only for submissions that just transitioned terminal.
     let pendingPollTimer: ReturnType<typeof setTimeout> | null = null;
+    async function pollPending() {
+        pendingPollTimer = null;
+        try {
+            const fresh = await submissionService.list(tournamentId);
+            const prev = new Map(userSubmissions.map((s) => [s.id, s.status]));
+            const transitioned = fresh
+                .filter((s) => {
+                    const before = prev.get(s.id);
+                    const wasPending = before === "pending" || before === "compiling";
+                    const nowTerminal = s.status !== "pending" && s.status !== "compiling";
+                    return wasPending && nowTerminal;
+                })
+                .map((s) => s.id);
+            userSubmissions = fresh;
+            if (transitioned.length > 0) {
+                const updates = await fetchStatsFor(transitioned);
+                submissionStats = { ...submissionStats, ...updates };
+            }
+        } catch {
+            // swallow; next tick will retry
+        }
+        schedulePendingPoll();
+    }
     function schedulePendingPoll() {
         if (pendingPollTimer) {
             clearTimeout(pendingPollTimer);
@@ -126,10 +147,7 @@
             (s) => s.status === "pending" || s.status === "compiling",
         );
         if (!hasPending) return;
-        pendingPollTimer = setTimeout(() => {
-            pendingPollTimer = null;
-            loadUserSubmissions(true);
-        }, 2000);
+        pendingPollTimer = setTimeout(pollPending, 5000);
     }
 
     onDestroy(() => {
