@@ -28,6 +28,11 @@ export interface GameResult {
   details: string[];
 }
 
+export interface CanvasDimensions {
+  width: number;
+  height: number;
+}
+
 export abstract class BasePixiGame {
   protected app!: Application;
   protected act: ((kind: string, payload: string) => void) | null;
@@ -36,6 +41,7 @@ export abstract class BasePixiGame {
   protected container: Container;
   protected ctx: GameContext = { myIndex: -1, players: [] };
   protected onUpdate: () => void = () => {};
+  protected ready: Promise<void>;
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -45,12 +51,36 @@ export abstract class BasePixiGame {
     this.act = act;
     this.wsConnected = wsConnected;
     this.container = new Container();
-    this.initApp(canvas);
+    this.ready = this.initApp(canvas);
+  }
+
+  /** Logical (CSS) canvas dimensions. Subclasses override to match the
+   *  art they draw so Pixi reserves the right room without CSS-stretch. */
+  protected getDimensions(): CanvasDimensions {
+    return { width: 400, height: 400 };
   }
 
   private async initApp(canvas: HTMLCanvasElement) {
     this.app = new Application();
-    await this.app.init({ canvas, width: 400, height: 400, backgroundColor: 0xffffff });
+    const { width, height } = this.getDimensions();
+    const dpr =
+      typeof window !== 'undefined' && window.devicePixelRatio
+        ? window.devicePixelRatio
+        : 1;
+    await this.app.init({
+      canvas,
+      width,
+      height,
+      // High-DPR backing buffer + auto CSS size keeps text and strokes
+      // crisp on retina / scaled displays. Without these Pixi renders at
+      // 1× and the browser bilinearly upscales — the "pixelated" look.
+      resolution: dpr,
+      autoDensity: true,
+      antialias: true,
+      // Let the surrounding CSS (themed) show through; games draw their
+      // own boards/panels on top.
+      backgroundAlpha: 0,
+    });
     this.app.stage.addChild(this.container);
     this.render();
   }
@@ -84,6 +114,6 @@ export abstract class BasePixiGame {
   }
 
   public destroy() {
-    this.app.destroy();
+    this.app?.destroy();
   }
 }

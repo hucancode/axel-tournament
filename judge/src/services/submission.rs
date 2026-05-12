@@ -11,11 +11,22 @@ use crate::models::PendingSubmission;
 use crate::services::sandbox::BuildSandbox;
 use anyhow::{Context, Result};
 use async_trait::async_trait;
+use futures_util::StreamExt;
+use serde::Deserialize;
 use std::sync::Arc;
 use std::time::Duration;
-use surrealdb::types::{RecordId, ToSql};
+use surrealdb::types::{RecordId, SurrealValue, ToSql};
 
-const POLL_INTERVAL: Duration = Duration::from_secs(2);
+/// Fallback poll cadence. LIVE query drives the worker for instant
+/// reaction; this interval only catches anything LIVE missed (cold
+/// start, transient disconnect, dropped notification).
+const POLL_INTERVAL: Duration = Duration::from_secs(30);
+
+#[derive(Debug, Clone, Deserialize, SurrealValue)]
+struct SubmissionTick {
+    #[serde(default)]
+    id: Option<RecordId>,
+}
 
 /// Compile contract. Tests substitute a fake; production wires up
 /// `BuildSandbox`.
@@ -43,9 +54,43 @@ pub fn spawn(db: Database, compiler: Arc<dyn BotCompiler>) {
 
 async fn run(db: Database, compiler: Arc<dyn BotCompiler>) -> Result<()> {
     tracing::info!("Submission worker started");
+    let _ = tick(&db, compiler.as_ref()).await;
+    let mut ticker = tokio::time::interval(POLL_INTERVAL);
+    ticker.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
     loop {
-        let _ = tick(&db, compiler.as_ref()).await;
-        tokio::time::sleep(POLL_INTERVAL).await;
+        let stream_res = db.select::<Vec<SubmissionTick>>("submission").live().await;
+        match stream_res {
+            Ok(mut stream) => {
+                loop {
+                    tokio::select! {
+                        biased;
+                        notify = stream.next() => {
+                            match notify {
+                                Some(Ok(_)) => {
+                                    let _ = tick(&db, compiler.as_ref()).await;
+                                }
+                                Some(Err(e)) => {
+                                    tracing::warn!("LIVE stream error: {e:#}; resubscribing");
+                                    break;
+                                }
+                                None => {
+                                    tracing::warn!("LIVE stream closed; resubscribing");
+                                    break;
+                                }
+                            }
+                        }
+                        _ = ticker.tick() => {
+                            let _ = tick(&db, compiler.as_ref()).await;
+                        }
+                    }
+                }
+            }
+            Err(e) => {
+                tracing::warn!("LIVE subscribe failed: {e:#}; falling back to poll");
+                ticker.tick().await;
+                let _ = tick(&db, compiler.as_ref()).await;
+            }
+        }
     }
 }
 

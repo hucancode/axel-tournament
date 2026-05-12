@@ -1,0 +1,88 @@
+name: ci
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -D warnings
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: build workspace
+        run: cargo build --workspace --locked
+      - name: compile tests
+        run: cargo test --workspace --no-run --locked
+
+  unit-tests:
+    runs-on: ubuntu-24.04
+    needs: build
+    services:
+      surrealdb:
+        image: surrealdb/surrealdb:v3.0.5
+        ports:
+          - 8000:8000
+        options: >-
+          --health-cmd "echo ok"
+          --health-interval 5s
+          --health-timeout 2s
+          --health-retries 10
+        env:
+          SURREAL_USER: root
+          SURREAL_PASS: root
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: api + core tests
+        env:
+          DATABASE_URL: localhost:8000
+          DATABASE_USER: root
+          DATABASE_PASS: root
+          DATABASE_NS: axel
+          DATABASE_DB: axel
+        run: cargo test --locked -p api -p axel-core
+
+  pentest:
+    name: sandbox escape regression
+    runs-on: ubuntu-24.04
+    needs: build
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: kernel + landlock support probe
+        run: |
+          uname -a
+          ls -l /proc/self/attr || true
+          grep -q LANDLOCK /boot/config-$(uname -r) 2>/dev/null \
+            || echo "(can't confirm landlock support, continuing)"
+
+      - name: install gcc for malicious fixture compile
+        run: sudo apt-get update && sudo apt-get install -y gcc
+
+      - name: build judge tests
+        run: cargo test -p judge --test pentest --no-run --locked
+
+      # Pentest tests require CAP_SYS_ADMIN to create user/mount/pid
+      # namespaces. We run the compiled binary directly under sudo so
+      # the test process holds the capability, mirroring how judge
+      # itself runs in prod.
+      - name: run pentest suite
+        run: |
+          set -euo pipefail
+          BIN=$(cargo test -p judge --test pentest --no-run --locked --message-format=json \
+            | jq -r 'select(.profile.test == true) | select(.target.name == "pentest") | .executable' \
+            | tail -n1)
+          echo "pentest binary: $BIN"
+          sudo -E "$BIN" --nocapture --test-threads=1

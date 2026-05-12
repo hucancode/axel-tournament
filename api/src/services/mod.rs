@@ -12,4 +12,3 @@ pub mod room;
 pub mod stats;
 pub mod submission;
 pub mod tournament;
-pub mod user;

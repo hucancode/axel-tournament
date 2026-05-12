@@ -16,7 +16,7 @@ use api::{
         matches::{Match, MatchStatus},
         ProgrammingLanguage, TournamentKind, TournamentStatus,
     },
-    services::{finalization, matches, stats, submission, tournament, user},
+    services::{finalization, matches, stats, submission, tournament},
 };
 use surrealdb::types::{Datetime, RecordId};
 
@@ -32,7 +32,7 @@ fn unique(prefix: &str) -> String {
 
 async fn bob(db: &api::db::Database) -> api::models::User {
     let cfg = Config::from_env();
-    user::get_user_by_email(db, &cfg.bob.email)
+    <api::db::Database as axel_core::repo::user::UserRepo>::find_by_email(db, &cfg.bob.email)
         .await
         .unwrap()
         .expect("bob exists")
@@ -40,7 +40,7 @@ async fn bob(db: &api::db::Database) -> api::models::User {
 
 async fn alice(db: &api::db::Database) -> api::models::User {
     let cfg = Config::from_env();
-    user::get_user_by_email(db, &cfg.alice.email)
+    <api::db::Database as axel_core::repo::user::UserRepo>::find_by_email(db, &cfg.alice.email)
         .await
         .unwrap()
         .expect("alice exists")
@@ -93,7 +93,6 @@ async fn join_then_upload_creates_submission_and_auto_selects() {
         &db,
         bob_id.clone(),
         tid.clone(),
-        GAME.into(),
         ProgrammingLanguage::Rust,
         "fn main(){}".into(),
     )
@@ -120,7 +119,6 @@ async fn second_upload_does_not_overwrite_active_selection() {
         &db,
         bob_id.clone(),
         tid.clone(),
-        GAME.into(),
         ProgrammingLanguage::Rust,
         "fn main(){/*v1*/}".into(),
     )
@@ -130,7 +128,6 @@ async fn second_upload_does_not_overwrite_active_selection() {
         &db,
         bob_id.clone(),
         tid.clone(),
-        GAME.into(),
         ProgrammingLanguage::Rust,
         "fn main(){/*v2*/}".into(),
     )
@@ -161,7 +158,6 @@ async fn select_active_submission_swaps_selection() {
         &db,
         bob_id.clone(),
         tid.clone(),
-        GAME.into(),
         ProgrammingLanguage::Rust,
         "fn main(){/*v1*/}".into(),
     )
@@ -171,7 +167,6 @@ async fn select_active_submission_swaps_selection() {
         &db,
         bob_id.clone(),
         tid.clone(),
-        GAME.into(),
         ProgrammingLanguage::Rust,
         "fn main(){/*v2*/}".into(),
     )
@@ -208,7 +203,6 @@ async fn select_other_users_submission_is_forbidden() {
         &db,
         bob_id.clone(),
         tid.clone(),
-        GAME.into(),
         ProgrammingLanguage::Rust,
         "fn main(){}".into(),
     )
@@ -248,7 +242,6 @@ async fn admin_start_generates_matches_for_round_robin() {
             &db,
             uid,
             tid.clone(),
-            GAME.into(),
             ProgrammingLanguage::Rust,
             "fn main(){}".into(),
         )
@@ -388,7 +381,6 @@ async fn finalize_aggregates_scores_and_marks_completed() {
             &db,
             uid,
             tid.clone(),
-            GAME.into(),
             ProgrammingLanguage::Rust,
             "fn main(){}".into(),
         )
@@ -464,7 +456,6 @@ async fn finalize_does_not_complete_with_pending_matches() {
             &db,
             uid,
             tid.clone(),
-            GAME.into(),
             ProgrammingLanguage::Rust,
             "fn main(){}".into(),
         )
@@ -525,7 +516,6 @@ async fn finalize_treats_failed_match_as_loss_for_each_side() {
             &db,
             uid,
             tid.clone(),
-            GAME.into(),
             ProgrammingLanguage::Rust,
             "fn main(){}".into(),
         )
@@ -576,7 +566,6 @@ async fn runtime_error_only_punishes_the_faulted_bot() {
             &db,
             uid,
             tid.clone(),
-            GAME.into(),
             ProgrammingLanguage::Rust,
             "fn main(){}".into(),
         )
@@ -650,8 +639,7 @@ async fn illegal_move_only_punishes_the_offender() {
     for uid in [bob_id.clone(), alice_id.clone()] {
         tournament::join_tournament(&db, tid.clone(), uid.clone()).await.unwrap();
         let s = submission::create_submission(
-            &db, uid, tid.clone(), GAME.into(),
-            ProgrammingLanguage::Rust, "fn main(){}".into(),
+            &db, uid, tid.clone(), ProgrammingLanguage::Rust, "fn main(){}".into(),
         )
         .await
         .unwrap();
@@ -723,13 +711,11 @@ async fn start_tournament_excludes_uncompiled_bots() {
 
     // Bob: accepted. Alice: still pending.
     let bob_sub = submission::create_submission(
-        &db, bob_id.clone(), tid.clone(), GAME.into(),
-        ProgrammingLanguage::Rust, "fn main(){}".into(),
+        &db, bob_id.clone(), tid.clone(), ProgrammingLanguage::Rust, "fn main(){}".into(),
     ).await.unwrap();
     accept_submission(&db, bob_sub.id.as_ref().unwrap()).await;
     let _alice_sub = submission::create_submission(
-        &db, alice_id.clone(), tid.clone(), GAME.into(),
-        ProgrammingLanguage::Rust, "fn main(){}".into(),
+        &db, alice_id.clone(), tid.clone(), ProgrammingLanguage::Rust, "fn main(){}".into(),
     ).await.unwrap();
 
     // Only one accepted: below min_players (2). Should error cleanly.
@@ -765,7 +751,6 @@ async fn submission_stats_reports_per_bot_record() {
         &db,
         bob_id.clone(),
         tid.clone(),
-        GAME.into(),
         ProgrammingLanguage::Rust,
         "fn main(){}".into(),
     )
@@ -775,7 +760,6 @@ async fn submission_stats_reports_per_bot_record() {
         &db,
         alice_id.clone(),
         tid.clone(),
-        GAME.into(),
         ProgrammingLanguage::Rust,
         "fn main(){}".into(),
     )

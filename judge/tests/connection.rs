@@ -149,13 +149,17 @@ async fn lease_takeover_after_expiry() {
 #[tokio::test]
 async fn jwt_validation() {
     use jsonwebtoken::{encode, EncodingKey, Header};
-    use judge::middleware::auth::{validate_jwt, Claims};
+    use judge::middleware::auth::Claims;
 
     let secret = "test_secret_key";
     let user_id = "user:test123";
+    let now = chrono::Utc::now().timestamp() as usize;
     let claims = Claims {
         sub: user_id.to_string(),
-        exp: (chrono::Utc::now() + chrono::Duration::hours(1)).timestamp() as usize,
+        email: "t@example.com".into(),
+        role: axel_core::models::user::UserRole::Player,
+        exp: now + 3600,
+        iat: now,
     };
     let token = encode(
         &Header::default(),
@@ -163,10 +167,10 @@ async fn jwt_validation() {
         &EncodingKey::from_secret(secret.as_ref()),
     ).unwrap();
 
-    let result = validate_jwt(&token, secret);
+    let result = axel_core::auth::validate_token(secret, &token);
     assert!(result.is_ok());
     assert_eq!(result.unwrap().sub, user_id);
 
-    assert!(validate_jwt("invalid.token.here", secret).is_err());
-    assert!(validate_jwt(&token, "wrong_secret").is_err());
+    assert!(axel_core::auth::validate_token(secret, "invalid.token.here").is_err());
+    assert!(axel_core::auth::validate_token("wrong_secret", &token).is_err());
 }

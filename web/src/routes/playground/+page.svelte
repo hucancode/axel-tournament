@@ -508,6 +508,8 @@
     border: 1px solid var(--color-border);
     border-radius: var(--radius-lg);
     display: block;
+    background: #fafafa;
+    box-shadow: var(--shadow-popup, 0 4px 12px rgba(0, 0, 0, 0.15));
   }
   .result-overlay {
     position: absolute;

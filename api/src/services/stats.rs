@@ -2,7 +2,7 @@
 
 use crate::{
     db::Database,
-    error::ApiResult,
+    error::AppResult,
     models::matches::{Match, MatchStatus},
 };
 use surrealdb::types::{RecordId, ToSql};
@@ -24,7 +24,7 @@ pub struct SubmissionStats {
 pub async fn submission_stats(
     db: &Database,
     submission_id: RecordId,
-) -> ApiResult<SubmissionStats> {
+) -> AppResult<SubmissionStats> {
     let mut resp = db
         .query(
             "SELECT * FROM match

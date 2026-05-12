@@ -12,14 +12,17 @@
 
 use crate::{
     db::Database,
-    error::{ApiError, ApiResult},
+    error::{AppError, AppResult},
     models::{
         game::find_game_by_id,
         room::{Room, RoomStatus},
-        tournament::{Tournament, TournamentKind, TournamentStatus},
+        tournament::{TournamentKind, TournamentStatus},
     },
     services::elo,
 };
+use axel_core::repo::matches::MatchRepo;
+use axel_core::repo::room::RoomRepo;
+use axel_core::repo::tournament::TournamentRepo;
 use surrealdb::types::{Datetime, RecordId};
 
 #[allow(clippy::too_many_arguments)]
@@ -34,12 +37,12 @@ pub async fn create_room(
     allowed_user_ids: Vec<RecordId>,
     human_timeout_ms: Option<u32>,
     config: Option<serde_json::Value>,
-) -> ApiResult<Room> {
+) -> AppResult<Room> {
     let config = config.unwrap_or_else(|| serde_json::Value::Object(serde_json::Map::new()));
     find_game_by_id(&game_id)
-        .ok_or_else(|| ApiError::NotFound("Game not found".to_string()))?;
+        .ok_or_else(|| AppError::NotFound("Game not found".to_string()))?;
     if !(2..=16).contains(&max_players) {
-        return Err(ApiError::Validation("Max players must be 2-16".to_string()));
+        return Err(AppError::Validation("Max players must be 2-16".to_string()));
     }
 
     let room = Room {
@@ -60,8 +63,7 @@ pub async fn create_room(
         created_at: Datetime::default(),
         updated_at: Datetime::default(),
     };
-    let created: Option<Room> = db.create("room").content(room).await?;
-    created.ok_or_else(|| ApiError::Internal("Failed to create room".to_string()))
+    <Database as RoomRepo>::create(db, room).await
 }
 
 /// Create a ranked tournament room with a fixed participant list.
@@ -70,23 +72,20 @@ pub async fn create_ranked_room(
     db: &Database,
     tournament_id: RecordId,
     allowed_user_ids: Vec<RecordId>,
-) -> ApiResult<Room> {
+) -> AppResult<Room> {
     if allowed_user_ids.len() < 2 {
-        return Err(ApiError::Validation(
+        return Err(AppError::Validation(
             "Ranked room needs at least 2 allowed players".to_string(),
         ));
     }
-    let tournament: Tournament = {
-        let opt: Option<Tournament> = db.select(&tournament_id).await?;
-        opt.ok_or_else(|| ApiError::NotFound("Tournament not found".to_string()))?
-    };
+    let tournament = <Database as TournamentRepo>::get_by_id(db, &tournament_id).await?;
     if tournament.kind != TournamentKind::Human {
-        return Err(ApiError::BadRequest(
+        return Err(AppError::BadRequest(
             "Only human tournaments produce ranked rooms".to_string(),
         ));
     }
     if tournament.status != TournamentStatus::Running {
-        return Err(ApiError::BadRequest(
+        return Err(AppError::BadRequest(
             "Tournament must be running to spawn rooms".to_string(),
         ));
     }
@@ -107,37 +106,22 @@ pub async fn create_ranked_room(
     .await
 }
 
-pub async fn get_room(db: &Database, room_id: RecordId) -> ApiResult<Room> {
-    let r: Option<Room> = db.select(&room_id).await?;
-    r.ok_or_else(|| ApiError::NotFound("Room not found".to_string()))
+pub async fn get_room(db: &Database, room_id: RecordId) -> AppResult<Room> {
+    <Database as RoomRepo>::get_by_id(db, &room_id).await
 }
 
-pub async fn list_open_rooms(db: &Database, game_id: Option<String>) -> ApiResult<Vec<Room>> {
-    let q = if let Some(gid) = game_id {
-        db.query(
-            "SELECT * FROM room WHERE status = 'lobby' AND game_id = $game_id
-             ORDER BY created_at DESC LIMIT 200",
-        )
-        .bind(("game_id", gid))
-    } else {
-        db.query(
-            "SELECT * FROM room WHERE status = 'lobby'
-             ORDER BY created_at DESC LIMIT 200",
-        )
-    };
-    let mut resp = q.await?;
-    let rooms: Vec<Room> = resp.take(0)?;
-    Ok(rooms)
+pub async fn list_open_rooms(db: &Database, game_id: Option<String>) -> AppResult<Vec<Room>> {
+    <Database as RoomRepo>::list_open(db, game_id.as_deref()).await
 }
 
 pub async fn join_room(
     db: &Database,
     room_id: RecordId,
     user_id: RecordId,
-) -> ApiResult<Room> {
+) -> AppResult<Room> {
     let room = get_room(db, room_id.clone()).await?;
     if room.status != RoomStatus::Lobby {
-        return Err(ApiError::BadRequest(
+        return Err(AppError::BadRequest(
             "Cannot join: room is not in lobby".to_string(),
         ));
     }
@@ -145,12 +129,12 @@ pub async fn join_room(
         return Ok(room);
     }
     if room.players.len() as u32 >= room.max_players {
-        return Err(ApiError::BadRequest("Room is full".to_string()));
+        return Err(AppError::BadRequest("Room is full".to_string()));
     }
     if !room.allowed_user_ids.is_empty()
         && !room.allowed_user_ids.iter().any(|p| *p == user_id)
     {
-        return Err(ApiError::Forbidden(
+        return Err(AppError::Forbidden(
             "You are not invited to this ranked room".to_string(),
         ));
     }
@@ -165,14 +149,14 @@ pub async fn join_room(
     let rows: Vec<Room> = resp.take(0)?;
     rows.into_iter()
         .next()
-        .ok_or_else(|| ApiError::Internal("Failed to join room".to_string()))
+        .ok_or_else(|| AppError::Internal("Failed to join room".to_string()))
 }
 
 pub async fn leave_room(
     db: &Database,
     room_id: RecordId,
     user_id: RecordId,
-) -> ApiResult<()> {
+) -> AppResult<()> {
     db.query("UPDATE $rid SET players -= $uid, updated_at = time::now()")
         .bind(("rid", room_id))
         .bind(("uid", user_id))
@@ -187,15 +171,15 @@ pub async fn update_room_config(
     room_id: RecordId,
     leader_id: RecordId,
     config: serde_json::Value,
-) -> ApiResult<Room> {
+) -> AppResult<Room> {
     let room = get_room(db, room_id.clone()).await?;
     if room.host_id != leader_id {
-        return Err(ApiError::Forbidden(
+        return Err(AppError::Forbidden(
             "Only the room host can edit config".to_string(),
         ));
     }
     if room.status != RoomStatus::Lobby {
-        return Err(ApiError::BadRequest(
+        return Err(AppError::BadRequest(
             "Cannot edit config after game has started".to_string(),
         ));
     }
@@ -210,25 +194,25 @@ pub async fn update_room_config(
     let rows: Vec<Room> = resp.take(0)?;
     rows.into_iter()
         .next()
-        .ok_or_else(|| ApiError::Internal("Failed to update room config".to_string()))
+        .ok_or_else(|| AppError::Internal("Failed to update room config".to_string()))
 }
 
 pub async fn start_room(
     db: &Database,
     room_id: RecordId,
     leader_id: RecordId,
-) -> ApiResult<Room> {
+) -> AppResult<Room> {
     let room = get_room(db, room_id.clone()).await?;
     if room.host_id != leader_id {
-        return Err(ApiError::Forbidden(
+        return Err(AppError::Forbidden(
             "Only the room host can start the game".to_string(),
         ));
     }
     if room.status != RoomStatus::Lobby {
-        return Err(ApiError::BadRequest("Room is not in lobby".to_string()));
+        return Err(AppError::BadRequest("Room is not in lobby".to_string()));
     }
     if (room.players.len() as u32) < 2 {
-        return Err(ApiError::BadRequest(
+        return Err(AppError::BadRequest(
             "Need at least 2 players to start".to_string(),
         ));
     }
@@ -274,7 +258,7 @@ pub async fn finish_room(
     reason: FinishReason,
     faulted_user_ids: Vec<RecordId>,
     per_player_scores: Option<Vec<(RecordId, f64)>>,
-) -> ApiResult<Room> {
+) -> AppResult<Room> {
     use crate::models::matches::{Match, MatchParticipant, MatchStatus};
 
     let room = get_room(db, room_id.clone()).await?;
@@ -326,7 +310,7 @@ pub async fn finish_room(
         completed_at: Some(Datetime::default()),
         ..Default::default()
     };
-    let _: Option<Match> = db.create("match").content(m).await?;
+    <Database as MatchRepo>::create(db, m).await?;
 
     let mut resp = db
         .query(
@@ -341,36 +325,35 @@ pub async fn finish_room(
     let updated = rows
         .into_iter()
         .next()
-        .ok_or_else(|| ApiError::Internal("Failed to finish room".to_string()))?;
+        .ok_or_else(|| AppError::Internal("Failed to finish room".to_string()))?;
 
-    if updated.is_ranked {
-        if let Some(tid) = updated.tournament_id.clone() {
-            // Score-aligned-by-player-index for elo's Score path.
-            let aligned: Option<Vec<f64>> = per_player_scores.as_ref().map(|ps| {
-                updated
-                    .players
-                    .iter()
-                    .map(|uid| {
-                        ps.iter()
-                            .find(|(u, _)| u == uid)
-                            .map(|(_, s)| *s)
-                            .unwrap_or(0.0)
-                    })
-                    .collect()
-            });
-            elo::apply_ranked_result(
-                db,
-                &tid,
-                &updated.game_id,
-                &updated.players,
-                &winner_id,
-                aligned.as_deref(),
-            )
-            .await?;
-            if let Err(e) = crate::services::finalization::finalize_if_done(db, tid).await {
-                tracing::warn!("finalize_if_done after ranked room: {e}");
-            }
-        }
+    let Some(tid) = updated.tournament_id.clone().filter(|_| updated.is_ranked) else {
+        return Ok(updated);
+    };
+    // Score-aligned-by-player-index for elo's Score path.
+    let aligned: Option<Vec<f64>> = per_player_scores.as_ref().map(|ps| {
+        updated
+            .players
+            .iter()
+            .map(|uid| {
+                ps.iter()
+                    .find(|(u, _)| u == uid)
+                    .map(|(_, s)| *s)
+                    .unwrap_or(0.0)
+            })
+            .collect()
+    });
+    elo::apply_ranked_result(
+        db,
+        &tid,
+        &updated.game_id,
+        &updated.players,
+        &winner_id,
+        aligned.as_deref(),
+    )
+    .await?;
+    if let Err(e) = crate::services::finalization::finalize_if_done(db, tid).await {
+        tracing::warn!("finalize_if_done after ranked room: {e}");
     }
     Ok(updated)
 }

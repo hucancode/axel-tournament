@@ -1,5 +1,11 @@
 import { Graphics, Text } from 'pixi.js';
-import { BasePixiGame, type GameContext, type GameResult, type GameStatus } from './BasePixiGame';
+import {
+  BasePixiGame,
+  type CanvasDimensions,
+  type GameContext,
+  type GameResult,
+  type GameStatus,
+} from './BasePixiGame';
 import { COLORS } from './types';
 
 /**
@@ -73,6 +79,10 @@ export class PokerGame extends BasePixiGame {
   private revealOpponent = false;
   /** Pending custom bet/raise input for the action buttons. */
   private betInput = 0;
+
+  protected getDimensions(): CanvasDimensions {
+    return { width: CANVAS_W, height: CANVAS_H };
+  }
 
   public handleEvent(kind: string, payload: string, ctx: GameContext): void {
     this.ctx = ctx;

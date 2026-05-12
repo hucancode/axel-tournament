@@ -1,10 +1,16 @@
 use crate::{
     db::Database,
-    error::{ApiError, ApiResult},
+    error::{AppError, AppResult},
     models::{ProgrammingLanguage, Submission, SubmissionStatus, TournamentParticipant},
     services::common::enum_tag,
 };
-use surrealdb::types::{Datetime, RecordId};
+use axel_core::repo::tournament::TournamentRepo;
+use surrealdb::types::{Datetime, RecordId, SurrealValue};
+
+#[derive(serde::Deserialize, SurrealValue)]
+struct CountRow {
+    n: i64,
+}
 
 /// Maximum submissions a user may create within `RATE_WINDOW`. Bots
 /// upload often during dev, but more than this looks like spam.
@@ -20,16 +26,25 @@ pub async fn create_submission(
     db: &Database,
     user_id: RecordId,
     tournament_id: RecordId,
-    game_id: String,
     language: ProgrammingLanguage,
     code: String,
-) -> ApiResult<Submission> {
+) -> AppResult<Submission> {
     if code.len() > MAX_CODE_BYTES {
-        return Err(ApiError::BadRequest(format!(
+        return Err(AppError::BadRequest(format!(
             "Submission too large: {} bytes (max {} bytes / {} KiB).",
             code.len(),
             MAX_CODE_BYTES,
             MAX_CODE_BYTES / 1024,
+        )));
+    }
+    let tournament = <Database as TournamentRepo>::get_by_id(db, &tournament_id).await?;
+    let game_id = tournament.game_id.clone();
+    let game = crate::models::game::find_game_by_id(&game_id)
+        .ok_or_else(|| AppError::NotFound("Game not found".to_string()))?;
+    if !game.supported_languages.contains(&language) {
+        return Err(AppError::Validation(format!(
+            "Language {:?} is not supported by this game. Supported languages: {:?}",
+            language, game.supported_languages,
         )));
     }
 
@@ -37,7 +52,7 @@ pub async fn create_submission(
     let participant = crate::services::tournament::get_participant(db, &tournament_id, &user_id)
         .await?
         .ok_or_else(|| {
-            ApiError::Forbidden("You must join the tournament before submitting code".to_string())
+            AppError::Forbidden("You must join the tournament before submitting code".to_string())
         })?;
 
     let mut count_resp = db
@@ -51,16 +66,11 @@ pub async fn create_submission(
         .bind(("tid", tournament_id.clone()))
         .bind(("w", RATE_WINDOW_SECS as i64))
         .await?;
-    use surrealdb::types::SurrealValue;
-    #[derive(serde::Deserialize, SurrealValue)]
-    struct CountRow {
-        n: i64,
-    }
     let rows: Vec<CountRow> = count_resp.take(0).unwrap_or_default();
     drop(count_resp);
     let count = rows.into_iter().next().map(|r| r.n).unwrap_or(0);
     if count as u32 >= RATE_LIMIT {
-        return Err(ApiError::BadRequest(format!(
+        return Err(AppError::BadRequest(format!(
             "Rate limit: max {} submissions per {} seconds for this tournament. Wait and try again.",
             RATE_LIMIT, RATE_WINDOW_SECS
         )));
@@ -94,31 +104,24 @@ pub async fn create_submission(
     submissions
         .into_iter()
         .next()
-        .ok_or_else(|| ApiError::Internal("Submission create returned no row".to_string()))
+        .ok_or_else(|| AppError::Internal("Submission create returned no row".to_string()))
 }
 
-pub async fn get_submission(db: &Database, submission_id: RecordId) -> ApiResult<Submission> {
-    let submission: Option<Submission> = db.select(&submission_id).await?;
-    submission.ok_or_else(|| ApiError::NotFound("Submission not found".to_string()))
+pub async fn get_submission(db: &Database, submission_id: RecordId) -> AppResult<Submission> {
+    <Database as axel_core::repo::submission::SubmissionRepo>::get_by_id(db, &submission_id).await
 }
 
 pub async fn list_user_submissions(
     db: &Database,
     user_id: RecordId,
     tournament_id: Option<RecordId>,
-) -> ApiResult<Vec<Submission>> {
-    let mut result = if let Some(tid) = tournament_id {
-        db.query("SELECT * FROM submission WHERE user_id = $user_id AND tournament_id = $tournament_id ORDER BY created_at DESC")
-            .bind(("user_id", user_id))
-            .bind(("tournament_id", tid))
-            .await?
-    } else {
-        db.query("SELECT * FROM submission WHERE user_id = $user_id ORDER BY created_at DESC")
-            .bind(("user_id", user_id))
-            .await?
-    };
-    let submissions: Vec<Submission> = result.take(0)?;
-    Ok(submissions)
+) -> AppResult<Vec<Submission>> {
+    <Database as axel_core::repo::submission::SubmissionRepo>::list_for_user(
+        db,
+        &user_id,
+        tournament_id.as_ref(),
+    )
+    .await
 }
 
 /// Mark this submission as the active bot for the user's tournament
@@ -128,13 +131,14 @@ pub async fn select_active_submission(
     db: &Database,
     user_id: RecordId,
     submission_id: RecordId,
-) -> ApiResult<Submission> {
-    let submission: Submission = {
-        let opt: Option<Submission> = db.select(&submission_id).await?;
-        opt.ok_or_else(|| ApiError::NotFound("Submission not found".to_string()))?
-    };
+) -> AppResult<Submission> {
+    let submission = <Database as axel_core::repo::submission::SubmissionRepo>::get_by_id(
+        db,
+        &submission_id,
+    )
+    .await?;
     if submission.user_id != user_id {
-        return Err(ApiError::Forbidden(
+        return Err(AppError::Forbidden(
             "You don't have access to this submission".to_string(),
         ));
     }
@@ -151,7 +155,7 @@ pub async fn select_active_submission(
         .await?;
     let rows: Vec<TournamentParticipant> = updated.take(0)?;
     if rows.is_empty() {
-        return Err(ApiError::Forbidden(
+        return Err(AppError::Forbidden(
             "You must join the tournament before selecting a bot".to_string(),
         ));
     }
@@ -163,16 +167,12 @@ pub async fn update_submission_status(
     submission_id: RecordId,
     status: SubmissionStatus,
     error_message: Option<String>,
-) -> ApiResult<Submission> {
-    let mut result = db
-        .query("UPDATE $submission_id SET status = $status, error_message = $error")
-        .bind(("submission_id", submission_id))
-        .bind(("status", enum_tag(&status)))
-        .bind(("error", error_message))
-        .await?;
-    let submissions: Vec<Submission> = result.take(0)?;
-    submissions
-        .into_iter()
-        .next()
-        .ok_or_else(|| ApiError::NotFound("Submission not found".to_string()))
+) -> AppResult<Submission> {
+    <Database as axel_core::repo::submission::SubmissionRepo>::update_status(
+        db,
+        &submission_id,
+        status,
+        error_message,
+    )
+    .await
 }

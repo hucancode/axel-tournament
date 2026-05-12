@@ -4,6 +4,9 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
+# Internal
+axel-core.workspace = true
+
 # Web framework
 axum = { workspace = true, features = ["macros", "multipart"] }
 tokio.workspace = true

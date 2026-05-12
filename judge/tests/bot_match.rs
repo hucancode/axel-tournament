@@ -16,7 +16,9 @@ use judge::games::Rps;
 use judge::services::room::bot::{run_match, wrap, MatchOutcome};
 use judge::services::room::logic::{LiveRoom, RoomRegistry};
 use judge::services::sandbox::{BuildSandbox as CompilerSandbox, SandboxedBot};
+use judge::services::sandbox::cgroup::CgroupHandle;
 use judge::services::storage::Storage;
+use std::sync::OnceLock;
 use tempfile::TempDir;
 
 const LEASE: Duration = Duration::from_secs(30);
@@ -25,6 +27,23 @@ const RPS_DEFAULT_ROUNDS: usize = 5;
 
 fn unique(p: &str) -> String {
     format!("{p}_{}", uuid::Uuid::new_v4().simple())
+}
+
+/// Probe once whether the test process can create the cgroup v2 nodes
+/// the sandbox needs. Without CAP_SYS_ADMIN + cgroup delegation (devbox,
+/// rootless CI) compilation+spawn would panic; skip in that case.
+fn sandbox_available() -> bool {
+    static OK: OnceLock<bool> = OnceLock::new();
+    *OK.get_or_init(|| CgroupHandle::new_compilation("probe_bot_match").is_ok())
+}
+
+macro_rules! skip_without_sandbox {
+    () => {
+        if !sandbox_available() {
+            eprintln!("skipping: sandbox cgroups unavailable (needs CAP_SYS_ADMIN + cgroup v2 delegation)");
+            return;
+        }
+    };
 }
 
 /// Compile a bot source file from `judge/tests/bots/<name>.rs`.
@@ -86,6 +105,7 @@ async fn play(
 /// Always-rock vs always-rock: every round is a tie.
 #[tokio::test]
 async fn rock_vs_rock_all_draws() {
+    skip_without_sandbox!();
     let (outcome, _room, registry, room_id) = play("rps_rock", "rps_rock").await;
     assert!(outcome.faulted_indices.is_empty(), "fault: {:?}", outcome.fault_reason);
     assert_eq!(outcome.scores, vec![0.0, 0.0]);
@@ -95,6 +115,7 @@ async fn rock_vs_rock_all_draws() {
 /// Always-rock vs always-paper: paper sweeps 0-5.
 #[tokio::test]
 async fn rock_vs_paper_paper_sweeps() {
+    skip_without_sandbox!();
     let (outcome, _room, registry, room_id) = play("rps_rock", "rps_paper").await;
     assert!(outcome.faulted_indices.is_empty(), "fault: {:?}", outcome.fault_reason);
     assert_eq!(outcome.scores, vec![0.0, RPS_DEFAULT_ROUNDS as f64]);
@@ -105,6 +126,7 @@ async fn rock_vs_paper_paper_sweeps() {
 /// Per round: draw, cycle wins, rock wins, draw, cycle wins -> 2-1.
 #[tokio::test]
 async fn cycle_vs_rock_deterministic_score() {
+    skip_without_sandbox!();
     let (outcome, _room, registry, room_id) = play("rps_cycle", "rps_rock").await;
     assert!(outcome.faulted_indices.is_empty(), "fault: {:?}", outcome.fault_reason);
     assert_eq!(outcome.scores, vec![2.0, 1.0]);
@@ -114,6 +136,7 @@ async fn cycle_vs_rock_deterministic_score() {
 /// Verify the event log was the full match: 5 ROUND_RESULTs + GAME_END.
 #[tokio::test]
 async fn cycle_vs_rock_event_log_shape() {
+    skip_without_sandbox!();
     let (outcome, room, registry, room_id) = play("rps_cycle", "rps_rock").await;
     assert!(outcome.faulted_indices.is_empty(), "fault: {:?}", outcome.fault_reason);
 

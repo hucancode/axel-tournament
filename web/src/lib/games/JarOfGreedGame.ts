@@ -1,5 +1,11 @@
 import { Graphics, Text } from 'pixi.js';
-import { BasePixiGame, type GameContext, type GameResult, type GameStatus } from './BasePixiGame';
+import {
+  BasePixiGame,
+  type CanvasDimensions,
+  type GameContext,
+  type GameResult,
+  type GameStatus,
+} from './BasePixiGame';
 import { COLORS } from './types';
 
 /**
@@ -62,6 +68,10 @@ export class JarOfGreedGame extends BasePixiGame {
   private history: RoundRow[] = [];
   private lastResult: RoundRow | null = null;
   private outcome: 'win' | 'lose' | 'draw' | null = null;
+
+  protected getDimensions(): CanvasDimensions {
+    return { width: CANVAS_W, height: CANVAS_H };
+  }
 
   public handleEvent(kind: string, payload: string, ctx: GameContext): void {
     this.ctx = ctx;

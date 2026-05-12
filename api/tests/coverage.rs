@@ -21,7 +21,7 @@ use api::{
     },
     services::{
         auth as auth_svc, email as email_svc, matches as match_svc, submission as sub_svc,
-        tournament as tour_svc, user as user_svc,
+        tournament as tour_svc,
     },
 };
 use surrealdb::types::RecordId;
@@ -33,9 +33,9 @@ fn unique(prefix: &str) -> String {
 async fn fresh_player(db: &api::db::Database) -> api::models::User {
     let email = format!("{}@example.com", unique("u"));
     let username = unique("user");
-    user_svc::create_user(
+    <api::db::Database as axel_core::repo::user::UserRepo>::create(
         db,
-        user_svc::NewUser {
+        axel_core::repo::user::NewUser {
             email,
             username,
             password_hash: Some("hashed".to_string()),
@@ -86,7 +86,7 @@ async fn user_to_info_projects_user_fields() {
 async fn get_user_by_id_returns_user() {
     let db = db::setup_test_db().await;
     let user = fresh_player(&db).await;
-    let by_id = user_svc::get_user_by_id(&db, user.id.clone().unwrap()).await.unwrap();
+    let by_id = <api::db::Database as axel_core::repo::user::UserRepo>::get_by_id(&db, &user.id.clone().unwrap()).await.unwrap();
     assert_eq!(by_id.email, user.email);
 }
 
@@ -94,23 +94,23 @@ async fn get_user_by_id_returns_user() {
 async fn get_user_by_id_not_found() {
     let db = db::setup_test_db().await;
     let bogus = RecordId::parse_simple("user:does_not_exist").unwrap();
-    assert!(user_svc::get_user_by_id(&db, bogus).await.is_err());
+    assert!(<api::db::Database as axel_core::repo::user::UserRepo>::get_by_id(&db, &bogus).await.is_err());
 }
 
 #[tokio::test]
 async fn get_user_by_email_none_for_unknown() {
     let db = db::setup_test_db().await;
     let unknown = format!("{}@nowhere.test", unique("nobody"));
-    assert!(user_svc::get_user_by_email(&db, &unknown).await.unwrap().is_none());
+    assert!(<api::db::Database as axel_core::repo::user::UserRepo>::find_by_email(&db, &unknown).await.unwrap().is_none());
 }
 
 #[tokio::test]
 async fn get_user_by_username_round_trip() {
     let db = db::setup_test_db().await;
     let user = fresh_player(&db).await;
-    let by_name = user_svc::get_user_by_username(&db, &user.username).await.unwrap();
+    let by_name = <api::db::Database as axel_core::repo::user::UserRepo>::find_by_username(&db, &user.username).await.unwrap();
     assert_eq!(by_name.unwrap().email, user.email);
-    let none = user_svc::get_user_by_username(&db, &unique("ghost")).await.unwrap();
+    let none = <api::db::Database as axel_core::repo::user::UserRepo>::find_by_username(&db, &unique("ghost")).await.unwrap();
     assert!(none.is_none());
 }
 
@@ -118,9 +118,9 @@ async fn get_user_by_username_round_trip() {
 async fn get_user_by_oauth_round_trip() {
     let db = db::setup_test_db().await;
     let oauth_id = unique("g");
-    let user = user_svc::create_user(
+    let user = <api::db::Database as axel_core::repo::user::UserRepo>::create(
         &db,
-        user_svc::NewUser {
+        axel_core::repo::user::NewUser {
             email: format!("{}@oauth.test", unique("u")),
             username: unique("oauth"),
             password_hash: None,
@@ -132,10 +132,10 @@ async fn get_user_by_oauth_round_trip() {
     .await
     .unwrap();
 
-    let found = user_svc::get_user_by_oauth(&db, "google", &oauth_id).await.unwrap();
+    let found = <api::db::Database as axel_core::repo::user::UserRepo>::find_by_oauth(&db, "google", &oauth_id).await.unwrap();
     assert_eq!(found.unwrap().id, user.id);
 
-    let missing = user_svc::get_user_by_oauth(&db, "google", &unique("ghost"))
+    let missing = <api::db::Database as axel_core::repo::user::UserRepo>::find_by_oauth(&db, "google", &unique("ghost"))
         .await
         .unwrap();
     assert!(missing.is_none());
@@ -333,12 +333,12 @@ async fn create_submission_requires_tournament_join() {
         &db,
         user.id.unwrap(),
         tid,
-        "rock-paper-scissors".to_string(),
+        
         ProgrammingLanguage::Rust,
         "fn main() {}".to_string(),
     )
     .await;
-    assert!(matches!(r, Err(api::error::ApiError::Forbidden(_))));
+    assert!(matches!(r, Err(api::error::AppError::Forbidden(_))));
 }
 
 #[tokio::test]
@@ -353,7 +353,7 @@ async fn update_submission_status_round_trip() {
         &db,
         user.id.unwrap(),
         tid,
-        "rock-paper-scissors".to_string(),
+        
         ProgrammingLanguage::Rust,
         "fn main() {}".to_string(),
     )
@@ -389,7 +389,7 @@ async fn update_submission_status_not_found() {
     let db = db::setup_test_db().await;
     let bogus = RecordId::parse_simple("submission:nope").unwrap();
     let r = sub_svc::update_submission_status(&db, bogus, SubmissionStatus::Accepted, None).await;
-    assert!(matches!(r, Err(api::error::ApiError::NotFound(_))));
+    assert!(matches!(r, Err(api::error::AppError::NotFound(_))));
 }
 
 // ---------- matches service ----------
@@ -405,7 +405,7 @@ async fn seeded_match(db: &api::db::Database, game_id: &str) -> api::models::mat
         db,
         user.id.unwrap(),
         tid.clone(),
-        game_id.to_string(),
+        
         ProgrammingLanguage::Rust,
         "fn main() {}".to_string(),
     )
@@ -415,7 +415,7 @@ async fn seeded_match(db: &api::db::Database, game_id: &str) -> api::models::mat
         db,
         user2.id.unwrap(),
         tid.clone(),
-        game_id.to_string(),
+        
         ProgrammingLanguage::Rust,
         "fn main() {}".to_string(),
     )
@@ -459,7 +459,7 @@ async fn create_match_rejects_mismatched_game() {
         &db,
         user.id.unwrap(),
         tid.clone(),
-        "rock-paper-scissors".to_string(),
+        
         ProgrammingLanguage::Rust,
         "fn main() {}".to_string(),
     )
@@ -547,7 +547,7 @@ async fn email_service_rejects_when_credentials_missing() {
     email_cfg.smtp_username = "".to_string();
     email_cfg.smtp_password = "".to_string();
     let r = email_svc::send_password_reset(&email_cfg, "anyone@example.com", "tok").await;
-    assert!(matches!(r, Err(api::error::ApiError::Email(_))));
+    assert!(matches!(r, Err(api::error::AppError::Email(_))));
 }
 
 #[tokio::test]

@@ -32,8 +32,11 @@ The sandbox uses multiple layers of defense:
 The security tests are in `tests/pentest.rs`. They require root/CAP_SYS_ADMIN privileges:
 
 ```bash
-sudo cargo test --test security_tests -- --ignored --nocapture
+sudo -E "$(cargo test -p judge --test pentest --no-run --message-format=json \
+  | jq -r 'select(.profile.test) | .executable' | tail -n1)" --nocapture --test-threads=1
 ```
+
+CI runs this same path in `.github/workflows/ci.yml#pentest`. PRs that break sandbox isolation fail the build.
 
 ### Manual Testing
 

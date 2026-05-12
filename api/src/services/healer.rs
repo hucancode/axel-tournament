@@ -1,16 +1,21 @@
-use crate::db::Database;
+use crate::db::{Database, SeedCreds};
 use crate::models::matches::Match;
 use crate::models::tournament::Tournament;
 use crate::services::bracket::advance_brackets;
 use crate::services::elo;
 use crate::services::finalization::finalize_if_done;
 use crate::services::matchmaking;
+use std::sync::Arc;
 use std::time::Duration;
 use tracing::{error, info};
 
 const HEALER_INTERVAL: Duration = Duration::from_secs(30);
+const BOOTSTRAP_INTERVAL: Duration = Duration::from_secs(10);
 
-/// Background loop. Runs `tick` every `HEALER_INTERVAL`.
+/// Background loop. Runs heavyweight `tick` every `HEALER_INTERVAL`.
+/// Schema + seed restoration runs on a separate fast loop (see
+/// `run_bootstrap_loop`) so dropped tables come back in seconds, not
+/// minutes.
 pub async fn run_healer(db: Database) {
     info!("Healer service started");
     loop {
@@ -19,22 +24,69 @@ pub async fn run_healer(db: Database) {
     }
 }
 
+/// Fast loop that keeps the database schema + dev users present. Re-runs
+/// idempotent migrations and re-seeds the three dev users whenever the
+/// user table is empty. Short interval so an operator dropping a table
+/// at runtime doesn't lock out the API for long.
+pub async fn run_bootstrap_loop(db: Database, seed: Option<Arc<SeedCreds>>) {
+    info!("Bootstrap loop started");
+    loop {
+        if let Err(e) = bootstrap(&db, seed.as_deref()).await {
+            error!("bootstrap: {e}");
+        }
+        tokio::time::sleep(BOOTSTRAP_INTERVAL).await;
+    }
+}
+
+/// Re-apply idempotent schema and (if seed creds provided) re-seed dev
+/// users when the user table is empty. Safe to call repeatedly.
+pub async fn bootstrap(
+    db: &Database,
+    creds: Option<&SeedCreds>,
+) -> Result<(), surrealdb::Error> {
+    // Cheap probe: if the `user` table is queryable, schema is intact and
+    // we skip re-running the full DDL set. Recovery only pays the DDL cost
+    // when an operator has actually dropped a table.
+    let schema_intact = db
+        .query("SELECT VALUE id FROM user LIMIT 1")
+        .await
+        .and_then(|mut r| r.take::<Vec<surrealdb::types::RecordId>>(0))
+        .is_ok();
+    if !schema_intact {
+        if let Err(e) = axel_core::migrations::ensure_schema(db).await {
+            error!("ensure_schema: {e}");
+        }
+    }
+    if let Some(c) = creds {
+        crate::db::seed_users(db, c).await?;
+    }
+    Ok(())
+}
+
 /// One healer pass. Public so integration tests can drive it without
 /// waiting on the timer.
 pub async fn tick(db: &Database) {
-    if let Err(e) = refresh_stale_queued(db).await {
+    // Independent timeout/orphan sweeps — fan out in parallel.
+    let (a, b, c, d, e) = tokio::join!(
+        refresh_stale_queued(db),
+        requeue_stale_running(db),
+        cleanup_stale_rooms(db),
+        cleanup_orphan_matches(db),
+        promote_scheduled_tournaments(db),
+    );
+    if let Err(e) = a {
         error!("refresh stale queued: {e}");
     }
-    if let Err(e) = requeue_stale_running(db).await {
+    if let Err(e) = b {
         error!("requeue stale running: {e}");
     }
-    if let Err(e) = cleanup_stale_rooms(db).await {
+    if let Err(e) = c {
         error!("cleanup stale rooms: {e}");
     }
-    if let Err(e) = cleanup_orphan_matches(db).await {
+    if let Err(e) = d {
         error!("cleanup orphan matches: {e}");
     }
-    if let Err(e) = promote_scheduled_tournaments(db).await {
+    if let Err(e) = e {
         error!("scheduled -> registration: {e}");
     }
     if let Err(e) = apply_pending_elo(db).await {

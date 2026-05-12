@@ -1,5 +1,11 @@
 import { Graphics, Text } from 'pixi.js';
-import { BasePixiGame, type GameContext, type GameResult, type GameStatus } from './BasePixiGame';
+import {
+  BasePixiGame,
+  type CanvasDimensions,
+  type GameContext,
+  type GameResult,
+  type GameStatus,
+} from './BasePixiGame';
 import { COLORS } from './types';
 
 /** Spec: judge/protocols/xiangqi.md. Player 0 = red, player 1 = black. */
@@ -54,11 +60,8 @@ export class XiangqiGame extends BasePixiGame {
   private selected: { row: number; col: number } | null = null;
   private legalDests: { row: number; col: number }[] = [];
 
-  // Override init: 9x10 board needs a taller canvas than the 400x400 default.
-  // We piggy-back on the parent constructor by re-initialising after super().
-  // pixi's Application.init returns a promise; we await it lazily.
-  protected async initBoard() {
-    // intentionally left as a hook for future use
+  protected getDimensions(): CanvasDimensions {
+    return { width: CANVAS_W, height: CANVAS_H };
   }
 
   public handleEvent(kind: string, payload: string, ctx: GameContext): void {
@@ -150,12 +153,6 @@ export class XiangqiGame extends BasePixiGame {
 
   protected render(): void {
     if (!this.app || !this.app.renderer) return;
-
-    // Resize canvas to match xiangqi aspect on first render.
-    if (this.app.renderer.width !== CANVAS_W || this.app.renderer.height !== CANVAS_H) {
-      this.app.renderer.resize(CANVAS_W, CANVAS_H);
-    }
-
     this.container.removeChildren();
 
     this.drawBoard();

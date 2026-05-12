@@ -10,11 +10,11 @@ use api::{
         matches::{Match, MatchStatus},
         MatchGenerationType, ProgrammingLanguage, TournamentKind, TournamentStatus,
     },
-    services::{bracket, finalization, submission, tournament, user},
+    services::{bracket, finalization, submission, tournament},
 };
 use surrealdb::types::RecordId;
 
-const GAME: &str = "rock-paper-scissors";
+const GAME: &str = "tic-tac-toe";
 
 fn unique(prefix: &str) -> String {
     let n = std::time::SystemTime::now()
@@ -25,7 +25,7 @@ fn unique(prefix: &str) -> String {
 }
 
 async fn seeded_user(db: &api::db::Database, email: &str) -> RecordId {
-    user::get_user_by_email(db, email)
+    <api::db::Database as axel_core::repo::user::UserRepo>::find_by_email(db, email)
         .await
         .unwrap()
         .unwrap()
@@ -38,7 +38,7 @@ async fn ensure_user(db: &api::db::Database, suffix: u32) -> RecordId {
     // forge user rows directly.
     let username = format!("bracket_user_{suffix}");
     let email = format!("{username}@test.local");
-    if let Some(u) = user::get_user_by_email(db, &email).await.unwrap() {
+    if let Some(u) = <api::db::Database as axel_core::repo::user::UserRepo>::find_by_email(db, &email).await.unwrap() {
         return u.id.unwrap();
     }
     let mut resp = db
@@ -66,7 +66,7 @@ async fn register_player(
         db,
         user,
         tid.clone(),
-        GAME.into(),
+        
         ProgrammingLanguage::Rust,
         "fn main(){}".into(),
     )

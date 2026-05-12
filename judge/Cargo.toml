@@ -12,6 +12,9 @@ name = "judge"
 path = "src/main.rs"
 
 [dependencies]
+# Internal
+axel-core.workspace = true
+
 # Web framework
 axum = { workspace = true, features = ["ws"] }
 tokio.workspace = true

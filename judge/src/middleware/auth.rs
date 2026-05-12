@@ -1,49 +1,28 @@
+use axel_core::error::AppError;
 use axum::{
     extract::{Request, State},
+    http::StatusCode,
     middleware::Next,
     response::Response,
-    http::StatusCode,
 };
-use jsonwebtoken::{decode, DecodingKey, Validation, Algorithm};
-use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Claims {
-    pub sub: String,
-    pub exp: usize,
-}
+pub use axel_core::auth::Claims;
 
 /// Auth middleware for protected HTTP routes.
+///
+/// Symmetric with api: validates JWT, then ensures the user record
+/// exists and is not banned. Without this check the judge would happily
+/// run code submissions from users banned in the api.
 pub async fn auth_middleware(
     State(state): State<Arc<crate::app_state::AppState>>,
     mut req: Request,
     next: Next,
-) -> Result<Response, StatusCode> {
-    let auth_header = req
-        .headers()
-        .get("Authorization")
-        .and_then(|h| h.to_str().ok())
-        .ok_or(StatusCode::UNAUTHORIZED)?;
-
-    let token = auth_header
-        .strip_prefix("Bearer ")
-        .ok_or(StatusCode::UNAUTHORIZED)?;
-
-    let claims = validate_jwt(token, &state.jwt_secret)
-        .map_err(|_| StatusCode::UNAUTHORIZED)?;
-
+) -> Result<Response, AppError> {
+    let claims =
+        axel_core::auth::authenticate_bearer(&state.jwt_secret, req.headers(), &state.db).await?;
     req.extensions_mut().insert(claims);
     Ok(next.run(req).await)
-}
-
-pub fn validate_jwt(token: &str, secret: &str) -> Result<Claims, String> {
-    let key = DecodingKey::from_secret(secret.as_ref());
-    let validation = Validation::new(Algorithm::HS256);
-    match decode::<Claims>(token, &key, &validation) {
-        Ok(token_data) => Ok(token_data.claims),
-        Err(e) => Err(format!("Invalid JWT: {}", e)),
-    }
 }
 
 pub trait RequestExt {

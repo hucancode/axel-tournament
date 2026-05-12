@@ -14,13 +14,13 @@ use api::{
         matches::Match, MatchGenerationType, ProgrammingLanguage, TournamentKind,
         TournamentStatus,
     },
-    services::{healer, matchmaking, submission, tournament, user},
+    services::{healer, matchmaking, submission, tournament},
 };
 use surrealdb::types::SurrealValue;
 use chrono::{Duration as ChDuration, Utc};
 use surrealdb::types::RecordId;
 
-const GAME: &str = "rock-paper-scissors";
+const GAME: &str = "tic-tac-toe";
 
 fn unique(p: &str) -> String {
     let n = std::time::SystemTime::now()
@@ -31,7 +31,7 @@ fn unique(p: &str) -> String {
 }
 
 async fn user_id(db: &api::db::Database, email: &str) -> RecordId {
-    user::get_user_by_email(db, email)
+    <api::db::Database as axel_core::repo::user::UserRepo>::find_by_email(db, email)
         .await
         .unwrap()
         .unwrap()
@@ -188,7 +188,6 @@ async fn healer_finalizes_running_tournament_when_all_matches_terminal() {
             &db,
             uid,
             tid.clone(),
-            GAME.into(),
             ProgrammingLanguage::Rust,
             "fn main(){}".into(),
         )
@@ -232,7 +231,7 @@ async fn healer_tick_advances_single_elim_bracket_without_explicit_call() {
     async fn ensure_user(db: &api::db::Database, suffix: u32) -> surrealdb::types::RecordId {
         let username = format!("healer_user_{suffix}");
         let email = format!("{username}@test.local");
-        if let Some(u) = user::get_user_by_email(db, &email).await.unwrap() {
+        if let Some(u) = <api::db::Database as axel_core::repo::user::UserRepo>::find_by_email(db, &email).await.unwrap() {
             return u.id.unwrap();
         }
         let mut resp = db
@@ -278,7 +277,6 @@ async fn healer_tick_advances_single_elim_bracket_without_explicit_call() {
             &db,
             p.clone(),
             tid.clone(),
-            GAME.into(),
             ProgrammingLanguage::Rust,
             "fn main(){}".into(),
         )
@@ -341,7 +339,7 @@ async fn concurrent_matchmaking_ticks_do_not_double_pair() {
     async fn ensure_user(db: &api::db::Database, suffix: &str) -> RecordId {
         let username = format!("mm_user_{suffix}");
         let email = format!("{username}@test.local");
-        if let Some(u) = user::get_user_by_email(db, &email).await.unwrap() {
+        if let Some(u) = <api::db::Database as axel_core::repo::user::UserRepo>::find_by_email(db, &email).await.unwrap() {
             return u.id.unwrap();
         }
         let mut resp = db
@@ -458,7 +456,6 @@ async fn submission_rate_limit_rejects_after_threshold() {
             &db,
             bob.clone(),
             tid.clone(),
-            GAME.into(),
             ProgrammingLanguage::Rust,
             format!("fn main(){{ /* {i} */ }}"),
         )
@@ -470,7 +467,6 @@ async fn submission_rate_limit_rejects_after_threshold() {
         &db,
         bob.clone(),
         tid.clone(),
-        GAME.into(),
         ProgrammingLanguage::Rust,
         "fn main(){ /* over */ }".into(),
     )
@@ -512,7 +508,6 @@ async fn submission_size_cap_rejects_oversized_code() {
         &db,
         bob.clone(),
         tid.clone(),
-        GAME.into(),
         ProgrammingLanguage::Rust,
         ok,
     )
@@ -525,7 +520,6 @@ async fn submission_size_cap_rejects_oversized_code() {
         &db,
         bob.clone(),
         tid.clone(),
-        GAME.into(),
         ProgrammingLanguage::Rust,
         big,
     )
@@ -568,7 +562,6 @@ async fn multi_bot_upload_then_select_makes_v2_active_for_start() {
         &db,
         bob.clone(),
         tid.clone(),
-        GAME.into(),
         ProgrammingLanguage::Rust,
         "fn main(){/*v1*/}".into(),
     )
@@ -579,7 +572,6 @@ async fn multi_bot_upload_then_select_makes_v2_active_for_start() {
         &db,
         bob.clone(),
         tid.clone(),
-        GAME.into(),
         ProgrammingLanguage::Rust,
         "fn main(){/*v2*/}".into(),
     )
@@ -595,7 +587,6 @@ async fn multi_bot_upload_then_select_makes_v2_active_for_start() {
         &db,
         alice.clone(),
         tid.clone(),
-        GAME.into(),
         ProgrammingLanguage::Rust,
         "fn main(){}".into(),
     )

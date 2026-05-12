@@ -1,6 +1,6 @@
 use crate::{
     db::Database,
-    error::ApiResult,
+    error::AppResult,
     models::{LeaderboardEntry, bare_key},
 };
 use surrealdb::types::{RecordId, SurrealValue};
@@ -18,7 +18,7 @@ pub async fn get_leaderboard(
     db: &Database,
     tournament_id: RecordId,
     limit: u32,
-) -> ApiResult<Vec<LeaderboardEntry>> {
+) -> AppResult<Vec<LeaderboardEntry>> {
     let limit = limit.min(MAX_LIMIT);
     let mut response = db
         .query(SELECT_CLAUSE)

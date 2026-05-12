@@ -136,7 +136,7 @@ impl Config {
             },
             admin: UserConfig {
                 email: env::var("ADMIN_EMAIL")
-                    .unwrap_or_else(|_| "admin@axel-tournament.com".to_string()),
+                    .unwrap_or_else(|_| "admin@example.com".to_string()),
                 password: env::var("ADMIN_PASSWORD").unwrap_or_else(|_| "123456".to_string()),
             },
             bob: UserConfig {

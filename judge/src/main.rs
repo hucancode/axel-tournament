@@ -61,106 +61,43 @@ async fn main() -> anyhow::Result<()> {
     // skip this — match runners enforce their own turn timeout.
     let timeout_cb = match_writer::db_timeout_callback(db.clone());
     let finish_cb = match_writer::db_finish_callback(db.clone());
-    let rps_meta = games::find_game_by_id("rock-paper-scissors").expect("rps metadata");
-    let ttt_meta = games::find_game_by_id("tic-tac-toe").expect("ttt metadata");
-    let pd_meta = games::find_game_by_id("prisoners-dilemma").expect("pd metadata");
-    let chess_meta = games::find_game_by_id("chess").expect("chess metadata");
-    let xiangqi_meta = games::find_game_by_id("xiangqi").expect("xiangqi metadata");
-    let poker_meta = games::find_game_by_id("poker").expect("poker metadata");
-    let jog_meta = games::find_game_by_id("jar-of-greed").expect("jar-of-greed metadata");
 
-    let rps_registry = Arc::new(
-        RoomRegistry::<games::Rps>::new(storage.clone(), owner_id.clone()).with_on_open(
-            room_open_hook(
-                Duration::from_millis(rps_meta.human_turn_timeout_ms),
-                timeout_cb.clone(),
-                finish_cb.clone(),
-            ),
-        ),
+    let rps_registry = build_registry::<games::Rps>(
+        &storage, &owner_id, "rock-paper-scissors", false,
+        timeout_cb.clone(), finish_cb.clone(),
     );
-    let ttt_registry = Arc::new(
-        RoomRegistry::<games::Ttt>::new(storage.clone(), owner_id.clone()).with_on_open(
-            room_open_hook(
-                Duration::from_millis(ttt_meta.human_turn_timeout_ms),
-                timeout_cb.clone(),
-                finish_cb.clone(),
-            ),
-        ),
+    let ttt_registry = build_registry::<games::Ttt>(
+        &storage, &owner_id, "tic-tac-toe", false,
+        timeout_cb.clone(), finish_cb.clone(),
     );
-    let pd_registry = Arc::new(
-        RoomRegistry::<games::Pd>::new(storage.clone(), owner_id.clone()).with_on_open(
-            room_open_hook(
-                Duration::from_millis(pd_meta.human_turn_timeout_ms),
-                timeout_cb.clone(),
-                finish_cb.clone(),
-            ),
-        ),
+    let pd_registry = build_registry::<games::Pd>(
+        &storage, &owner_id, "prisoners-dilemma", false,
+        timeout_cb.clone(), finish_cb.clone(),
     );
-    let chess_registry = Arc::new(
-        RoomRegistry::<games::Chess>::new(storage.clone(), owner_id.clone()).with_on_open(
-            room_open_hook_with_pool(
-                Duration::from_millis(chess_meta.human_turn_timeout_ms),
-                timeout_cb.clone(),
-                finish_cb.clone(),
-            ),
-        ),
+    let chess_registry = build_registry::<games::Chess>(
+        &storage, &owner_id, "chess", true,
+        timeout_cb.clone(), finish_cb.clone(),
     );
-    let xiangqi_registry = Arc::new(
-        RoomRegistry::<games::Xiangqi>::new(storage.clone(), owner_id.clone()).with_on_open(
-            room_open_hook_with_pool(
-                Duration::from_millis(xiangqi_meta.human_turn_timeout_ms),
-                timeout_cb.clone(),
-                finish_cb.clone(),
-            ),
-        ),
+    let xiangqi_registry = build_registry::<games::Xiangqi>(
+        &storage, &owner_id, "xiangqi", true,
+        timeout_cb.clone(), finish_cb.clone(),
     );
-    let poker_registry = Arc::new(
-        RoomRegistry::<games::Poker>::new(storage.clone(), owner_id.clone()).with_on_open(
-            room_open_hook(
-                Duration::from_millis(poker_meta.human_turn_timeout_ms),
-                timeout_cb.clone(),
-                finish_cb.clone(),
-            ),
-        ),
+    let poker_registry = build_registry::<games::Poker>(
+        &storage, &owner_id, "poker", false,
+        timeout_cb.clone(), finish_cb.clone(),
     );
-    let jog_registry = Arc::new(
-        RoomRegistry::<games::Jog>::new(storage.clone(), owner_id.clone()).with_on_open(
-            room_open_hook(
-                Duration::from_millis(jog_meta.human_turn_timeout_ms),
-                timeout_cb,
-                finish_cb,
-            ),
-        ),
+    let jog_registry = build_registry::<games::Jog>(
+        &storage, &owner_id, "jar-of-greed", false,
+        timeout_cb, finish_cb,
     );
 
-    let rps_ctx = Arc::new(WsContext {
-        registry: rps_registry.clone(),
-        jwt_secret: config.jwt_secret.clone(),
-    });
-    let ttt_ctx = Arc::new(WsContext {
-        registry: ttt_registry.clone(),
-        jwt_secret: config.jwt_secret.clone(),
-    });
-    let pd_ctx = Arc::new(WsContext {
-        registry: pd_registry.clone(),
-        jwt_secret: config.jwt_secret.clone(),
-    });
-    let chess_ctx = Arc::new(WsContext {
-        registry: chess_registry.clone(),
-        jwt_secret: config.jwt_secret.clone(),
-    });
-    let xiangqi_ctx = Arc::new(WsContext {
-        registry: xiangqi_registry.clone(),
-        jwt_secret: config.jwt_secret.clone(),
-    });
-    let poker_ctx = Arc::new(WsContext {
-        registry: poker_registry.clone(),
-        jwt_secret: config.jwt_secret.clone(),
-    });
-    let jog_ctx = Arc::new(WsContext {
-        registry: jog_registry.clone(),
-        jwt_secret: config.jwt_secret.clone(),
-    });
+    let rps_ctx = build_ctx(rps_registry.clone(), &config.jwt_secret);
+    let ttt_ctx = build_ctx(ttt_registry.clone(), &config.jwt_secret);
+    let pd_ctx = build_ctx(pd_registry.clone(), &config.jwt_secret);
+    let chess_ctx = build_ctx(chess_registry.clone(), &config.jwt_secret);
+    let xiangqi_ctx = build_ctx(xiangqi_registry.clone(), &config.jwt_secret);
+    let poker_ctx = build_ctx(poker_registry.clone(), &config.jwt_secret);
+    let jog_ctx = build_ctx(jog_registry.clone(), &config.jwt_secret);
 
     let mut bot_regs: BotMatchRegistries = BotMatchRegistries::new();
     bot_regs.insert(
@@ -201,6 +138,7 @@ async fn main() -> anyhow::Result<()> {
     );
     submission::spawn(db.clone(), build_sandbox);
 
+    let mut supervisor = axel_core::tasks::Supervisor::new();
     let hb_rps = rps_registry.clone();
     let hb_ttt = ttt_registry.clone();
     let hb_pd = pd_registry.clone();
@@ -208,19 +146,28 @@ async fn main() -> anyhow::Result<()> {
     let hb_xiangqi = xiangqi_registry.clone();
     let hb_poker = poker_registry.clone();
     let hb_jog = jog_registry.clone();
-    tokio::spawn(async move {
-        let mut tick = tokio::time::interval(Duration::from_secs(5));
-        loop {
-            tick.tick().await;
-            tokio::join!(
-                hb_rps.heartbeat(Duration::from_secs(15)),
-                hb_ttt.heartbeat(Duration::from_secs(15)),
-                hb_pd.heartbeat(Duration::from_secs(15)),
-                hb_chess.heartbeat(Duration::from_secs(15)),
-                hb_xiangqi.heartbeat(Duration::from_secs(15)),
-                hb_poker.heartbeat(Duration::from_secs(15)),
-                hb_jog.heartbeat(Duration::from_secs(15)),
-            );
+    supervisor.spawn_forever("room-heartbeat", move || {
+        let hb_rps = hb_rps.clone();
+        let hb_ttt = hb_ttt.clone();
+        let hb_pd = hb_pd.clone();
+        let hb_chess = hb_chess.clone();
+        let hb_xiangqi = hb_xiangqi.clone();
+        let hb_poker = hb_poker.clone();
+        let hb_jog = hb_jog.clone();
+        async move {
+            let mut tick = tokio::time::interval(Duration::from_secs(5));
+            loop {
+                tick.tick().await;
+                tokio::join!(
+                    hb_rps.heartbeat(Duration::from_secs(15)),
+                    hb_ttt.heartbeat(Duration::from_secs(15)),
+                    hb_pd.heartbeat(Duration::from_secs(15)),
+                    hb_chess.heartbeat(Duration::from_secs(15)),
+                    hb_xiangqi.heartbeat(Duration::from_secs(15)),
+                    hb_poker.heartbeat(Duration::from_secs(15)),
+                    hb_jog.heartbeat(Duration::from_secs(15)),
+                );
+            }
         }
     });
 
@@ -335,5 +282,41 @@ fn room_open_hook_with_pool<L: judge::services::room::logic::RoomLogic>(
         turn_timer::spawn_turn_watcher(room.clone(), timeout, on_timeout.clone());
         time_pool::spawn_time_pool_watcher(room.clone());
         match_finalizer::spawn_finish_watcher(room, on_finish.clone());
+    })
+}
+
+/// One-shot per-game registry construction. Looks up turn-timeout from
+/// GameMetadata, wires the appropriate room-open hook (with or without
+/// pool clock), and returns the Arc-wrapped registry ready for use.
+fn build_registry<L: judge::services::room::logic::RoomLogic>(
+    storage: &judge::services::storage::Storage,
+    owner_id: &str,
+    game_id: &'static str,
+    with_pool: bool,
+    timeout_cb: TimeoutCallback,
+    finish_cb: FinishCallback,
+) -> Arc<RoomRegistry<L>> {
+    let timeout = Duration::from_millis(
+        games::find_game_by_id(game_id)
+            .unwrap_or_else(|| panic!("{game_id} metadata"))
+            .human_turn_timeout_ms,
+    );
+    let hook = if with_pool {
+        room_open_hook_with_pool::<L>(timeout, timeout_cb, finish_cb)
+    } else {
+        room_open_hook::<L>(timeout, timeout_cb, finish_cb)
+    };
+    Arc::new(
+        RoomRegistry::<L>::new(storage.clone(), owner_id.to_string()).with_on_open(hook),
+    )
+}
+
+fn build_ctx<L: judge::services::room::logic::RoomLogic>(
+    registry: Arc<RoomRegistry<L>>,
+    jwt_secret: &str,
+) -> Arc<WsContext<L>> {
+    Arc::new(WsContext {
+        registry,
+        jwt_secret: jwt_secret.to_string(),
     })
 }

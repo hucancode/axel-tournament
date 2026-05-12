@@ -4,12 +4,31 @@ use tempfile::TempDir;
 #[cfg(test)]
 mod compiler_tests {
     use std::fs;
+    use std::sync::OnceLock;
 
     use super::*;
     use judge::services::sandbox::BuildSandbox as CompilerSandbox;
+    use judge::services::sandbox::cgroup::CgroupHandle;
+
+    fn sandbox_available() -> bool {
+        static OK: OnceLock<bool> = OnceLock::new();
+        *OK.get_or_init(|| CgroupHandle::new_compilation("probe_compiler").is_ok())
+    }
+
+    macro_rules! require_sandbox {
+        () => {
+            if !sandbox_available() {
+                eprintln!(
+                    "skipping: sandbox cgroups unavailable (needs CAP_SYS_ADMIN + cgroup v2 delegation)"
+                );
+                return;
+            }
+        };
+    }
 
     #[tokio::test]
     async fn test_compiler_sandbox_creation() {
+        require_sandbox!();
         let temp_dir = TempDir::new().unwrap();
         let result = CompilerSandbox::new(temp_dir.path().to_path_buf());
         assert!(result.is_ok(), "CompilerSandbox should be created");
@@ -18,6 +37,7 @@ mod compiler_tests {
 
     #[tokio::test]
     async fn test_compile_unsupported_language() {
+        require_sandbox!();
         let temp_dir = TempDir::new().unwrap();
         let sandbox = CompilerSandbox::new(temp_dir.path().to_path_buf()).unwrap();
 
@@ -33,6 +53,7 @@ mod compiler_tests {
 
     #[tokio::test]
     async fn test_compile_empty_code() {
+        require_sandbox!();
         let temp_dir = TempDir::new().unwrap();
         let sandbox = CompilerSandbox::new(temp_dir.path().to_path_buf()).unwrap();
 
@@ -44,6 +65,7 @@ mod compiler_tests {
 
     #[tokio::test]
     async fn test_compile_invalid_rust_code() {
+        require_sandbox!();
         let temp_dir = TempDir::new().unwrap();
         let sandbox = CompilerSandbox::new(temp_dir.path().to_path_buf()).unwrap();
 
@@ -68,6 +90,7 @@ mod compiler_tests {
 
     #[tokio::test]
     async fn test_compile_valid_rust_code() {
+        require_sandbox!();
         let temp_dir = TempDir::new().unwrap();
         let sandbox = CompilerSandbox::new(temp_dir.path().to_path_buf()).unwrap();
 
@@ -99,6 +122,7 @@ mod compiler_tests {
 
     #[tokio::test]
     async fn test_compile_valid_c_code() {
+        require_sandbox!();
         let temp_dir = TempDir::new().unwrap();
         let sandbox = CompilerSandbox::new(temp_dir.path().to_path_buf()).unwrap();
 
@@ -129,6 +153,7 @@ mod compiler_tests {
 
     #[tokio::test]
     async fn test_compile_valid_go_code() {
+        require_sandbox!();
         let temp_dir = TempDir::new().unwrap();
         let sandbox = CompilerSandbox::new(temp_dir.path().to_path_buf()).unwrap();
 
@@ -159,6 +184,7 @@ mod compiler_tests {
 
     #[tokio::test]
     async fn test_workspace_isolation() {
+        require_sandbox!();
         let temp_dir = TempDir::new().unwrap();
         let sandbox = CompilerSandbox::new(temp_dir.path().to_path_buf()).unwrap();
         let code = "fn main() {}";

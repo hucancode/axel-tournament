@@ -15,13 +15,24 @@ use crate::services::room::logic::{RoomLogic, RoomRegistry};
 use crate::services::sandbox::SandboxedBot;
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
+use futures_util::StreamExt;
+use serde::Deserialize;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
+use surrealdb::types::SurrealValue;
 use std::time::Duration;
 use surrealdb::types::{RecordId, ToSql};
 
-const POLL_INTERVAL: Duration = Duration::from_secs(2);
+/// Fallback poll cadence. LIVE drives the watcher in the steady state;
+/// this interval only catches reconnect gaps.
+const POLL_INTERVAL: Duration = Duration::from_secs(30);
+
+#[derive(Debug, Clone, Deserialize, SurrealValue)]
+struct MatchTick {
+    #[serde(default)]
+    id: Option<surrealdb::types::RecordId>,
+}
 const LEASE_TTL: Duration = Duration::from_secs(15);
 
 /// Erasure over per-game `RoomRegistry<L>`. Lets the claim loop run any
@@ -74,39 +85,75 @@ async fn run(
     registries: BotMatchRegistries,
 ) -> Result<()> {
     tracing::info!("bot match watcher started");
+    drain_once(&db, &capacity, &registries).await;
+    let mut ticker = tokio::time::interval(POLL_INTERVAL);
+    ticker.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
     loop {
-        let matches = poll_pending(&db).await.unwrap_or_else(|e| {
-            tracing::error!("poll pending matches: {e}");
-            Vec::new()
-        });
-
-        for m in matches {
-            if !capacity.can_accept_work() {
-                break;
-            }
-            let delay_ms = capacity.claim_delay_ms();
-            if delay_ms > 0 {
-                tokio::time::sleep(Duration::from_millis(delay_ms)).await;
-            }
-            if !claim(&db, &m.id).await.unwrap_or(false) {
-                continue;
-            }
-            tracing::info!("Claimed match: {}", m.id.to_sql());
-            let slot = capacity.match_slot();
-
-            let db_c = db.clone();
-            let regs = registries.clone();
-            tokio::spawn(async move {
-                let mid = m.id.clone();
-                if let Err(e) = execute(&db_c, &regs, m).await {
-                    tracing::error!("Match {} failed: {e:#}", mid.to_sql());
-                    let _ = mark_failed(&db_c, &mid, &e.to_string()).await;
+        let stream_res = db.select::<Vec<MatchTick>>("match").live().await;
+        match stream_res {
+            Ok(mut stream) => loop {
+                tokio::select! {
+                    biased;
+                    notify = stream.next() => {
+                        match notify {
+                            Some(Ok(_)) => drain_once(&db, &capacity, &registries).await,
+                            Some(Err(e)) => {
+                                tracing::warn!("match LIVE error: {e:#}; resubscribing");
+                                break;
+                            }
+                            None => {
+                                tracing::warn!("match LIVE closed; resubscribing");
+                                break;
+                            }
+                        }
+                    }
+                    _ = ticker.tick() => {
+                        drain_once(&db, &capacity, &registries).await;
+                    }
                 }
-                drop(slot);
-            });
+            },
+            Err(e) => {
+                tracing::warn!("match LIVE subscribe failed: {e:#}; falling back to poll");
+                ticker.tick().await;
+                drain_once(&db, &capacity, &registries).await;
+            }
         }
+    }
+}
 
-        tokio::time::sleep(POLL_INTERVAL).await;
+async fn drain_once(
+    db: &Database,
+    capacity: &CapacityTracker,
+    registries: &BotMatchRegistries,
+) {
+    let matches = poll_pending(db).await.unwrap_or_else(|e| {
+        tracing::error!("poll pending matches: {e}");
+        Vec::new()
+    });
+    for m in matches {
+        if !capacity.can_accept_work() {
+            break;
+        }
+        let delay_ms = capacity.claim_delay_ms();
+        if delay_ms > 0 {
+            tokio::time::sleep(Duration::from_millis(delay_ms)).await;
+        }
+        if !claim(db, &m.id).await.unwrap_or(false) {
+            continue;
+        }
+        tracing::info!("Claimed match: {}", m.id.to_sql());
+        let slot = capacity.match_slot();
+
+        let db_c = db.clone();
+        let regs = registries.clone();
+        tokio::spawn(async move {
+            let mid = m.id.clone();
+            if let Err(e) = execute(&db_c, &regs, m).await {
+                tracing::error!("Match {} failed: {e:#}", mid.to_sql());
+                let _ = mark_failed(&db_c, &mid, &e.to_string()).await;
+            }
+            drop(slot);
+        });
     }
 }
 

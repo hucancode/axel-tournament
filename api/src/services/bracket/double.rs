@@ -1,131 +1,11 @@
-// Bracket advancement.
-//
-// Healer / judge call `advance_brackets(tournament_id)` after match
-// writes. For every completed round-N match without a child round-N+1
-// match yet, generate the next-round match by pairing winners.
-//
-// Single elim: winners advance from `winners` bracket. When only one
-// match remains and it's done, the bracket is finished — finalization
-// runs the usual completion path.
-//
-// Double elim: winners-bracket losers drop down into the losers
-// bracket. Losers-bracket losers are eliminated. Winners-bracket
-// finalist plays losers-bracket finalist in the grand final, with a
-// reset-bracket if losers' player wins.
-
 use crate::{
     db::Database,
-    error::{ApiError, ApiResult},
-    models::{
-        matches::{Match, MatchParticipant, MatchStatus},
-        tournament::{MatchGenerationType, Tournament, TournamentKind},
-    },
+    error::AppResult,
+    models::{matches::{Match, MatchParticipant}, tournament::Tournament},
 };
-use surrealdb::types::RecordId;
 
-pub async fn advance_brackets(db: &Database, tournament_id: RecordId) -> ApiResult<u32> {
-    let tournament: Tournament = {
-        let opt: Option<Tournament> = db.select(&tournament_id).await?;
-        opt.ok_or_else(|| ApiError::NotFound("Tournament not found".to_string()))?
-    };
-    if tournament.kind != TournamentKind::Bot {
-        // Human bracket flows would need room creation per match; skip
-        // for now.
-        return Ok(0);
-    }
-    let is_double = tournament.match_generation_type == MatchGenerationType::DoubleElimination;
-    let is_single = tournament.match_generation_type == MatchGenerationType::SingleElimination;
-    if !is_single && !is_double {
-        return Ok(0);
-    }
-
-    let mut resp = db
-        .query("SELECT * FROM match WHERE tournament_id = $tid ORDER BY round, bracket_position")
-        .bind(("tid", tournament_id.clone()))
-        .await?;
-    let matches: Vec<Match> = resp.take(0)?;
-    let mut created = 0u32;
-
-    if is_single {
-        created += advance_single(db, &tournament, &matches).await?;
-    } else if is_double {
-        created += advance_double(db, &tournament, &matches).await?;
-    }
-    Ok(created)
-}
-
-/// Single-elim advancement: pair winners of round N's positions 2k and
-/// 2k+1 into round N+1 position k. BYE matches (one participant) skip
-/// to next round automatically.
-async fn advance_single(
-    db: &Database,
-    tournament: &Tournament,
-    matches: &[Match],
-) -> ApiResult<u32> {
-    let mut created = 0;
-    let max_round = matches
-        .iter()
-        .filter_map(|m| m.round)
-        .max()
-        .unwrap_or(0);
-
-    let next_round = max_round + 1;
-    let current: Vec<&Match> = matches
-        .iter()
-        .filter(|m| m.round == Some(max_round) && m.bracket.as_deref() == Some("winners"))
-        .collect();
-
-    // Already moved on?
-    if matches
-        .iter()
-        .any(|m| m.round == Some(next_round) && m.bracket.as_deref() == Some("winners"))
-    {
-        return Ok(0);
-    }
-    // Some current match still pending? Wait.
-    if current
-        .iter()
-        .any(|m| !matches!(m.status, MatchStatus::Completed | MatchStatus::Failed))
-    {
-        return Ok(0);
-    }
-    if current.len() < 2 {
-        // Round of one = bracket finished. Caller's finalize flips the
-        // tournament when all matches are terminal.
-        return Ok(0);
-    }
-    // Pair current matches by position.
-    let mut by_pos: Vec<(u32, &Match)> = current
-        .iter()
-        .map(|m| (m.bracket_position.unwrap_or(0), *m))
-        .collect();
-    by_pos.sort_by_key(|(p, _)| *p);
-    for chunk in by_pos.chunks(2) {
-        if chunk.len() < 2 {
-            break;
-        }
-        let (pa, ma) = chunk[0];
-        let (_, mb) = chunk[1];
-        let wa = ma
-            .winner()
-            .ok_or_else(|| ApiError::Internal("bracket advance: missing winner".to_string()))?;
-        let wb = mb
-            .winner()
-            .ok_or_else(|| ApiError::Internal("bracket advance: missing winner".to_string()))?;
-        write_bracket_match(
-            db,
-            tournament,
-            wa,
-            Some(wb),
-            next_round,
-            "winners",
-            pa / 2,
-        )
-        .await?;
-        created += 1;
-    }
-    Ok(created)
-}
+use super::common::write_bracket_match;
+use super::single::advance_single;
 
 /// Double-elim advancement.
 ///
@@ -137,11 +17,11 @@ async fn advance_single(
 ///       - LB R(2j+2) inner: pairs LB R(2j+1) winners.
 ///   * Grand final         : WB final winner vs LB final winner.
 ///   * Grand final reset   : created only when LB winner wins GF.
-async fn advance_double(
+pub(super) async fn advance_double(
     db: &Database,
     tournament: &Tournament,
     matches: &[Match],
-) -> ApiResult<u32> {
+) -> AppResult<u32> {
     let mut created = 0u32;
     created += advance_single(db, tournament, matches).await?;
     created += advance_losers(db, tournament, matches).await?;
@@ -171,7 +51,7 @@ async fn advance_losers(
     db: &Database,
     tournament: &Tournament,
     matches: &[Match],
-) -> ApiResult<u32> {
+) -> AppResult<u32> {
     let k = k_factor(matches);
     if k < 2 {
         return Ok(0); // Trivial bracket; nothing to drop.
@@ -253,10 +133,11 @@ fn lb_round_pairs(
     Some(pairs)
 }
 
-fn round_winners(
+fn round_outcomes(
     matches: &[Match],
     bracket: &str,
     round: u32,
+    pick: impl Fn(&Match) -> Option<MatchParticipant>,
 ) -> Option<Vec<MatchParticipant>> {
     let mut rows: Vec<&Match> = matches
         .iter()
@@ -266,12 +147,15 @@ fn round_winners(
         return None;
     }
     rows.sort_by_key(|m| m.bracket_position.unwrap_or(0));
-    let mut out = Vec::with_capacity(rows.len());
-    for m in rows {
-        let w = m.winner()?;
-        out.push(w);
-    }
-    Some(out)
+    rows.into_iter().map(pick).collect()
+}
+
+fn round_winners(
+    matches: &[Match],
+    bracket: &str,
+    round: u32,
+) -> Option<Vec<MatchParticipant>> {
+    round_outcomes(matches, bracket, round, Match::winner)
 }
 
 fn round_losers(
@@ -279,24 +163,11 @@ fn round_losers(
     bracket: &str,
     round: u32,
 ) -> Option<Vec<MatchParticipant>> {
-    let mut rows: Vec<&Match> = matches
-        .iter()
-        .filter(|m| m.bracket.as_deref() == Some(bracket) && m.round == Some(round))
-        .collect();
-    if rows.is_empty() {
-        return None;
-    }
-    rows.sort_by_key(|m| m.bracket_position.unwrap_or(0));
-    let mut out = Vec::with_capacity(rows.len());
-    for m in rows {
-        let l = loser_of(m)?;
-        out.push(l);
-    }
-    Some(out)
+    round_outcomes(matches, bracket, round, loser_of)
 }
 
 fn loser_of(m: &Match) -> Option<MatchParticipant> {
-    if !matches!(m.status, MatchStatus::Completed | MatchStatus::Failed) {
+    if !m.status.is_terminal() {
         return None;
     }
     let winner = m.winner()?;
@@ -310,7 +181,7 @@ async fn advance_grand_final(
     db: &Database,
     tournament: &Tournament,
     matches: &[Match],
-) -> ApiResult<u32> {
+) -> AppResult<u32> {
     let k = k_factor(matches);
     if k < 1 {
         return Ok(0);
@@ -343,7 +214,7 @@ async fn advance_grand_final(
 
     // GF exists; if completed and LB-side won, spawn reset.
     if let (Some(gf), None) = (gf, reset) {
-        if !matches!(gf.status, MatchStatus::Completed | MatchStatus::Failed) {
+        if !gf.status.is_terminal() {
             return Ok(0);
         }
         let Some(winner) = gf.winner() else {
@@ -372,66 +243,4 @@ async fn advance_grand_final(
         }
     }
     Ok(0)
-}
-
-async fn write_bracket_match(
-    db: &Database,
-    tournament: &Tournament,
-    p1: MatchParticipant,
-    p2: Option<MatchParticipant>,
-    round: u32,
-    bracket: &str,
-    position: u32,
-) -> ApiResult<()> {
-    let tournament_id = tournament
-        .id
-        .clone()
-        .ok_or_else(|| ApiError::Internal("Tournament missing id".to_string()))?;
-    let mut participants = vec![p1];
-    if let Some(p) = p2 {
-        participants.push(p);
-    }
-    let m = Match {
-        tournament_id: Some(tournament_id),
-        game_id: tournament.game_id.clone(),
-        participants,
-        round: Some(round),
-        bracket: Some(bracket.to_string()),
-        bracket_position: Some(position),
-        ..Default::default()
-    };
-    let _: Option<Match> = db.create("match").content(m).await?;
-    Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::models::matches::test_helpers::finished;
-    use surrealdb::types::ToSql;
-
-    #[test]
-    fn winner_of_completed_picks_higher_score() {
-        let m = finished("alice", 3.0, "bob", 1.0);
-        assert_eq!(m.winner().unwrap().user_id.to_sql(), "user:alice");
-    }
-
-    #[test]
-    fn winner_of_failed_match_picks_non_faulted() {
-        let mut m = finished("alice", 0.0, "bob", 0.0);
-        m.status = MatchStatus::Failed;
-        m.faulted_user_ids = vec![RecordId::parse_simple("user:alice").unwrap()];
-        assert_eq!(m.winner().unwrap().user_id.to_sql(), "user:bob");
-    }
-
-    #[test]
-    fn winner_of_failed_with_both_at_fault_is_none() {
-        let mut m = finished("alice", 0.0, "bob", 0.0);
-        m.status = MatchStatus::Failed;
-        m.faulted_user_ids = vec![
-            RecordId::parse_simple("user:alice").unwrap(),
-            RecordId::parse_simple("user:bob").unwrap(),
-        ];
-        assert!(m.winner().is_none());
-    }
 }

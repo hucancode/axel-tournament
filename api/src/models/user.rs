@@ -1,40 +1,8 @@
-use crate::error::{ApiError, ApiResult};
 use serde::{Deserialize, Serialize};
-use surrealdb::types::{Datetime, RecordId, SurrealValue};
 use validator::Validate;
 
-#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
-pub struct User {
-    pub id: Option<RecordId>,
-    pub email: String,
-    pub username: String,
-    pub password_hash: Option<String>, // None for OAuth users
-    pub role: UserRole,
-    pub location: String, // ISO country code (e.g., "US")
-    pub oauth_provider: Option<OAuthProvider>,
-    pub oauth_id: Option<String>,
-    pub is_banned: bool,
-    pub ban_reason: Option<String>,
-    pub created_at: Datetime,
-    pub updated_at: Datetime,
-    pub password_reset_token: Option<String>,
-    pub password_reset_expires: Option<Datetime>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, SurrealValue)]
-#[serde(rename_all = "lowercase")]
-#[surreal(untagged, lowercase)]
-pub enum UserRole {
-    Admin,
-    Player,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
-#[serde(rename_all = "lowercase")]
-#[surreal(untagged, lowercase)]
-pub enum OAuthProvider {
-    Google,
-}
+pub use axel_core::auth::Claims;
+pub use axel_core::models::user::{OAuthProvider, User, UserInfo, UserRole};
 
 #[derive(Debug, Deserialize, Validate)]
 pub struct RegisterRequest {
@@ -73,41 +41,4 @@ pub struct ConfirmResetPasswordRequest {
 pub struct AuthResponse {
     pub token: String,
     pub user: UserInfo,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct UserInfo {
-    pub id: String,
-    pub email: String,
-    pub username: String,
-    pub role: UserRole,
-    pub location: String,
-    pub is_banned: bool,
-}
-
-impl User {
-    pub fn to_info(&self) -> ApiResult<UserInfo> {
-        let id = super::bare_key(
-            self.id
-                .as_ref()
-                .ok_or_else(|| ApiError::Internal("User ID is missing".to_string()))?,
-        );
-        Ok(UserInfo {
-            id,
-            email: self.email.clone(),
-            username: self.username.clone(),
-            role: self.role.clone(),
-            location: self.location.clone(),
-            is_banned: self.is_banned,
-        })
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Claims {
-    pub sub: String, // user id
-    pub email: String,
-    pub role: UserRole,
-    pub exp: usize,
-    pub iat: usize,
 }

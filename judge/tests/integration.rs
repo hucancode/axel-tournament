@@ -227,7 +227,8 @@ async fn ttt_x_wins_top_row() {
         async move {
             live.handle_act(&x, "JOIN", "").await.unwrap();
             live.handle_act(&o, "JOIN", "").await.unwrap();
-            live.handle_act(&x, "START", "").await.unwrap();
+            // 3x3 board with 3-in-a-row to win (classic tic-tac-toe).
+            live.handle_act(&x, "START", "3 3").await.unwrap();
             live.handle_act(&x, "MOVE", "0 0").await.unwrap();
             live.handle_act(&o, "MOVE", "1 0").await.unwrap();
             live.handle_act(&x, "MOVE", "0 1").await.unwrap();
@@ -427,13 +428,17 @@ async fn discovery_skips_meta_upsert_for_chat_only() {
 #[tokio::test]
 async fn jwt_round_trip_against_env_secret() {
     use jsonwebtoken::{encode, EncodingKey, Header};
-    use judge::middleware::auth::{validate_jwt, Claims};
+    use judge::middleware::auth::Claims;
 
     let secret = judge::Config::from_env().jwt_secret;
     let user_id = unique("user");
+    let now = chrono::Utc::now().timestamp() as usize;
     let claims = Claims {
         sub: user_id.clone(),
-        exp: (chrono::Utc::now() + chrono::Duration::hours(1)).timestamp() as usize,
+        email: "t@example.com".into(),
+        role: axel_core::models::user::UserRole::Player,
+        exp: now + 3600,
+        iat: now,
     };
     let token = encode(
         &Header::default(),
@@ -442,8 +447,8 @@ async fn jwt_round_trip_against_env_secret() {
     )
     .unwrap();
 
-    let parsed = validate_jwt(&token, &secret).unwrap();
+    let parsed = axel_core::auth::validate_token(&secret, &token).unwrap();
     assert_eq!(parsed.sub, user_id);
-    assert!(validate_jwt("not.a.token", &secret).is_err());
-    assert!(validate_jwt(&token, "wrong-secret").is_err());
+    assert!(axel_core::auth::validate_token(&secret, "not.a.token").is_err());
+    assert!(axel_core::auth::validate_token("wrong-secret", &token).is_err());
 }

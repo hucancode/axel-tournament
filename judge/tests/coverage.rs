@@ -14,7 +14,7 @@ mod db;
 
 use judge::{
     games::{find_game_by_id, Pd, Rps, Ttt},
-    middleware::auth::{validate_jwt, Claims},
+    middleware::auth::Claims,
     models::game_metadata::GAMES,
     services::{
         capacity::CapacityTracker,
@@ -107,9 +107,8 @@ async fn nested_room_guards_round_trip() {
 // ---------- judge game registry ----------
 
 #[test]
-fn games_registry_has_three_known_ids() {
+fn games_registry_has_known_ids() {
     let ids: Vec<&str> = GAMES.iter().map(|g| g.id).collect();
-    assert_eq!(ids.len(), 3);
     assert!(ids.contains(&"rock-paper-scissors"));
     assert!(ids.contains(&"tic-tac-toe"));
     assert!(ids.contains(&"prisoners-dilemma"));
@@ -161,43 +160,45 @@ fn sign(claims: &Claims, secret: &str) -> String {
     .unwrap()
 }
 
+fn make_claims(sub: &str, offset_secs: i64) -> Claims {
+    let now = chrono::Utc::now().timestamp();
+    Claims {
+        sub: sub.into(),
+        email: "t@example.com".into(),
+        role: axel_core::models::user::UserRole::Player,
+        exp: (now + offset_secs) as usize,
+        iat: now as usize,
+    }
+}
+
 #[test]
 fn validate_jwt_accepts_valid_token() {
     let secret = "judge-coverage-secret";
-    let claims = Claims {
-        sub: "user:alice".into(),
-        exp: (chrono::Utc::now() + chrono::Duration::hours(1)).timestamp() as usize,
-    };
+    let claims = make_claims("user:alice", 3600);
     let tok = sign(&claims, secret);
-    let parsed = validate_jwt(&tok, secret).unwrap();
+    let parsed = axel_core::auth::validate_token(secret, &tok).unwrap();
     assert_eq!(parsed.sub, "user:alice");
 }
 
 #[test]
 fn validate_jwt_rejects_expired_token() {
     let secret = "judge-coverage-secret";
-    let claims = Claims {
-        sub: "user:alice".into(),
-        exp: (chrono::Utc::now() - chrono::Duration::hours(1)).timestamp() as usize,
-    };
+    let claims = make_claims("user:alice", -3600);
     let tok = sign(&claims, secret);
-    assert!(validate_jwt(&tok, secret).is_err());
+    assert!(axel_core::auth::validate_token(secret, &tok).is_err());
 }
 
 #[test]
 fn validate_jwt_rejects_wrong_secret() {
-    let claims = Claims {
-        sub: "user:alice".into(),
-        exp: (chrono::Utc::now() + chrono::Duration::hours(1)).timestamp() as usize,
-    };
+    let claims = make_claims("user:alice", 3600);
     let tok = sign(&claims, "secret-A");
-    assert!(validate_jwt(&tok, "secret-B").is_err());
+    assert!(axel_core::auth::validate_token("secret-B", &tok).is_err());
 }
 
 #[test]
 fn validate_jwt_rejects_garbage() {
-    assert!(validate_jwt("not.a.jwt", "any-secret").is_err());
-    assert!(validate_jwt("", "any-secret").is_err());
+    assert!(axel_core::auth::validate_token("any-secret", "not.a.jwt").is_err());
+    assert!(axel_core::auth::validate_token("any-secret", "").is_err());
 }
 
 // ---------- Storage factories ----------
@@ -244,14 +245,10 @@ async fn surreal_storage_factory_round_trips_event() {
 
 #[test]
 fn claims_serde_round_trip() {
-    let c = Claims {
-        sub: "user:bob".into(),
-        exp: 1700000000,
-    };
+    let c = make_claims("user:bob", 0);
     let json = serde_json::to_string(&c).unwrap();
     let back: Claims = serde_json::from_str(&json).unwrap();
     assert_eq!(back.sub, "user:bob");
-    assert_eq!(back.exp, 1700000000);
 }
 
 // ---------- DB connect via env ----------

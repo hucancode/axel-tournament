@@ -1,12 +1,9 @@
 mod db;
-use api::{
-    config::Config,
-    services::user,
-};
+use api::config::Config;
 
 async fn get_bob_user(db: &api::db::Database) -> api::models::User {
     let config = Config::from_env();
-    user::get_user_by_email(db, &config.bob.email)
+    <api::db::Database as axel_core::repo::user::UserRepo>::find_by_email(db, &config.bob.email)
         .await
         .unwrap()
         .expect("Bob user should exist")
@@ -14,7 +11,7 @@ async fn get_bob_user(db: &api::db::Database) -> api::models::User {
 
 async fn get_alice_user(db: &api::db::Database) -> api::models::User {
     let config = Config::from_env();
-    user::get_user_by_email(db, &config.alice.email)
+    <api::db::Database as axel_core::repo::user::UserRepo>::find_by_email(db, &config.alice.email)
         .await
         .unwrap()
         .expect("Alice user should exist")
@@ -26,13 +23,13 @@ async fn test_ban_and_unban_user() {
     let bob_user = get_bob_user(&db).await;
     let user_id = bob_user.id.unwrap();
 
-    let banned = user::ban_user(&db, user_id.clone(), "Violation".to_string())
+    let banned = <api::db::Database as axel_core::repo::user::UserRepo>::ban(&db, user_id.clone(), "Violation".to_string())
         .await
         .unwrap();
     assert!(banned.is_banned);
     assert_eq!(banned.ban_reason.unwrap(), "Violation");
 
-    let unbanned = user::unban_user(&db, user_id).await.unwrap();
+    let unbanned = <api::db::Database as axel_core::repo::user::UserRepo>::unban(&db, user_id).await.unwrap();
     assert!(!unbanned.is_banned);
     assert!(unbanned.ban_reason.is_none());
 }
@@ -40,7 +37,7 @@ async fn test_ban_and_unban_user() {
 #[tokio::test]
 async fn test_list_users() {
     let db = db::setup_test_db().await;
-    let users = user::list_users(&db, Some(5), Some(0)).await.unwrap();
+    let users = <api::db::Database as axel_core::repo::user::UserRepo>::list(&db, Some(5), Some(0)).await.unwrap();
     // Should have at least admin, bob, and alice
     assert!(users.len() >= 3);
 }
@@ -54,7 +51,7 @@ async fn test_user_profile_update() {
     // Update location
     alice_user.location = "CA".to_string();
 
-    let result = user::update_user(&db, user_id.clone(), alice_user)
+    let result = <api::db::Database as axel_core::repo::user::UserRepo>::update(&db, user_id.clone(), alice_user)
         .await
         .unwrap();
     assert_eq!(result.location, "CA");
@@ -62,5 +59,5 @@ async fn test_user_profile_update() {
     // Reset location back to original for other tests
     let mut reset_user = result;
     reset_user.location = "US".to_string();
-    user::update_user(&db, user_id, reset_user).await.unwrap();
+    <api::db::Database as axel_core::repo::user::UserRepo>::update(&db, user_id, reset_user).await.unwrap();
 }

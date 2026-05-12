@@ -12,7 +12,7 @@
 
 use crate::{
     db::Database,
-    error::ApiResult,
+    error::AppResult,
     models::{
         matches::{Match, MatchStatus},
         tournament::{Tournament, TournamentStatus},
@@ -119,7 +119,7 @@ pub fn aggregate_totals(matches: &[Match]) -> HashMap<String, ParticipantTotals>
 pub async fn finalize_if_done(
     db: &Database,
     tournament_id: RecordId,
-) -> ApiResult<Tournament> {
+) -> AppResult<Tournament> {
     let mut matches_resp = db
         .query("SELECT * FROM match WHERE tournament_id = $tid")
         .bind(("tid", tournament_id.clone()))
@@ -168,10 +168,9 @@ pub async fn finalize_if_done(
     // Continuous tournaments never finalize on "no matches remaining" —
     // players keep enqueueing until end_time. Only end_time triggers
     // finalization for that mode.
-    let tournament_now: Option<Tournament> = db.select(&tournament_id).await?;
-    let tournament_now = tournament_now.ok_or_else(|| {
-        crate::error::ApiError::NotFound("Tournament not found".to_string())
-    })?;
+    let tournament_now =
+        <Database as axel_core::repo::tournament::TournamentRepo>::get_by_id(db, &tournament_id)
+            .await?;
     if tournament_now.match_generation_type
         == crate::models::tournament::MatchGenerationType::Continuous
     {
@@ -226,8 +225,7 @@ pub async fn finalize_if_done(
     if let Some(t) = rows.into_iter().next() {
         return Ok(t);
     }
-    let t: Option<Tournament> = db.select(&tournament_id).await?;
-    t.ok_or_else(|| crate::error::ApiError::NotFound("Tournament not found".to_string()))
+    <Database as axel_core::repo::tournament::TournamentRepo>::get_by_id(db, &tournament_id).await
 }
 
 /// Return the status the tournament should hold given its match set.

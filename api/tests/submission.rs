@@ -2,7 +2,7 @@ mod db;
 use api::{
     config::Config,
     models::{CreateSubmissionRequest, ProgrammingLanguage},
-    services::{submission, tournament, user},
+    services::{submission, tournament},
 };
 use validator::Validate;
 
@@ -19,7 +19,7 @@ const TEST_GAME_ID: &str = "rock-paper-scissors";
 
 async fn get_bob_user(db: &api::db::Database) -> api::models::User {
     let config = Config::from_env();
-    user::get_user_by_email(db, &config.bob.email)
+    <api::db::Database as axel_core::repo::user::UserRepo>::find_by_email(db, &config.bob.email)
         .await
         .unwrap()
         .expect("Bob user should exist")
@@ -27,7 +27,7 @@ async fn get_bob_user(db: &api::db::Database) -> api::models::User {
 
 async fn _get_alice_user(db: &api::db::Database) -> api::models::User {
     let config = Config::from_env();
-    user::get_user_by_email(db, &config.alice.email)
+    <api::db::Database as axel_core::repo::user::UserRepo>::find_by_email(db, &config.alice.email)
         .await
         .unwrap()
         .expect("Alice user should exist")
@@ -67,7 +67,6 @@ async fn test_submission_create() {
         &db,
         user_id.clone(),
         tournament_id.clone(),
-        TEST_GAME_ID.to_string(),
         ProgrammingLanguage::Rust,
         code.to_string(),
     )
@@ -111,7 +110,6 @@ async fn test_submission_get() {
         &db,
         user_id.clone(),
         tournament_id.clone(),
-        TEST_GAME_ID.to_string(),
         ProgrammingLanguage::Rust,
         code.to_string(),
     )
@@ -158,7 +156,6 @@ async fn test_submission_list_by_user() {
         &db,
         user_id.clone(),
         tournament_id.clone(),
-        TEST_GAME_ID.to_string(),
         ProgrammingLanguage::Rust,
         "fn main() { println!(\"1\"); }".to_string(),
     )
@@ -168,7 +165,6 @@ async fn test_submission_list_by_user() {
         &db,
         user_id.clone(),
         tournament_id.clone(),
-        TEST_GAME_ID.to_string(),
         ProgrammingLanguage::Rust,
         "fn main() { println!(\"2\"); }".to_string(),
     )
@@ -241,7 +237,6 @@ async fn test_submission_workflow() {
         &db,
         user_id.clone(),
         tournament_id.clone(),
-        TEST_GAME_ID.to_string(),
         ProgrammingLanguage::Rust,
         code.to_string(),
     )

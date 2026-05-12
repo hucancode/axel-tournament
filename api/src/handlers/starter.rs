@@ -1,5 +1,5 @@
 use crate::{
-    error::{ApiError, ApiResult},
+    error::{AppError, AppResult},
     models::{ProgrammingLanguage, find_game_by_id},
 };
 use axum::{Json, extract::Path};
@@ -49,11 +49,11 @@ pub struct StarterCodeResponse {
 /// skeletons otherwise.
 pub async fn get_starter_code(
     Path((game_id, language)): Path<(String, String)>,
-) -> ApiResult<Json<StarterCodeResponse>> {
+) -> AppResult<Json<StarterCodeResponse>> {
     let game = find_game_by_id(&game_id)
-        .ok_or_else(|| ApiError::NotFound("Game not found".to_string()))?;
+        .ok_or_else(|| AppError::NotFound("Game not found".to_string()))?;
     let lang = ProgrammingLanguage::from_str(&language)
-        .ok_or_else(|| ApiError::BadRequest(format!("Unsupported language: {language}")))?;
+        .ok_or_else(|| AppError::BadRequest(format!("Unsupported language: {language}")))?;
 
     let (code, filename) = match (game.id, &lang) {
         ("rock-paper-scissors", ProgrammingLanguage::Rust) => (RPS_ROCK_RS, "rps_rock.rs"),
@@ -85,7 +85,7 @@ pub async fn get_starter_code(
         ("poker", ProgrammingLanguage::C) => (POKER_C, "poker_skeleton.c"),
 
         _ => {
-            return Err(ApiError::NotFound(format!(
+            return Err(AppError::NotFound(format!(
                 "No starter code available for {} in {}",
                 game.id,
                 lang.to_extension(),

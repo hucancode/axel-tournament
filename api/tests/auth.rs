@@ -3,7 +3,7 @@ mod db;
 use api::{
     config::Config,
     models::{LoginRequest, RegisterRequest, User, UserRole},
-    services::{auth, user},
+    services::{auth},
 };
 
 fn cfg() -> auth::AuthConfig {
@@ -76,7 +76,7 @@ mod jwt_clock_skew {
 
 async fn get_bob_user(db: &api::db::Database) -> api::models::User {
     let config = Config::from_env();
-    user::get_user_by_email(db, &config.bob.email)
+    <api::db::Database as axel_core::repo::user::UserRepo>::find_by_email(db, &config.bob.email)
         .await
         .unwrap()
         .expect("Bob user should exist")
@@ -209,11 +209,11 @@ async fn test_password_reset_flow() {
     bob_user.password_reset_token = Some(reset_token_hash);
 
     let user_id = bob_user.id.clone().unwrap();
-    user::update_user(&db, user_id.clone(), bob_user)
+    <api::db::Database as axel_core::repo::user::UserRepo>::update(&db, user_id.clone(), bob_user)
         .await
         .unwrap();
 
-    let updated_user = user::get_user_by_email(&db, &config.bob.email)
+    let updated_user = <api::db::Database as axel_core::repo::user::UserRepo>::find_by_email(&db, &config.bob.email)
         .await
         .unwrap()
         .unwrap();
@@ -224,11 +224,11 @@ async fn test_password_reset_flow() {
     reset_user.password_hash = Some(new_password_hash.clone());
     reset_user.password_reset_token = None;
 
-    user::update_user(&db, user_id.clone(), reset_user)
+    <api::db::Database as axel_core::repo::user::UserRepo>::update(&db, user_id.clone(), reset_user)
         .await
         .unwrap();
 
-    let final_user = user::get_user_by_email(&db, &config.bob.email)
+    let final_user = <api::db::Database as axel_core::repo::user::UserRepo>::find_by_email(&db, &config.bob.email)
         .await
         .unwrap()
         .unwrap();
@@ -239,5 +239,5 @@ async fn test_password_reset_flow() {
 
     let mut restore_user = final_user;
     restore_user.password_hash = Some(original_password_hash);
-    user::update_user(&db, user_id, restore_user).await.unwrap();
+    <api::db::Database as axel_core::repo::user::UserRepo>::update(&db, user_id, restore_user).await.unwrap();
 }

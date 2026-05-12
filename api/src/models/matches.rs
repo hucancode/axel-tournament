@@ -1,69 +1,12 @@
 use serde::{Deserialize, Serialize};
-use surrealdb::types::{Datetime, RecordId, SurrealValue};
+use surrealdb::types::Datetime;
+#[cfg(test)]
+use surrealdb::types::RecordId;
 use validator::Validate;
 
+pub use axel_core::models::matches::{Match, MatchParticipant, MatchStatus};
+
 use super::{bare_key, opt_bare_key, vec_bare_key};
-
-#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue, Default)]
-pub struct Match {
-    pub id: Option<RecordId>,
-    pub tournament_id: Option<RecordId>, // Optional for standalone interactive matches
-    pub game_id: String, // Changed from Thing - games are now hardcoded
-    pub status: MatchStatus,
-    pub participants: Vec<MatchParticipant>,
-    pub metadata: Option<serde_json::Value>, // For game-specific replay data or logs
-    pub room_id: Option<RecordId>, // For interactive matches
-    pub game_event_source: Option<String>, // Game state history for reconnection
-    pub judge_server_name: Option<String>, // Which judge server claimed this match
-    #[serde(default)]
-    pub error_message: Option<String>, // Set when match transitions to Failed
-    /// Users at fault (runtime error, illegal move, compile fail) for
-    /// this match. Empty when nobody is at fault — typical Completed.
-    /// Per-participant losses come from this list, not the whole-match
-    /// `Failed` status.
-    #[serde(default)]
-    pub faulted_user_ids: Vec<RecordId>,
-    /// Bracket-only metadata. `round` 0 = first round; `bracket` is
-    /// "winners" / "losers" / "grand_final" for double-elim. NONE for
-    /// round-robin / all-vs-all matches.
-    #[serde(default)]
-    pub round: Option<u32>,
-    #[serde(default)]
-    pub bracket: Option<String>,
-    /// Position within the round (0-indexed). Used to wire the winner
-    /// of this match into participant slot of the next round's match.
-    #[serde(default)]
-    pub bracket_position: Option<u32>,
-    /// Set to true once `apply_ranked_result` has consumed this row,
-    /// so the healer's ELO/score-accumulator pass is idempotent. Only
-    /// meaningful for ranked matches.
-    #[serde(default)]
-    pub elo_applied: bool,
-    pub created_at: Datetime,
-    pub updated_at: Datetime,
-    pub started_at: Option<Datetime>,
-    pub completed_at: Option<Datetime>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, SurrealValue, Default)]
-#[serde(rename_all = "lowercase")]
-#[surreal(untagged, lowercase)]
-pub enum MatchStatus {
-    #[default]
-    Pending,
-    Queued,
-    Running,
-    Completed,
-    Failed,
-    Cancelled,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
-pub struct MatchParticipant {
-    pub user_id: RecordId,
-    pub submission_id: Option<RecordId>, // For automated matches
-    pub score: Option<f64>,
-}
 
 #[derive(Debug, Clone, Serialize)]
 pub struct MatchResponse {
@@ -125,41 +68,6 @@ impl From<MatchParticipant> for MatchParticipantResponse {
             user_id: bare_key(&p.user_id),
             submission_id: opt_bare_key(&p.submission_id),
             score: p.score,
-        }
-    }
-}
-
-impl Match {
-    /// Single bracket-style winner (or `None` if undecidable).
-    /// Completed: top score among non-faulted participants. Failed:
-    /// only if exactly one non-faulted participant remains. Other
-    /// statuses: `None`.
-    pub fn winner(&self) -> Option<MatchParticipant> {
-        match self.status {
-            MatchStatus::Completed => {
-                let mut best: Option<&MatchParticipant> = None;
-                for p in &self.participants {
-                    if self.faulted_user_ids.contains(&p.user_id) {
-                        continue;
-                    }
-                    let s = p.score.unwrap_or(0.0);
-                    match best {
-                        None => best = Some(p),
-                        Some(b) if s > b.score.unwrap_or(0.0) => best = Some(p),
-                        _ => {}
-                    }
-                }
-                best.cloned()
-            }
-            MatchStatus::Failed => {
-                let alive: Vec<&MatchParticipant> = self
-                    .participants
-                    .iter()
-                    .filter(|p| !self.faulted_user_ids.contains(&p.user_id))
-                    .collect();
-                (alive.len() == 1).then(|| alive[0].clone())
-            }
-            _ => None,
         }
     }
 }

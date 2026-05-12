@@ -1,0 +1,21 @@
+[package]
+name = "axel-core"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+name = "axel_core"
+path = "src/lib.rs"
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+surrealdb.workspace = true
+jsonwebtoken.workspace = true
+chrono.workspace = true
+thiserror.workspace = true
+axum = { workspace = true }
+validator = { workspace = true }
+tokio = { workspace = true }
+tracing.workspace = true
+async-trait.workspace = true

@@ -1,8 +1,12 @@
 use api::{
     AppState,
     config::Config,
-    db, router,
-    services::{auth::AuthConfig, healer::run_healer},
+    db::{self, SeedCreds},
+    router,
+    services::{
+        auth::AuthConfig,
+        healer::{bootstrap, run_bootstrap_loop, run_healer},
+    },
 };
 use std::sync::Arc;
 
@@ -17,23 +21,40 @@ async fn main() -> anyhow::Result<()> {
         jwt_expiration: config.jwt.expiration,
     };
 
-    let admin_password_hash = api::services::auth::hash_password(&config.admin.password)?;
-    let bob_password_hash = api::services::auth::hash_password(&config.bob.password)?;
-    let alice_password_hash = api::services::auth::hash_password(&config.alice.password)?;
-    db::seed_users(
-        &db,
-        &config.admin.email,
-        admin_password_hash,
-        &config.bob.email,
-        bob_password_hash,
-        &config.alice.email,
-        alice_password_hash,
-    )
-    .await?;
+    // Seed credentials are always built and handed to the bootstrap
+    // loop so dropping the user table at runtime self-heals. Operators
+    // who don't want auto-seed override admin/alice/bob env vars (or
+    // set SEED_USERS=false to disable entirely).
+    let seed = if std::env::var("SEED_USERS").ok().as_deref() == Some("false") {
+        None
+    } else {
+        let creds = SeedCreds {
+            admin_email: config.admin.email.clone(),
+            admin_password_hash: api::services::auth::hash_password(&config.admin.password)?,
+            alice_email: config.alice.email.clone(),
+            alice_password_hash: api::services::auth::hash_password(&config.alice.password)?,
+            bob_email: config.bob.email.clone(),
+            bob_password_hash: api::services::auth::hash_password(&config.bob.password)?,
+        };
+        // Run a synchronous bootstrap once at startup so the API never
+        // serves traffic before schema + dev users exist. The recurring
+        // loop below keeps it that way if anything wipes the table later.
+        bootstrap(&db, Some(&creds)).await?;
+        Some(Arc::new(creds))
+    };
 
+    let mut supervisor = axel_core::tasks::Supervisor::new();
     let healer_db = db.clone();
-    tokio::spawn(async move {
-        run_healer(healer_db).await;
+    supervisor.spawn_forever("healer", move || {
+        let db = healer_db.clone();
+        async move { run_healer(db).await }
+    });
+    let bootstrap_db = db.clone();
+    let bootstrap_seed = seed.clone();
+    supervisor.spawn_forever("bootstrap", move || {
+        let db = bootstrap_db.clone();
+        let seed = bootstrap_seed.clone();
+        async move { run_bootstrap_loop(db, seed).await }
     });
 
     let state = AppState {

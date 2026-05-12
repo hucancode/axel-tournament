@@ -147,7 +147,8 @@ async fn ttt_x_wins_top_row() {
     let events = collect_events(&live, |live| async move {
         live.handle_act("x", "JOIN", "").await.unwrap();
         live.handle_act("o", "JOIN", "").await.unwrap();
-        live.handle_act("x", "START", "").await.unwrap();
+        // 3x3 board with 3-in-a-row to win (classic tic-tac-toe).
+        live.handle_act("x", "START", "3 3").await.unwrap();
         live.handle_act("x", "MOVE", "0 0").await.unwrap();
         live.handle_act("o", "MOVE", "1 0").await.unwrap();
         live.handle_act("x", "MOVE", "0 1").await.unwrap();

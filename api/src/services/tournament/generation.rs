@@ -1,11 +1,12 @@
 use crate::{
     db::Database,
-    error::{ApiError, ApiResult},
+    error::{AppError, AppResult},
     models::{
         matches::{Match, MatchParticipant, MatchStatus},
         tournament::{MatchGenerationType, Tournament, TournamentParticipant},
     },
 };
+use axel_core::repo::matches::MatchRepo;
 use surrealdb::types::Datetime;
 
 /// Dispatch to the right match-generation strategy. Returns the count of
@@ -14,7 +15,7 @@ pub async fn generate_matches(
     db: &Database,
     tournament: &Tournament,
     participants: &[TournamentParticipant],
-) -> ApiResult<usize> {
+) -> AppResult<usize> {
     match tournament.match_generation_type {
         MatchGenerationType::AllVsAll => {
             generate_pairwise(db, tournament, participants, /*include_self_and_dupes=*/ true)
@@ -44,7 +45,7 @@ async fn generate_pairwise(
     tournament: &Tournament,
     participants: &[TournamentParticipant],
     include_self_and_dupes: bool,
-) -> ApiResult<usize> {
+) -> AppResult<usize> {
     let mut created = 0;
     if include_self_and_dupes {
         for p1 in participants {
@@ -71,7 +72,7 @@ async fn generate_elimination_round_zero(
     db: &Database,
     tournament: &Tournament,
     participants: &[TournamentParticipant],
-) -> ApiResult<usize> {
+) -> AppResult<usize> {
     let pairs = single_elim_round_zero(participants.len());
     let mut created = 0;
     for (pos, (a, b)) in pairs.iter().enumerate() {
@@ -88,20 +89,20 @@ async fn create_match_for_participants(
     tournament: &Tournament,
     p1: &TournamentParticipant,
     p2: &TournamentParticipant,
-) -> ApiResult<()> {
+) -> AppResult<()> {
     let submission_id_1 = p1
         .submission_id
         .clone()
-        .ok_or_else(|| ApiError::Internal("Participant missing submission".to_string()))?;
+        .ok_or_else(|| AppError::Internal("Participant missing submission".to_string()))?;
     let submission_id_2 = p2
         .submission_id
         .clone()
-        .ok_or_else(|| ApiError::Internal("Participant missing submission".to_string()))?;
+        .ok_or_else(|| AppError::Internal("Participant missing submission".to_string()))?;
 
     let tournament_id = tournament
         .id
         .clone()
-        .ok_or_else(|| ApiError::Internal("Tournament missing id".to_string()))?;
+        .ok_or_else(|| AppError::Internal("Tournament missing id".to_string()))?;
     let match_data = Match {
         tournament_id: Some(tournament_id),
         game_id: tournament.game_id.clone(),
@@ -119,7 +120,7 @@ async fn create_match_for_participants(
         ],
         ..Default::default()
     };
-    let _: Option<Match> = db.create("match").content(match_data).await?;
+    <Database as MatchRepo>::create(db, match_data).await?;
     Ok(())
 }
 
@@ -171,11 +172,11 @@ async fn create_bracket_match(
     round: u32,
     bracket: &str,
     position: u32,
-) -> ApiResult<()> {
+) -> AppResult<()> {
     let tournament_id = tournament
         .id
         .clone()
-        .ok_or_else(|| ApiError::Internal("Tournament missing id".to_string()))?;
+        .ok_or_else(|| AppError::Internal("Tournament missing id".to_string()))?;
 
     let mut participants = vec![MatchParticipant {
         user_id: p1.user_id.clone(),
@@ -212,7 +213,7 @@ async fn create_bracket_match(
         completed_at,
         ..Default::default()
     };
-    let _: Option<Match> = db.create("match").content(match_data).await?;
+    <Database as MatchRepo>::create(db, match_data).await?;
     Ok(())
 }
 

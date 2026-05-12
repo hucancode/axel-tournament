@@ -13,11 +13,11 @@ mod db;
 use api::{
     config::Config,
     models::{TournamentKind, TournamentStatus, RoomStatus},
-    services::{matchmaking, room as room_svc, tournament, user},
+    services::{matchmaking, room as room_svc, tournament},
 };
 use surrealdb::types::RecordId;
 
-const GAME: &str = "rock-paper-scissors";
+const GAME: &str = "tic-tac-toe";
 
 fn unique(prefix: &str) -> String {
     let n = std::time::SystemTime::now()
@@ -29,7 +29,7 @@ fn unique(prefix: &str) -> String {
 
 async fn bob(db: &api::db::Database) -> RecordId {
     let cfg = Config::from_env();
-    user::get_user_by_email(db, &cfg.bob.email)
+    <api::db::Database as axel_core::repo::user::UserRepo>::find_by_email(db, &cfg.bob.email)
         .await
         .unwrap()
         .unwrap()
@@ -39,7 +39,7 @@ async fn bob(db: &api::db::Database) -> RecordId {
 
 async fn alice(db: &api::db::Database) -> RecordId {
     let cfg = Config::from_env();
-    user::get_user_by_email(db, &cfg.alice.email)
+    <api::db::Database as axel_core::repo::user::UserRepo>::find_by_email(db, &cfg.alice.email)
         .await
         .unwrap()
         .unwrap()

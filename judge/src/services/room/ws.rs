@@ -1,6 +1,6 @@
 // Room WebSocket handler. Spec: judge/protocols/wire.md.
 
-use crate::middleware::auth::validate_jwt;
+use axel_core::auth::validate_token;
 use crate::protocol::{parse_client, serialize_server, ClientFrame, ParseError, ServerFrame};
 use crate::services::storage::Event;
 use crate::services::room::logic::{LiveRoom, RoomLogic, RoomRegistry};
@@ -48,10 +48,10 @@ pub async fn handle_ws<L: RoomLogic>(socket: WebSocket, room_id: String, ctx: Ar
         }
     };
 
-    let player_id = match validate_jwt(&jwt, &ctx.jwt_secret) {
+    let player_id = match validate_token(&ctx.jwt_secret, &jwt) {
         Ok(claims) => claims.sub,
         Err(e) => {
-            send_err(&mut tx, "AUTH", &e).await;
+            send_err(&mut tx, "AUTH", &format!("{e}")).await;
             return;
         }
     };

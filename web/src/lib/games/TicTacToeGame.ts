@@ -1,5 +1,11 @@
 import { Graphics, Text } from 'pixi.js';
-import { BasePixiGame, type GameContext, type GameResult, type GameStatus } from './BasePixiGame';
+import {
+  BasePixiGame,
+  type CanvasDimensions,
+  type GameContext,
+  type GameResult,
+  type GameStatus,
+} from './BasePixiGame';
 import { COLORS } from './types';
 
 const DEFAULT_SIZE = 16;
@@ -14,6 +20,11 @@ export class TicTacToeGame extends BasePixiGame {
   private board: ('X' | 'O' | null)[] = [];
   private moveCount = 0;
   private outcome: 'win' | 'lose' | 'draw' | null = null;
+  private hoverIdx: number | null = null;
+
+  protected getDimensions(): CanvasDimensions {
+    return { width: CANVAS_SIZE, height: CANVAS_SIZE };
+  }
 
   public handleEvent(kind: string, payload: string, ctx: GameContext): void {
     this.ctx = ctx;
@@ -28,6 +39,7 @@ export class TicTacToeGame extends BasePixiGame {
         this.board = Array(this.boardSize * this.boardSize).fill(null);
         this.moveCount = 0;
         this.outcome = null;
+        this.hoverIdx = null;
         this.gameState.status = 'playing';
         this.gameState.result = undefined;
         this.refresh();
@@ -111,33 +123,49 @@ export class TicTacToeGame extends BasePixiGame {
     const symbolFont = Math.max(10, Math.floor(cellSize * 0.6));
     const strokeWidth = this.boardSize <= 8 ? 2 : 1;
 
+    const mySym: 'X' | 'O' = me === 0 ? 'X' : 'O';
     for (let i = 0; i < this.board.length; i++) {
       const row = Math.floor(i / this.boardSize);
       const col = i % this.boardSize;
       const x = padding + col * cellSize;
       const y = padding + row * cellSize;
+      const isHover = this.hoverIdx === i && isMyTurn && !this.board[i];
 
       const cell = new Graphics();
       cell.rect(x, y, cellSize, cellSize);
-      cell.fill(COLORS.WHITE);
+      cell.fill(isHover ? 0xfff6c8 : COLORS.WHITE);
       cell.stroke({ width: strokeWidth, color: COLORS.BLACK });
 
       if (this.gameState.status === 'playing' && !this.board[i] && isMyTurn) {
         cell.interactive = true;
         cell.cursor = 'pointer';
         cell.on('pointerdown', () => this.makeMove(row, col));
+        cell.on('pointerover', () => {
+          if (this.hoverIdx !== i) {
+            this.hoverIdx = i;
+            this.refresh();
+          }
+        });
+        cell.on('pointerout', () => {
+          if (this.hoverIdx === i) {
+            this.hoverIdx = null;
+            this.refresh();
+          }
+        });
       }
       this.container.addChild(cell);
 
-      if (this.board[i]) {
+      const mark = this.board[i] ?? (isHover ? mySym : null);
+      if (mark) {
         const text = new Text({
-          text: this.board[i]!,
+          text: mark,
           style: {
             fontSize: symbolFont,
-            fill: this.board[i] === 'X' ? COLORS.BLUE : COLORS.RED,
+            fill: mark === 'X' ? COLORS.BLUE : COLORS.RED,
             fontWeight: 'bold',
           },
         });
+        if (!this.board[i]) text.alpha = 0.35;
         text.x = x + cellSize / 2 - text.width / 2;
         text.y = y + cellSize / 2 - text.height / 2;
         this.container.addChild(text);
@@ -150,6 +178,7 @@ export class TicTacToeGame extends BasePixiGame {
     const me = this.ctx.myIndex;
     if (me < 0 || this.moveCount % 2 !== me) return;
     if (this.board[row * this.boardSize + col]) return;
+    this.hoverIdx = null;
     this.sendMove(`${row} ${col}`);
   }
 }

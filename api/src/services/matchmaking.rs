@@ -11,7 +11,7 @@
 
 use crate::{
     db::Database,
-    error::{ApiError, ApiResult},
+    error::{AppError, AppResult},
     models::tournament::{TournamentKind, TournamentStatus},
     services::{elo::DEFAULT_ELO, room as room_svc, tournament as tournament_svc},
 };
@@ -35,10 +35,10 @@ pub async fn enqueue(
     db: &Database,
     tournament_id: RecordId,
     user_id: RecordId,
-) -> ApiResult<MatchmakingTicket> {
+) -> AppResult<MatchmakingTicket> {
     let part = tournament_svc::get_participant(db, &tournament_id, &user_id)
         .await?
-        .ok_or_else(|| ApiError::Forbidden("You must join the tournament first".to_string()))?;
+        .ok_or_else(|| AppError::Forbidden("You must join the tournament first".to_string()))?;
     let elo = part.elo.unwrap_or(DEFAULT_ELO);
 
     let mut existing_resp = db
@@ -62,14 +62,14 @@ pub async fn enqueue(
     };
     let created: Option<MatchmakingTicket> =
         db.create("matchmaking_ticket").content(ticket).await?;
-    created.ok_or_else(|| ApiError::Internal("Failed to enqueue".to_string()))
+    created.ok_or_else(|| AppError::Internal("Failed to enqueue".to_string()))
 }
 
 pub async fn dequeue(
     db: &Database,
     tournament_id: RecordId,
     user_id: RecordId,
-) -> ApiResult<()> {
+) -> AppResult<()> {
     db.query(
         "DELETE matchmaking_ticket
          WHERE tournament_id = $tid AND user_id = $uid",
@@ -82,12 +82,9 @@ pub async fn dequeue(
 
 /// Pair queued players for one tournament, creating ranked rooms for
 /// each match. Returns the number of rooms created.
-pub async fn tick(db: &Database, tournament_id: RecordId) -> ApiResult<u32> {
-    use crate::models::tournament::Tournament;
-    let tournament: Tournament = {
-        let opt: Option<Tournament> = db.select(&tournament_id).await?;
-        opt.ok_or_else(|| ApiError::NotFound("Tournament not found".to_string()))?
-    };
+pub async fn tick(db: &Database, tournament_id: RecordId) -> AppResult<u32> {
+    use axel_core::repo::tournament::TournamentRepo;
+    let tournament = <Database as TournamentRepo>::get_by_id(db, &tournament_id).await?;
     if tournament.kind != TournamentKind::Human {
         return Ok(0);
     }

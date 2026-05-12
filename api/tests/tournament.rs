@@ -2,7 +2,7 @@ mod db;
 use api::{
     config::Config,
     models::{CreateTournamentRequest, MatchGenerationType, TournamentStatus},
-    services::{matches, submission, tournament, user},
+    services::{matches, submission, tournament},
 };
 use surrealdb::types::RecordId;
 use validator::Validate;
@@ -20,7 +20,7 @@ const TEST_GAME_ID: &str = "rock-paper-scissors";
 
 async fn get_bob_user(db: &api::db::Database) -> api::models::User {
     let config = Config::from_env();
-    user::get_user_by_email(db, &config.bob.email)
+    <api::db::Database as axel_core::repo::user::UserRepo>::find_by_email(db, &config.bob.email)
         .await
         .unwrap()
         .expect("Bob user should exist")
@@ -28,7 +28,7 @@ async fn get_bob_user(db: &api::db::Database) -> api::models::User {
 
 async fn get_alice_user(db: &api::db::Database) -> api::models::User {
     let config = Config::from_env();
-    user::get_user_by_email(db, &config.alice.email)
+    <api::db::Database as axel_core::repo::user::UserRepo>::find_by_email(db, &config.alice.email)
         .await
         .unwrap()
         .expect("Alice user should exist")
@@ -228,7 +228,7 @@ async fn test_start_tournament_all_vs_all() {
             &db,
             user_id.clone(),
             tournament_id.clone(),
-            TEST_GAME_ID.to_string(),
+            
             api::models::ProgrammingLanguage::Rust,
             "fn main() {}".to_string(),
         )
@@ -297,7 +297,7 @@ async fn test_start_tournament_round_robin() {
             &db,
             user_id.clone(),
             tournament_id.clone(),
-            TEST_GAME_ID.to_string(),
+            
             api::models::ProgrammingLanguage::Rust,
             "fn main() {}".to_string(),
         )

@@ -1,9 +1,10 @@
 use crate::{
     AppState,
-    error::ApiResult,
+    db::Database,
+    error::AppResult,
     models::{UserInfo, rid},
-    services::user,
 };
+use axel_core::repo::user::UserRepo;
 use axum::{
     Json,
     extract::{Path, Query, State},
@@ -24,8 +25,8 @@ pub struct ListUsersQuery {
 pub async fn list_users(
     State(state): State<AppState>,
     Query(query): Query<ListUsersQuery>,
-) -> ApiResult<Json<Vec<UserInfo>>> {
-    let users = user::list_users(&state.db, query.limit, query.offset).await?;
+) -> AppResult<Json<Vec<UserInfo>>> {
+    let users = <Database as UserRepo>::list(&state.db, query.limit, query.offset).await?;
     let infos: Result<Vec<UserInfo>, _> = users.iter().map(|u| u.to_info()).collect();
     Ok(Json(infos?))
 }
@@ -34,15 +35,15 @@ pub async fn ban_user(
     State(state): State<AppState>,
     Path(user_id): Path<String>,
     Json(payload): Json<BanUserRequest>,
-) -> ApiResult<Json<UserInfo>> {
-    let u = user::ban_user(&state.db, rid("user", user_id), payload.reason).await?;
+) -> AppResult<Json<UserInfo>> {
+    let u = <Database as UserRepo>::ban(&state.db, rid("user", user_id), payload.reason).await?;
     Ok(Json(u.to_info()?))
 }
 
 pub async fn unban_user(
     State(state): State<AppState>,
     Path(user_id): Path<String>,
-) -> ApiResult<Json<UserInfo>> {
-    let u = user::unban_user(&state.db, rid("user", user_id)).await?;
+) -> AppResult<Json<UserInfo>> {
+    let u = <Database as UserRepo>::unban(&state.db, rid("user", user_id)).await?;
     Ok(Json(u.to_info()?))
 }

@@ -1,6 +1,6 @@
 use crate::{
     config::EmailConfig,
-    error::{ApiError, ApiResult},
+    error::{AppError, AppResult},
 };
 use lettre::{
     Message, SmtpTransport, Transport,
@@ -12,9 +12,9 @@ pub async fn send_password_reset(
     config: &EmailConfig,
     to_email: &str,
     reset_token: &str,
-) -> ApiResult<()> {
+) -> AppResult<()> {
     if config.smtp_username.trim().is_empty() || config.smtp_password.trim().is_empty() {
-        return Err(ApiError::Email(
+        return Err(AppError::Email(
             "SMTP credentials are not configured".to_string(),
         ));
     }
@@ -29,22 +29,22 @@ pub async fn send_password_reset(
             config
                 .from_address
                 .parse()
-                .map_err(|e| ApiError::Email(format!("Invalid from address: {}", e)))?,
+                .map_err(|e| AppError::Email(format!("Invalid from address: {}", e)))?,
         )
         .to(to_email
             .parse()
-            .map_err(|e| ApiError::Email(format!("Invalid recipient address: {}", e)))?)
+            .map_err(|e| AppError::Email(format!("Invalid recipient address: {}", e)))?)
         .subject("Password Reset Request")
         .header(ContentType::TEXT_PLAIN)
         .body(body)
-        .map_err(|e| ApiError::Email(format!("Failed to build email: {}", e)))?;
+        .map_err(|e| AppError::Email(format!("Failed to build email: {}", e)))?;
     let mailer = if config.smtp_use_tls {
         let creds = Credentials::new(
             config.smtp_username.clone(),
             config.smtp_password.clone(),
         );
         SmtpTransport::relay(&config.smtp_host)
-            .map_err(|e| ApiError::Email(format!("Failed to build SMTP transport: {}", e)))?
+            .map_err(|e| AppError::Email(format!("Failed to build SMTP transport: {}", e)))?
             .port(config.smtp_port)
             .credentials(creds)
             .build()
@@ -55,6 +55,6 @@ pub async fn send_password_reset(
     };
     mailer
         .send(&email)
-        .map_err(|e| ApiError::Email(format!("Failed to send email: {}", e)))?;
+        .map_err(|e| AppError::Email(format!("Failed to send email: {}", e)))?;
     Ok(())
 }

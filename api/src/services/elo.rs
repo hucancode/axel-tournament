@@ -9,7 +9,7 @@
 //     (1.0 / 0.5 / 0.0) to the score; poker would replace this with chip
 //     totals once the judge → api score channel is wired up.
 
-use crate::{db::Database, error::ApiResult, models::game::ScoringKind};
+use crate::{db::Database, error::AppResult, models::game::ScoringKind};
 use surrealdb::types::RecordId;
 
 pub const DEFAULT_ELO: f64 = 1000.0;
@@ -42,7 +42,7 @@ pub async fn apply_ranked_result(
     players: &[RecordId],
     winner: &Option<RecordId>,
     scores: Option<&[f64]>,
-) -> ApiResult<()> {
+) -> AppResult<()> {
     if players.len() != 2 {
         return Ok(());
     }
@@ -89,7 +89,7 @@ async fn current_score(
     tournament_id: &RecordId,
     user_id: &RecordId,
     default: f64,
-) -> ApiResult<f64> {
+) -> AppResult<f64> {
     Ok(crate::services::tournament::get_participant(db, tournament_id, user_id)
         .await?
         .and_then(|p| p.elo)
@@ -101,7 +101,7 @@ async fn write_score(
     tournament_id: &RecordId,
     user_id: &RecordId,
     score: f64,
-) -> ApiResult<()> {
+) -> AppResult<()> {
     db.query(
         "UPDATE tournament_participant SET elo = $elo
          WHERE tournament_id = $tid AND user_id = $uid",

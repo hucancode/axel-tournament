@@ -1,7 +1,7 @@
 mod db;
 
 use api::{
-    config::Config, services::{leaderboard, tournament, user}
+    config::Config, services::{leaderboard, tournament}
 };
 
 fn unique_name(prefix: &str) -> String {
@@ -17,7 +17,7 @@ const TEST_GAME_ID: &str = "rock-paper-scissors";
 
 async fn get_bob_user(db: &api::db::Database) -> api::models::User {
     let config = Config::from_env();
-    user::get_user_by_email(db, &config.bob.email)
+    <api::db::Database as axel_core::repo::user::UserRepo>::find_by_email(db, &config.bob.email)
         .await
         .unwrap()
         .expect("Bob user should exist")
@@ -25,7 +25,7 @@ async fn get_bob_user(db: &api::db::Database) -> api::models::User {
 
 async fn get_alice_user(db: &api::db::Database) -> api::models::User {
     let config = Config::from_env();
-    user::get_user_by_email(db, &config.alice.email)
+    <api::db::Database as axel_core::repo::user::UserRepo>::find_by_email(db, &config.alice.email)
         .await
         .unwrap()
         .expect("Alice user should exist")

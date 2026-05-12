@@ -1,5 +1,11 @@
 import { Graphics, Text } from 'pixi.js';
-import { BasePixiGame, type GameContext, type GameResult, type GameStatus } from './BasePixiGame';
+import {
+  BasePixiGame,
+  type CanvasDimensions,
+  type GameContext,
+  type GameResult,
+  type GameStatus,
+} from './BasePixiGame';
 import { COLORS } from './types';
 
 /** Spec: judge/protocols/chess.md. Player 0 = white, player 1 = black. */
@@ -44,6 +50,10 @@ export class ChessGame extends BasePixiGame {
   private castle = { wk: true, wq: true, bk: true, bq: true };
   private enPassant: number | null = null;
   private pendingPromotion: { from: number; to: number } | null = null;
+
+  protected getDimensions(): CanvasDimensions {
+    return { width: BOARD_PX, height: BOARD_PX };
+  }
 
   public handleEvent(kind: string, payload: string, ctx: GameContext): void {
     this.ctx = ctx;

@@ -1,6 +1,6 @@
 use crate::{
     AppState,
-    error::ApiResult,
+    error::AppResult,
     models::{
         matches::{CreateMatchRequest, MatchResponse},
         rid,
@@ -27,10 +27,10 @@ pub struct ListMatchesQuery {
 pub async fn create_match(
     State(state): State<AppState>,
     Json(payload): Json<CreateMatchRequest>,
-) -> ApiResult<(StatusCode, Json<MatchResponse>)> {
+) -> AppResult<(StatusCode, Json<MatchResponse>)> {
     payload
         .validate()
-        .map_err(|e| crate::error::ApiError::Validation(e.to_string()))?;
+        .map_err(|e| crate::error::AppError::Validation(e.to_string()))?;
     let tournament_id = rid("tournament", payload.tournament_id);
     let game_id = payload.game_id;
     let submission_ids = payload
@@ -46,7 +46,7 @@ pub async fn create_match(
 pub async fn get_match(
     State(state): State<AppState>,
     Path(match_id): Path<String>,
-) -> ApiResult<Json<MatchResponse>> {
+) -> AppResult<Json<MatchResponse>> {
     let match_data = services::matches::get_match(&state.db, rid("match", match_id)).await?;
     Ok(Json(match_data.into()))
 }
@@ -54,7 +54,7 @@ pub async fn get_match(
 pub async fn list_matches(
     State(state): State<AppState>,
     Query(query): Query<ListMatchesQuery>,
-) -> ApiResult<Json<Vec<MatchResponse>>> {
+) -> AppResult<Json<Vec<MatchResponse>>> {
     let tournament_id = query.tournament_id.map(|id| rid("tournament", id));
     let game_id = query.game_id.map(|id| rid("game", id));
     let user_id = query.user_id.map(|id| rid("user", id));

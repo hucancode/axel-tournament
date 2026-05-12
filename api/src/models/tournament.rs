@@ -1,36 +1,14 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use surrealdb::types::{Datetime, RecordId, SurrealValue};
+use surrealdb::types::Datetime;
 use validator::Validate;
 
+pub use axel_core::models::tournament::{
+    MatchGenerationType, Tournament, TournamentKind, TournamentParticipant, TournamentStatus,
+};
+
 use super::{bare_key, opt_bare_key};
-
-#[derive(Debug, Clone, Deserialize, SurrealValue)]
-pub struct Tournament {
-    pub id: Option<RecordId>,
-    pub game_id: String, // Game ID (e.g., "rock-paper-scissors")
-    pub name: String,
-    pub description: String,
-    pub status: TournamentStatus,
-    pub min_players: u32,
-    pub max_players: u32,
-    pub start_time: Option<Datetime>,
-    pub end_time: Option<Datetime>,
-    pub match_generation_type: MatchGenerationType,
-    #[serde(default)]
-    pub kind: TournamentKind,
-    /// Free-form per-game configuration. Copied to every ranked room
-    /// spawned by matchmaking; the judge logic owns the schema.
-    #[serde(default = "default_config")]
-    pub config: Value,
-    pub created_at: Datetime,
-    pub updated_at: Datetime,
-}
-
-fn default_config() -> Value {
-    Value::Object(serde_json::Map::new())
-}
 
 #[derive(Debug, Clone, Serialize)]
 pub struct TournamentResponse {
@@ -80,86 +58,6 @@ impl From<(Tournament, u32)> for TournamentResponse {
     }
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, SurrealValue)]
-#[serde(rename_all = "lowercase")]
-#[surreal(untagged, lowercase)]
-pub enum TournamentKind {
-    /// Code-vs-code: bots upload, judge runs matches.
-    Bot,
-    /// Human-vs-human: players play through rooms.
-    Human,
-}
-
-impl Default for TournamentKind {
-    fn default() -> Self {
-        Self::Bot
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, SurrealValue)]
-#[serde(rename_all = "snake_case")]
-#[surreal(untagged)]
-pub enum MatchGenerationType {
-    /// Each player plays against every other player (including themselves)
-    /// For N players: N * N matches
-    #[surreal(rename = "all_vs_all")]
-    AllVsAll,
-    /// Each player plays against every other player (excluding themselves)
-    /// For N players: N * (N-1) matches
-    #[surreal(rename = "round_robin")]
-    RoundRobin,
-    /// Single elimination bracket
-    #[surreal(rename = "single_elimination")]
-    SingleElimination,
-    /// Double elimination bracket
-    #[surreal(rename = "double_elimination")]
-    DoubleElimination,
-    /// Continuous score-pairing (no bracket). Players queue and get
-    /// paired by closest score; matches keep flowing until the
-    /// tournament's `end_time` is reached. Used for score-based games
-    /// (rps, prisoners-dilemma, poker) where the leaderboard is the
-    /// accumulated score column.
-    #[surreal(rename = "continuous")]
-    Continuous,
-}
-
-impl Default for MatchGenerationType {
-    fn default() -> Self {
-        MatchGenerationType::AllVsAll
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, SurrealValue)]
-#[serde(rename_all = "lowercase")]
-#[surreal(untagged, lowercase)]
-pub enum TournamentStatus {
-    Scheduled,
-    Registration,
-    Generating,
-    Running,
-    Completed,
-    Cancelled,
-}
-
-#[derive(Debug, Clone, Deserialize, SurrealValue)]
-pub struct TournamentParticipant {
-    pub id: Option<RecordId>,
-    pub tournament_id: RecordId,
-    pub user_id: RecordId,
-    pub submission_id: Option<RecordId>, // Active submission for this tournament
-    pub score: f64,
-    #[serde(default)]
-    pub wins: u32,
-    #[serde(default)]
-    pub losses: u32,
-    #[serde(default)]
-    pub draws: u32,
-    #[serde(default)]
-    pub elo: Option<f64>,
-    pub rank: Option<u32>,
-    pub joined_at: Datetime,
-}
-
 #[derive(Debug, Clone, Serialize)]
 pub struct TournamentParticipantResponse {
     pub id: Option<String>,
@@ -205,7 +103,7 @@ impl From<(TournamentParticipant, Option<String>)> for TournamentParticipantResp
 
 #[derive(Debug, Deserialize, Validate)]
 pub struct CreateTournamentRequest {
-    pub game_id: String, // Will be converted to Thing
+    pub game_id: String,
     #[validate(length(
         min = 1,
         max = 100,
@@ -220,8 +118,8 @@ pub struct CreateTournamentRequest {
     pub max_players: u32,
     pub start_time: Option<DateTime<Utc>>,
     pub end_time: Option<DateTime<Utc>>,
-    pub match_generation_type: Option<MatchGenerationType>, // Defaults to AllVsAll if not provided
-    pub kind: Option<TournamentKind>, // Defaults to Bot if not provided
+    pub match_generation_type: Option<MatchGenerationType>,
+    pub kind: Option<TournamentKind>,
     /// Free-form per-game configuration (board size, rounds, time, blind
     /// mode, etc.). Each game's logic owns the schema; api passes through.
     pub config: Option<Value>,

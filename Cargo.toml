@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["api", "judge"]
+members = ["api", "core", "judge"]
 
 [workspace.package]
 version = "0.1.0"
@@ -40,3 +40,6 @@ tracing-subscriber = "0.3"
 # Async utilities
 async-trait = "0.1.89"
 futures-util = "0.3"
+
+# Internal
+axel-core = { path = "core" }
